@@ -12,13 +12,15 @@ $count = 0
 
 class TestSpeed < Test::Unit::TestCase
 
+  CM_UNDO = 0, CM_CLEAR = 1, CM_NEW = 2
+
   def init_board(size=9)
     @goban = Goban.new(size)
   end
 
   def initialize(test_name)
     super(test_name)
-    init_board()
+    init_board
   end
 
   # Not very fancy: add the line $count += 1 wherever you want to count.
@@ -34,9 +36,14 @@ class TestSpeed < Test::Unit::TestCase
     tolerance = 1.20
     t = TimeKeeper.new(tolerance)
     t.calibrate(3.2)
-
+    if $test_all
+      puts "Ignore the GC numbers below."
+      puts "Reason: when we run other tests before the speed test the GC has some catch-up to do."
+      t.set_gc_tolerance(20)
+    end
+    
     # Basic test
-    t.start("Basic (no move validation) 100,000 stones and undo", 3.84, 0)
+    t.start("Basic (no move validation) 100,000 stones and undo", 2.8, 0)
     10000.times do
       play_10_stones
     end
@@ -58,21 +65,31 @@ class TestSpeed < Test::Unit::TestCase
     #   abcdefghi
     game1 = "c3,f3,d7,e5,c5,f7,e2,e8,d8,f2,f1,g1,e1,h2,e3,d4,e4,f4,d5,d3,d2,c2,c4,d6,e7,e6,c6,f8,e9,f9,d9,c7,c8,b8,b7"
     game1_moves_ij = moves_ij(game1)
-    t.start("35 move game, 2000 times and undo", 4.60, 3)
+    t.start("35 move game, 2000 times and undo", 3.4, 1)
     2000.times do
-      play_game_and_clean(game1_moves_ij)
+      play_game_and_clean(game1_moves_ij,CM_UNDO)
     end
     t.stop
     show_count
 
     # The idea here is to verify that undoing things is cheaper than throwing it all to GC
     # In a tree exploration strategy the undo should be the only way (otherwise we quickly hog all memory)
-    t.start("35 move game, 2000 times new board each time", 4.87, 24)
+    t.start("35 move game, 2000 times new board each time", 4.87, 15)
     2000.times do
-      play_game_and_clean(game1_moves_ij,false)
+      play_game_and_clean(game1_moves_ij,CM_NEW)
     end
     t.stop
     show_count
+
+    # And here we see that the "clear" is the faster way to restart a game 
+    # (and that it does not "leak" anything to GC)
+    t.start("35 move game, 2000 times, clear board each time", 2.5, 1)
+    2000.times do
+      play_game_and_clean(game1_moves_ij,CM_CLEAR)
+    end
+    t.stop
+    show_count
+
   end
 
   def test_speed2
@@ -97,9 +114,9 @@ class TestSpeed < Test::Unit::TestCase
     assert_equal(final_pos, @goban.image?);
     
     init_board
-    t.start("63 move game, 2000 times and undo", 1.50, 6)
+    t.start("63 move game, 2000 times and undo", 1.56, 3)
     2000.times do
-      play_game_and_clean(game2_moves_ij)
+      play_game_and_clean(game2_moves_ij,CM_UNDO)
     end
     t.stop
     show_count
@@ -124,15 +141,16 @@ class TestSpeed < Test::Unit::TestCase
     return move_count
   end
 
-  def play_game_and_clean(moves_ij, with_undo=true)
+  def play_game_and_clean(moves_ij, clean_mode)
     num_moves = moves_ij.size/2
     $log.debug("About to play a game of #{num_moves} moves") if $debug
     assert_equal(num_moves, play_moves(moves_ij))
 
-    if with_undo then
-      num_moves.times { Stone.undo(@goban) }
-    else
-      init_board()
+    case clean_mode
+    when CM_UNDO then num_moves.times { Stone.undo(@goban) }
+    when CM_CLEAR then @goban.clear
+    when CM_NEW then init_board
+    else throw "Invalid clean mode"
     end
     assert_equal(nil, @goban.previous_stone)
   end
