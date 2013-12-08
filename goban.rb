@@ -189,8 +189,12 @@ class Goban
   # Wil be used for various evaluations (currently for filling a zone)
   # color should not be a player's color nor EMPTY unless we do not plan to 
   # continue the game on this goban (or we plan to restore everything we marked)
-  def mark_a_spot!(i,j,color) # TODO refactor me
+  def mark_a_spot!(i,j,color)
     @ban[j][i].mark_a_spot!(color)
+  end
+  
+  def move_number?
+    return @history.size
   end
 
   # Plays a stone and stores it in history
