@@ -16,7 +16,7 @@ class Ai1Player < Player
     @size = @goban.size
 
     @genes = (genes ? genes : Genes.new)
-    @minimum_score = get_gene("minimum_score", 0.10, 0.08, 0.20) # TODO weird things happen if we go off limits
+    @minimum_score = get_gene("smaller-move", 0.033, 0.02, 0.066) # TODO weird things happen if we go off limits
 
     @heuristics = []
     @negative_heuristics = []
