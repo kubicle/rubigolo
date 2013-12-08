@@ -14,7 +14,6 @@ class Spacer < Heuristic
 
   def initialize(player)
     super
-    @spacer_coeff = get_gene("main", 4.0, 0.0, 8.0)
     @infl_coeff = get_gene("infl", 2.0, 0.0, 8.0)
     @corner_coeff = get_gene("corner", 2.0, 0.0, 8.0)
   end
@@ -45,7 +44,7 @@ class Spacer < Heuristic
     total_inf += (20*(2 - db_x))/(total_inf+1) if db_x<2
     total_inf += (20*(2 - db_y))/(total_inf+1) if db_y<2
 
-    return @spacer_coeff / (total_inf * @infl_coeff + dc * @corner_coeff +1)
+    return 4 / (total_inf * @infl_coeff + dc * @corner_coeff +1)
   end    
   
   def distance_from_border(n)
