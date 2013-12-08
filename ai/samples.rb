@@ -14,9 +14,9 @@ class Spacer < Heuristic
 
   def initialize(player)
     super
-    @main_coeff = get_gene("main_coeff", 4.0, 0.0, 8.0)
-    @infl_coeff = get_gene("infl_coeff", 2.0, 0.0, 8.0)
-    @corner_coeff = get_gene("corner_coeff", 2.0, 0.0, 8.0)
+    @spacer_coeff = get_gene("main", 4.0, 0.0, 8.0)
+    @infl_coeff = get_gene("infl", 2.0, 0.0, 8.0)
+    @corner_coeff = get_gene("corner", 2.0, 0.0, 8.0)
   end
 
   def eval_move(i,j)
@@ -45,7 +45,7 @@ class Spacer < Heuristic
     total_inf += (20*(2 - db_x))/(total_inf+1) if db_x<2
     total_inf += (20*(2 - db_y))/(total_inf+1) if db_y<2
 
-    return @main_coeff / (total_inf * @infl_coeff + dc * @corner_coeff +1)
+    return @spacer_coeff / (total_inf * @infl_coeff + dc * @corner_coeff +1)
   end    
   
   def distance_from_border(n)
@@ -58,8 +58,8 @@ class Pusher < Heuristic
 
   def initialize(player)
     super
-    @ally_coeff = get_gene("ally_coeff", 0.1, 0.01, 4.0)
-    @enemy_coeff = get_gene("enemy_coeff", 0.4, 0.01, 4.0)
+    @ally_coeff = get_gene("ally-infl", 0.1, 0.01, 4.0)
+    @enemy_coeff = get_gene("enemy-infl", 0.4, 0.01, 4.0)
   end
 
   def eval_move(i,j)
@@ -81,7 +81,7 @@ class Executioner < Heuristic
 
   def initialize(player)
     super
-    @main_coeff = get_gene("main_coeff", 3.0, 1.0, 10.0)
+    @stone_taken = get_gene("stone-taken", 3.0, 1.0, 10.0)
   end
 
   def eval_move(i,j)
@@ -91,7 +91,7 @@ class Executioner < Heuristic
       threat += g.stones.size if g.lives == 1
     end
     $log.debug("Executioner heuristic found a threat of #{threat} at #{i},#{j}") if $debug and threat>0
-    return @main_coeff * threat
+    return @stone_taken * threat
   end
 
 end
@@ -102,7 +102,7 @@ class Hunter < Heuristic
 
   def initialize(player,consultant=false)
     super
-    @main_coeff = get_gene("main_coeff", 3.0, 1.0, 10.0)
+    @stone_taken = get_gene("stone-taken", 3.0, 1.0, 10.0)
   end
 
   def eval_move(i,j,level=1)
@@ -118,7 +118,7 @@ class Hunter < Heuristic
       threat += g.stones.size if caught
     end # each g
     $log.debug("Hunter heuristic found a threat of #{threat} at #{i},#{j}") if $debug and threat>0
-    return @main_coeff * threat
+    return @stone_taken * threat
   end
 
   def atari_is_caught?(g,level=1)
@@ -161,7 +161,7 @@ class Savior < Heuristic
   def initialize(player)
     super
     @enemy_hunter = Hunter.new(player,true)
-    @main_coeff = get_gene("main_coeff", 3.0, 1.0, 10.0)
+    @stone_taken = get_gene("stone-taken", 3.0, 1.0, 10.0)
   end
   
   def init_color
@@ -190,7 +190,7 @@ class Savior < Heuristic
       return 0 if @enemy_hunter.atari_is_caught?(group)
     end
     $log.debug("=> Savior heuristic thinks we can save a threat of #{threat} in #{i},#{j}") if $debug
-    return @main_coeff * threat
+    return @stone_taken * threat
   end
 
 end
@@ -201,9 +201,9 @@ class Connector < Heuristic
 
   def initialize(player)
     super
-    @infl_coeff = get_gene("infl_coeff", 1.0, 0.01, 3.0)
-    @ally_coeff1 = get_gene("ally_coeff1", 3.0, 0.01, 3.0)
-    @ally_coeff2 = get_gene("ally_coeff2", 5.0, 0.01, 8.0)
+    @infl_coeff = get_gene("infl", 1.0, 0.01, 3.0)
+    @ally_coeff1 = get_gene("ally-1enemy", 3.0, 0.01, 3.0)
+    @ally_coeff2 = get_gene("ally-more-enemies", 5.0, 0.01, 8.0)
   end
 
   def eval_move(i,j)
@@ -245,7 +245,7 @@ class NoEasyPrisoner < Heuristic
   def initialize(player)
     super
     set_as_negative
-    @main_coeff = get_gene("main_coeff", 3.0, 0.01, 10.0)
+    @stone_taken = get_gene("stone-taken", 3.0, 0.01, 10.0)
     @enemy_hunter = Hunter.new(player,true)
   end
 
@@ -260,7 +260,7 @@ class NoEasyPrisoner < Heuristic
     begin
       stone = Stone.play_at(@goban,i,j,@color)
       g = stone.group
-      score = - @main_coeff * g.stones.size
+      score = - @stone_taken * g.stones.size
       if g.lives == 1
         $log.debug("NoEasyPrisoner heuristic says #{i},#{j} is plain foolish (#{score})") if $debug
         return score
