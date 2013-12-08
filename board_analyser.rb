@@ -108,32 +108,64 @@ class BoardAnalyser
     debug_dump if $debug
   end
   
-  # Work in progress...
   def _enlarge
-    backup = @goban.image?
-    num_stones = 0
-    rows = backup.split(/\"|,/)
     size = @goban.size
-    # TODO: do the enlarging again but in reverse order (from bottom right to top left corner)
-    # then compare the two situations (live groups) to get an idea of obvious dispute areas...
-    size.downto(1) do |j|
-      row = rows[size-j]
+    stones = []
+    num = Array.new(3,0) # +1 for EMPTY
+    1.upto(size) do |j|
       1.upto(size) do |i|
-        color = @goban.char_to_color(row[i-1])
-        if color != EMPTY
-          stone = @goban.stone_at?(i,j)
-          stone.neighbors.each do |n|
-            if n.color == EMPTY
-              Stone.play_at(@goban,n.i,n.j,stone.color)
-              num_stones += 1
-            end
-          end
+        empty = @goban.stone_at?(i,j)
+        next if empty.color != EMPTY
+        empty.neighbors.each { |n| num[n.color] += 1 }
+        if num[BLACK] > num[WHITE]
+          stones.push([i,j,BLACK])
+        elsif num[BLACK] < num[WHITE]
+          stones.push([i,j,WHITE])
+        end
+        num[BLACK] = num[WHITE] = 0
+      end
+    end
+    stones.each { |i,j,color| Stone.play_at(@goban,i,j,color) }
+
+    # connect stones close to borders to the border
+    2.upto(size-1) do |i|
+      if @goban.empty?(i,1)
+        next2border = @goban.stone_at?(i,2).color
+        if next2border != EMPTY and @goban.empty?(i+1,1) and @goban.empty?(i-1,1)
+          Stone.play_at(@goban,i,1,next2border)
+        end
+      end
+      if @goban.empty?(1,i)
+        next2border = @goban.stone_at?(2,i).color
+        if next2border != EMPTY and @goban.empty?(1,i+1) and @goban.empty?(1,i-1)
+          Stone.play_at(@goban,1,i,next2border)
+        end
+      end
+      if @goban.empty?(i,size)
+        next2border = @goban.stone_at?(i,size-1).color
+        if next2border != EMPTY and @goban.empty?(i+1,size) and @goban.empty?(i-1,size)
+          Stone.play_at(@goban,i,size,next2border)
+        end
+      end
+      if @goban.empty?(size,i)
+        next2border = @goban.stone_at?(size-1,i).color
+        if next2border != EMPTY and @goban.empty?(size,i+1) and @goban.empty?(size,i-1)
+          Stone.play_at(@goban,size,i,next2border)
         end
       end
     end
-    return num_stones 
-    # TODO instead we should undo each stone played and store a map with 
-    # the info collected about the groups.
+  end
+  
+  def guess_potential_future
+    @move_num_before_enlarge = @goban.move_number?
+    _enlarge
+    num_undo = @goban.move_number? - @move_num_before_enlarge
+    count_score
+
+    # TODO: analyse/store the situation (potential territory & live/dead groups)
+
+    restore
+    num_undo.times { Stone.undo(@goban) }
   end
   
   def restore
@@ -159,14 +191,16 @@ class BoardAnalyser
     print @goban.to_text { |s| color_to_char(s.color) }
     @voids.each { |v| v.debug_dump }
 
-    print "\nGroups with 2 eyes or more: "
-    @all_groups.each { |g| print "#{g.ndx}," if g.eyes.size >= 2 }
-    print "\nGroups with 1 eye: "
-    @all_groups.each { |g| print "#{g.ndx}," if g.eyes.size == 1 }
-    print "\nGroups with no eye: "
-    @all_groups.each { |g| print "#{g.ndx}," if g.eyes.size == 0 }
-    print "\nScore:\n"
-    @scores.size.times { |i| puts "Player #{i}: #{scores[i]} points" }
+    if @scores
+      print "\nGroups with 2 eyes or more: "
+      @all_groups.each { |g| print "#{g.ndx}," if g.eyes.size >= 2 }
+      print "\nGroups with 1 eye: "
+      @all_groups.each { |g| print "#{g.ndx}," if g.eyes.size == 1 }
+      print "\nGroups with no eye: "
+      @all_groups.each { |g| print "#{g.ndx}," if g.eyes.size == 0 }
+      print "\nScore:\n"
+      @scores.size.times { |i| puts "Player #{i}: #{scores[i]} points" }
+    end
   end
 
 private
@@ -179,7 +213,7 @@ private
     @all_groups.each { |g| g.reset_voids }
     @all_groups.clear
     @voids.clear
-    @filler = ZoneFiller.new(goban,@first_void_code)
+    @filler = ZoneFiller.new(goban)
     
     1.upto(@goban.size) do |j|
       1.upto(@goban.size) do |i|
