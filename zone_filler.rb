@@ -2,11 +2,8 @@
 
 class ZoneFiller
 
-  # first_void_code is used only if we collect the groups during fill_with_color
-  def initialize(goban,first_void_code)
+  def initialize(goban)
     @goban = goban
-    # @to_replace = EMPTY
-    @first_void_code = first_void_code
     @groups = nil
   end
 
@@ -61,7 +58,7 @@ private
     stone = @goban.stone_at?(i,j)
     return false if ! stone
     return true if stone.color == @to_replace
-    if @groups and stone.color < @first_void_code
+    if @groups and stone.group
       @groups[stone.color].push(stone.group) if ! @groups[stone.color].find_index(stone.group)
     end
     return false

@@ -21,7 +21,7 @@ class TestZoneFiller < Test::Unit::TestCase
     @goban = c.goban
     @@x = @goban.char_to_color("X") # we use this color for replacements
     
-    @filler = ZoneFiller.new(@goban,100)
+    @filler = ZoneFiller.new(@goban)
   end
 
   def initialize(test_name)
