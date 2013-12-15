@@ -58,14 +58,14 @@ class Stone
   end
 
   # Number of empty points around this stone
-  def num_lives?
-    lives = 0
-    @neighbors.each { |s| lives += 1 if s.color == EMPTY }
-    return lives
+  def num_empties?
+    count = 0
+    @neighbors.each { |s| count += 1 if s.color == EMPTY }
+    return count
   end
   
-  # Returns a string with the list of lives, sorted (debug only)
-  def lives_dump
+  # Returns a string with the list of empty points, sorted (debug only)
+  def empties_dump
     return empties.map{|s| s.as_move}.sort.join(",")
   end
   

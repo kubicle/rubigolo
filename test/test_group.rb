@@ -157,7 +157,7 @@ class TestGroup < Test::Unit::TestCase
   def check_stone(s,color,move,around)
     assert_equal(color, s.color)
     assert_equal(move, s.as_move)
-    assert_equal(around, s.lives_dump)
+    assert_equal(around, s.empties_dump)
   end
 
   # Verifies the around values are updated after merge

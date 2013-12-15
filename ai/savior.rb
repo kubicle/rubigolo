@@ -28,7 +28,7 @@ class Savior < Heuristic
       end
     end
     return 0 if threat == 0 # no threat
-    support += stone.num_lives?
+    support += stone.num_empties?
     $log.debug("Savior heuristic looking at #{i},#{j}: threat is #{threat}, support is #{support}") if $debug
     return 0 if support < 2  # nothing we can do here
     if support == 2
