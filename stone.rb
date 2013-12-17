@@ -58,14 +58,14 @@ class Stone
   end
 
   # Number of empty points around this stone
-  def num_lives?
-    lives = 0
-    @neighbors.each { |s| lives += 1 if s.color == EMPTY }
-    return lives
+  def num_empties?
+    count = 0
+    @neighbors.each { |s| count += 1 if s.color == EMPTY }
+    return count
   end
   
-  # Returns a string with the list of lives, sorted (debug only)
-  def lives_dump
+  # Returns a string with the list of empty points, sorted (debug only)
+  def empties_dump
     return empties.map{|s| s.as_move}.sort.join(",")
   end
   
@@ -135,7 +135,7 @@ class Stone
   # Wil be used for various evaluations (currently for filling a zone)
   # color should not be a player's color nor EMPTY unless we do not plan to 
   # continue the game on this goban (or we plan to restore everything we marked)
-  def mark_a_spot!(color) # TODO refactor me
+  def mark_a_spot!(color)
     # $log.debug("marking in #{@i},#{@j} with color #{color} (old value: #{@color})") if $debug
     @color = color
   end
@@ -143,7 +143,7 @@ class Stone
   def die
     # update_around_before_die
     @color = EMPTY
-    @group = nil # at this moment we can omit this but cleaner
+    @group = nil # NB: when "marking a spot" the color can become non empty but group will remain nil
   end
   
   def resuscitate_in(group)

@@ -10,8 +10,8 @@ $debug_breed = false # TODO move me somewhere else?
 class Breeder
 
   GENERATION_SIZE = 26 # must be even number
-  NUM_TOURNAMENTS = 0
-  NUM_MATCH_PER_AI_PER_TOURNAMENT = 4
+  NUM_TOURNAMENTS = 10
+  NUM_MATCH_PER_AI_PER_TOURNAMENT = 3
   MUTATION_RATE = 0.03 # e.g. 0.02 is 2%
   WIDE_MUTATION_RATE = 0.10 # how often do we "widely" mutate
   KOMI = 0.5
@@ -164,10 +164,11 @@ class Breeder
 
 end
 
-opts = Trollop::options do
-  opt :size, "Goban size", :default => 9
+if ! $test_all
+  opts = Trollop::options do
+    opt :size, "Goban size", :default => 9
+  end
+  
+  breeder = Breeder.new(opts[:size])
+  breeder.run
 end
-
-breeder = Breeder.new(opts[:size])
-breeder.run
-

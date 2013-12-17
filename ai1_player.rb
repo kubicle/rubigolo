@@ -1,3 +1,9 @@
+# TODO: 
+# - do not fill my own territory (potential territory recognition will use analyser.enlarge method)
+# - identify all foolish moves (like NoEasyPrisoner but once for all) in a map that all heuristics can use
+# - foresee a poursuit = on attack/defense (and/or use a reverse-killer?)
+# - an eye shape constructor
+
 require_relative "player"
 require_relative "goban"
 require_relative "influence_map"
@@ -16,7 +22,7 @@ class Ai1Player < Player
     @size = @goban.size
 
     @genes = (genes ? genes : Genes.new)
-    @minimum_score = get_gene("minimum_score", 0.10, 0.08, 0.20) # TODO weird things happen if we go off limits
+    @minimum_score = get_gene("smaller-move", 0.033, 0.02, 0.066)
 
     @heuristics = []
     @negative_heuristics = []

@@ -1,5 +1,7 @@
 # Tests all
 
+$test_all = true
+
 require_relative "test_stone"
 require_relative "test_group"
 require_relative "test_board_analyser"
