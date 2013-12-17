@@ -33,7 +33,7 @@ class TestAi < Test::Unit::TestCase
     #   abcdefghi
     @controller.load_moves("i8,i9,d7,c5")
     # @goban.debug_display
-    assert_equal("h9", @controller.let_ai_play) # FIXME: h8 is better than killing in h9
+    assert_equal("h9", @controller.let_ai_play) # FIXME: h8 is better than killing in h9 (non trivial)
   end
 
   def test_issue_hunter
@@ -43,9 +43,10 @@ class TestAi < Test::Unit::TestCase
     # 2 ++O@O@+++
     # 1 +++OO++++
     #   abcdefghi
+    # Hunter should not attack in c1 since c1 would be in atari
     @controller.load_moves("d4,e2,d2,c3,d3,c2,b4,d1,c4,f4,f3,e3,e4,g3,f2,e1")
     # @goban.debug_display
-    assert_equal("c1", @controller.let_ai_play) # FIXME: should NOT be c1
+    assert_not_equal("c1", @controller.let_ai_play)
   end
 
   def test_hunter_1
@@ -84,8 +85,7 @@ class TestAi < Test::Unit::TestCase
     # @goban.debug_display
   end
 
-  def test_hunter_3
-    # Ladder breaker (f4)
+  def test_hunter_ladder_breaker
     # 9 O+++++++@
     # 8 ++++++++@
     # 7 ++++++++O
@@ -93,6 +93,7 @@ class TestAi < Test::Unit::TestCase
     # 5 ++++++++@
     # 4 +++++O++@
     #   abcdefghi
+    # Ladder breaker is f4
     # AI should prefer to eat 1 stone in a9 since the ladder fails.
     # What is sure is that neither h6 nor h7 works.
     @controller.load_moves("i9,i7,i8,i6,i5,f4,i4,a9")
@@ -102,7 +103,7 @@ class TestAi < Test::Unit::TestCase
     assert_equal(true, (move == "b9" or move == "a8"))
   end
 
-  def test_dead_group
+  def test_see_dead_group
     # 9 +@++@@@@O
     # 8 +@@@@@@OO
     # 7 @@+@+@@O+
@@ -130,7 +131,7 @@ class TestAi < Test::Unit::TestCase
     move = @controller.let_ai_play
     assert_equal("pass", move)
     move = @controller.let_ai_play
-    assert_equal("a2", move) # TODO: this one really should not be played
+    assert_equal("a2", move) # FIXME: this one really should not be played
   end
   
   def test_border_defense
@@ -146,7 +147,7 @@ class TestAi < Test::Unit::TestCase
     # Issue: after W:a3 we expect B:b5 or b6 but AI does not see attack in b5; 
     @controller.load_moves("d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3")
     move = @controller.let_ai_play
-    assert_equal("g5", move) # FIXME current move should be b6 here
+    assert_equal("g5", move) # FIXME black (@) move should be b6 here
   end
 
   def test_border_attack_and_invasion
@@ -175,10 +176,12 @@ class TestAi < Test::Unit::TestCase
     # 2 ++O@O++
     # 1 +++++++
     #   abcdefg
-    # AI should see attack in b5 with territory invasion
+    # AI should see attack in b5 with territory invasion.
+    # Actually O in g4 is chosen because pusher gives it 0.33 pts.
+    # NB: g4 is actually a valid move for black
     @controller.load_moves("d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,g6")
     move = @controller.let_ai_play
-    assert_equal("g4", move) # FIXME current move should be b5 here
+    assert_equal("g4", move) # FIXME white (O) move should be b5 here
   end
 
   def test_border_closing
@@ -194,7 +197,25 @@ class TestAi < Test::Unit::TestCase
     # AI should see f4 is dead inside white territory if g5 is played (non trivial)
     @controller.load_moves("d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,b6,d1,g6")
     move = @controller.let_ai_play
-    assert_equal("g4", move) # FIXME current move should be g5 here
+    assert_equal("g4", move) # FIXME white (O) move should be g5 here
+  end
+
+  def test_savior_hunter
+    init_board(7)
+    # 7 +++++++
+    # 6 +++@@@@
+    # 5 @@+@OO+
+    # 4 O+@@O@+
+    # 3 OOOO+O+
+    # 2 ++O@O++
+    # 1 +++++++
+    #   abcdefg
+    # g4 is actually a valid move for black
+    @controller.load_moves("d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b5,b3,c4,a4,a5,a3,g6,pass")
+    move = @controller.let_ai_play
+    assert_equal("g4", move) # black (@) move should be g4 here
+    move = @controller.let_ai_play
+    # assert_equal("g3", move) # FIXME: (O) move should be g3 here (since d2 is already dead)
   end
 
   def test_killing_saves_nearby_group_in_atari
@@ -238,17 +259,20 @@ class TestAi < Test::Unit::TestCase
   end
 
   def test_snapback2
-    init_board(5)
-    # 5 O@+OO
-    # 4 O@+@+
-    # 3 OO@@+
-    # 2 +@@++
-    # 1 +++++
-    #   abcde
-    @controller.load_moves("b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,d3,e5,b2")
+    init_board(7)
+    # 7 O@+OO++
+    # 6 O@+@@++
+    # 4 OO@@+++
+    # 4 +@@++++
+    # 3 ++++O++
+    #   abcdefg
+    # Snapback is bad idea since a2 can kill white group
+    @controller.load_moves("b7,a7,b6,a6,c5,b5,c4,a5,d6,d7,d5,e7,b4,e3,e6")
     # @goban.debug_display
     move = @controller.let_ai_play
-    assert_equal("c5", move) # FIXME should be c4
+    assert_equal("c7", move) # FIXME white should see d7-e7 are dead (not a snapback issue)
+    move = @controller.let_ai_play
+    assert_equal("a4", move)
   end
   
   def test_snapback3
@@ -262,10 +286,10 @@ class TestAi < Test::Unit::TestCase
     @controller.load_moves("b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,d3,e5,c1,c4")
     # @goban.debug_display
     move = @controller.let_ai_play
-    assert_equal("c5", move) # FIXME should NOT be c5
+    assert_not_equal("c5", move) # NOT c5
   end
 
-  def test_snapback4
+  def test_sees_attack_no_good
     init_board(5)
     # 5 O@@OO
     # 4 O@+@+
@@ -273,12 +297,13 @@ class TestAi < Test::Unit::TestCase
     # 2 ++@++
     # 1 ++@++
     #   abcde
+    # NB: we could use this game to check when AI can see dead groups
     @controller.load_moves("b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,d3,e5,c1,c4,c5")
     move = @controller.let_ai_play
-    assert_equal("c4", move)
+    assert_equal("c4", move) # white (O) in c4
     move = @controller.let_ai_play
-    assert_equal("c5", move) # FIXME should NOT be c5 (hunter sees it as good)
-    # @goban.debug_display
+    assert_not_equal("c5", move) # black (@) is NOT c5
+    @goban.debug_display
   end
 
 end
