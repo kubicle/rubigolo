@@ -24,12 +24,13 @@ class NoEasyPrisoner < Heuristic
       g = stone.group
       score = - g.stones.size
       if g.lives == 1
-        $log.debug("NoEasyPrisoner heuristic says #{i},#{j} is plain foolish (#{score})") if $debug
+        $log.debug("NoEasyPrisoner says #{i},#{j} is plain foolish (#{score})") if $debug
         return score
       end
       if g.lives == 2
+        $log.debug("NoEasyPrisoner asking Hunter to look at #{i},#{j}") if $debug
         if @enemy_hunter.escaping_atari_is_caught?(stone)
-          $log.debug("NoEasyPrisoner heuristic (backed by Hunter) says #{i},#{j} is foolish  (#{score})") if $debug
+          $log.debug("NoEasyPrisoner (backed by Hunter) says #{i},#{j} is foolish  (#{score})") if $debug
           return score
         end
       end
