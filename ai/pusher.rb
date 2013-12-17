@@ -18,8 +18,9 @@ class Pusher < Heuristic
     ally_inf = inf[@color]
     
     return 0 if enemy_inf == 0 or ally_inf == 0
-    $log.debug("Pusher heuristic sees influences #{ally_inf} - #{enemy_inf} at #{i},#{j}") if $debug
-    return 0.33 * (@enemy_coeff * enemy_inf - @ally_coeff * ally_inf)
+    score = 0.33 * (@enemy_coeff * enemy_inf - @ally_coeff * ally_inf)
+    $log.debug("Pusher heuristic sees influences #{ally_inf} - #{enemy_inf} at #{i},#{j} -> #{'%.03f' % score}") if $debug
+    return score
   end
 
 end
