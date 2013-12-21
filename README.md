@@ -3,7 +3,7 @@ rubigolo
 
 Game of Go implemented in Ruby
 
-Make sure you check the [help page](http://htmlpreview.github.io/?https://github.com/pierre-pat/ruby-go/blob/master/help-index.html)
+Make sure you check the [help page](http://htmlpreview.github.io/?https://github.com/kubicle/rubigolo/blob/master/help-index.html)
 
 =======
 
