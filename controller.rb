@@ -1,6 +1,7 @@
 require_relative "goban"
 require_relative "board_analyser"
 require_relative "sgf_reader"
+require_relative "handicap_setter"
 require_relative "human_player"
 
 # A controller initializes a game and controls the possible user (or AI) actions.
@@ -38,6 +39,15 @@ class Controller
     @num_colors = num_players
   end
   
+  # Initializes the handicap points
+  # h can be a number or a string
+  # string examples: "3" or "3=d4-p16-p4" or "d4-p16-p4"
+  def set_handicap(h)
+    @handicap = HandicapSetter.set_handicap(@goban, h)
+    # White first when handicap
+    @cur_color = WHITE if @handicap != 0
+  end
+
   # Sets a player before the game starts
   def set_player(player)
     color = player.color
@@ -358,77 +368,6 @@ private
     @analyser.restore
     @game_ending = false
     return false
-  end
-
-  # Initializes the handicap points
-  # h can be a number or a string
-  # string examples: "3" or "3=d4-p16-p4" or "d4-p16-p4"
-  def set_handicap(h)
-    raise "Handicap cannot be changed during a game" if history.size > 0
-    if h == 0 or h == "0"
-      @handicap = 0
-      return
-    end
-    # White first when handicap
-    @cur_color = WHITE
-
-    # Standard handicap?
-    if h.is_a? String
-      eq = h.index("=")
-      h = h.to_i if h[0].between?("0","9") and ! eq
-    end
-    if h.is_a? Fixnum # e.g. 3
-      set_standard_handicap(h)
-      return
-    end
-
-    # Could be standard or not but we are given the stones so use them   
-    h = h[eq+1..-1] if eq # "3=d4-p16-p4" would become "d4-p16-p4"
-    moves = h.split("-")
-    @handicap = moves.size
-    moves.each do |move|
-      i, j = Goban.parse_move(move)
-      Stone.play_at(@goban, i, j, BLACK)
-    end
-  end
-  
-  # Places the standard (star points) handicap
-  # NB: a handicap of 1 stone does not make sense but we don't really need to care.
-  def set_standard_handicap(count)
-    # we want middle points only if the board is big enough 
-    # and has an odd number of intersections
-    size = @goban.size
-    count = 4 if (size<9 or size.modulo(2)==0) and count > 4
-    @handicap = count
-    # Compute the distance from the handicap points to the border:
-    # on boards smaller than 13, the handicap point is 2 points away from the border
-    dist_to_border=(size<13 ? 2 : 3)
-    short = 1 + dist_to_border
-    middle = 1 + size/2
-    long = size - dist_to_border
-    
-    count.times do |ndx|
-      # Compute coordinates from the index.
-      # Indexes correspond to this map (with Black playing on North on the board)
-      # 2 7 1
-      # 4 8 5
-      # 0 6 3
-      # special case: for odd numbers and more than 4 stones, the center is picked
-      ndx=8 if count.modulo(2)==1 and count>4 and ndx==count-1
-      case ndx
-      	when 0 then x = short; y = short
-      	when 1 then x = long; y = long
-      	when 2 then x = short; y = long
-      	when 3 then x = long; y = short
-      	when 4 then x = short; y = middle
-      	when 5 then x = long; y = middle
-      	when 6 then x = middle; y = short
-      	when 7 then x = middle; y = long
-      	when 8 then x = middle; y = middle
-      	else break # not more than 8
-      end
-      Stone.play_at(@goban, x, y, BLACK)
-    end
   end
 
 end
