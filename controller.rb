@@ -27,7 +27,7 @@ class Controller
     @game_ended = @game_ending = false
     @who_resigned = nil
     if ! @goban or ( size and size != @goban.size ) or num_players != @goban.num_colors
-      @goban = Goban.new(size,@num_colors)
+      @goban = Goban.new(size,num_players)
       @analyser = BoardAnalyser.new(@goban)
     else
       @analyser.restore
