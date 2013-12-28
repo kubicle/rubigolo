@@ -2,7 +2,6 @@ require 'test/unit'
 
 require_relative "../logging"
 require_relative "../controller"
-require_relative "../human_player"
 
 # NB: for debugging think of using @goban.debug_display
 
@@ -10,11 +9,10 @@ require_relative "../human_player"
 class TestGroup < Test::Unit::TestCase
 
   def init_board(size=5, num_players=2, handicap=0)
-    c = @controller = Controller.new
-    c.new_game(size, num_players, handicap)
-    c.set_player(HumanPlayer.new(c,BLACK))
-    c.set_player(HumanPlayer.new(c,WHITE))
-    @goban = c.goban
+    @controller = Controller.new
+    @controller.new_game(size, num_players, handicap)
+    @controller.messages_to_console
+    @goban = @controller.goban
   end
 
   def initialize(test_name)
@@ -218,7 +216,8 @@ class TestGroup < Test::Unit::TestCase
       check_group(bg2, 3,2,0,"c2,c3",3); # group #3 of 2 black stones [c3,c2], lives:3
       check_stone(b2, 0,"c3","d3") # stoneO:c3 around:  +[d3]
       check_stone(@goban.stone_at?(3,2), 0,"c2","c1,d2") # stoneO:c2 around:  +[d2 c1]
-      @controller.load_moves("undo,undo,undo,undo")
+      @controller.load_moves("undo,undo,undo")
+      assert_equal(0, @controller.move_number?)
       # @goban.debug_display # if any assert shows you might need this to understand what happened...
     end
   end
