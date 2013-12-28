@@ -2,8 +2,8 @@ require_relative "goban"
 require_relative "sgf_reader"
 require_relative "handicap_setter"
 
-# Controller enforces the game logic.
-class Controller
+# GameLogic enforces the game logic.
+class GameLogic
   attr_reader :goban, :komi, :cur_color, :game_ended, :game_ending, :who_resigned
   
   def initialize
@@ -63,7 +63,7 @@ class Controller
   # Returns false if a problem occured. In this case the error message is available.
   def play_one_move(move)
     if @game_ended then return error_msg("Game already ended") end
-    # $log.debug("Controller playing #{@goban.color_name(@cur_color)}: #{move}") if $debug
+    # $log.debug("GameLogic playing #{@goban.color_name(@cur_color)}: #{move}") if $debug
     if /^[a-z][1-2]?[0-9]$/ === move
       return play_a_stone(move)
     elsif move == "undo"
@@ -108,7 +108,7 @@ class Controller
 
   # Call this when the current player wants to pass.
   # If all (remaining) players pass, we go into "ending mode".
-  # Caller is responsible of checking the Controller#game_ending flag:
+  # Caller is responsible of checking the GameLogic#game_ending flag:
   # If the flag goes to true, the method accept_ending (below) should be called next.
   def pass_one_move
     store_move_in_history("pass")
@@ -118,7 +118,7 @@ class Controller
     return true
   end
   
-  # Call this each time Controller#game_ending goes to true (ending mode).
+  # Call this each time GameLogic#game_ending goes to true (ending mode).
   # The score should be counted and proposed to players.
   # "accept" parameter should be true if all players accept the proposed ending (score count).
   # Only after this call will the game be really finished.
