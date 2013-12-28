@@ -46,7 +46,7 @@ class Goban
     1.upto(size) do |j|
       1.upto(size) do |i|
         stone = @ban[j][i]
-        stone.group.clear if stone.color != EMPTY
+        stone.group.clear if stone.group
       end
     end
     # Collect all the groups and put them into @garbage_groups
