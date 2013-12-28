@@ -39,7 +39,6 @@ class ScoreAnalyser
       winner = @num_players.times { |color| break(color) if !who_resigned[color] }
       other = @num_players == 2 ? "#{@goban.color_name(1-winner)}" : "others"
       @score_info = "#{@goban.color_name(winner)} won (since #{other} resigned)"
-puts "===here"
       return
     end
     @scoring = true
