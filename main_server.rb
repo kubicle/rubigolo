@@ -7,20 +7,25 @@ require "uri"
 
 require_relative "logging"
 require_relative "controller"
+require_relative "score_analyser"
 require_relative "ai1_player"
-require_relative "human_player"
+
 
 # Very simple server that can be used to play a single *local* game
 # using a web browser as GUI.
 class MainServer
 
-  INDEX_PAGE = "./help-index.html"
   PORT = 8080
+  INDEX_PAGE = "./help-index.html"
+  INDEX_LINK = "<a href='index'>Back to index</a>"
 
   def initialize
-    @controller = Controller.new
+    @controller = nil
+    @scorer = ScoreAnalyser.new
+    @players = []
     @webserver = nil
     @session = nil
+    @messages = []
   end
   
   def start
@@ -32,6 +37,10 @@ class MainServer
       reply = handle_request(req)
       send_response(reply)
     end
+  end
+
+  def add_message(msg)
+    @messages.push(msg)
   end
 
   def get_session_and_request
@@ -90,35 +99,91 @@ class MainServer
     $log.debug("Header returned:\r\n#{header}") if $debug
     return header
   end
-  
-  def handle_request(req)
-    url,args = parse_request(req)
-    if ! @controller and url != "/newGame" and url != "/index"
-      return "Invalid request before starting a game: #{url}"
+
+  def let_ai_play
+    return nil if @controller.game_ending or @controller.game_ended
+    player = @players[@controller.cur_color]
+    return nil if !player # human
+    move = player.get_move
+    @controller.play_one_move(move)
+    return move     
+  end
+
+  def command(cmd)
+    @controller.play_one_move(cmd)
+  end
+    
+  def show_history
+    add_message("Moves played: "+@controller.history_string)
+  end
+
+  def show_score_info
+    if !@have_score
+      @scorer.start_scoring(@goban, @controller.komi, @controller.who_resigned)
+      @have_score = true
     end
-    reply = ""
-    question = nil
-    case url
-      when "/newGame" then new_game(args)
-      when "/move" then new_move(args)
-      when "/undo" then command("undo")
-      when "/pass" then command("pass")
-      when "/resign" then command("resign")
-      when "/accept_score" then @controller.accept_score(get_arg(args,"value"))
-      when "/load" then question = { action:"load_moves", label:"Load moves" }
-      when "/continue" then nil
-      when "/prisoners" then @controller.show_prisoners
-      when "/history" then @controller.show_history
-      when "/load_moves" then load_moves(args)
-      when "/dbg" then @controller.show_debug_info
-      when "/index" then return File.read(INDEX_PAGE)
-      else reply << "Unknown request: #{url}"
+    @scorer.get_score.each { |line| add_message(line) }
+    add_message("")
+  end
+
+  def req_accept_score(args)
+    @controller.accept_ending(get_arg(args,"value")=="y")
+    @have_score = false if !@controller.game_ending
+    @scorer.end_scoring
+  end
+
+  # Show prisoner counts during the game  
+  def req_show_prisoners
+    prisoners = @controller.prisoners?
+    prisoners.size.times do |c|
+      puts "#{prisoners[c]} #{@goban.color_name(c)} (#{@goban.color_to_char(c)}) are prisoners"
     end
-    ai_played = @controller.let_ai_play
-    reply << web_display(@controller.goban, ai_played, question)
-    return reply
+    puts ""
+  end
+
+  def req_show_debug_info
+    @goban.debug_display
+    add_message "Debug output generated on server console window."
+  end
+
+  # http://localhost:8080/newGame?size=9&players=2&handicap=0&ai=0
+  def req_new_game(args)
+    size = get_arg_i(args,"size",19)
+    num_players = get_arg_i(args,"players",2)
+    handicap = get_arg_i(args,"handicap",0)
+    num_ai = get_arg_i(args,"ai",1)
+    @controller = Controller.new
+    @controller.new_game(size,num_players,handicap)
+    @goban = @controller.goban
+    @have_score = false
+    @players.clear
+    num_players.times do |color|
+      @players[color] = num_ai>color ? Ai1Player.new(@goban,color) : nil
+    end
   end
   
+  # http://localhost:8080/move?at=b3
+  def req_new_move(args)
+    move=get_arg(args,"at")
+    begin
+      @controller.play_one_move(move)
+    rescue Exception => err
+      # if err.message.start_with?("Invalid move")
+      # add_message("Ignored move #{move} (game displayed was maybe not in synch)")
+      add_message(err.to_s)
+    end
+  end
+  
+  def req_load_moves(args)
+    moves=get_arg(args,"value")
+    begin
+      @controller.load_moves(moves)
+    rescue => err
+      raise if ! err.message.start_with?("Invalid move")
+      add_message(err.message)
+    end
+  end
+
   def parse_request(req_str)
     # GET /mainMenu?par1=val1 HTTP/1.1
     reqs = req_str.split()
@@ -140,48 +205,47 @@ class MainServer
     return get_arg(args,name,def_val).to_i
   end
 
-  # http://localhost:8080/newGame?size=9&players=2&handicap=0&ai=0
-  def new_game(args)
-    size = get_arg_i(args,"size",19)
-    num_players = get_arg_i(args,"players",2)
-    handicap = get_arg_i(args,"handicap",0)
-    num_ai = get_arg_i(args,"ai",1)
-    @controller.new_game(size,num_players,handicap)
-    num_players.times do |n|
-      @controller.set_player(num_ai>n ? Ai1Player.new(@controller,n) : HumanPlayer.new(@controller,n))
-    end
-  end
-  
-  def command(cmd)
-    @controller.play_one_move(cmd)
-  end
-    
-  # http://localhost:8080/move?at=b3
-  def new_move(args)
-    move=get_arg(args,"at")
+  def handle_request(req)
     begin
-      @controller.play_one_move(move)
-    rescue RuntimeError => err
-      raise if ! err.message.start_with?("Invalid move")
-      @controller.add_message("Ignored move #{move} (game displayed was maybe not in synch)")
-    end
-  end
-  
-  def load_moves(args)
-    moves=get_arg(args,"value")
-    begin
-      @controller.load_moves(moves)
-    rescue RuntimeError => err
-      raise if ! err.message.start_with?("Invalid move")
-      @controller.add_message(err.message)
+      url,args = parse_request(req)
+      if ! @controller and url != "/newGame" and url != "/index"
+       return "Invalid request before starting a game (#{req})<br><br>#{INDEX_LINK}"
+      end
+      reply = ""
+      question = nil
+      case url
+        when "/newGame" then req_new_game(args)
+        when "/move" then req_new_move(args)
+        when "/undo" then command("undo")
+        when "/pass" then command("pass")
+        when "/resign" then command("resign")
+        when "/accept_score" then req_accept_score(args)
+        when "/load" then question = { action:"load_moves", label:"Load moves" }
+        when "/continue" then nil
+        when "/prisoners" then req_show_prisoners
+        when "/history" then show_history
+        when "/load_moves" then req_load_moves(args)
+        when "/dbg" then req_show_debug_info
+        when "/index" then return File.read(INDEX_PAGE)
+        else reply << "Unknown request: #{req}"
+      end
+      ai_played = let_ai_play
+      reply << web_display(@controller.goban, ai_played, question)
+      return reply
+    rescue => err
+      puts "*** Exception: #{err}"
+      err.backtrace[0,5].each {|s| puts s }
+      return "Unexpected issue when handling request (#{req})<br>#{err}<br><br>#{INDEX_LINK}"
     end
   end
   
   def web_display(goban,ai_played,question)
     ended = @controller.game_ended
     ending = (!ended and @controller.game_ending)
-    human_move = (!ended and !ending and @controller.next_player_is_human?)
-    size=goban.size
+    player = @players[@controller.cur_color]
+    human_move = (!ended and !ending and !player)
+    size=@goban.size
+    show_score_info if ending
     
     s="<html><head>"
     s << "<style>body {background-color:#f0f0f0; font-family: tahoma, sans serif; font-size:90%} "
@@ -213,11 +277,10 @@ class MainServer
       s << "AI played "+ai_played+"<br>"
     end
     if ended then
-      s << "Game ended. <a href='index'>Back to index</a><br>"
-      @controller.show_score_info
-      @controller.show_history
+      s << "<br>Game ended. #{INDEX_LINK}<br><br>"
+      show_score_info
+      show_history
     elsif ending then
-      @controller.show_score_info
       question = {action:"accept_score", label:"Do you accept this score? (y/n)"}
     elsif human_move then
       s << " <a href='undo'>undo</a> "
@@ -232,7 +295,9 @@ class MainServer
       s << " <a href='continue'>continue</a><br>"
     end
 
-    while txt = @controller.messages.shift do s << "#{txt}<br>" end
+    errors = @controller.get_errors
+    while txt = errors.shift do s << "#{txt}<br>" end
+    while txt = @messages.shift do s << "#{txt}<br>" end
 
     if question
       s << "<form name='my_form' action='#{question[:action]}'><b>#{question[:label]}</b><br>"

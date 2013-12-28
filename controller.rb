@@ -1,41 +1,34 @@
 require_relative "goban"
-require_relative "board_analyser"
 require_relative "sgf_reader"
 require_relative "handicap_setter"
-require_relative "human_player"
 
-# A controller initializes a game and controls the possible user (or AI) actions.
+# Controller enforces the game logic.
 class Controller
-  attr_reader :goban, :analyser, :cur_color, :history, :messages, :game_ended, :game_ending
+  attr_reader :goban, :komi, :cur_color, :game_ended, :game_ending, :who_resigned
   
   def initialize
     @console = false
     @history = []
-    @messages = []
-    @players = []
+    @errors = []
     @handicap = 0
     @num_colors = 2
+    @who_resigned = {}
   end
 
   def new_game(size=nil, num_players=@num_colors, handicap=@handicap, komi=nil)
-    @with_human = false
-    @num_autoplay = 0
     @history.clear
-    @messages.clear
+    @errors.clear
     @num_pass = 0
     @cur_color = BLACK
     @game_ended = @game_ending = false
-    @who_resigned = nil
+    @who_resigned.clear
     if ! @goban or ( size and size != @goban.size ) or num_players != @goban.num_colors
       @goban = Goban.new(size,num_players)
-      @analyser = BoardAnalyser.new(@goban)
     else
-      @analyser.restore
       @goban.clear
     end
     @komi = (komi ? komi : (handicap == 0 ? 6.5 : 0.5))
     set_handicap(handicap)
-    @players.clear if num_players != @num_colors
     @num_colors = num_players
   end
   
@@ -43,272 +36,136 @@ class Controller
   # h can be a number or a string
   # string examples: "3" or "3=d4-p16-p4" or "d4-p16-p4"
   def set_handicap(h)
+    raise "Handicap cannot be changed during a game" if @history.size > 0
     @handicap = HandicapSetter.set_handicap(@goban, h)
     # White first when handicap
     @cur_color = WHITE if @handicap != 0
+    return true
   end
 
-  # Sets a player before the game starts
-  def set_player(player)
-    color = player.color
-    @players[color] = player
-    # $log.info("Attached new player to game: #{color}, #{player}")
-    @with_human = true if player.is_human
-  end
-  
   # game is a series of moves, e.g. "c2,b2,pass,b4,b3,undo,b4,pass,b3"
   def load_moves(game)
     begin
       game = sgf_to_game(game)
-      game.split(",").each { |move| play_one_move(move) }
+      game.split(",").each do |move|
+        if !play_one_move(move) then raise "Failed playing the loaded move: #{move}" end
+      end
+      return true
     rescue => err
-      add_message "Oops... Something went wrong with the loaded moves..."
-      add_message "Please double check the format of your input."
-      add_message "Error: #{err.message} (#{err.class.name})"
+      error_msg "Failed loading moves. Please double check the format of your input."
+      error_msg "Error: #{err.message} (#{err.class.name})"
       $log.error("Error while loading moves:\n#{err}\n#{err.backtrace}")
+      return false
     end
   end
 
-  # Converts a game (list of moves) from SGF format to our internal format.
-  # Returns the game unchanged if it is not an SGF one.
-  # Returns an empty move list if nothing should be played (a game is pending).
-  def sgf_to_game(game)
-    return game if ! game.start_with?("(;FF") # are they are always the 1st characters?
-    if history.size > 0
-      add_message "A game is pending. Please start a new game before loading an SGF file."
-      return ""
-    end
-    reader = SgfReader.new(game)
-    new_game(reader.board_size, 2, reader.handicap)
-    @komi = reader.komi
-    return reader.to_move_list
-  end
-  
-  def add_message(msg)
-    if ! @console then @messages.push(msg) else puts msg end
-  end
-
-  # Handles a regular move + the special commands
+  # Handles a regular move + the special commands (pass, resign, undo, load, hand, log)
+  # Returns false if a problem occured. In this case the error message is available.
   def play_one_move(move)
-    return if @game_ended
+    if @game_ended then return error_msg("Game already ended") end
     # $log.debug("Controller playing #{@goban.color_name(@cur_color)}: #{move}") if $debug
     if /^[a-z][1-2]?[0-9]$/ === move
-      play_a_stone(move)
-    elsif move == "help" then # this help is for console only
-      add_message "Move (e.g. b3) or pass, undo, resign, history, dbg, log:(level)=(1/0), load:(moves), continue:(times)"
-      add_message "Four letter abbreviations are accepted, e.g. \"hist\" is valid to mean \"history\""
+      return play_a_stone(move)
     elsif move == "undo"
-      @num_pass = 0 if request_undo()
-    elsif move.start_with?("hist")
-      show_history
-    elsif move == "dbg" then
-      show_debug_info
+      return request_undo
     elsif move.start_with?("resi")
-      resign_request
+      return resign
     elsif move == "pass"
-      pass_one_move
-    elsif move.start_with?("pris")
-      show_prisoners
+      return pass_one_move
     elsif move.start_with?("hand")
-      set_handicap(move.split(":")[1])
+      return set_handicap(move.split(":")[1])
     elsif move.start_with?("load:")
-      load_moves(move[5..-1])
-    elsif move.start_with?("cont")
-      @num_autoplay = move.split(":")[1].to_i
-      @num_autoplay = 1 if @num_autoplay == 0 # no arg is equivalent to continue:1
+      return load_moves(move[5..-1])
     elsif move.start_with?("log")
-      set_log_level(move.split(":")[1])
+      return set_log_level(move.split(":")[1])
     else
-      add_message "Invalid command: #{move}"
+      return error_msg "Invalid command: #{move}"
     end
   end
 
   # Handles a new stone move (not special commands like "pass")
   def play_a_stone(move)
     i, j = Goban.parse_move(move)
-    raise "Invalid move: #{move}" if !Stone.valid_move?(@goban, i, j, @cur_color)
-    @players[@cur_color].get_ai_eval(i,j) if $debug and @players[@cur_color].is_human
+    if !Stone.valid_move?(@goban, i, j, @cur_color) then return error_msg("Invalid move: #{move}") end
     Stone.play_at(@goban, i, j, @cur_color)
     store_move_in_history(move)
     next_player!
     @num_pass = 0
+    return true
   end
   
+  # One player resigns. In multiplayer mode, the game can continue without him.
+  def resign
+    store_move_in_history("resign")
+    @who_resigned[@cur_color] = true
+    if @num_colors - @who_resigned.size == 1 then 
+      @game_ended = true
+    else
+      next_player!
+    end
+    return true
+  end
+
+  # Call this when the current player wants to pass.
+  # If all (remaining) players pass, we go into "ending mode".
+  # Caller is responsible of checking the Controller#game_ending flag:
+  # If the flag goes to true, the method accept_ending (below) should be called next.
   def pass_one_move
     store_move_in_history("pass")
     @num_pass += 1
-    we_all_pass if @num_pass >= @num_colors
+    @game_ending = true if @num_pass >= @num_colors - @who_resigned.size
     next_player!
+    return true
   end
   
-  def resign_request
-    if @num_colors == 2 then 
-      @game_ended = true
-      store_move_in_history("resign")
-      @who_resigned = @cur_color # TODO: make it work for multiplayer mode too
+  # Call this each time Controller#game_ending goes to true (ending mode).
+  # The score should be counted and proposed to players.
+  # "accept" parameter should be true if all players accept the proposed ending (score count).
+  # Only after this call will the game be really finished.
+  # If accept=false, this means a player refuses to end here
+  # => the game should continue until the next time all players pass.
+  def accept_ending(accept)
+    return error_msg "The game is not ending yet" if !@game_ending
+    if !accept
+      @game_ending = false # exit ending mode; we will play some more...
     else
-      pass_one_move # if more than 2 players one cannot simply resign (but pass infinitely)
+      @game_ended = true # ending accepted. Game is finished.
     end
-  end
-  
-  def next_player!
-    @cur_color = (@cur_color+1) % @num_colors
-  end
-  
-  # Returns the score difference in points
-  def play_breeding_game
-    @console = true
-    while ! @game_ending
-      move = @players[@cur_color].get_move
-      begin
-        play_one_move(move)
-      rescue StandardError => err
-        puts "Exception occurred during a breeding game.\n#{@players[@cur_color]} with genes: #{@players[@cur_color].genes}"
-        show_history
-        raise
-      end
-    end
-    score_diff = compute_two_player_score(@analyser.scores, @analyser.prisoners)
-    @analyser.restore
-    return score_diff
-  end
-  
-  def play_console_game
-    raise "Missing player" if @players.find_index(nil)
-    @human = HumanPlayer.new(self,-1) if ! @with_human
-    @num_autoplay = 0
-    @console = true
-    while ! @game_ended
-      if @game_ending
-        propose_console_end
-        next
-      end
-      player = @players[@cur_color]
-      if @with_human or @num_autoplay > 0
-        move = player.get_move
-        @num_autoplay -= 1
-      else
-        move = @human.get_move
-      end
-      begin
-        play_one_move(move)
-      rescue StandardError => err
-        raise if ! err.to_s.start_with?("Invalid move")
-        add_message "Invalid move: \"#{move}\""
-      end
-    end
-    add_message "Game ended."
-    show_history
+    return true
   end
 
-  def let_ai_play
-    return nil if @game_ending or @game_ended
-    player = @players[@cur_color]
-    return nil if player.is_human
-    $log.debug("controller letting AI play...") if $debug
-    move = player.get_move
-    play_one_move(move)
-    return move     
-  end
-  
-  def next_player_is_human?
-    return @players[@cur_color].is_human
+  # Returns how many moves have been played so far
+  # (can be bigger than the stone count since "pass" or "resign" are also moves)
+  def move_number?
+    return @history.size
   end
 
-  def show_history
-    add_message "Move history:"
-    s = ""
-    s << "handicap:#{@handicap}," if @handicap>0
-    @history.size.times {|h| s << "#{@history[h]}," }
-    s.chop!
-    add_message s if s != ""
-    add_message "(#{@history.size} moves)"
-    add_message ""
-  end
-  
-  def history_str
-    return @history.join(",")
-  end
-  
-  def show_debug_info
-    @goban.debug_display
-    @analyser.debug_dump if @analyser
-    add_message "Debug output generated on console window." if ! @console
+  # Returns a text representation of the list of moves played so far
+  def history_string
+    return (@handicap>0 ? "handicap:#{@handicap}," : "") +
+      @history.join(",") +
+      " (#{@history.size} moves)"
   end
 
-  # Show prisoner counts during the game  
-  def show_prisoners
-    prisoners = Group.prisoners?(@goban)
-    prisoners.size.times do |c|
-      add_message "#{prisoners[c]} #{@goban.color_name(c)} (#{@goban.color_to_char(c)}) are prisoners"
-    end
-    add_message ""
+  # Returns an array with the prisoner count per color
+  # e.g. [3,5] means 3 black stones are prisoners, 5 white stones
+  def prisoners?
+    return Group.prisoners?(@goban)
   end
   
-  def show_score_info
-    if @who_resigned
-      add_message "#{@goban.color_name(@who_resigned)} resigned"
-    else
-      scores = @analyser.scores
-      prisoners = @analyser.prisoners
-      if @num_colors == 2
-      then show_two_player_score(scores,prisoners)
-      else show_multiplayer_score(scores,prisoners) end
-    end
-    add_message ""
+  # If called with on=true, error messages will be directly displayed on the console.
+  # If not called, the default behavior needs the caller to use get_errors method.
+  def messages_to_console(on=true)
+    @console = on
   end
 
-  # Returns the score difference in points
-  def show_two_player_score(scores,prisoners)
-    return compute_two_player_score(scores,prisoners,true)
+  # Returns the error messages noticed until now and clears the list.
+  def get_errors
+    errors = @errors.clone
+    @errors.clear
+    return errors
   end
   
-  # Returns the score difference in points
-  def compute_two_player_score(scores,prisoners,output=false)
-    totals = []
-    2.times do |c|
-      komi = (c == WHITE ? @komi : 0)
-      totals[c] = scores[c] + prisoners[1 - c] + komi
-      if output
-        komi_str = (komi > 0 ? " + #{komi} komi" : "")
-        add_message "#{@goban.color_name(c)} (#{@goban.color_to_char(c)}): "+
-          "#{totals[c]} points (#{scores[c]} + #{prisoners[1 - c]} prisoners#{komi_str})"
-      end
-    end
-    diff = totals[BLACK] - totals[WHITE]
-    if output
-      win = if diff > 0 then BLACK else WHITE end
-      if diff != 0
-        add_message "#{@goban.color_name(win)} wins by #{diff.abs} points"
-      else
-        add_message "Tie game"
-      end
-    end
-    return diff
-  end
-  
-  def show_multiplayer_score(scores,prisoners)
-    scores.size.times do |c|
-      add_message "#{@goban.color_name(c)} (#{@goban.color_to_char(c)}): "+
-        "#{scores[c]-prisoners[c]} points "+
-        "(#{scores[c]} - #{prisoners[c]} prisoners)"
-    end
-  end
-  
-  def accept_score(answer)
-    answer.strip.downcase!
-    if answer!="y" and answer!="n"
-      add_message "Valid answer is y or n"
-      return
-    end
-    if answer == "n"
-      @game_ending = false
-      @analyser.restore
-      return
-    end
-    @game_ended = true
-  end
-
   def set_log_level(cmd)
     begin
       a = cmd.split("=")
@@ -320,54 +177,55 @@ class Controller
       when "all" then $debug = $debug_group = $debug_ai = flag
       else raise 1
       end
+      return true
     rescue
-      add_message "Invalid log command: #{cmd}"
+      return error_msg "Invalid log command: #{cmd}"
     end
   end
 
+#===============================================================================
 private
+#===============================================================================
+
+  def next_player!
+    loop do
+      @cur_color = (@cur_color+1) % @num_colors
+      break if !@who_resigned[@cur_color]
+    end
+  end
+
+  # Always returns false
+  def error_msg(msg)
+    if ! @console then @errors.push(msg) else puts msg end
+    return false
+  end
 
   def store_move_in_history(move)
     @history.push(move)
   end
   
+  # undo one full game turn (e.g. one black move and one white)
   def request_undo
     if @history.size < @num_colors
-      add_message "Nothing to undo"
-      return false
-    end
-    @players.each do |p|
-      if p.color != @cur_color and !p.on_undo_request(@cur_color)
-        add_message "Undo denied by #{@goban.color_name(p.color)}"
-        return false
-      end
+      return error_msg "Nothing to undo"
     end
     @num_colors.times do
-      Stone.undo(@goban) if ! @history.last.end_with?("pass")
+      Stone.undo(@goban) if ! @history.last.end_with?("pass") # no stone to remove for a pass
       @history.pop
     end
-    add_message "Undo accepted"
+    @num_pass = 0
     return true
   end
 
-  def we_all_pass
-    return if @game_ending # avoid counting score again if nothing changed
-    @analyser.count_score
-    @game_ending = true
+  # Converts a game (list of moves) from SGF format to our internal format.
+  # Returns the game unchanged if it is not an SGF one.
+  # Returns an empty move list if nothing should be played (a game is pending).
+  def sgf_to_game(game)
+    return game if ! game.start_with?("(;FF") # are they are always the 1st characters?
+    reader = SgfReader.new(game)
+    new_game(reader.board_size, 2, reader.handicap)
+    @komi = reader.komi
+    return reader.to_move_list
   end
   
-  def propose_console_end
-    player = @players[@cur_color]
-    # We ask human players; AI always accepts (since it passed)
-    if ! player.is_human or player.propose_score
-      if ! player.is_human then @goban.console_display; show_score_info end
-      @game_ended = true
-      return true
-    end
-    # Ending refused, we will keep on playing
-    @analyser.restore
-    @game_ending = false
-    return false
-  end
-
 end
