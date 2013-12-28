@@ -16,8 +16,8 @@ class Ai1Player < Player
   
   attr_reader :goban, :inf, :enemy_colors, :genes
   
-  def initialize(controller, color, genes=nil)
-    super(false, controller)
+  def initialize(goban, color, genes=nil)
+    super(false, goban)
     @inf = InfluenceMap.new(@goban)
     @size = @goban.size
 

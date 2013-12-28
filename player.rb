@@ -1,19 +1,14 @@
 class Player
 
-  attr_reader :goban, :controller, :color, :is_human
+  attr_reader :goban, :color, :is_human
 
-  def initialize(is_human, controller)
+  def initialize(is_human, goban)
     @is_human = is_human
-    @controller = controller
-    @goban = controller.goban
+    @goban = goban
   end
   
   def set_color(color)
     @color = color
   end
   
-  def on_undo_request(color)
-    true
-  end
-
 end
