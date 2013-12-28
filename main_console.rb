@@ -2,9 +2,96 @@ require 'trollop'
 
 require_relative "logging"
 require_relative "controller"
+require_relative "score_analyser"
 require_relative "ai1_player"
-require_relative "human_player"
+require_relative "console_human_player"
 
+class ConsoleGame
+
+	# Create controller & players
+	def initialize(opts)
+		@controller = c = Controller.new
+		@controller.messages_to_console(true)
+		c.new_game(opts[:size], opts.players, opts.handicap)
+		@goban = c.goban
+		@players = []
+		num_players = opts.players
+		num_players.times do |color|
+  		@players[color] = opts.ai>color ? Ai1Player.new(@goban,color) : ConsoleHumanPlayer.new(@goban,color)
+		end
+		c.load_moves(opts.load) if opts.load
+		# if no human is playing we create one to allow human interaction
+		@spectator = opts.ai >= num_players ? ConsoleHumanPlayer.new(@goban,-1) : nil
+    @scorer = ScoreAnalyser.new
+	end
+
+  # Show prisoner counts during the game  
+  def show_prisoners
+    prisoners = @controller.prisoners?
+    prisoners.size.times do |c|
+      puts "#{prisoners[c]} #{@goban.color_name(c)} (#{@goban.color_to_char(c)}) are prisoners"
+    end
+    puts ""
+  end
+  
+	def propose_console_end
+    text = @scorer.start_scoring((@goban, @controller.komi, @controller.who_resigned)
+  	text.each { |line| puts line }
+
+	  # We ask human players; AI always accepts
+	  @players.each do |player|
+		  if player.is_human and !player.propose_score
+			  # Ending refused, we will keep on playing
+			  @controller.accept_ending(false)
+			  @scorer.end_scoring
+			  return
+		  end
+	  end
+    @controller.accept_ending(true)
+	end
+
+	def get_move_or_cmd
+		if !@spectator or @num_autoplay > 0
+		  @num_autoplay -= 1
+		  return @players[@controller.cur_color].get_move
+		else
+		  return @spectator.get_move(@controller.cur_color)
+		end
+	end
+
+	def play_move_or_cmd(move)
+    if move.start_with?("cont")
+      @num_autoplay = move.split(":")[1].to_i
+      @num_autoplay = 1 if @num_autoplay == 0 # no arg is equivalent to continue:1
+    elsif move.start_with?("pris")
+      show_prisoners
+    elsif move.start_with?("hist")
+    	puts @controller.history_string
+    elsif move == "dbg" then
+      @goban.debug_display
+    elsif move == "help" then # this help is for console only
+      puts "Move (e.g. b3) or pass, undo, resign, history, dbg, log:(level)=(1/0), load:(moves), continue:(times)"
+      puts "Four letter abbreviations are accepted, e.g. \"hist\" is valid to mean \"history\""
+    else
+	    @controller.play_one_move(move)
+	  end
+	end
+
+	def play_game
+		@num_autoplay = 0
+		while ! @controller.game_ended
+		  if @controller.game_ending
+		    propose_console_end
+		    next
+		  end
+		  move = get_move_or_cmd
+		  play_move_or_cmd(move)
+		end
+		puts "Game ended."
+		puts @controller.history_string
+	end
+
+end
 
 opts = Trollop::options do
   opt :size, "Goban size", :default => 9
@@ -15,14 +102,5 @@ opts = Trollop::options do
 end
 puts "Command line options received: #{opts}"
 
-# Create controller & players
-c = Controller.new
-c.new_game(opts[:size], opts.players, opts.handicap)
-opts.players.times do |n|
-  c.set_player(opts.ai>n ? Ai1Player.new(c,n) : HumanPlayer.new(c,n))
-end
-
-c.load_moves(opts.load) if opts.load
-
 # Start the game
-c.play_console_game
+ConsoleGame.new(opts).play_game
