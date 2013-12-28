@@ -2,7 +2,6 @@ require 'test/unit'
 
 require_relative "../logging"
 require_relative "../controller"
-require_relative "../human_player"
 
 # TODO: very incomplete test
 class TestController < Test::Unit::TestCase
@@ -10,8 +9,6 @@ class TestController < Test::Unit::TestCase
   def init_board(size=5, num_players=2, handicap=0)
     c = @controller = Controller.new
     c.new_game(size, num_players, handicap)
-    c.set_player(HumanPlayer.new(c,BLACK))
-    c.set_player(HumanPlayer.new(c,WHITE))
     @goban = c.goban
   end
 
