@@ -15,7 +15,7 @@ class Breeder
   NUM_MATCH_PER_AI_PER_TOURNAMENT = 3
   MUTATION_RATE = 0.03 # e.g. 0.02 is 2%
   WIDE_MUTATION_RATE = 0.10 # how often do we "widely" mutate
-  KOMI = 0.5
+  KOMI = 4.5
   TOO_SMALL_SCORE_DIFF = 3 # if final score is less that this, see it as a tie game
 
   def initialize(game_size)
