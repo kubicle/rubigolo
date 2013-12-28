@@ -2,7 +2,7 @@ require 'trollop'
 
 require_relative "logging"
 require_relative "time_keeper"
-require_relative "controller"
+require_relative "game_logic"
 require_relative "score_analyser"
 require_relative "ai1_player"
 
@@ -22,11 +22,11 @@ class Breeder
     @size = game_size
     @timer = TimeKeeper.new
     @timer.calibrate(0.7)
-    @controller = Controller.new
-    @controller.messages_to_console(true)
-    @controller.set_log_level("all=0")
-    @controller.new_game(@size)
-    @goban = @controller.goban
+    @game = GameLogic.new
+    @game.messages_to_console(true)
+    @game.set_log_level("all=0")
+    @game.new_game(@size)
+    @goban = @game.goban
     @players = [Ai1Player.new(@goban, BLACK), Ai1Player.new(@goban, WHITE)]
     @scorer = ScoreAnalyser.new
     @gen_size = GENERATION_SIZE
@@ -45,14 +45,14 @@ class Breeder
   end
   
   def play_until_game_ends
-    while ! @controller.game_ending
-      cur_player = @players[@controller.cur_color]
+    while ! @game.game_ending
+      cur_player = @players[@game.cur_color]
       move = cur_player.get_move
       begin
-        @controller.play_one_move(move)
+        @game.play_one_move(move)
       rescue StandardError => err
         puts "Exception occurred during a breeding game.\n#{cur_player} with genes: #{cur_player.genes}"
-        puts @controller.history_string
+        puts @game.history_string
         raise
       end
     end
@@ -61,7 +61,7 @@ class Breeder
   # Plays a game and returns the score difference in points
   def play_game(name1,name2,p1,p2)
     # @timer.start("AI VS AI game",0.5,3)
-    @controller.new_game(@size,2,0,KOMI)
+    @game.new_game(@size,2,0,KOMI)
     @players[0].prepare_game(p1)
     @players[1].prepare_game(p2)
     play_until_game_ends
@@ -70,7 +70,7 @@ class Breeder
     $log.debug("\n##{name1}:#{p1}\nagainst\n##{name2}:#{p2}") if $debug_breed
     $log.debug("Distance: #{'%.02f' % p1.distance(p2)}") if $debug_breed
     $log.debug("Score: #{score_diff}") if $debug_breed
-    $log.debug("Moves: #{@controller.history_string}") if $debug_breed
+    $log.debug("Moves: #{@game.history_string}") if $debug_breed
     @goban.console_display if $debug_breed
     return score_diff
   end

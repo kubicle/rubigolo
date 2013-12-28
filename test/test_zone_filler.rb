@@ -1,6 +1,6 @@
 require 'test/unit'
 
-require_relative "../controller"
+require_relative "../game_logic"
 require_relative "../logging"
 require_relative "../zone_filler"
 
@@ -13,9 +13,9 @@ class TestZoneFiller < Test::Unit::TestCase
   @@x = 0
 
   def init_board(size=5, num_players=2, handicap=0)
-    c = @controller = Controller.new
-    c.new_game(size, num_players, handicap)
-    @goban = c.goban
+    @game = GameLogic.new
+    @game.new_game(size, num_players, handicap)
+    @goban = @game.goban
     @@x = @goban.char_to_color("X") # we use this color for replacements
     
     @filler = ZoneFiller.new(@goban)

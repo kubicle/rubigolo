@@ -1,7 +1,7 @@
 require 'test/unit'
 
 require_relative "../logging"
-require_relative "../controller"
+require_relative "../game_logic"
 require_relative "../score_analyser"
 
 
@@ -12,9 +12,9 @@ class TestScoreAnalyser < Test::Unit::TestCase
   end
 
   def init_game(num_players, size=5)
-    c = @controller = Controller.new
-    c.new_game(size, num_players, 0)
-    @goban = c.goban
+    @game = GameLogic.new
+    @game.new_game(size, num_players, 0)
+    @goban = @game.goban
     @sa = ScoreAnalyser.new
     # when size is 7 we load an ending game to get real score situation
     if size==7
@@ -26,7 +26,7 @@ class TestScoreAnalyser < Test::Unit::TestCase
       # 2 ++O+O++
       # 1 +++O+++
       #   abcdefg
-      @controller.load_moves("d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,g6,d1,g5,g4,pass,pass")
+      @game.load_moves("d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,g6,d1,g5,g4,pass,pass")
     end
   end
 
