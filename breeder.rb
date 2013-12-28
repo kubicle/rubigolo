@@ -3,6 +3,7 @@ require 'trollop'
 require_relative "logging"
 require_relative "time_keeper"
 require_relative "controller"
+require_relative "score_analyser"
 require_relative "ai1_player"
 
 $debug_breed = false # TODO move me somewhere else?
@@ -10,7 +11,7 @@ $debug_breed = false # TODO move me somewhere else?
 class Breeder
 
   GENERATION_SIZE = 26 # must be even number
-  NUM_TOURNAMENTS = 10
+  NUM_TOURNAMENTS = 2
   NUM_MATCH_PER_AI_PER_TOURNAMENT = 3
   MUTATION_RATE = 0.03 # e.g. 0.02 is 2%
   WIDE_MUTATION_RATE = 0.10 # how often do we "widely" mutate
@@ -22,40 +23,55 @@ class Breeder
     @timer = TimeKeeper.new
     @timer.calibrate(0.7)
     @controller = Controller.new
-    @controller.new_game(@size)
-    @player1 = Ai1Player.new(@controller, BLACK)
-    @player2 = Ai1Player.new(@controller, WHITE)
-    @controller.set_player(@player1)
-    @controller.set_player(@player2)
+    @controller.messages_to_console(true)
     @controller.set_log_level("all=0")
+    @controller.new_game(@size)
+    @goban = @controller.goban
+    @players = [Ai1Player.new(@goban, BLACK), Ai1Player.new(@goban, WHITE)]
+    @scorer = ScoreAnalyser.new
     @gen_size = GENERATION_SIZE
     first_generation
   end
 
   def first_generation
-    @control_genes = @player1.genes.clone
+    @control_genes = @players[0].genes.clone
     @generation = []
     @new_generation = []
     @gen_size.times do |i|
-      @generation.push(@player1.genes.clone.mutate_all!)
+      @generation.push(@players[0].genes.clone.mutate_all!)
       @new_generation.push(Genes.new)
     end
     @score_diff = []
   end
   
+  def play_until_game_ends
+    while ! @controller.game_ending
+      cur_player = @players[@controller.cur_color]
+      move = cur_player.get_move
+      begin
+        @controller.play_one_move(move)
+      rescue StandardError => err
+        puts "Exception occurred during a breeding game.\n#{cur_player} with genes: #{cur_player.genes}"
+        puts @controller.history_string
+        raise
+      end
+    end
+  end
+
   # Plays a game and returns the score difference in points
   def play_game(name1,name2,p1,p2)
     # @timer.start("AI VS AI game",0.5,3)
     @controller.new_game(@size,2,0,KOMI)
-    @player1.prepare_game(p1)
-    @player2.prepare_game(p2)
-    score_diff = @controller.play_breeding_game
+    @players[0].prepare_game(p1)
+    @players[1].prepare_game(p2)
+    play_until_game_ends
+    score_diff = @scorer.compute_score_diff(@goban, KOMI)
     # @timer.stop(false) # no exception if it takes longer but an error in the log
     $log.debug("\n##{name1}:#{p1}\nagainst\n##{name2}:#{p2}") if $debug_breed
     $log.debug("Distance: #{'%.02f' % p1.distance(p2)}") if $debug_breed
     $log.debug("Score: #{score_diff}") if $debug_breed
-    $log.debug("Moves: #{@controller.history_str}") if $debug_breed
-    @controller.goban.console_display if $debug_breed
+    $log.debug("Moves: #{@controller.history_string}") if $debug_breed
+    @goban.console_display if $debug_breed
     return score_diff
   end
 
@@ -156,9 +172,9 @@ class Breeder
       raise "tie game?!" if score == 0
       total_score += score
     end
-    @timer.stop(size == 9) # if size is not 9 our perf numbers are of course meaningless
-    $log.debug("Average score of control against itself: #{total_score/num_games}") if $debug_breed
-    $log.debug("Out of #{num_games} games, black won #{num_wins} times") if $debug_breed
+    @timer.stop(false) #size == 9) # if size is not 9 our perf numbers are of course meaningless
+    $log.debug("Average score of control against itself: #{total_score/num_games}")
+    $log.debug("Out of #{num_games} games, black won #{num_wins} times")
     return num_wins
   end
 
