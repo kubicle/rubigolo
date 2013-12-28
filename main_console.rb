@@ -1,25 +1,25 @@
 require 'trollop'
 
 require_relative "logging"
-require_relative "controller"
+require_relative "game_logic"
 require_relative "score_analyser"
 require_relative "ai1_player"
 require_relative "console_human_player"
 
 class ConsoleGame
 
-	# Create controller & players
+	# Create game & players
 	def initialize(opts)
-		@controller = c = Controller.new
-		@controller.messages_to_console(true)
-		c.new_game(opts[:size], opts.players, opts.handicap)
-		@goban = c.goban
+		@game = GameLogic.new
+		@game.messages_to_console(true)
+		@game.new_game(opts[:size], opts.players, opts.handicap)
+		@goban = @game.goban
 		@players = []
 		num_players = opts.players
 		num_players.times do |color|
   		@players[color] = opts.ai>color ? Ai1Player.new(@goban,color) : ConsoleHumanPlayer.new(@goban,color)
 		end
-		c.load_moves(opts.load) if opts.load
+		@game.load_moves(opts.load) if opts.load
 		# if no human is playing we create one to allow human interaction
 		@spectator = opts.ai >= num_players ? ConsoleHumanPlayer.new(@goban,-1) : nil
     @scorer = ScoreAnalyser.new
@@ -27,7 +27,7 @@ class ConsoleGame
 
   # Show prisoner counts during the game  
   def show_prisoners
-    prisoners = @controller.prisoners?
+    prisoners = @game.prisoners?
     prisoners.size.times do |c|
       puts "#{prisoners[c]} #{@goban.color_name(c)} (#{@goban.color_to_char(c)}) are prisoners"
     end
@@ -35,27 +35,27 @@ class ConsoleGame
   end
   
 	def propose_console_end
-    text = @scorer.start_scoring((@goban, @controller.komi, @controller.who_resigned)
+    text = @scorer.start_scoring(@goban, @game.komi, @game.who_resigned)
   	text.each { |line| puts line }
 
 	  # We ask human players; AI always accepts
 	  @players.each do |player|
 		  if player.is_human and !player.propose_score
 			  # Ending refused, we will keep on playing
-			  @controller.accept_ending(false)
+			  @game.accept_ending(false)
 			  @scorer.end_scoring
 			  return
 		  end
 	  end
-    @controller.accept_ending(true)
+    @game.accept_ending(true)
 	end
 
 	def get_move_or_cmd
 		if !@spectator or @num_autoplay > 0
 		  @num_autoplay -= 1
-		  return @players[@controller.cur_color].get_move
+		  return @players[@game.cur_color].get_move
 		else
-		  return @spectator.get_move(@controller.cur_color)
+		  return @spectator.get_move(@game.cur_color)
 		end
 	end
 
@@ -66,21 +66,21 @@ class ConsoleGame
     elsif move.start_with?("pris")
       show_prisoners
     elsif move.start_with?("hist")
-    	puts @controller.history_string
+    	puts @game.history_string
     elsif move == "dbg" then
       @goban.debug_display
     elsif move == "help" then # this help is for console only
       puts "Move (e.g. b3) or pass, undo, resign, history, dbg, log:(level)=(1/0), load:(moves), continue:(times)"
       puts "Four letter abbreviations are accepted, e.g. \"hist\" is valid to mean \"history\""
     else
-	    @controller.play_one_move(move)
+	    @game.play_one_move(move)
 	  end
 	end
 
 	def play_game
 		@num_autoplay = 0
-		while ! @controller.game_ended
-		  if @controller.game_ending
+		while ! @game.game_ended
+		  if @game.game_ending
 		    propose_console_end
 		    next
 		  end
@@ -88,7 +88,7 @@ class ConsoleGame
 		  play_move_or_cmd(move)
 		end
 		puts "Game ended."
-		puts @controller.history_string
+		puts @game.history_string
 	end
 
 end
