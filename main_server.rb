@@ -6,7 +6,7 @@ require "socket"
 require "uri"
 
 require_relative "logging"
-require_relative "controller"
+require_relative "game_logic"
 require_relative "score_analyser"
 require_relative "ai1_player"
 
@@ -20,7 +20,7 @@ class MainServer
   INDEX_LINK = "<a href='index'>Back to index</a>"
 
   def initialize
-    @controller = nil
+    @game = nil
     @scorer = ScoreAnalyser.new
     @players = []
     @webserver = nil
@@ -101,25 +101,25 @@ class MainServer
   end
 
   def let_ai_play
-    return nil if @controller.game_ending or @controller.game_ended
-    player = @players[@controller.cur_color]
+    return nil if @game.game_ending or @game.game_ended
+    player = @players[@game.cur_color]
     return nil if !player # human
     move = player.get_move
-    @controller.play_one_move(move)
+    @game.play_one_move(move)
     return move     
   end
 
   def command(cmd)
-    @controller.play_one_move(cmd)
+    @game.play_one_move(cmd)
   end
     
   def show_history
-    add_message("Moves played: "+@controller.history_string)
+    add_message("Moves played: "+@game.history_string)
   end
 
   def show_score_info
     if !@have_score
-      @scorer.start_scoring(@goban, @controller.komi, @controller.who_resigned)
+      @scorer.start_scoring(@goban, @game.komi, @game.who_resigned)
       @have_score = true
     end
     @scorer.get_score.each { |line| add_message(line) }
@@ -127,18 +127,18 @@ class MainServer
   end
 
   def req_accept_score(args)
-    @controller.accept_ending(get_arg(args,"value")=="y")
-    @have_score = false if !@controller.game_ending
+    @game.accept_ending(get_arg(args,"value")=="y")
+    @have_score = false if !@game.game_ending
     @scorer.end_scoring
   end
 
   # Show prisoner counts during the game  
   def req_show_prisoners
-    prisoners = @controller.prisoners?
+    prisoners = @game.prisoners?
     prisoners.size.times do |c|
-      puts "#{prisoners[c]} #{@goban.color_name(c)} (#{@goban.color_to_char(c)}) are prisoners"
+      add_message("#{prisoners[c]} #{@goban.color_name(c)} (#{@goban.color_to_char(c)}) are prisoners")
     end
-    puts ""
+    add_message("")
   end
 
   def req_show_debug_info
@@ -152,9 +152,9 @@ class MainServer
     num_players = get_arg_i(args,"players",2)
     handicap = get_arg_i(args,"handicap",0)
     num_ai = get_arg_i(args,"ai",1)
-    @controller = Controller.new
-    @controller.new_game(size,num_players,handicap)
-    @goban = @controller.goban
+    @game = GameLogic.new
+    @game.new_game(size,num_players,handicap)
+    @goban = @game.goban
     @have_score = false
     @players.clear
     num_players.times do |color|
@@ -166,7 +166,7 @@ class MainServer
   def req_new_move(args)
     move=get_arg(args,"at")
     begin
-      @controller.play_one_move(move)
+      @game.play_one_move(move)
     rescue Exception => err
       # if err.message.start_with?("Invalid move")
       # add_message("Ignored move #{move} (game displayed was maybe not in synch)")
@@ -177,7 +177,7 @@ class MainServer
   def req_load_moves(args)
     moves=get_arg(args,"value")
     begin
-      @controller.load_moves(moves)
+      @game.load_moves(moves)
     rescue => err
       raise if ! err.message.start_with?("Invalid move")
       add_message(err.message)
@@ -208,7 +208,7 @@ class MainServer
   def handle_request(req)
     begin
       url,args = parse_request(req)
-      if ! @controller and url != "/newGame" and url != "/index"
+      if ! @game and url != "/newGame" and url != "/index"
        return "Invalid request before starting a game (#{req})<br><br>#{INDEX_LINK}"
       end
       reply = ""
@@ -230,7 +230,7 @@ class MainServer
         else reply << "Unknown request: #{req}"
       end
       ai_played = let_ai_play
-      reply << web_display(@controller.goban, ai_played, question)
+      reply << web_display(@game.goban, ai_played, question)
       return reply
     rescue => err
       puts "*** Exception: #{err}"
@@ -240,9 +240,9 @@ class MainServer
   end
   
   def web_display(goban,ai_played,question)
-    ended = @controller.game_ended
-    ending = (!ended and @controller.game_ending)
-    player = @players[@controller.cur_color]
+    ended = @game.game_ended
+    ending = (!ended and @game.game_ending)
+    player = @players[@game.cur_color]
     human_move = (!ended and !ending and !player)
     size=@goban.size
     show_score_info if ending
@@ -258,7 +258,7 @@ class MainServer
       1.upto(size) do |i|
         stone = goban.stone_at?(i,j)
         if stone.empty?
-          if human_move and Stone.valid_move?(goban,i,j,@controller.cur_color)
+          if human_move and Stone.valid_move?(goban,i,j,@game.cur_color)
             s << "<td><a href='move?at="+goban.x_label(i)+j.to_s+"'>+</a></td>"
           else
             s << "<td>+</td>" # empty intersection we cannot play on (ko or suicide)
@@ -290,12 +290,12 @@ class MainServer
       s << " <a href='prisoners'>prisoners</a> "
       s << " <a href='load'>load</a> "
       s << " <a href='dbg'>debug</a> "
-      s << " <br>Who's turn: #{goban.color_to_char(@controller.cur_color)}<br><br>"
+      s << " <br>Who's turn: #{goban.color_to_char(@game.cur_color)}<br><br>"
     else
       s << " <a href='continue'>continue</a><br>"
     end
 
-    errors = @controller.get_errors
+    errors = @game.get_errors
     while txt = errors.shift do s << "#{txt}<br>" end
     while txt = @messages.shift do s << "#{txt}<br>" end
 
