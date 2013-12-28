@@ -6,7 +6,6 @@ class HandicapSetter
   # string examples: "3" or "3=d4-p16-p4" or "d4-p16-p4"
   # Returns the handicap actual count
   def HandicapSetter.set_handicap(goban, h)
-    raise "Handicap cannot be changed during a game" if goban.move_number? > 0
     return 0 if h == 0 or h == "0"
 
     # Standard handicap?
