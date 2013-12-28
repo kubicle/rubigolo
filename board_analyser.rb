@@ -1,8 +1,9 @@
 require "set"
-
 require_relative "goban"
 require_relative "zone_filler"
 
+
+# Class used by BoardAnalyser class.
 # A void in an empty zone surrounded by (and including) various groups.
 # NB: when a void has a single color around; we call this an eye. Can be discussed...
 class Void
@@ -79,17 +80,20 @@ class BoardAnalyser
 
   attr_reader :goban, :scores, :prisoners
 
-  def initialize(goban)
-    @goban = goban
+  def initialize
+    @goban = nil
     @backup = nil
     @first_void_code = 100 # anything above Goban::COLOR_CHARS.size is OK
     @voids = []
     @all_groups = Set.new
-    @num_colors = goban.num_colors
   end
 
-  def count_score
+  # Calling this method updates the goban to show the detected result.
+  # Method "restore" must be called if the game needs to continue (dispute about the score).
+  def count_score(goban)
     $log.debug("Counting score...") if $debug
+    @goban = goban
+    @num_colors = goban.num_colors
     @scores = Array.new(@num_colors,0)
     @prisoners = Group.prisoners?(@goban)
     @backup = @goban.image?
@@ -108,7 +112,9 @@ class BoardAnalyser
     debug_dump if $debug
   end
   
-  def _enlarge
+  # NB: only for 2 players game
+  def _enlarge(goban)
+    @goban = goban
     size = @goban.size
     stones = []
     num = Array.new(3,0) # +1 for EMPTY
