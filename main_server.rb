@@ -187,7 +187,7 @@ class MainServer
   def parse_request(req_str)
     # GET /mainMenu?par1=val1 HTTP/1.1
     reqs = req_str.split()
-    raise "Unsupported request: "+req if reqs.size<3 or reqs[0]!="GET" or reqs[2]!="HTTP/1.1"
+    raise "Unsupported request: "+reqs if reqs.size<3 or reqs[0]!="GET" or reqs[2]!="HTTP/1.1"
     full_url = reqs[1]
     url,arg_str = full_url.split("?")
     if arg_str then args=arg_str.split(/&|=/) end
