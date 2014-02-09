@@ -14,7 +14,7 @@ require_relative "genes"
 
 class Ai1Player < Player
   
-  attr_reader :goban, :inf, :enemy_colors, :genes
+  attr_reader :goban, :inf, :enemy_colors, :genes, :last_move_score
   
   def initialize(goban, color, genes=nil)
     super(false, goban)
@@ -58,6 +58,8 @@ class Ai1Player < Player
     @genes.get("#{self.class.name}-#{name}",def_val,low_limit,high_limit)
   end
 
+  # Returns the move chosen (e.g. c4 or pass)
+  # One can check last_move_score to see the score of the move returned
   def get_move
     # @timer.start("AI move",0.5,3)
     @num_moves += 1
@@ -96,9 +98,11 @@ class Ai1Player < Player
         end
       end
     end
+    @last_move_score = best_score
 
-    # @timer.stop(false) # no exception if it takes longer but an error in the log
+    # @timer.stop(false) # false: no exception if it takes longer but an error in the log
     return Goban.move_as_string(best_i, best_j) if best_score > @minimum_score
+
     $log.debug("AI is passing...") if $debug
     return "pass"
   end
@@ -107,7 +111,7 @@ class Ai1Player < Player
     @inf.build_map!
   end
 
-  def eval_move(i,j,best_score)
+  def eval_move(i, j, best_score=@minimum_score)
     return 0.0 if ! Stone.valid_move?(@goban, i, j, @color)
     score = 0.0
     # run all positive heuristics

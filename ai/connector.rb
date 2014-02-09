@@ -7,7 +7,7 @@ class Connector < Heuristic
 
   def initialize(player)
     super
-    @infl_coeff = get_gene("infl", 0.33, 0.01, 1.0)
+    @infl_coeff = get_gene("infl", 0.07, 0.01, 0.5)
     @ally_coeff1 = get_gene("ally-1enemy", 0.33, 0.01, 1.0)
     @ally_coeff2 = get_gene("ally-more-enemies", 1.66, 0.01, 3.0)
   end
@@ -38,10 +38,13 @@ class Connector < Heuristic
         return 0 if @goban.empty?(s1.i,s2.j) and @goban.empty?(s2.i,s1.j)
       end
     end
-    $log.debug("=> Connector heuristic thinks we should connect in #{i},#{j} (allies:#{num_allies} enemies: #{num_enemies})") if $debug
-    return @infl_coeff / @inf.map[j][i][@color] if num_enemies == 0
-    return @ally_coeff1 * num_allies if num_enemies == 1
-    return @ally_coeff2 * num_allies
+    case num_enemies
+    when 0 then eval = @infl_coeff / @inf.map[j][i][@color]
+    when 1 then eval = @ally_coeff1 * num_allies
+    else eval = @ally_coeff2 * num_allies
+    end
+    $log.debug("Connector gives #{'%.2f' % eval} to #{i},#{j} (allies:#{num_allies} enemies: #{num_enemies})") if $debug
+    return eval
   end
 
 end
