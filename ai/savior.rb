@@ -17,14 +17,28 @@ class Savior < Heuristic
 
   def eval_move(i,j)
     stone = @goban.stone_at?(i,j)
+    threat = eval_escape(i,j,stone)
+    $log.debug("=> Savior thinks we can save a threat of #{threat} in #{i},#{j}") if $debug and threat>0
+    return threat
+  end
+
+private
+
+  def eval_escape(i,j,stone)
     threat = lives_added = 0
-    group = nil
     stone.unique_allies(@color).each do |g|
+      new_threat = nil
       if g.lives == 1
-        threat += g.stones.size
-        group = g # usually only 1 is found but it works for more (they merge if we play this "savior" stone)
-      else
+        # NB: if more than 1 group in atari, they merge if we play this "savior" stone
+        new_threat = g.stones.size
+      elsif g.lives == 2
+        $log.debug("Savior asking hunter to look at #{i},#{j}: pre-atari on #{g}") if $debug
+        new_threat = @enemy_hunter.eval_move(i,j)
+      end
+      if !new_threat
         lives_added += g.lives - 1
+      else
+        threat += new_threat
       end
     end
     return 0 if threat == 0 # no threat
@@ -38,11 +52,10 @@ class Savior < Heuristic
       is_caught = @enemy_hunter.escaping_atari_is_caught?(stone)
       Stone.undo(@goban)
       if is_caught
-        $log.debug("Savior giving up on #{group}") if $debug
+        $log.debug("Savior giving up on threat of #{threat} in #{i},#{j}") if $debug
         return 0
       end
     end
-    $log.debug("=> Savior thinks we can save a threat of #{threat} in #{i},#{j}") if $debug
     return threat
   end
 
