@@ -1,5 +1,6 @@
 require 'test/unit'
 
+$test = true
 require_relative "../breeder"
 
 
