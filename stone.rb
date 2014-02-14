@@ -8,6 +8,7 @@ require_relative "stone_constants"
 class Stone
 
   XY_AROUND = [[0,1],[1,0],[0,-1],[-1,0]] # top, right, bottom, left
+  XY_DIAGONAL = [[1,1],[1,-1],[-1,-1],[-1,1]] # top-right, bottom-right, bottom-left, top-left
 
   attr_reader :goban, :group, :color, :i, :j, :neighbors
   
@@ -19,7 +20,7 @@ class Stone
     @group = nil
     # @neighbors contains the neighboring stones (empty or not); no need to compute coordinates anymore
     @neighbors = Array.new(4)
-    # @allies and @enemies are used as buffers for corresonding methods (unique_allies, unique_enemies etc.)
+    # @allies and @enemies are used as buffers for corresponding methods (unique_allies, unique_enemies etc.)
     @allies = Array.new(4)
     @enemies = Array.new(4)
   end
@@ -40,12 +41,12 @@ class Stone
   end
   
   def to_s
-    @color==EMPTY ? "empty:#{as_move}" : "stone#{@goban.color_to_char(@color)}:#{as_move}"
+    @color==EMPTY ? "empty:#{as_move}" : "stone#{Grid::COLOR_CHARS[@color]}:#{as_move}"
   end
   
   # Returns "c3" for a stone in 3,3
   def as_move
-    "#{Goban.move_as_string(@i,@j)}"
+    "#{Grid.move_as_string(@i,@j)}"
   end
   
   def debug_dump
@@ -132,14 +133,6 @@ class Stone
     return stone
   end
   
-  # Wil be used for various evaluations (currently for filling a zone)
-  # color should not be a player's color nor EMPTY unless we do not plan to 
-  # continue the game on this goban (or we plan to restore everything we marked)
-  def mark_a_spot!(color)
-    # $log.debug("marking in #{@i},#{@j} with color #{color} (old value: #{@color})") if $debug
-    @color = color
-  end
-
   def die
     # update_around_before_die
     @color = EMPTY
