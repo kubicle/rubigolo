@@ -58,12 +58,12 @@ class TestScoreAnalyser < Test::Unit::TestCase
     assert_equal([[12,0,0],[14,3,0.5]], i.shift)
   end
   
-  def test_end_scoring
+  def test_scoring_grid
     init_game(7)
     @sa.start_scoring(@goban, 1.5, nil)
-    assert_not_equal(EMPTY, @goban.stone_at?(1,1).color)
-    @sa.end_scoring
-    assert_equal(EMPTY, @goban.stone_at?(1,1).color)
+    assert_equal(EMPTY, @goban.stone_at?(1,1).color) # score analyser leaves the goban untouched
+    assert_equal(Grid::TERRITORY_COLOR + WHITE, @goban.scoring_grid.yx[1][1]) # a1
+    assert_equal(Grid::TERRITORY_COLOR + BLACK, @goban.scoring_grid.yx[6][2]) # b6
   end
 
   def test_score_info_to_s
