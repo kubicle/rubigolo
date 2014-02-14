@@ -6,14 +6,13 @@ class InfluenceMap
   def initialize(goban)
     @goban = goban
     @size = goban.size
-    @num_colors = goban.num_colors
-    @map = Array.new(@size+1) {Array.new(@size+1) {Array.new(@num_colors,0)}}
+    @map = Array.new(@size+1) {Array.new(@size+1) {[0,0]}}
   end
   
   def clear
     1.upto(@size) do |j|
       1.upto(@size) do |i|
-        @num_colors.times { |c| @map[j][i][c] = 0 }
+        2.times { |c| @map[j][i][c] = 0 }
       end
     end
   end
@@ -51,8 +50,8 @@ class InfluenceMap
   end
   
   def debug_dump
-    @num_colors.times do |c|
-      puts "Influence map for #{@goban.color_name(c)}:"
+    2.times do |c|
+      puts "Influence map for #{Grid::COLOR_NAMES[c]}:"
       @size.downto(1) do |j|
         print "#{'%2d' % j}"
         1.upto(@size) do |i|
@@ -61,7 +60,7 @@ class InfluenceMap
         print "\n"
       end
       print "  "
-      1.upto(@size) { |i| print " #{@goban.x_label(i)} " }
+      1.upto(@size) { |i| print " #{Grid.x_label(i)} " }
       print "\n"
     end
   end
