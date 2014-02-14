@@ -1,7 +1,7 @@
 require 'test/unit'
 
 require_relative "../logging"
-require_relative "../stone"
+require_relative "../goban"
 
 # NB: for debugging think of using @goban.console_display
 
