@@ -129,7 +129,6 @@ class MainServer
   def req_accept_score(args)
     @game.accept_ending(get_arg(args,"value")=="y")
     @have_score = false if !@game.game_ending
-    @scorer.end_scoring
   end
 
   # Show prisoner counts during the game  
@@ -255,15 +254,16 @@ class MainServer
     size.downto(1) do |j|
       s << "<tr><th>"+j.to_s+"</th>"
       1.upto(size) do |i|
-        stone = goban.stone_at?(i,j)
-        if stone.empty?
+        if @have_score then color = goban.scoring_grid.yx[j][i]
+        else color = goban.stone_at?(i,j).color end
+        if color == EMPTY
           if human_move and Stone.valid_move?(goban,i,j,@game.cur_color)
             s << "<td><a href='move?at="+Grid.x_label(i)+j.to_s+"'>+</a></td>"
           else
             s << "<td>+</td>" # empty intersection we cannot play on (ko or suicide)
           end
         else # TODO: temporary; use nicer than characters!
-          s << "<td>#{Grid::COLOR_CHARS[stone.color]}</td>" 
+          s << "<td>#{Grid::COLOR_CHARS[color]}</td>" 
         end
       end
       s << "</tr>"
