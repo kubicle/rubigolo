@@ -15,12 +15,13 @@ class Heuristic
   end
   
   def init_color
-    @color = @player.color
-    @enemy_colors = @player.enemy_colors
     # For consultant heuristics we reverse the colors
     if @consultant
-      @color = @player.enemy_colors.first
-      @enemy_colors = @goban.enemy_colors(@color)
+      @color = @player.enemy_color
+      @enemy_color = @player.color
+    else
+      @color = @player.color
+      @enemy_color = @player.enemy_color
     end
   end
   
