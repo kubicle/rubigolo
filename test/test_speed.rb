@@ -124,7 +124,7 @@ class TestSpeed < Test::Unit::TestCase
   
   # Converts "a1,b2" in [1,1,2,2]
   def moves_ij(game)
-    return game.split(",").collect_concat { |m| Goban.parse_move(m) }
+    return game.split(",").collect_concat { |m| Grid.parse_move(m) }
   end
 
   def play_moves(moves_ij)
