@@ -21,7 +21,7 @@ class HandicapSetter
     h = h[eq+1..-1] if eq # "3=d4-p16-p4" would become "d4-p16-p4"
     moves = h.split("-")
     moves.each do |move|
-      i, j = Goban.parse_move(move)
+      i, j = Grid.parse_move(move)
       Stone.play_at(goban, i, j, BLACK)
     end
     return moves.size
