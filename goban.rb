@@ -56,17 +56,17 @@ class Goban
   # Allocate a new group or recycles one from garbage list.
   # For efficiency, call this one, do not call the regular Group.new method.
   def new_group(stone,lives)
-    @num_groups += 1
     group = garbage_groups.pop
     if group
-      return group.recycle!(stone,lives,@num_groups)
+      return group.recycle!(stone,lives)
     else
+      @num_groups += 1
       return Group.new(self,stone,lives,@num_groups)
     end
   end
 
   def image?
-    return @grid.to_text(1,false,","){ |s| Grid::COLOR_CHARS[s.color] }.chop
+    return @grid.to_text(false,","){ |s| Grid::COLOR_CHARS[s.color] }.chop
   end
 
   # For debugging only
@@ -74,7 +74,7 @@ class Goban
     puts "Board:"
     print @grid.to_text { |s| Grid::COLOR_CHARS[s.color] }
     puts "Groups:"
-    print @grid.to_text(2) { |s| s.group ? s.group.ndx : "[]" }
+    print @grid.to_text { |s| s.group ? "#{s.group.ndx}" : "." }
     puts "Full info on groups and stones:"
     groups={}
     @grid.yx.each {|row| row.each {|s| groups[s.group.ndx] = s.group if s and s.group}}
