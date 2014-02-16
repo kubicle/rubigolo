@@ -15,6 +15,7 @@ class TestPotentialTerritory < Test::Unit::TestCase
     @game = GameLogic.new
     @game.new_game(size, handicap)
     @goban = @game.goban
+    @ter = PotentialTerritory.new(@goban)
   end
 
   def initialize(test_name)
@@ -22,7 +23,7 @@ class TestPotentialTerritory < Test::Unit::TestCase
   end
 
   def potential_to_s(grid)
-    return grid.to_text(1,false,",") {|v| POT2CHAR[2+v*2]}.chop
+    return grid.to_text(false,",") {|v| POT2CHAR[2+v*2]}.chop
   end
 
   def test_terr1
@@ -41,8 +42,6 @@ class TestPotentialTerritory < Test::Unit::TestCase
     @game.load_moves(game)
     before = @goban.image?
 
-    @ter = PotentialTerritory.new(@goban)
-    # @boan.debug_dump if $debug
     grid = @ter.guess_territories
 
     assert_equal(before, @goban.image?) # basic check - goban should have been restored
@@ -73,8 +72,6 @@ class TestPotentialTerritory < Test::Unit::TestCase
     final_pos = "++O@@++++,+@OO@++@+,OOOO@@@++,++OOOOO@@,OO@@O@@@@,@@@+OOOO@,O@@@@@O+O,+++@OOO++,+++@@O+++"
     assert_equal(final_pos, @goban.image?);
 
-    @ter = PotentialTerritory.new(@goban)
-    # @boan.debug_dump if $debug
     @ter.guess_territories
 
     black_first = "-&O@@----,&&OO@--@-,OOOO@@@--,::OOOOO@@,OO@@O@@@@,@@@OOOOO@,#@@@@@O:O,#@-@OOO::,---@@O:::"
@@ -83,9 +80,14 @@ class TestPotentialTerritory < Test::Unit::TestCase
     assert_equal(white_first, @ter._grid(WHITE).image?);
     expected_potential = "?????----,?.???--?-,???????--,::???????,?????????,?????????,???????:?,??-????::,---???:::"
     assert_equal(expected_potential, potential_to_s(@ter.potential))
+  end
 
-#    assert_equal([4+1,5+1], @boan.prisoners)
-#    assert_equal([16,12], @boan.scores)
+  # This test triggers the "if not suicide" in "add_stone" method
+  def test_no_suicide_while_evaluating
+    init_board(7)
+    @game.load_moves("d4,d2,e3,b4,e1,c5,d6,d5,c3,e5,d3,b3,b2,c2,a2,e2,f1,f2,b6,c6,f6,e6,f4,d7,f5,f3");
+    @ter.guess_territories
+    
   end
 
 end
