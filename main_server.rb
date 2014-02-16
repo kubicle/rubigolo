@@ -232,7 +232,7 @@ class MainServer
       return reply
     rescue => err
       puts "*** Exception: #{err}"
-      err.backtrace[0,5].each {|s| puts s }
+      err.backtrace[0,10].each {|s| puts s }
       return "Unexpected issue when handling request (#{req})<br>#{err}<br><br>#{INDEX_LINK}"
     end
   end
