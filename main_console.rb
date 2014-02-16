@@ -12,16 +12,15 @@ class ConsoleGame
 	def initialize(opts)
 		@game = GameLogic.new
 		@game.messages_to_console(true)
-		@game.new_game(opts[:size], opts.players, opts.handicap)
+		@game.new_game(opts[:size], opts.handicap)
 		@goban = @game.goban
 		@players = []
-		num_players = opts.players
-		num_players.times do |color|
+		2.times do |color|
   		@players[color] = opts.ai>color ? Ai1Player.new(@goban,color) : ConsoleHumanPlayer.new(@goban,color)
 		end
 		@game.load_moves(opts.load) if opts.load
 		# if no human is playing we create one to allow human interaction
-		@spectator = opts.ai >= num_players ? ConsoleHumanPlayer.new(@goban,-1) : nil
+		@spectator = opts.ai >= 2 ? ConsoleHumanPlayer.new(@goban,-1) : nil
     @scorer = ScoreAnalyser.new
 	end
 
@@ -29,13 +28,14 @@ class ConsoleGame
   def show_prisoners
     prisoners = @game.prisoners?
     prisoners.size.times do |c|
-      puts "#{prisoners[c]} #{@goban.color_name(c)} (#{@goban.color_to_char(c)}) are prisoners"
+      puts "#{prisoners[c]} #{Grid::COLOR_NAMES[c]} (#{Grid::COLOR_CHARS[c]}) are prisoners"
     end
     puts ""
   end
   
 	def propose_console_end
-    text = @scorer.start_scoring(@goban, @game.komi, @game.who_resigned)
+    text = @scorer.compute_score(@goban, @game.komi, @game.who_resigned)
+    puts @goban.scoring_grid.to_text { |c| Grid::COLOR_CHARS[c] }
   	text.each { |line| puts line }
 
 	  # We ask human players; AI always accepts
@@ -43,7 +43,6 @@ class ConsoleGame
 		  if player.is_human and !player.propose_score
 			  # Ending refused, we will keep on playing
 			  @game.accept_ending(false)
-			  @scorer.end_scoring
 			  return
 		  end
 	  end
@@ -95,8 +94,7 @@ end
 
 opts = Trollop::options do
   opt :size, "Goban size", :default => 9
-  opt :players, "Number of players", :default => 2
-  opt :ai, "How many AI players", :default => 0
+  opt :ai, "How many AI players", :default => 2
   opt :handicap, "Number of handicap stones", :default => 0
   opt :load, "Game to load like e4,c3,d5", :type => :string
 end

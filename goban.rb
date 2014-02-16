@@ -1,4 +1,5 @@
 require_relative "stone_constants"
+require_relative "grid"
 require_relative "stone"
 require_relative "group"
 
@@ -9,23 +10,13 @@ require_relative "group"
 # See Stone and Group classes for the layer above this.
 class Goban
 
-  NOTATION_A = "a".ord # notation origin; could be A or a
-  COLOR_CHARS = "@OXS&#*$-:/=?+" # NB "+" is for empty color == -1
-  UNKNOWN_ZONE = -2 # index of ? above; 2 from the end of the string
-  
-  attr_reader :size, :num_colors, :merged_groups, :killed_groups, :garbage_groups
+  attr_reader :size, :grid, :scoring_grid, :merged_groups, :killed_groups, :garbage_groups
 
-  def initialize(size=19, num_colors=2)
+  def initialize(size=19)
     @size = size
-    @color_names = ["black","white","red","blue"] # not constant as this could be user choice
-    raise "Number of players (#{num_colors}) must be <=#{@color_names.size} and >=2" if num_colors>@color_names.size or num_colors<2
-    @num_colors = num_colors
-    set_enemy_colors
-    # We had a few discussions about the added "border" below.
-    # Idea is to avoid to have to check i,j against size in many places.
-    # Also in case of bug, e.g. for @ban[5][-1] Ruby returns you @ban[5][@ban.size] (looping back)
-    # so having a real item (BORDER) on the way is easier to detect as a bug.
-    @ban = Array.new(size+2) {Array.new(size+2,BORDER)}
+    @grid = Grid.new(size)
+    @scoring_grid = Grid.new(size)
+    @ban = @grid.yx
     1.upto(size) do |j|
       1.upto(size) { |i| @ban[j][i] = Stone.new(self,i,j,EMPTY) }
     end
@@ -74,94 +65,25 @@ class Goban
     end
   end
 
-  # Returns the "character" used to represent a stone in text style
-  def color_to_char(color)
-    char = COLOR_CHARS[color]
-    raise "color #{color} is invalid in Goban. Use BoardAnalyser method instead?" if ! char
-    return char
-  end
-  
-  def char_to_color(char)
-    return EMPTY if char == COLOR_CHARS[EMPTY] # we have to because EMPTY is -1, not COLOR_CHARS.size
-    return COLOR_CHARS.index(char)
-  end
-
-  # Returns the name of the color/player (e.g. "black")
-  def color_name(color)
-    return @color_names[color]
-  end
-  
-  def color_to_dead_color(color)
-    return color + @color_names.size
-  end
-  def color_to_territory_color(color)
-    return color + 2 * @color_names.size
-  end
-
-  # For debugging and text-only; receives a block of code and calls it for each non empty stone
-  # The block should return a string representation of the stone (or whatever related to it)
-  # This method returns the concatenated string showing a board
-  def to_text(double_char=false, with_labels=true, end_of_row="\n")
-    s = ""
-    @size.downto(1) do |j|
-      s << "#{'%2d' % j} " if with_labels
-      1.upto(@size) { |i|
-        if @ban[j][i].color == EMPTY
-          s << (double_char ? "[]" : COLOR_CHARS[EMPTY])
-        else
-          s << yield(@ban[j][i])
-        end
-      }
-      s << end_of_row
-    end
-    if with_labels
-      s << "   "
-      if double_char then 1.upto(@size) { |i| s << " #{x_label(i)}" }
-      else 1.upto(@size) { |i| s << x_label(i) } end
-      s << "\n"
-    end
-    return s
+  def image?
+    return @grid.to_text(1,false,","){ |s| Grid::COLOR_CHARS[s.color] }.chop
   end
 
   # For debugging only
   def debug_display
     puts "Board:"
-    print to_text { |s| color_to_char(s.color) }
+    print @grid.to_text { |s| Grid::COLOR_CHARS[s.color] }
     puts "Groups:"
-    groups={}
-    double_char = (@num_groups >= 10)
-    print to_text(double_char) { |s|
-      groups[s.group.ndx] = s.group
-      (double_char ? "#{'%02d' % s.group.ndx}" : "#{s.group.ndx}")
-    }
+    print @grid.to_text(2) { |s| s.group ? s.group.ndx : "[]" }
     puts "Full info on groups and stones:"
-    1.upto(@num_groups) {|ndx| puts groups[ndx].debug_dump if groups[ndx]}
+    groups={}
+    @grid.yx.each {|row| row.each {|s| groups[s.group.ndx] = s.group if s and s.group}}
+    1.upto(@num_groups) { |ndx| puts groups[ndx].debug_dump if groups[ndx] }
   end
 
   # This display is for debugging and text-only game
   def console_display
-    print to_text { |s| color_to_char(s.color) }
-  end
-
-  # Watch out our images are upside-down on purpose (to help copy paste from screen)
-  # So last row (j==size) comes first in image
-  def image?
-    return to_text(false,false,","){ |s| color_to_char(s.color) }.chop
-  end
-  
-  # Watch out our images are upside-down on purpose (to help copy paste from screen)
-  # So last row (j==size) comes first in image
-  def load_image(image)
-    rows = image.split(/\"|,/)
-    raise "Invalid image: #{rows.size} rows instead of #{@size}" if rows.size != @size
-    @size.downto(1) do |j|
-      row = rows[size-j]
-      raise "Invalid image: row #{row}" if row.length != @size
-      1.upto(@size) do |i|
-        color = char_to_color(row[i-1])
-        @ban[j][i].mark_a_spot!(color)
-      end
-    end
+    print @grid.to_text { |s| Grid::COLOR_CHARS[s.color] }
   end
 
   # Basic validation only: coordinates and checks the intersection is empty
@@ -186,13 +108,6 @@ class Goban
     return @ban[j][i].empty?
   end
   
-  # Wil be used for various evaluations (currently for filling a zone)
-  # color should not be a player's color nor EMPTY unless we do not plan to 
-  # continue the game on this goban (or we plan to restore everything we marked)
-  def mark_a_spot!(i,j,color)
-    @ban[j][i].mark_a_spot!(color)
-  end
-  
   def move_number?
     return @history.size
   end
@@ -213,39 +128,6 @@ class Goban
   
   def previous_stone
     return @history.last
-  end
-
-  # Parses a move like "c12" into 3,12
-  def Goban.parse_move(move)
-    return move[0].ord-NOTATION_A+1, move[1,2].to_i
-  end
-  
-  # Builds a string representation of a move (3,12->"c12")  
-  def Goban.move_as_string(col, row)
-    return "#{(col+NOTATION_A-1).chr}#{row}"
-  end
-  
-  # Converts a numeric X coordinate in a letter (e.g 3->c)
-  def x_label(i)
-    return (i+NOTATION_A-1).chr
-  end
-
-  # Returns an array containing the enemy colors from given color.
-  # (trying to minimize the burden of multiplayer logic over 2 player logic)
-  def enemy_colors(color)
-    return @enemy_colors[color]
-  end
-
-private
-
-  # Pre-computes the lists of enemy colors
-  def set_enemy_colors
-    @enemy_colors = []
-    @num_colors.times do |color|
-      ec = []
-      @num_colors.times { |c| ec.push(c) if c != color }
-      @enemy_colors.push(ec)
-    end
   end
 
 end

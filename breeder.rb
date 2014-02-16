@@ -11,8 +11,6 @@ $debug_breed = false # TODO move me somewhere else?
 class Breeder
 
   GENERATION_SIZE = 26 # must be even number
-  NUM_TOURNAMENTS = 2
-  NUM_MATCH_PER_AI_PER_TOURNAMENT = 3
   MUTATION_RATE = 0.03 # e.g. 0.02 is 2%
   WIDE_MUTATION_RATE = 0.10 # how often do we "widely" mutate
   KOMI = 4.5
@@ -51,6 +49,7 @@ class Breeder
       begin
         @game.play_one_move(move)
       rescue StandardError => err
+        puts "#{err}"
         puts "Exception occurred during a breeding game.\n#{cur_player} with genes: #{cur_player.genes}"
         puts @game.history_string
         raise
@@ -61,7 +60,7 @@ class Breeder
   # Plays a game and returns the score difference in points
   def play_game(name1,name2,p1,p2)
     # @timer.start("AI VS AI game",0.5,3)
-    @game.new_game(@size,2,0,KOMI)
+    @game.new_game(@size,0,KOMI)
     @players[0].prepare_game(p1)
     @players[1].prepare_game(p2)
     play_until_game_ends
@@ -75,10 +74,10 @@ class Breeder
     return score_diff
   end
 
-  def run
-    NUM_TOURNAMENTS.times do |i| # TODO: Find a way to appreciate the progress
-      @timer.start("Breeding tournament #{i+1}/#{NUM_TOURNAMENTS}: each of #{@gen_size} AIs plays #{NUM_MATCH_PER_AI_PER_TOURNAMENT} games",5.5,36)
-      one_tournament
+  def run(num_tournaments, num_match_per_ai)
+    num_tournaments.times do |i| # TODO: Find a way to appreciate the progress
+      @timer.start("Breeding tournament #{i+1}/#{num_tournaments}: each of #{@gen_size} AIs plays #{num_match_per_ai} games",5.5,36)
+      one_tournament(num_match_per_ai)
       @timer.stop(false)
       reproduction
       control
@@ -87,10 +86,10 @@ class Breeder
   
   # NB: we only update score for black so komi unbalance does not matter.
   # Sadly this costs us a lot: we need to play twice more games to get score data...
-  def one_tournament
+  def one_tournament(num_match_per_ai)
     $log.debug("One tournament starts for #{@generation.size} AIs") if $debug_breed
     @gen_size.times { |p1| @score_diff[p1] = 0 }
-    NUM_MATCH_PER_AI_PER_TOURNAMENT.times do
+    num_match_per_ai.times do
       @gen_size.times do |p1|
         p2 = rand(@gen_size - 1)
         p2 = @gen_size - 1 if p2 == p1
@@ -165,7 +164,7 @@ class Breeder
   def bw_balance_check(num_games,size)
     @timer.start("bw_balance_check", num_games/1000.0*50, num_games/1000.0*512)
     $log.debug("Checking black/white balance by playing #{num_games} games (komi=#{KOMI})...")
-    total_score = num_wins = num_wins_w = 0
+    total_score = num_wins = 0
     num_games.times do
       score = play_game("control","control",@control_genes,@control_genes)
       num_wins += 1 if score>0
@@ -180,11 +179,13 @@ class Breeder
 
 end
 
-if ! $test_all
+if ! $test_all and ! $test
   opts = Trollop::options do
     opt :size, "Goban size", :default => 9
+    opt :num_tour, "Number of tournaments", :default => 2
+    opt :match_per_ai, "Number of matches per AI per tournament", :default => 3
   end
   
   breeder = Breeder.new(opts[:size])
-  breeder.run
+  breeder.run(opts[:num_tour], opts[:match_per_ai])
 end

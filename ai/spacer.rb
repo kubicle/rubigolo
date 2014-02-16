@@ -15,12 +15,12 @@ class Spacer < Heuristic
     stone = @goban.stone_at?(i,j)
     
     inf = @inf.map[j][i]
-    @enemy_colors.each { |c| enemy_inf += inf[c] }
+    enemy_inf += inf[@enemy_color]
     ally_inf += inf[@color]
     
     stone.neighbors.each do |s|
       inf = @inf.map[s.j][s.i]
-      @enemy_colors.each { |c| enemy_inf += inf[c] }
+      enemy_inf += inf[@enemy_color]
       ally_inf += inf[@color]
     end
     total_inf = enemy_inf + ally_inf
@@ -36,7 +36,7 @@ class Spacer < Heuristic
     total_inf += (20*(2 - db_x))/(total_inf+1) if db_x<2
     total_inf += (20*(2 - db_y))/(total_inf+1) if db_y<2
 
-    return 1.33 / (total_inf * @infl_coeff + dc * @corner_coeff +1)
+    return 1.33 / (total_inf * @infl_coeff + dc * @corner_coeff + 1)
   end    
   
   def distance_from_border(n)

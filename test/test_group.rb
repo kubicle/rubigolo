@@ -8,9 +8,9 @@ require_relative "../game_logic"
 
 class TestGroup < Test::Unit::TestCase
 
-  def init_board(size=5, num_players=2, handicap=0)
+  def init_board(size=5, handicap=0)
     @game = GameLogic.new
-    @game.new_game(size, num_players, handicap)
+    @game.new_game(size, handicap)
     @game.messages_to_console
     @goban = @game.goban
   end
@@ -225,7 +225,7 @@ class TestGroup < Test::Unit::TestCase
   # Fixed bug. This was when undo removes a "kill" and restores a stone 
   # ...which attacks (wrongfully) the undone stone
   def test_ko_bug1
-    init_board(9,2,5)
+    init_board(9,5)
     @game.load_moves("e4,e3,f5,f4,g4,f2,f3,d1,f4,undo,d2,c2,f4,d1,f3,undo,c1,d1,f3,g1,f4,undo,undo,f6")
   end
 
@@ -233,13 +233,13 @@ class TestGroup < Test::Unit::TestCase
   # killing actually the enemy around. We had wrong raise showing since at a point the group
   # we connect to has 0 lives. We simply made the raise test accept 0 lives as legit.
   def test_kamikaze_kill_while_connect
-    init_board(5,2,0)
+    init_board(5,0)
     @game.load_moves("a1,a3,b3,a4,b2,b1,b4,pass,a5,a2,a1,a2,undo,undo")
   end
   
   # This was not a bug actually but the test is nice to have.
   def test_ko_2
-    init_board(5,2,0)
+    init_board(5,0)
     @game.load_moves("a3,b3,b4,c2,b2,b1,c3,a2,pass,b3")
     # @game.history.each do |move| puts(move) end
     assert_equal(false, Stone.valid_move?(@goban,2,2,BLACK)) # KO
@@ -251,13 +251,13 @@ class TestGroup < Test::Unit::TestCase
   
   # Fixed. Bug was when undo was picking last group by "merged_with" (implemented merged_by)
   def test_bug2
-    init_board(9,2,5)
+    init_board(9,5)
     @game.load_moves("i1,d3,i3,d4,i5,d5,i7,d6,undo")
   end
 
   # At this moment this corresponds more or less to the speed test case too
   def test_various1
-    init_board(9,2,0)
+    init_board(9,0)
     @game.load_moves("pass,b2,a2,a3,b1,a1,d4,d5,a2,e5,e4,a1,undo,undo,undo,undo,undo,undo")
   end
   
@@ -265,13 +265,13 @@ class TestGroup < Test::Unit::TestCase
   # on same spot as the merging stone, then we undo... We used to only look at merging stone to undo a merge.
   # We simply added a check that the merged group is also the same.
   def test_undo_1
-    init_board(5,2,0)
+    init_board(5,0)
     @game.load_moves("e1,e2,c1,d1,d2,e1,e3,e1,undo,undo,undo,undo")
   end
   
   # Makes sure that die & resuscite actions behave well
   def test_undo_2
-    init_board(5,2,0)
+    init_board(5,0)
     @game.load_moves("a1,b1,c3")
     ws = @goban.stone_at?(1,1)
     wg = ws.group
@@ -294,7 +294,7 @@ class TestGroup < Test::Unit::TestCase
   # 5 +O@
   # 4 @+@
   def test_undo_3
-    init_board(5,2,0)
+    init_board(5,0)
     @game.load_moves("a2,a5,c2,b3,c3,c4,b4,b5,a4,c5")
     assert_equal("OOO++,@@O++,+O@++,@+@++,+++++", @goban.image?)
     @game.load_moves("b2,a3,b4,a4")

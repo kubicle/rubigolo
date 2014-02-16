@@ -10,15 +10,14 @@ require_relative "../zone_filler"
 
 class TestZoneFiller < Test::Unit::TestCase
 
-  @@x = 0
+  @@x = 123 # we use this color for replacements - should be rendered as "X"
 
-  def init_board(size=5, num_players=2, handicap=0)
+  def init_board(size=5, handicap=0)
     @game = GameLogic.new
-    @game.new_game(size, num_players, handicap)
+    @game.new_game(size, handicap)
     @goban = @game.goban
-    @@x = @goban.char_to_color("X") # we use this color for replacements
-    
-    @filler = ZoneFiller.new(@goban)
+    @grid = Grid.new(size)
+    @filler = ZoneFiller.new(@goban, @grid)
   end
 
   def initialize(test_name)
@@ -33,13 +32,13 @@ class TestZoneFiller < Test::Unit::TestCase
     # 2 +@+O+
     # 1 +++@+
     #   abcde
-    @goban.load_image("+O+++,+@+O+,+O+@+,+@+O+,+++@+")
+    @grid.load_image("+O+++,+@+O+,+O+@+,+@+O+,+++@+")
     @filler.fill_with_color(3,1,EMPTY,@@x)
-    assert_equal("XOXXX,X@XOX,XOX@X,X@XOX,XXX@X", @goban.image?);
+    assert_equal("XOXXX,X@XOX,XOX@X,X@XOX,XXX@X", @grid.image?);
 
-    @goban.load_image("+O+++,+@+O+,+O+@+,+@+O+,+++@+")
+    @grid.load_image("+O+++,+@+O+,+O+@+,+@+O+,+++@+")
     @filler.fill_with_color(1,3,EMPTY,@@x)
-    assert_equal("XOXXX,X@XOX,XOX@X,X@XOX,XXX@X", @goban.image?);
+    assert_equal("XOXXX,X@XOX,XOX@X,X@XOX,XXX@X", @grid.image?);
   end
 
   def test_fill2
@@ -49,17 +48,17 @@ class TestZoneFiller < Test::Unit::TestCase
     # 2 +++O+
     # 1 +OOO+
     #   abcde
-    @goban.load_image("+++++,+OOO+,+O+O+,+++O+,+OOO+")
+    @grid.load_image("+++++,+OOO+,+O+O+,+++O+,+OOO+")
     @filler.fill_with_color(3,3,EMPTY,@@x)
-    assert_equal("XXXXX,XOOOX,XOXOX,XXXOX,XOOOX", @goban.image?);
+    assert_equal("XXXXX,XOOOX,XOXOX,XXXOX,XOOOX", @grid.image?);
 
-    @goban.load_image("+++++,+OOO+,+O+O+,+++O+,+OOO+")
+    @grid.load_image("+++++,+OOO+,+O+O+,+++O+,+OOO+")
     @filler.fill_with_color(1,1,EMPTY,@@x)
-    assert_equal("XXXXX,XOOOX,XOXOX,XXXOX,XOOOX", @goban.image?);
+    assert_equal("XXXXX,XOOOX,XOXOX,XXXOX,XOOOX", @grid.image?);
 
-    @goban.load_image("+++++,+OOO+,+O+O+,+++O+,+OOO+")
+    @grid.load_image("+++++,+OOO+,+O+O+,+++O+,+OOO+")
     @filler.fill_with_color(5,3,EMPTY,@@x)
-    assert_equal("XXXXX,XOOOX,XOXOX,XXXOX,XOOOX", @goban.image?);
+    assert_equal("XXXXX,XOOOX,XOXOX,XXXOX,XOOOX", @grid.image?);
   end
 
   def test_fill3
@@ -69,21 +68,21 @@ class TestZoneFiller < Test::Unit::TestCase
     # 2 ++OO+
     # 1 +O+O+
     #   abcde
-    @goban.load_image("+++O+,+++OO,+O+++,++OO+,+O+O+")
+    @grid.load_image("+++O+,+++OO,+O+++,++OO+,+O+O+")
     @filler.fill_with_color(2,4,EMPTY,@@x)
-    assert_equal("XXXO+,XXXOO,XOXXX,XXOOX,XO+OX", @goban.image?);
+    assert_equal("XXXO+,XXXOO,XOXXX,XXOOX,XO+OX", @grid.image?);
 
-    @goban.load_image("+++O+,+++OO,+O+++,++OO+,+O+O+")
+    @grid.load_image("+++O+,+++OO,+O+++,++OO+,+O+O+")
     @filler.fill_with_color(2,2,EMPTY,@@x)
-    assert_equal("XXXO+,XXXOO,XOXXX,XXOOX,XO+OX", @goban.image?);
+    assert_equal("XXXO+,XXXOO,XOXXX,XXOOX,XO+OX", @grid.image?);
 
-    @goban.load_image("+++O+,+++OO,+O+++,++OO+,+O+O+")
+    @grid.load_image("+++O+,+++OO,+O+++,++OO+,+O+O+")
     @filler.fill_with_color(3,1,EMPTY,@@x)
-    assert_equal("+++O+,+++OO,+O+++,++OO+,+OXO+", @goban.image?);
+    assert_equal("+++O+,+++OO,+O+++,++OO+,+OXO+", @grid.image?);
 
-    @goban.load_image("+++O+,+++OO,+O+++,++OO+,+O+O+")
+    @grid.load_image("+++O+,+++OO,+O+++,++OO+,+O+O+")
     @filler.fill_with_color(5,5,EMPTY,@@x)
-    assert_equal("+++OX,+++OO,+O+++,++OO+,+O+O+", @goban.image?);
+    assert_equal("+++OX,+++OO,+O+++,++OO+,+O+O+", @grid.image?);
   end
 
 end

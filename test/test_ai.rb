@@ -9,9 +9,9 @@ require_relative "../ai1_player"
 
 class TestAi < Test::Unit::TestCase
 
-  def init_board(size=9, num_players=2, handicap=0)
+  def init_board(size=9, handicap=0)
     @game = GameLogic.new
-    @game.new_game(size, num_players, handicap)
+    @game.new_game(size, handicap)
     @goban = @game.goban
     @players = [Ai1Player.new(@goban, BLACK), Ai1Player.new(@goban, WHITE)]
   end
@@ -31,14 +31,14 @@ class TestAi < Test::Unit::TestCase
   end
   
   def check_eval(move,color,exp_eval)
-    i,j = Goban.parse_move(move)
+    i,j = Grid.parse_move(move)
     assert_in_delta(@players[color].eval_move(i,j), exp_eval+0.5, 0.5)
   end
 
   def play_and_check(exp_move,exp_color,exp_eval=nil)
     $log.debug("Letting AI play...") if $debug
     player = @players[@game.cur_color]
-    throw "Wrong player turn: #{@goban.color_name(player.color)} to play now" if exp_color!=player.color
+    throw "Wrong player turn: #{Grid.color_name(player.color)} to play now" if exp_color!=player.color
     move = player.get_move
     assert_equal(exp_move, move)
     assert_in_delta(player.last_move_score, exp_eval+0.5, 0.5) if exp_eval

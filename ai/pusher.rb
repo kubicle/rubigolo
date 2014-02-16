@@ -1,4 +1,6 @@
 # Quite a dumb way of "pushing" our influence further...
+# For that reason the coeff are rather low.
+# This should eventually disappear.
 
 require_relative "heuristic"
 
@@ -11,10 +13,8 @@ class Pusher < Heuristic
   end
 
   def eval_move(i,j)
-    stone = @goban.stone_at?(i,j)
     inf = @inf.map[j][i]
-    enemy_inf = 0
-    @enemy_colors.each { |c| enemy_inf += inf[c] }
+    enemy_inf = inf[@enemy_color]
     ally_inf = inf[@color]
     
     return 0 if enemy_inf == 0 or ally_inf == 0
