@@ -11,7 +11,7 @@ class PotentialTerritory
     # grids below are used in the evaluation process
     @grids = [Grid.new(goban.size), Grid.new(goban.size)]
     @reduced_grid = Grid.new(goban.size)
-    @terr = Grid.new(goban.size) # result of evaluation
+    @territory = Grid.new(goban.size) # result of evaluation
   end
 
   # Returns the matrix of potential territory.
@@ -33,15 +33,15 @@ class PotentialTerritory
           owner += 1 if terr_color == WHITE
           owner -= 1 if terr_color == BLACK
         end
-        @terr.yx[j][i] = owner / 2.0
+        @territory.yx[j][i] = owner / 2.0
       end
     end
-    $log.debug("\n+1=white, -1=black, 0=no one\n"+@terr.to_text(5){|v| v}) if $debug
-    return @terr.yx
+    $log.debug("\n+1=white, -1=black, 0=no one\n"+@territory.to_text{|v| v==0 ? "    0" : sprintf("%+.1f",v)}) if $debug
+    return @territory.yx
   end
 
   def potential
-    return @terr
+    return @territory
   end
 
   # For unit tests
@@ -53,7 +53,7 @@ private
 
   # TODO: add live/dead groups? Maybe not here
   def foresee(grid, first, second)
-    @tmp = @terr # safe to use it as temp grid here
+    @tmp = @territory # safe to use it as temp grid here
     @reduced_yx = nil
     @move_num_before_enlarge = @goban.move_number?
 
@@ -127,6 +127,9 @@ private
     if @reduced_yx
       # skip if useless move (it was reduced)
       return if @reduced_yx[j][i]==EMPTY
+      # we check only against sucicide (e.g. no need to check against ko or non empty)
+      stone = @goban.stone_at?(i,j)
+      return if stone.move_is_suicide?(color)
       Stone.play_at(@goban, i, j, color)
     end
     yx[j][i] = color
@@ -151,7 +154,7 @@ private
     return false
   end
 
-  AROUND = [[1,0,0,1],[0,1,1,0],[1,0,-1,0],[-1,0,1,0]]
+  AROUND = [[1,0,0,1],[0,1,1,0],[1,0,-1,0],[-1,0,1,0]] #TODO replace this by pre-computed coords
 
   # connect stones close to borders to the border
   def connect_to_borders(yx)
