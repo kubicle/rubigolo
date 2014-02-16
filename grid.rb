@@ -68,18 +68,25 @@ class Grid
   # Receives a block of code and calls it for each vertex.
   # The block should return a string representation.
   # This method returns the concatenated string showing the grid.
-  def to_text(num_char=1, with_labels=true, end_of_row="\n")
+  def to_text(with_labels=true, end_of_row="\n")
+    yx = Grid.new(@size).yx
+    maxlen = 1
+    @size.downto(1) do |j|
+      1.upto(@size) do |i|
+        val = yield(@yx[j][i])
+        val = "" if val == nil
+        yx[j][i] = val
+        maxlen = val.length if val.length > maxlen
+      end
+    end
+    num_char = maxlen
     white = "          "
     s = ""
     @size.downto(1) do |j|
       s << "#{'%2d' % j} " if with_labels
       1.upto(@size) do |i|
-        val = yield(@yx[j][i])
-        if val == nil then val = ""
-        elsif val.instance_of?(Fixnum) then val = sprintf("%0#{num_char}d", val)
-        elsif val.instance_of?(Float) then val = sprintf("%+.#{num_char-4}f", val)
-        end
-        val = white.slice(1, num_char-val.length) + val
+        val = yx[j][i]
+        val = white.slice(1, num_char-val.length) + val if val.length < num_char
         s << val
       end
       s << end_of_row
@@ -106,9 +113,9 @@ class Grid
   # So last row (j==size) comes first in image
   def image?
     if @yx[1][1].instance_of?(Stone) #FIXME
-      return to_text(1, false, ",") { |s| Grid::color_to_char(s.color) } .chop
+      return to_text(false, ",") { |s| Grid::color_to_char(s.color) } .chop
     else
-      return to_text(1, false, ",") { |c| Grid::color_to_char(c) } .chop
+      return to_text(false, ",") { |c| Grid::color_to_char(c) } .chop
     end
   end
   
