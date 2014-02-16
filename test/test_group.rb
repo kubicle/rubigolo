@@ -294,7 +294,7 @@ class TestGroup < Test::Unit::TestCase
   # 5 +O@
   # 4 @+@
   def test_undo_3
-    init_board(5,0)
+    init_board(5)
     @game.load_moves("a2,a5,c2,b3,c3,c4,b4,b5,a4,c5")
     assert_equal("OOO++,@@O++,+O@++,@+@++,+++++", @goban.image?)
     @game.load_moves("b2,a3,b4,a4")
