@@ -34,8 +34,8 @@ class Goban
   
   # Prepares the goban for another game (same size, same number of players)
   def clear
-    1.upto(size) do |j|
-      1.upto(size) do |i|
+    1.upto(@size) do |j|
+      1.upto(@size) do |i|
         stone = @ban[j][i]
         stone.group.clear if stone.group
       end
@@ -56,7 +56,7 @@ class Goban
   # Allocate a new group or recycles one from garbage list.
   # For efficiency, call this one, do not call the regular Group.new method.
   def new_group(stone,lives)
-    group = garbage_groups.pop
+    group = @garbage_groups.pop
     if group
       return group.recycle!(stone,lives)
     else
@@ -129,5 +129,4 @@ class Goban
   def previous_stone
     return @history.last
   end
-
 end
