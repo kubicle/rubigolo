@@ -34,7 +34,7 @@ class ZoneFiller
       while _check(i,j1+1) do j1 += 1 end
       size += j1-j0+1
       # $log.debug("Doing column #{i} from #{j0}-#{j1}") if $debug
-      (i-1).step(i+1,2).each do |ix|
+      (i-1).step(i+1,2) do |ix|
         curgap = nil
         j0.upto(j1) do |j|
           # $log.debug("=>coloring #{i},#{j}") if $debug and ix<i
