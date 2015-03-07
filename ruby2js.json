@@ -1,0 +1,11 @@
+// Config for babyruby2js (merged with the default config)
+{
+  "src": ".",
+  "target": "js",
+  
+  "replacements": {
+    "var Logging = require('./Logging')": "",
+    "var Logging = require('../Logging')": "",
+    "var StoneConstants = require('./StoneConstants')": ""
+  }
+}
