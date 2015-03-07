@@ -5,7 +5,7 @@ var main = require('./main');
 var Genes = require('./Genes');
 var Breeder = require('./Breeder');
 //require 'trollop';
-var Logging = require('./Logging');
+
 var TimeKeeper = require('./TimeKeeper');
 var GameLogic = require('./GameLogic');
 var ScoreAnalyser = require('./ScoreAnalyser');

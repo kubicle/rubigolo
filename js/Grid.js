@@ -3,7 +3,6 @@
 
 var main = require('./main');
 var Stone = require('./Stone');
-//var StoneConstants = require('StoneConstants');
 
 //public read-only attribute: size, yx;
 

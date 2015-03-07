@@ -2,14 +2,14 @@
 'use strict';
 
 var inherits = require('util').inherits;
-var SgfReader = require('../SgfReader');
 var assert_equal = main.assert_equal;
+var SgfReader = require('../SgfReader');
 
 /** @class */
 function TestSgfReader(test_name) {
-    return main.Test.Unit.TestCase.call(this, test_name);
+    return main.TestCase.call(this, test_name);
 }
-inherits(TestSgfReader, main.Test.Unit.TestCase);
+inherits(TestSgfReader, main.TestCase);
 module.exports = TestSgfReader;
 
 TestSgfReader.prototype.test_1 = function () {

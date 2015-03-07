@@ -2,11 +2,10 @@
 'use strict';
 
 var main = require('./main');
-//var StoneConstants = require('StoneConstants');
+
 var Grid = require('./Grid');
 var Stone = require('./Stone');
 var Group = require('./Group');
-
 // Stores what we have on the board (namely, the stones and the empty spaces).
 // - Giving coordinates, a Goban can return an existing stone.
 // - It also remembers the list of stones played and can share this info for undo feature.

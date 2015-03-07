@@ -4,16 +4,16 @@
 var inherits = require('util').inherits;
 var main = require('./main');
 var Grid = require('./Grid');
-var Logging = require('../Logging');
+var assert_equal = main.assert_equal;
+
 var GameLogic = require('../GameLogic');
 var ScoreAnalyser = require('../ScoreAnalyser');
-var assert_equal = main.assert_equal;
 
 /** @class */
 function TestScoreAnalyser(test_name) {
-    return main.Test.Unit.TestCase.call(this, test_name);
+    return main.TestCase.call(this, test_name);
 }
-inherits(TestScoreAnalyser, main.Test.Unit.TestCase);
+inherits(TestScoreAnalyser, main.TestCase);
 module.exports = TestScoreAnalyser;
 
 TestScoreAnalyser.prototype.init_game = function (size) {

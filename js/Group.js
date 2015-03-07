@@ -3,7 +3,6 @@
 
 var Grid = require('./Grid');
 var main = require('./main');
-//var StoneConstants = require('StoneConstants');
 
 // Always require goban instead of stone
 // A group keeps the list of its stones, the updated number of "lives" (empty intersections around),

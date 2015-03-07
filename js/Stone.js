@@ -4,7 +4,6 @@
 var main = require('./main');
 var Grid = require('./Grid');
 var Group = require('./Group');
-var StoneConstants = require('./StoneConstants');
 
 // A "stone" stores everything we want to keep track of regarding an intersection on the board.
 // By extension, an empty intersection is also a stone, with a color attribute equals to EMPTY.

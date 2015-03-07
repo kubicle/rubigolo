@@ -10,7 +10,7 @@ var MainServer = require('./MainServer');
 // Or a1=0 for 2 human players
 //require 'socket';
 //require 'uri';
-var Logging = require('./Logging');
+
 var GameLogic = require('./GameLogic');
 var ScoreAnalyser = require('./ScoreAnalyser');
 var Ai1Player = require('./Ai1Player');

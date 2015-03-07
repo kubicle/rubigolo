@@ -3,15 +3,15 @@
 
 var main = require('./main');
 var inherits = require('util').inherits;
+var assert_equal = main.assert_equal;
 main.test = true;
 var Breeder = require('../Breeder');
-var assert_equal = main.assert_equal;
 
 /** @class */
 function TestBreeder(test_name) {
-    return main.Test.Unit.TestCase.call(this, test_name);
+    return main.TestCase.call(this, test_name);
 }
-inherits(TestBreeder, main.Test.Unit.TestCase);
+inherits(TestBreeder, main.TestCase);
 module.exports = TestBreeder;
 
 TestBreeder.prototype.test_bw_balance = function () {
