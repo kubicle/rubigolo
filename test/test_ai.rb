@@ -32,7 +32,9 @@ class TestAi < Test::Unit::TestCase
   
   def check_eval(move,color,exp_eval)
     i,j = Grid.parse_move(move)
-    assert_in_delta(@players[color].eval_move(i,j), exp_eval+0.5, 0.5)
+    p = @players[color]
+    p.prepare_eval
+    assert_in_delta(p.eval_move(i,j), exp_eval+0.5, 0.5)
   end
 
   def play_and_check(exp_move,exp_color,exp_eval=nil)
@@ -41,7 +43,7 @@ class TestAi < Test::Unit::TestCase
     throw "Wrong player turn: #{Grid.color_name(player.color)} to play now" if exp_color!=player.color
     move = player.get_move
     assert_equal(exp_move, move)
-    assert_in_delta(player.last_move_score, exp_eval+0.5, 0.5) if exp_eval
+    assert_in_delta(player.last_move_score, exp_eval+0.5, 0.5, "#{exp_move}/#{Grid.color_name(exp_color)}") if exp_eval
     @game.play_one_move(move)
   end
 
@@ -122,15 +124,15 @@ class TestAi < Test::Unit::TestCase
     # 9 O++++++++
     # 8 OOO++++++
     # 7 O+++O++++
-    # 6 +++++++++
+    # 6 ++*++++++
     # 5 @OO@+++++
     # 4 @@@@+++++
     #   abcdefghi
     # Ladder breaker are a7 and e7
     # What is sure is that neither b6 nor c6 works. However b6 is boosted by pusher
     @game.load_moves("a4,a9,a5,a8,b4,a7,c4,e7,d4,b5,d5,c5,pass,b8,pass,c8")
-    check_eval("c6",BLACK,0)
-    play_and_check("b6",BLACK,0)
+    check_eval("c6",BLACK,0.5)
+    play_and_check("b6",BLACK,1)
   end
 
   def test_see_dead_group
@@ -201,7 +203,7 @@ class TestAi < Test::Unit::TestCase
     # Actually O in g4 is chosen because pusher gives it 0.33 pts.
     # NB: g4 is actually a valid move for black
     @game.load_moves("d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,g6")
-    play_and_check("g4", WHITE, 1) # FIXME white (O) move should be b5 here
+    play_and_check("b5", WHITE, 1)
   end
 
   def test_border_closing
