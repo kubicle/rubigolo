@@ -1,4 +1,4 @@
-//Translated from  using babyruby2js
+//Translated from player.rb using babyruby2js
 'use strict';
 
 //public read-only attribute: goban, color, is_human;

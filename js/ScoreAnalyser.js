@@ -1,9 +1,9 @@
-//Translated from  using babyruby2js
+//Translated from score_analyser.rb using babyruby2js
 'use strict';
 
 var main = require('./main');
 var Grid = require('./Grid');
-var BoardAnalyser = require('BoardAnalyser');
+var BoardAnalyser = require('./BoardAnalyser');
 
 /** @class */
 function ScoreAnalyser() {
