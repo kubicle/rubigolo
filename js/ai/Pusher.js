@@ -1,4 +1,4 @@
-//Translated from  using babyruby2js
+//Translated from pusher.rb using babyruby2js
 'use strict';
 
 var inherits = require('util').inherits;
@@ -6,7 +6,7 @@ var main = require('./main');
 // Quite a dumb way of "pushing" our influence further...
 // For that reason the coeff are rather low.
 // This should eventually disappear.
-var Heuristic = require('Heuristic');
+var Heuristic = require('./Heuristic');
 
 /** @class */
 function Pusher(player) {

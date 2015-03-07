@@ -1,4 +1,4 @@
-//Translated from  using babyruby2js
+//Translated from heuristic.rb using babyruby2js
 'use strict';
 
 // Base class for all heuristics.

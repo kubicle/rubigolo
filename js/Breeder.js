@@ -1,15 +1,15 @@
-//Translated from  using babyruby2js
+//Translated from breeder.rb using babyruby2js
 'use strict';
 
 var main = require('./main');
 var Genes = require('./Genes');
 var Breeder = require('./Breeder');
 //require 'trollop';
-var Logging = require('Logging');
-var TimeKeeper = require('TimeKeeper');
-var GameLogic = require('GameLogic');
-var ScoreAnalyser = require('ScoreAnalyser');
-var Ai1Player = require('Ai1Player');
+var Logging = require('./Logging');
+var TimeKeeper = require('./TimeKeeper');
+var GameLogic = require('./GameLogic');
+var ScoreAnalyser = require('./ScoreAnalyser');
+var Ai1Player = require('./Ai1Player');
 main.debug_breed = false; // TODO move me somewhere else?
 Breeder.GENERATION_SIZE = 26; // must be even number
 Breeder.MUTATION_RATE = 0.03; // e.g. 0.02 is 2%
@@ -134,7 +134,7 @@ Breeder.prototype.reproduction = function () {
     }
     this.picked = new main.Array(this.gen_size, 0);
     this.max_score = Math.max.apply(Math,this.score_diff);
-    this.winner = this.generation[main.indexOf(this.score_diff, this.max_score)];
+    this.winner = this.generation[this.score_diff.find_index(this.max_score)];
     this.pick_index = 0;
     for (var i = 0; i <= this.gen_size - 1; i += 2) {
         var parent1 = this.pick_parent();

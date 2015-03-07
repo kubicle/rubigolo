@@ -1,10 +1,10 @@
-//Translated from  using babyruby2js
+//Translated from executioner.rb using babyruby2js
 'use strict';
 
 var inherits = require('util').inherits;
 var main = require('./main');
 // Executioner only preys on enemy groups in atari
-var Heuristic = require('Heuristic');
+var Heuristic = require('./Heuristic');
 
 /** @class */
 function Executioner(player) {

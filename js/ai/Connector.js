@@ -1,11 +1,11 @@
-//Translated from  using babyruby2js
+//Translated from connector.rb using babyruby2js
 'use strict';
 
 var inherits = require('util').inherits;
 var main = require('./main');
 // Basic: a move that connects 2 of our groups is good.
 // TODO: this could threaten our potential for keeping eyes, review this.
-var Heuristic = require('Heuristic');
+var Heuristic = require('./Heuristic');
 
 /** @class */
 function Connector(player) {

@@ -1,10 +1,10 @@
-//Translated from  using babyruby2js
+//Translated from console_human_player.rb using babyruby2js
 'use strict';
 
 var inherits = require('util').inherits;
 var Grid = require('./Grid');
 var main = require('./main');
-var Player = require('Player');
+var Player = require('./Player');
 
 /** @class */
 function ConsoleHumanPlayer(goban, color) {
@@ -47,7 +47,7 @@ ConsoleHumanPlayer.prototype.get_answer = function (valid_ones) {
         if (answer === '') {
             continue;
         }
-        if (valid_ones && !main.indexOf(valid_ones, answer)) {
+        if (valid_ones && !valid_ones.find_index(answer)) {
             console.log('Valid answers: ' + valid_ones.join(','));
             continue;
         }

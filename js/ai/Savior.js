@@ -1,12 +1,12 @@
-//Translated from  using babyruby2js
+//Translated from savior.rb using babyruby2js
 'use strict';
 
 var inherits = require('util').inherits;
 var main = require('./main');
 var Stone = require('./Stone');
 // Saviors rescue ally groups in atari
-var Heuristic = require('Heuristic');
-var Hunter = require('Hunter');
+var Heuristic = require('./Heuristic');
+var Hunter = require('./Hunter');
 
 /** @class */
 function Savior(player) {

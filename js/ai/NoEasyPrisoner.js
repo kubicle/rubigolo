@@ -1,12 +1,12 @@
-//Translated from  using babyruby2js
+//Translated from no_easy_prisoner.rb using babyruby2js
 'use strict';
 
 var inherits = require('util').inherits;
 var Stone = require('./Stone');
 var main = require('./main');
 // Should recognize when our move is foolish...
-var Heuristic = require('Heuristic');
-var Hunter = require('Hunter');
+var Heuristic = require('./Heuristic');
+var Hunter = require('./Hunter');
 
 /** @class */
 function NoEasyPrisoner(player) {

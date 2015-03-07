@@ -1,15 +1,15 @@
-//Translated from  using babyruby2js
+//Translated from main_console.rb using babyruby2js
 'use strict';
 
 var Grid = require('./Grid');
 var main = require('./main');
 var ConsoleGame = require('./ConsoleGame');
 //require 'trollop';
-var Logging = require('Logging');
-var GameLogic = require('GameLogic');
-var ScoreAnalyser = require('ScoreAnalyser');
-var Ai1Player = require('Ai1Player');
-var ConsoleHumanPlayer = require('ConsoleHumanPlayer');
+var Logging = require('./Logging');
+var GameLogic = require('./GameLogic');
+var ScoreAnalyser = require('./ScoreAnalyser');
+var Ai1Player = require('./Ai1Player');
+var ConsoleHumanPlayer = require('./ConsoleHumanPlayer');
 // Create game & players
 
 /** @class */

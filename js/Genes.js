@@ -1,4 +1,4 @@
-//Translated from  using babyruby2js
+//Translated from genes.rb using babyruby2js
 'use strict';
 
 var Genes = require('./Genes');

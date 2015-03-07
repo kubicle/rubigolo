@@ -1,4 +1,4 @@
-//Translated from  using babyruby2js
+//Translated from ai1_player.rb using babyruby2js
 'use strict';
 
 var inherits = require('util').inherits;
@@ -11,13 +11,13 @@ var Stone = require('./Stone');
 // - identify all foolish moves (like NoEasyPrisoner but once for all) in a map that all heuristics can use
 // - foresee a poursuit = on attack/defense (and/or use a reverse-killer?)
 // - an eye shape constructor
-var Player = require('Player');
-var Goban = require('Goban');
-var InfluenceMap = require('InfluenceMap');
-var PotentialTerritory = require('PotentialTerritory');
+var Player = require('./Player');
+var Goban = require('./Goban');
+var InfluenceMap = require('./InfluenceMap');
+var PotentialTerritory = require('./PotentialTerritory');
 var AllHeuristics = require('ai/AllHeuristics');
-var TimeKeeper = require('TimeKeeper');
-var Genes = require('Genes');
+var TimeKeeper = require('./TimeKeeper');
+var Genes = require('./Genes');
 //public read-only attribute: goban, inf, ter, enemy_color, genes, last_move_score;
 
 /** @class */
