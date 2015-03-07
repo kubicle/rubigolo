@@ -114,7 +114,7 @@ class Goban
 
   # Plays a stone and stores it in history
   # Actually we simply return the existing stone and the caller will update it
-  def play_at(i,j,color)
+  def play_at(i,j)
     stone=@ban[j][i]
     @history.push(stone)
     return stone
