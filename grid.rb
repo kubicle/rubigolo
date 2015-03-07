@@ -83,18 +83,18 @@ class Grid
     white = "          "
     s = ""
     @size.downto(1) do |j|
-      s << "#{'%2d' % j} " if with_labels
+      s += "#{'%2d' % j} " if with_labels
       1.upto(@size) do |i|
         val = yx[j][i]
         val = white.slice(1, num_char-val.length) + val if val.length < num_char
-        s << val
+        s += val
       end
-      s << end_of_row
+      s += end_of_row
     end
     if with_labels
-      s << "   "
-      1.upto(@size) { |i| s << white.slice(1,num_char-1) + Grid.x_label(i) }
-      s << "\n"
+      s += "   "
+      1.upto(@size) { |i| s += white.slice(1,num_char-1) + Grid.x_label(i) }
+      s += "\n"
     end
     return s
   end
