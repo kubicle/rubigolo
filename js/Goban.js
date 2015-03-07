@@ -152,7 +152,9 @@ Goban.prototype.move_number = function () {
 // Actually we simply return the existing stone and the caller will update it
 Goban.prototype.play_at = function (i, j) {
     var stone = this.ban[j][i];
-    if (stone.color !== main.EMPTY) throw new Error('Tried to play on existing stone in '+i+','+j);
+    if (stone.color !== main.EMPTY) {
+        throw new Error('Tried to play on existing stone in ' + i + ',' + j);
+    }
     this.history.push(stone);
     return stone;
 };
