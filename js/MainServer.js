@@ -35,11 +35,11 @@ MainServer.prototype.start = function () {
     main.log.info('Starting the server...');
     console.log('Please open a web browser on http://localhost:' + MainServer.PORT + '/index');
     this.webserver = new main.TCPServer('localhost', MainServer.PORT);
-    return loop(function () {
+    for (;;) {
         var req = this.get_session_and_request();
         var reply = this.handle_request(req);
-        return this.send_response(reply);
-    });
+        this.send_response(reply);
+    }
 };
 
 MainServer.prototype.add_message = function (msg) {
