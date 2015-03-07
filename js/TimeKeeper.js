@@ -1,4 +1,4 @@
-//Translated from  using babyruby2js
+//Translated from time_keeper.rb using babyruby2js
 'use strict';
 
 var main = require('./main');

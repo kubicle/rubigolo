@@ -1,4 +1,4 @@
-//Translated from  using babyruby2js
+//Translated from test_board_analyser.rb using babyruby2js
 'use strict';
 
 var inherits = require('util').inherits;
