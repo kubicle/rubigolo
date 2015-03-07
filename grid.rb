@@ -125,7 +125,7 @@ class Grid
     rows = image.split(/\"|,/)
     raise "Invalid image: #{rows.size} rows instead of #{@size}" if rows.size != @size
     @size.downto(1) do |j|
-      row = rows[size-j]
+      row = rows[@size-j]
       raise "Invalid image: row #{row}" if row.length != @size
       1.upto(@size) do |i|
         @yx[j][i] = Grid.char_to_color(row[i-1])
