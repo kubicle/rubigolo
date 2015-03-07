@@ -295,8 +295,8 @@ class MainServer
     end
 
     errors = @game.get_errors
-    while txt = errors.shift do s << "#{txt}<br>" end
-    while txt = @messages.shift do s << "#{txt}<br>" end
+    while (txt = errors.shift) do s << "#{txt}<br>" end
+    while (txt = @messages.shift) do s << "#{txt}<br>" end
 
     if question
       s << "<form name='my_form' action='#{question[:action]}'><b>#{question[:label]}</b><br>"
@@ -311,4 +311,3 @@ end
 
 server=MainServer.new
 server.start
-
