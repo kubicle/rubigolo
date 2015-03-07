@@ -1,9 +1,10 @@
-//Translated from  using babyruby2js
+//Translated from test_zone_filler.rb using babyruby2js
 'use strict';
 
 var Grid = require('./Grid');
 var inherits = require('util').inherits;
 var main = require('./main');
+//require 'test/unit';
 var GameLogic = require('../GameLogic');
 var Logging = require('../Logging');
 var ZoneFiller = require('../ZoneFiller');
