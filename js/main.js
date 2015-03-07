@@ -18,18 +18,8 @@ main.Array = function (size, init) {
   return a;
 };
 
-Array.prototype.indexOf = function (e) {
-  for (var i = 0; i < this.length; i++) {
-    if (this[i] === e) return i;
-  }
-  return -1;
-};
-
 Array.prototype.contains = function (e) {
-  for (var i = 0; i < this.length; i++) {
-    if (this[i] === e) return true;
-  }
-  return false;
+  return this.indexOf(e) !== -1;
 };
 
 Array.prototype.size = function () {
@@ -40,14 +30,7 @@ Array.prototype.clear = function () {
   for (var i=this.length; i>0; i--) this.pop();
 };
 
-Array.prototype.select = function (testFunc) {
-  var a = [];
-  for (var i = 0; i < this.length; i++) {
-    var e = this[i];
-    if (testFunc(e)) a.push(e);
-  }
-  return a;
-};
+Array.prototype.select = Array.prototype.filter;
 
 //--- Tests
 
@@ -84,7 +67,7 @@ TestCase.prototype.run = function () {
   }
 };
 
-main.assert_equal = function (val, expected) {
+main.assertEqual = function (val, expected) {
     if (val === expected) return;
     throw new Error('Failed assertion: expected [' + expected + '] but got [' + val + ']');
 };
@@ -94,8 +77,23 @@ main.TestCase = TestCase;
 
 //---
 
-main.strChop = function (s) {
-  return s.substr(0, s.length-1);
+String.prototype.chop = function (tail) {
+  if (!tail) {
+    return this.substr(0, this.length - 1);
+  }
+  var pos = this.length - tail.length;
+  if (this.substr(pos) === tail) {
+    return this.substr(0, pos);
+  }
+  return this.toString();
+};
+
+String.prototype.startWith = function (head) {
+  return this.substr(0, head.length) === head;
+};
+
+String.prototype.endWith = function (tail) {
+  return this.substr(this.length - tail.length) === tail;
 };
 
 main.strFormat = function (fmt) {
