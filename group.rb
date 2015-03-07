@@ -79,8 +79,8 @@ class Group
   end
 
   # Adds a void or an eye
-  def add_void(void, is_eye = false)
-    if is_eye then @eyes.push(void) else @voids.push(void) end
+  def add_void(v, is_eye = false)
+    if is_eye then @eyes.push(v) else @voids.push(v) end
   end
 
   # For analyser  
