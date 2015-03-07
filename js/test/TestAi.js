@@ -1,4 +1,4 @@
-//Translated from  using babyruby2js
+//Translated from test_ai.rb using babyruby2js
 'use strict';
 
 var main = require('./main');
@@ -21,8 +21,8 @@ TestAi.prototype.init_board = function (size, handicap) {
 
 
 /** @class */
-function TestAi(xtest_name) {
-    main.Test.Unit.TestCase.call(this, xtest_name);
+function TestAi(test_name) {
+    main.Test.Unit.TestCase.call(this, test_name);
     return this.init_board();
 }
 inherits(TestAi, main.Test.Unit.TestCase);
@@ -67,7 +67,7 @@ TestAi.prototype.play_and_check = function (exp_move, exp_color, exp_eval) {
     return this.game.play_one_move(move);
 };
 
-TestAi.prototype.xtest_cornering = function () {
+TestAi.prototype.test_cornering = function () {
     // 9 ++++++++O
     // 8 ++++++++@
     // 7 +++@+++++
@@ -79,7 +79,7 @@ TestAi.prototype.xtest_cornering = function () {
     return this.play_and_check('h9', main.BLACK, 1); // FIXME: h8 is better than killing in h9 (non trivial)
 };
 
-TestAi.prototype.xtest_pre_atari = function () {
+TestAi.prototype.test_pre_atari = function () {
     // 5 +++++++++
     // 4 +@@@@O+++
     // 3 ++O@O@O++
@@ -93,7 +93,7 @@ TestAi.prototype.xtest_pre_atari = function () {
     return this.play_and_check('g2', main.BLACK, 2);
 };
 
-TestAi.prototype.xtest_hunter_1 = function () {
+TestAi.prototype.test_hunter_1 = function () {
     // h7 is a wrong "good move"; white can escape with h8
     // 9 ++++++++O
     // 8 ++++++++@
@@ -109,7 +109,7 @@ TestAi.prototype.xtest_hunter_1 = function () {
     return this.play_and_check('g7', main.BLACK, 3);
 };
 
-TestAi.prototype.xtest_ladder = function () {
+TestAi.prototype.test_ladder = function () {
     // 9 O+++++++@
     // 8 ++++++++@
     // 7 ++++++++O
@@ -127,7 +127,7 @@ TestAi.prototype.xtest_ladder = function () {
     return this.play_and_check('f5', main.BLACK, 5);
 };
 
-TestAi.prototype.xtest_ladder_breaker1 = function () {
+TestAi.prototype.test_ladder_breaker1 = function () {
     // 9 O++++++++
     // 8 O++++++++
     // 7 O+++O++++
@@ -140,7 +140,7 @@ TestAi.prototype.xtest_ladder_breaker1 = function () {
     return this.play_and_check('c6', main.BLACK, 2);
 };
 
-TestAi.prototype.xtest_ladder_breaker2 = function () {
+TestAi.prototype.test_ladder_breaker2 = function () {
     // 9 O++++++++
     // 8 OOO++++++
     // 7 O+++O++++
@@ -155,7 +155,7 @@ TestAi.prototype.xtest_ladder_breaker2 = function () {
     return this.play_and_check('b6', main.BLACK, 1);
 };
 
-TestAi.prototype.xtest_see_dead_group = function () {
+TestAi.prototype.test_see_dead_group = function () {
     // 9 +@++@@@@O
     // 8 +@@@@@@OO
     // 7 @@+@+@@O+
@@ -273,7 +273,7 @@ TestAi.prototype.test_killing_saves_nearby_group_in_atari = function () {
     return this.play_and_check('pass', main.BLACK);
 };
 
-TestAi.prototype.xtest_snapback = function () {
+TestAi.prototype.test_snapback = function () {
     this.init_board(5);
     // 5 O@+O+
     // 4 O@*@@
@@ -288,7 +288,7 @@ TestAi.prototype.xtest_snapback = function () {
     return this.play_and_check('c4', main.WHITE, 4); // 3 taken & 1 saved = 4
 };
 
-TestAi.prototype.xtest_snapback2 = function () {
+TestAi.prototype.test_snapback2 = function () {
     this.init_board(7);
     // 7 O@+OO++
     // 6 O@+@@++
@@ -302,7 +302,7 @@ TestAi.prototype.xtest_snapback2 = function () {
     return this.play_and_check('a4', main.BLACK, 4);
 };
 
-TestAi.prototype.xtest_snapback3 = function () {
+TestAi.prototype.test_snapback3 = function () {
     this.init_board(5);
     // 5 O@+OO
     // 4 O@O@+
@@ -316,7 +316,7 @@ TestAi.prototype.xtest_snapback3 = function () {
     return this.play_and_check('c5', main.BLACK, 0); // FIXME: should NOT be c5 (count should be -1)
 };
 
-TestAi.prototype.xtest_sees_attack_no_good = function () {
+TestAi.prototype.test_sees_attack_no_good = function () {
     this.init_board(5);
     // 5 O@@OO
     // 4 O@+@+
