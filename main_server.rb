@@ -129,14 +129,13 @@ class MainServer
   def req_accept_score(args)
     @game.accept_ending(get_arg(args,"value")=="y")
     @have_score = false if !@game.game_ending
-    @scorer.end_scoring
   end
 
   # Show prisoner counts during the game  
   def req_show_prisoners
     prisoners = @game.prisoners?
     prisoners.size.times do |c|
-      add_message("#{prisoners[c]} #{@goban.color_name(c)} (#{@goban.color_to_char(c)}) are prisoners")
+      add_message("#{prisoners[c]} #{Grid::COLOR_NAMES[c]} (#{Grid::COLOR_CHARS[c]}) are prisoners")
     end
     add_message("")
   end
@@ -146,18 +145,17 @@ class MainServer
     add_message "Debug output generated on server console window."
   end
 
-  # http://localhost:8080/newGame?size=9&players=2&handicap=0&ai=0
+  # http://localhost:8080/newGame?size=9&handicap=0&ai=0
   def req_new_game(args)
     size = get_arg_i(args,"size",19)
-    num_players = get_arg_i(args,"players",2)
     handicap = get_arg_i(args,"handicap",0)
     num_ai = get_arg_i(args,"ai",1)
     @game = GameLogic.new
-    @game.new_game(size,num_players,handicap)
+    @game.new_game(size,handicap)
     @goban = @game.goban
     @have_score = false
     @players.clear
-    num_players.times do |color|
+    2.times do |color|
       @players[color] = num_ai>color ? Ai1Player.new(@goban,color) : nil
     end
   end
@@ -234,7 +232,7 @@ class MainServer
       return reply
     rescue => err
       puts "*** Exception: #{err}"
-      err.backtrace[0,5].each {|s| puts s }
+      err.backtrace[0,10].each {|s| puts s }
       return "Unexpected issue when handling request (#{req})<br>#{err}<br><br>#{INDEX_LINK}"
     end
   end
@@ -256,21 +254,22 @@ class MainServer
     size.downto(1) do |j|
       s << "<tr><th>"+j.to_s+"</th>"
       1.upto(size) do |i|
-        stone = goban.stone_at?(i,j)
-        if stone.empty?
+        if @have_score then color = goban.scoring_grid.yx[j][i]
+        else color = goban.stone_at?(i,j).color end
+        if color == EMPTY
           if human_move and Stone.valid_move?(goban,i,j,@game.cur_color)
-            s << "<td><a href='move?at="+goban.x_label(i)+j.to_s+"'>+</a></td>"
+            s << "<td><a href='move?at="+Grid.x_label(i)+j.to_s+"'>+</a></td>"
           else
             s << "<td>+</td>" # empty intersection we cannot play on (ko or suicide)
           end
         else # TODO: temporary; use nicer than characters!
-          s << "<td>"+goban.color_to_char(stone.color)+"</td>" 
+          s << "<td>#{Grid::COLOR_CHARS[color]}</td>" 
         end
       end
       s << "</tr>"
     end
     s << "<tr><td></td>"
-    1.upto(size) { |i| s << "<th>"+goban.x_label(i)+"</th>" }
+    1.upto(size) { |i| s << "<th>"+Grid.x_label(i)+"</th>" }
     s << "</tr></table>"
 
     if ai_played then
@@ -290,7 +289,7 @@ class MainServer
       s << " <a href='prisoners'>prisoners</a> "
       s << " <a href='load'>load</a> "
       s << " <a href='dbg'>debug</a> "
-      s << " <br>Who's turn: #{goban.color_to_char(@game.cur_color)}<br><br>"
+      s << " <br>Who's turn: #{Grid::COLOR_CHARS[@game.cur_color]}<br><br>"
     else
       s << " <a href='continue'>continue</a><br>"
     end

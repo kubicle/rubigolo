@@ -124,7 +124,7 @@ class TestSpeed < Test::Unit::TestCase
   
   # Converts "a1,b2" in [1,1,2,2]
   def moves_ij(game)
-    return game.split(",").collect_concat { |m| Goban.parse_move(m) }
+    return game.split(",").collect_concat { |m| Grid.parse_move(m) }
   end
 
   def play_moves(moves_ij)
@@ -133,7 +133,7 @@ class TestSpeed < Test::Unit::TestCase
     0.step(moves_ij.size - 2, 2) do |n|
       i = moves_ij[n]
       j = moves_ij[n+1]
-      raise "Invalid move: #{move}" if !Stone.valid_move?(@goban, i, j, cur_color)
+      raise "Invalid move: #{i},#{j}" if !Stone.valid_move?(@goban, i, j, cur_color)
       Stone.play_at(@goban, i, j, cur_color)
       move_count += 1
       cur_color = (cur_color+1) % 2

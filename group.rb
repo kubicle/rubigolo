@@ -7,8 +7,9 @@ require_relative "stone_constants"
 # Note that most of the work here is to keep this status information up to date.
 class Group
   attr_reader :goban, :stones, :lives, :color
-  attr_reader :merged_with, :merged_by, :killed_by, :ndx, :eyes, :voids
-  attr_writer :merged_with, :merged_by # only used in this file
+  attr_reader :merged_with, :merged_by, :killed_by, :ndx
+  attr_writer :merged_with, :merged_by, :extra_lives # only used in this file
+  attr_reader :eyes, :voids, :extra_lives # for analyser
   
   # Create a new group. Always with a single stone.
   # Do not call this using Group.new but Goban#new_group instead.
@@ -21,20 +22,20 @@ class Group
     @merged_by = nil # a stone
     @killed_by = nil # a stone
     @ndx = ndx # unique index
-    @voids = [] # empty zones next to a group (populated and used by analyser)
-    @eyes = [] # eyes (i.e. void surrounded by a group; populated and used by analyser)
+    @voids = [] # for analyser: empty zones next to a group
+    @eyes = [] # for analyser: eyes (i.e. void surrounded by a group)
+    @extra_lives = 0 # for analyser: lives granted by dying enemy nearby
     @all_enemies = []
     @all_lives = []
     # $log.debug("New group created #{self}") if $debug_group
   end
 
-  def recycle!(stone,lives,ndx)
+  def recycle!(stone,lives)
     @stones.clear
     @stones.push(stone)
     @lives = lives
     @color = stone.color
     @merged_with = @merged_by = @killed_by = nil
-    @ndx = ndx # unique index
     @voids.clear
     @eyes.clear
     @all_enemies.clear
@@ -50,7 +51,7 @@ class Group
   
   def to_s
     s = "{group ##{@ndx} of #{@stones.size}"+
-      " #{@goban.color_name(@color)} stones ["
+      " #{Grid.color_name(@color)} stones ["
     @stones.each { |stone| s << "#{stone.as_move}," }
     s.chop!
     s << "], lives:#{@lives}"
@@ -70,17 +71,25 @@ class Group
     return stones.map{|s| s.as_move}.sort.join(",")
   end
 
-  # Adds a void or an eye
-  def add_void(void, is_eye = false)
-    if is_eye then @eyes.push(void) else @voids.push(void) end
-  end
-  
   # This also resets the eyes
-  def reset_voids
+  def reset_analysis
+    @extra_lives = 0
     @voids.clear
     @eyes.clear
   end
 
+  # Adds a void or an eye
+  def add_void(void, is_eye = false)
+    if is_eye then @eyes.push(void) else @voids.push(void) end
+  end
+
+  # For analyser  
+  def count_as_dead
+    stones.each do |stone|
+      stone.unique_enemies(@color).each { |enemy| enemy.extra_lives += 1 }
+    end
+  end
+  
   # Builds a list of all lives of the group
   def all_lives
     @all_lives.clear # TODO: try if set is more efficient
@@ -211,7 +220,7 @@ class Group
     @goban.killed_groups.push(self)   
     $log.debug("Group dead: #{self}") if $debug_group
   end
-  
+
   # Called when "undo" operation removes the killer stone of this group
   def resuscitate
     @killed_by = nil
@@ -232,7 +241,7 @@ class Group
 
   # Returns prisoners grouped by color of dead stones  
   def Group.prisoners?(goban)
-    prisoners = Array.new(goban.num_colors,0)
+    prisoners = [0,0]
     1.upto(goban.killed_groups.size-1) do |i|
       g = goban.killed_groups[i]
       prisoners[g.color] += g.stones.size

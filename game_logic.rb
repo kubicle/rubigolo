@@ -11,25 +11,24 @@ class GameLogic
     @history = []
     @errors = []
     @handicap = 0
-    @num_colors = 2
-    @who_resigned = {}
+    @who_resigned = nil
+    @goban = nil
   end
 
-  def new_game(size=nil, num_players=@num_colors, handicap=@handicap, komi=nil)
+  def new_game(size=nil, handicap=@handicap, komi=nil)
     @history.clear
     @errors.clear
     @num_pass = 0
     @cur_color = BLACK
     @game_ended = @game_ending = false
-    @who_resigned.clear
-    if ! @goban or ( size and size != @goban.size ) or num_players != @goban.num_colors
-      @goban = Goban.new(size,num_players)
+    @who_resigned = nil
+    if ! @goban or ( size and size != @goban.size )
+      @goban = Goban.new(size)
     else
       @goban.clear
     end
     @komi = (komi ? komi : (handicap == 0 ? 6.5 : 0.5))
     set_handicap(handicap)
-    @num_colors = num_players
   end
   
   # Initializes the handicap points
@@ -63,7 +62,7 @@ class GameLogic
   # Returns false if a problem occured. In this case the error message is available.
   def play_one_move(move)
     if @game_ended then return error_msg("Game already ended") end
-    # $log.debug("GameLogic playing #{@goban.color_name(@cur_color)}: #{move}") if $debug
+    # $log.debug("GameLogic playing #{Grid.color_name(@cur_color)}: #{move}") if $debug
     if /^[a-z][1-2]?[0-9]$/ === move
       return play_a_stone(move)
     elsif move == "undo"
@@ -85,7 +84,7 @@ class GameLogic
 
   # Handles a new stone move (not special commands like "pass")
   def play_a_stone(move)
-    i, j = Goban.parse_move(move)
+    i, j = Grid.parse_move(move)
     if !Stone.valid_move?(@goban, i, j, @cur_color) then return error_msg("Invalid move: #{move}") end
     Stone.play_at(@goban, i, j, @cur_color)
     store_move_in_history(move)
@@ -94,15 +93,11 @@ class GameLogic
     return true
   end
   
-  # One player resigns. In multiplayer mode, the game can continue without him.
+  # One player resigns.
   def resign
     store_move_in_history("resign")
-    @who_resigned[@cur_color] = true
-    if @num_colors - @who_resigned.size == 1 then 
-      @game_ended = true
-    else
-      next_player!
-    end
+    @who_resigned = @cur_color
+    @game_ended = true
     return true
   end
 
@@ -113,7 +108,7 @@ class GameLogic
   def pass_one_move
     store_move_in_history("pass")
     @num_pass += 1
-    @game_ending = true if @num_pass >= @num_colors - @who_resigned.size
+    @game_ending = true if @num_pass >= 2
     next_player!
     return true
   end
@@ -188,10 +183,7 @@ private
 #===============================================================================
 
   def next_player!
-    loop do
-      @cur_color = (@cur_color+1) % @num_colors
-      break if !@who_resigned[@cur_color]
-    end
+    @cur_color = (@cur_color+1) % 2
   end
 
   # Always returns false
@@ -206,10 +198,10 @@ private
   
   # undo one full game turn (e.g. one black move and one white)
   def request_undo
-    if @history.size < @num_colors
+    if @history.size < 2
       return error_msg "Nothing to undo"
     end
-    @num_colors.times do
+    2.times do
       Stone.undo(@goban) if ! @history.last.end_with?("pass") # no stone to remove for a pass
       @history.pop
     end
@@ -223,7 +215,7 @@ private
   def sgf_to_game(game)
     return game if ! game.start_with?("(;FF") # are they are always the 1st characters?
     reader = SgfReader.new(game)
-    new_game(reader.board_size, 2, reader.handicap)
+    new_game(reader.board_size, reader.handicap)
     @komi = reader.komi
     return reader.to_move_list
   end
