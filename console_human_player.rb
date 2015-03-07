@@ -10,7 +10,7 @@ class ConsoleHumanPlayer < Player
   
   def get_move(color=@color)
     @goban.console_display
-    puts "What is #{@goban.color_name(color)}/#{@goban.color_to_char(color)} move? (or 'help')"
+    puts "What is #{Grid::COLOR_NAMES[color]}/#{Grid::COLOR_CHARS[color]} move? (or 'help')"
     return get_answer
   end
 

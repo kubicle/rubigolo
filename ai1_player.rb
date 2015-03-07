@@ -7,6 +7,7 @@
 require_relative "player"
 require_relative "goban"
 require_relative "influence_map"
+require_relative "potential_territory"
 require_relative "ai/all_heuristics"
 require_relative "time_keeper"
 require_relative "genes"
@@ -14,11 +15,12 @@ require_relative "genes"
 
 class Ai1Player < Player
   
-  attr_reader :goban, :inf, :enemy_colors, :genes, :last_move_score
+  attr_reader :goban, :inf, :ter, :enemy_color, :genes, :last_move_score
   
   def initialize(goban, color, genes=nil)
     super(false, goban)
     @inf = InfluenceMap.new(@goban)
+    @ter = PotentialTerritory.new(@goban)
     @size = @goban.size
 
     @genes = (genes ? genes : Genes.new)
@@ -49,7 +51,7 @@ class Ai1Player < Player
 
   def set_color(color)
     super(color)
-    @enemy_colors = @goban.enemy_colors(color)
+    @enemy_color = 1 - color;
     @heuristics.each { |h| h.init_color }
     @negative_heuristics.each { |h| h.init_color }
   end
@@ -79,7 +81,7 @@ class Ai1Player < Player
         # Keep the best move
         if score > best_score
           second_best = best_score
-          $log.debug("=> #{Goban.move_as_string(i,j)} becomes the best move with #{score} (2nd best is #{Goban.move_as_string(best_i,best_j)} with #{best_score})") if $debug
+          $log.debug("=> #{Grid.move_as_string(i,j)} becomes the best move with #{score} (2nd best is #{Grid.move_as_string(best_i,best_j)} with #{best_score})") if $debug
           best_score = score
           best_i = i
           best_j = j
@@ -87,13 +89,13 @@ class Ai1Player < Player
         elsif score == best_score
           best_num_twin += 1
           if rand(best_num_twin) == 0
-            $log.debug("=> #{Goban.move_as_string(i,j)} replaces equivalent best move with #{score} (equivalent best was #{Goban.move_as_string(best_i,best_j)})") if $debug
+            $log.debug("=> #{Grid.move_as_string(i,j)} replaces equivalent best move with #{score} (equivalent best was #{Grid.move_as_string(best_i,best_j)})") if $debug
             best_score = score
             best_i = i
             best_j = j
           end
         elsif score >= second_best
-          $log.debug("=> #{Goban.move_as_string(i,j)} is second best move with #{score} (best is #{Goban.move_as_string(best_i,best_j)} with #{best_score})") if $debug
+          $log.debug("=> #{Grid.move_as_string(i,j)} is second best move with #{score} (best is #{Grid.move_as_string(best_i,best_j)} with #{best_score})") if $debug
           second_best = score
         end
       end
@@ -101,14 +103,15 @@ class Ai1Player < Player
     @last_move_score = best_score
 
     # @timer.stop(false) # false: no exception if it takes longer but an error in the log
-    return Goban.move_as_string(best_i, best_j) if best_score > @minimum_score
+    return Grid.move_as_string(best_i, best_j) if best_score > @minimum_score
 
     $log.debug("AI is passing...") if $debug
     return "pass"
   end
 
   def prepare_eval
-    @inf.build_map!
+    @inf.build_map
+    @ter.guess_territories
   end
 
   def eval_move(i, j, best_score=@minimum_score)

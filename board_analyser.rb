@@ -54,9 +54,9 @@ class Void
   end
   
   def to_s
-    s = "void #{@code} (#{@analyzer.void_code_to_char(@code)}/#{@i},#{@j}), size #{@size}"
+    s = "void #{@code} (#{Grid.color_to_char(@code)}/#{@i},#{@j}), size #{@size}"
     @groups.size.times do |color|
-      s << ", #{@groups[color].size} #{@goban.color_name(color)} neighbors"
+      s << ", #{@groups[color].size} #{Grid::COLOR_NAMES[color]} neighbors"
     end
     return s
   end
@@ -64,7 +64,7 @@ class Void
   def debug_dump
     puts to_s
     @groups.size.times do |color|
-      print "    Color #{color} (#{@goban.color_to_char(color)}):"
+      print "    Color #{color} (#{Grid.color_to_char(color)}):"
       @groups[color].each do |neighbor|
         print " ##{neighbor.ndx}"
       end
@@ -82,21 +82,17 @@ class BoardAnalyser
 
   def initialize
     @goban = nil
-    @backup = nil
-    @first_void_code = 100 # anything above Goban::COLOR_CHARS.size is OK
     @voids = []
     @all_groups = Set.new
   end
 
   # Calling this method updates the goban to show the detected result.
-  # Method "restore" must be called if the game needs to continue (dispute about the score).
-  def count_score(goban)
+  def count_score(goban, grid=nil)
     $log.debug("Counting score...") if $debug
     @goban = goban
-    @num_colors = goban.num_colors
-    @scores = Array.new(@num_colors,0)
+    @scores = [0,0]
     @prisoners = Group.prisoners?(@goban)
-    @backup = @goban.image?
+    @filler = ZoneFiller.new(@goban, grid)
 
     find_voids
     find_eyes
@@ -112,89 +108,12 @@ class BoardAnalyser
     debug_dump if $debug
   end
   
-  # NB: only for 2 players game
-  def _enlarge(goban)
-    @goban = goban
-    size = @goban.size
-    stones = []
-    num = Array.new(3,0) # +1 for EMPTY
-    1.upto(size) do |j|
-      1.upto(size) do |i|
-        empty = @goban.stone_at?(i,j)
-        next if empty.color != EMPTY
-        empty.neighbors.each { |n| num[n.color] += 1 }
-        if num[BLACK] > num[WHITE]
-          stones.push([i,j,BLACK])
-        elsif num[BLACK] < num[WHITE]
-          stones.push([i,j,WHITE])
-        end
-        num[BLACK] = num[WHITE] = 0
-      end
-    end
-    stones.each { |i,j,color| Stone.play_at(@goban,i,j,color) }
-
-    # connect stones close to borders to the border
-    2.upto(size-1) do |i|
-      if @goban.empty?(i,1)
-        next2border = @goban.stone_at?(i,2).color
-        if next2border != EMPTY and @goban.empty?(i+1,1) and @goban.empty?(i-1,1)
-          Stone.play_at(@goban,i,1,next2border)
-        end
-      end
-      if @goban.empty?(1,i)
-        next2border = @goban.stone_at?(2,i).color
-        if next2border != EMPTY and @goban.empty?(1,i+1) and @goban.empty?(1,i-1)
-          Stone.play_at(@goban,1,i,next2border)
-        end
-      end
-      if @goban.empty?(i,size)
-        next2border = @goban.stone_at?(i,size-1).color
-        if next2border != EMPTY and @goban.empty?(i+1,size) and @goban.empty?(i-1,size)
-          Stone.play_at(@goban,i,size,next2border)
-        end
-      end
-      if @goban.empty?(size,i)
-        next2border = @goban.stone_at?(size-1,i).color
-        if next2border != EMPTY and @goban.empty?(size,i+1) and @goban.empty?(size,i-1)
-          Stone.play_at(@goban,size,i,next2border)
-        end
-      end
-    end
-  end
-  
-  def guess_potential_future
-    @move_num_before_enlarge = @goban.move_number?
-    _enlarge
-    num_undo = @goban.move_number? - @move_num_before_enlarge
-    count_score
-
-    # TODO: analyse/store the situation (potential territory & live/dead groups)
-
-    restore
-    num_undo.times { Stone.undo(@goban) }
-  end
-  
-  def restore
-    return if !@backup
-    $log.debug("Analyser: restoring goban...") if $debug
-    @goban.load_image(@backup)
-    @backup = nil
-  end
-  
-  def color_to_char(color)
-      return (color >= @first_void_code ? void_code_to_char(color) : @goban.color_to_char(color))
-  end
-
   def image?
-    return @goban.to_text(false,false,","){ |s| color_to_char(s.color) }.chop
+    return @filler.grid.image?
   end
   
-  def void_code_to_char(code)
-    return ("A".ord + code - @first_void_code).chr
-  end
-  
-  def debug_dump  
-    print @goban.to_text { |s| color_to_char(s.color) }
+  def debug_dump
+    print @filler.grid.to_text { |c| Grid.color_to_char(c) }
     @voids.each { |v| v.debug_dump }
 
     if @scores
@@ -205,30 +124,28 @@ class BoardAnalyser
       print "\nGroups with no eye: "
       @all_groups.each { |g| print "#{g.ndx}," if g.eyes.size == 0 }
       print "\nScore:\n"
-      @scores.size.times { |i| puts "Player #{i}: #{scores[i]} points" }
+      @scores.size.times { |i| puts "Player #{i}: #{@scores[i]} points" }
     end
   end
 
 private
 
-  # After calling this the board is altered.
-  # Call restore if the game needs to continue.
   def find_voids
     $log.debug("Find voids...") if $debug
-    void_code = @first_void_code
-    @all_groups.each { |g| g.reset_voids }
+    void_code = Grid::ZONE_CODE
+    @all_groups.each { |g| g.reset_analysis }
     @all_groups.clear
     @voids.clear
-    @filler = ZoneFiller.new(goban)
     
+    neighbors = [[],[]]
     1.upto(@goban.size) do |j|
       1.upto(@goban.size) do |i|
-        neighbors = Array.new(@num_colors) {[]}
-        if (size = @filler.fill_with_color(i,j,EMPTY,void_code,neighbors)) > 0
+        if (size = @filler.fill_with_color(i, j, EMPTY, void_code, neighbors)) > 0
           @voids.push(Void.new(self,void_code,i,j,size,neighbors))
           void_code += 1
           # keep all the groups
           neighbors.each { |n| n.each { |g| @all_groups.add(g) } }
+          neighbors = [[],[]]
         end
       end
     end
@@ -243,8 +160,8 @@ private
   def find_stronger_owners
     @voids.each do |v|
       next if v.eye_color
-      lives = Array.new(@num_colors,0)
-      @num_colors.times do |c|
+      lives = [0,0]
+      2.times do |c|
         v.groups[c].each do |g|
           lives[c] += g.lives
         end
@@ -261,23 +178,36 @@ private
   # Reviews the groups and declare "dead" the ones who do not own any void
   def find_dying_groups
     @all_groups.each do |g|
-      next if g.eyes.size != 0
-      next if g.voids.any? {|v| v.owner == g.color}
-      # find the owner of one void around (simplistic...)
-      owner = nil
+      next if g.eyes.size >= 2
+      next if g.eyes.size == 1 and g.eyes[0].size + g.extra_lives >= 3 # actually not enough if gote but well...
+      color = g.color
+      next if g.eyes.size == 1 and g.eyes[0].groups[color].size > 1 # connected by eye
+      
+      # we need to look at voids around (fake eyes, etc.)
+      owned_voids = size = 0
+      one_owner = my_void = nil
       g.voids.each do |v|
         if v.owner
-          owner = v.owner
-          break
+          one_owner = v.owner
+          if v.owner == color then my_void=v; owned_voids+=1; size+=v.size end
         end
       end
-      # if anyway no one knows who owns the voids around g, leave it
-      next if ! owner
+      next if g.eyes.size == 1 and owned_voids >= 1 # TODO: this is too lenient
+      next if owned_voids >= 2 # TODO later: here is the horror we read about on the web
+      next if owned_voids == 1 and size + g.extra_lives >= 3
+      next if owned_voids == 1 and my_void.groups[color].size > 1 # TODO: check also lives of ally
+      # find if the only void around is owned (e.g. lost stones inside big territory)
+      # if we don't know who owns the voids around g, leave g as alive (unfinished game)
+      next if g.voids.size != 0 and !one_owner
+
+      # g is dead!
       stone = g.stones.first
-      taken = @filler.fill_with_color(stone.i,stone.j,g.color,@goban.color_to_dead_color(g.color))
-      @prisoners[g.color] += taken
-      @scores[owner] += taken
+      taken = @filler.fill_with_color(stone.i, stone.j, color, Grid::DEAD_COLOR+color)
+      @prisoners[color] += taken
+      @scores[1 - color] += taken
+      g.count_as_dead
       $log.debug("Hence #{g} is considered dead (#{taken} prisoners; 1st stone #{stone})") if $debug
+      $log.debug("eyes:#{g.eyes.size} owned_voids:#{owned_voids} size-voids:#{size}") if $debug
     end
   end
 
@@ -286,7 +216,7 @@ private
     @voids.each do |v|
       next if v.eye_color
       alive_colors = []
-      @num_colors.times do |c|
+      2.times do |c|
         v.groups[c].each do |g|
           if group_liveliness?(g) >= 1 then alive_colors.push(c); break end
         end
@@ -301,7 +231,7 @@ private
   # Colors the voids with owner's color
   def color_voids
     @voids.each do |v|
-      c = (v.owner ? @goban.color_to_territory_color(v.owner) : Goban::UNKNOWN_ZONE)
+      c = (v.owner ? Grid::TERRITORY_COLOR+v.owner : Grid::DAME_COLOR)
       @filler.fill_with_color(v.i, v.j, v.code, c)
     end
   end
