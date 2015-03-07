@@ -12,6 +12,7 @@ class Heuristic
     @goban = player.goban
     @size = player.goban.size
     @inf = player.inf
+    @ter = player.ter
   end
   
   def init_color

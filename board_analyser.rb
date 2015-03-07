@@ -124,7 +124,7 @@ class BoardAnalyser
       print "\nGroups with no eye: "
       @all_groups.each { |g| print "#{g.ndx}," if g.eyes.size == 0 }
       print "\nScore:\n"
-      @scores.size.times { |i| puts "Player #{i}: #{scores[i]} points" }
+      @scores.size.times { |i| puts "Player #{i}: #{@scores[i]} points" }
     end
   end
 

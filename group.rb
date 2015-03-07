@@ -30,13 +30,12 @@ class Group
     # $log.debug("New group created #{self}") if $debug_group
   end
 
-  def recycle!(stone,lives,ndx)
+  def recycle!(stone,lives)
     @stones.clear
     @stones.push(stone)
     @lives = lives
     @color = stone.color
     @merged_with = @merged_by = @killed_by = nil
-    @ndx = ndx # unique index
     @voids.clear
     @eyes.clear
     @all_enemies.clear

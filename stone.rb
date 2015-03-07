@@ -136,7 +136,7 @@ class Stone
   def die
     # update_around_before_die
     @color = EMPTY
-    @group = nil # NB: when "marking a spot" the color can become non empty but group will remain nil
+    @group = nil
   end
   
   def resuscitate_in(group)

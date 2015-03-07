@@ -17,7 +17,7 @@ class InfluenceMap
     end
   end
   
-  def build_map!
+  def build_map
     clear
     influence = [4,2,1]
     # First we get stones' direct influence

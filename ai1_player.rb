@@ -15,7 +15,7 @@ require_relative "genes"
 
 class Ai1Player < Player
   
-  attr_reader :goban, :inf, :enemy_color, :genes, :last_move_score
+  attr_reader :goban, :inf, :ter, :enemy_color, :genes, :last_move_score
   
   def initialize(goban, color, genes=nil)
     super(false, goban)
@@ -110,7 +110,8 @@ class Ai1Player < Player
   end
 
   def prepare_eval
-    @inf.build_map!
+    @inf.build_map
+    @ter.guess_territories
   end
 
   def eval_move(i, j, best_score=@minimum_score)
