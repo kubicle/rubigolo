@@ -1,9 +1,9 @@
 //Translated from test_zone_filler.rb using babyruby2js
 'use strict';
 
-var Grid = require('./Grid');
+var Grid = require('../Grid');
 var inherits = require('util').inherits;
-var main = require('./main');
+var main = require('../main');
 var assert_equal = main.assert_equal;
 var GameLogic = require('../GameLogic');
 

@@ -1,7 +1,7 @@
 //Translated from test_breeder.rb using babyruby2js
 'use strict';
 
-var main = require('./main');
+var main = require('../main');
 var inherits = require('util').inherits;
 var assert_equal = main.assert_equal;
 main.test = true;

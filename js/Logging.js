@@ -2,7 +2,6 @@
 'use strict';
 
 var main = require('./main');
-var Logger = require('./Logger');
 // require "logger"
 Logger.ERROR = 3;
 Logger.WARNING = 2;

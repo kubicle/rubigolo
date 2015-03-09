@@ -1,9 +1,9 @@
 //Translated from test_ai.rb using babyruby2js
 'use strict';
 
-var main = require('./main');
+var main = require('../main');
 var inherits = require('util').inherits;
-var Grid = require('./Grid');
+var Grid = require('../Grid');
 var assert_equal = main.assert_equal;
 
 var GameLogic = require('../GameLogic');

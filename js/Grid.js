@@ -135,7 +135,7 @@ Grid.prototype.to_text2 = function (with_labels, end_of_row, cb) {
     return s;
 };
 
-Grid.prototype.to_s = function () {
+Grid.prototype.toString = function () {
     var s = '';
     for (var j = this.size; j >= 1; j--) {
         for (var i = 1; i <= this.size; i++) {

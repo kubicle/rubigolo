@@ -2,7 +2,7 @@
 'use strict';
 
 var inherits = require('util').inherits;
-var Group = require('./Group');
+var Group = require('../Group');
 var assert_equal = main.assert_equal;
 
 var GameLogic = require('../GameLogic');

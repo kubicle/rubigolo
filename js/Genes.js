@@ -1,7 +1,6 @@
 //Translated from genes.rb using babyruby2js
 'use strict';
 
-var Genes = require('./Genes');
 var main = require('./main');
 //require 'yaml';
 Genes.SMALL_MUTATION_AMOUNT = 0.05; // e.g. 0.05 -> plus or minus 5%
@@ -27,7 +26,7 @@ Genes.prototype.set_limits = function (limits) {
     this.limits = limits;
 };
 
-Genes.prototype.to_s = function () {
+Genes.prototype.toString = function () {
     var s = '';
     this.map.each_key(function (k) {
         s += k + ':' + main.strFormat('%.02f', this.map[k]) + ', ';

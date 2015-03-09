@@ -70,7 +70,7 @@ Void.prototype.set_owner = function (color) {
     this.owner = color;
 };
 
-Void.prototype.to_s = function () {
+Void.prototype.toString = function () {
     var s = 'void ' + this.code + ' (' + Grid.color_to_char(this.code) + '/' + this.i + ',' + this.j + '), size ' + this.size;
     for (var color = 1; color <= this.groups.size; color++) {
         s += ', ' + this.groups[color].size + ' ' + Grid.COLOR_NAMES[color] + ' neighbors';
@@ -79,7 +79,7 @@ Void.prototype.to_s = function () {
 };
 
 Void.prototype.debug_dump = function () {
-    console.log(this.to_s());
+    console.log(this.toString());
     for (var color = 1; color <= this.groups.size; color++) {
         console.log('    Color ' + color + ' (' + Grid.color_to_char(color) + '):');
         for (var neighbor, neighbor_array = this.groups[color], neighbor_ndx = 0; neighbor=neighbor_array[neighbor_ndx], neighbor_ndx < neighbor_array.length; neighbor_ndx++) {

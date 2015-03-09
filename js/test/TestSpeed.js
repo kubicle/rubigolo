@@ -1,11 +1,11 @@
 //Translated from test_speed.rb using babyruby2js
 'use strict';
 
-var main = require('./main');
-var Logger = require('./Logger');
+var main = require('../main');
+var Logger = require('../Logger');
 var inherits = require('util').inherits;
-var Grid = require('./Grid');
-var Stone = require('./Stone');
+var Grid = require('../Grid');
+var Stone = require('../Stone');
 var assert_equal = main.assert_equal;
 var Goban = require('../Goban');
 var TimeKeeper = require('../TimeKeeper');

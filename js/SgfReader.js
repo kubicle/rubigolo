@@ -54,7 +54,7 @@ SgfReader.prototype.to_move_list = function () {
         moves += this.convert_move(value) + ',';
         expected_player = (( expected_player === 'B' ? 'W' : 'B' ));
     }
-    return main.strChop(moves);
+    return moves.chop();
 };
 
 //private;
@@ -116,7 +116,7 @@ SgfReader.prototype.convert_move = function (sgf_move) {
     if (sgf_move === 'tt') {
         var move = 'pass';
     } else {
-        move = sgf_move[0] + (this.board_size - ((sgf_move[1]).charCodeAt() - ('a').charCodeAt())).to_s();
+        move = sgf_move[0] + (this.board_size - ((sgf_move[1]).charCodeAt() - ('a').charCodeAt())).toString();
     }
     return move;
 };

@@ -1,7 +1,7 @@
 //Translated from test_all.rb using babyruby2js
 'use strict';
 
-var main = require('./main');
+var main = require('../main');
 // Tests all
 main.test_all = true;
 var TestAi = require('./TestAi');
