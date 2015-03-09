@@ -2,8 +2,8 @@
 'use strict';
 
 var inherits = require('util').inherits;
-var main = require('./main');
-var Grid = require('./Grid');
+var main = require('../main');
+var Grid = require('../Grid');
 var assert_equal = main.assert_equal;
 
 var GameLogic = require('../GameLogic');
