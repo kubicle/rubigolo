@@ -2,7 +2,7 @@
 'use strict';
 
 var inherits = require('util').inherits;
-var main = require('./main');
+var main = require('../main');
 // Quite a dumb way of "pushing" our influence further...
 // For that reason the coeff are rather low.
 // This should eventually disappear.

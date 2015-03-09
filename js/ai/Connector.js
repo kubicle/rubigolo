@@ -2,7 +2,7 @@
 'use strict';
 
 var inherits = require('util').inherits;
-var main = require('./main');
+var main = require('../main');
 // Basic: a move that connects 2 of our groups is good.
 // TODO: this could threaten our potential for keeping eyes, review this.
 var Heuristic = require('./Heuristic');

@@ -2,8 +2,8 @@
 'use strict';
 
 var inherits = require('util').inherits;
-var main = require('./main');
-var Stone = require('./Stone');
+var main = require('../main');
+var Stone = require('../Stone');
 // Hunters find threats to struggling enemy groups.
 // Ladder attack fits in here.
 var Heuristic = require('./Heuristic');

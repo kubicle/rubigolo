@@ -2,8 +2,8 @@
 'use strict';
 
 var inherits = require('util').inherits;
-var main = require('./main');
-var Stone = require('./Stone');
+var main = require('../main');
+var Stone = require('../Stone');
 // Saviors rescue ally groups in atari
 var Heuristic = require('./Heuristic');
 var Hunter = require('./Hunter');

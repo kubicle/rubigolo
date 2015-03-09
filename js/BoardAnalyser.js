@@ -4,7 +4,6 @@
 var main = require('./main');
 var Grid = require('./Grid');
 var Group = require('./Group');
-var Void = require('./Void');
 //require 'set';
 var Goban = require('./Goban');
 var ZoneFiller = require('./ZoneFiller');

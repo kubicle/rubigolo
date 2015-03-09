@@ -2,7 +2,7 @@
 'use strict';
 
 var inherits = require('util').inherits;
-var main = require('./main');
+var main = require('../main');
 // Executioner only preys on enemy groups in atari
 var Heuristic = require('./Heuristic');
 

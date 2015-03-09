@@ -2,7 +2,7 @@
 'use strict';
 
 var inherits = require('util').inherits;
-var main = require('./main');
+var main = require('../main');
 // Vague idea that playing where we already have influence is moot.
 var Heuristic = require('./Heuristic');
 

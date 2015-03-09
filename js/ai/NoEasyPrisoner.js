@@ -2,8 +2,8 @@
 'use strict';
 
 var inherits = require('util').inherits;
-var Stone = require('./Stone');
-var main = require('./main');
+var Stone = require('../Stone');
+var main = require('../main');
 // Should recognize when our move is foolish...
 var Heuristic = require('./Heuristic');
 var Hunter = require('./Hunter');
