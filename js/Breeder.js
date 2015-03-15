@@ -18,13 +18,13 @@ Breeder.TOO_SMALL_SCORE_DIFF = 3; // if final score is less that this, see it as
 
 /** @class */
 function Breeder(game_size) {
-    this.size = game_size;
+    this.gsize = game_size;
     this.timer = new TimeKeeper();
     this.timer.calibrate(0.7);
     this.game = new GameLogic();
     this.game.messages_to_console(true);
     this.game.set_log_level('all=0');
-    this.game.new_game(this.size);
+    this.game.new_game(this.gsize);
     this.goban = this.game.goban;
     this.players = [new Ai1Player(this.goban, main.BLACK), new Ai1Player(this.goban, main.WHITE)];
     this.scorer = new ScoreAnalyser();
@@ -62,7 +62,7 @@ Breeder.prototype.play_until_game_ends = function () {
 // Plays a game and returns the score difference in points
 Breeder.prototype.play_game = function (name1, name2, p1, p2) {
     // @timer.start("AI VS AI game",0.5,3)
-    this.game.new_game(this.size, 0, Breeder.KOMI);
+    this.game.new_game(this.gsize, 0, Breeder.KOMI);
     this.players[0].prepare_game(p1);
     this.players[1].prepare_game(p2);
     this.play_until_game_ends();
@@ -100,7 +100,7 @@ Breeder.prototype.run = function (num_tournaments, num_match_per_ai) {
 // Sadly this costs us a lot: we need to play twice more games to get score data...
 Breeder.prototype.one_tournament = function (num_match_per_ai) {
     if (main.debug_breed) {
-        main.log.debug('One tournament starts for ' + this.generation.size + ' AIs');
+        main.log.debug('One tournament starts for ' + this.generation.length + ' AIs');
     }
     for (var p1 = 1; p1 <= this.gen_size; p1++) {
         this.score_diff[p1] = 0;
@@ -129,7 +129,7 @@ Breeder.prototype.one_tournament = function (num_match_per_ai) {
 
 Breeder.prototype.reproduction = function () {
     if (main.debug_breed) {
-        main.log.debug('=== Reproduction time for ' + this.generation.size + ' AI');
+        main.log.debug('=== Reproduction time for ' + this.generation.length + ' AI');
     }
     this.picked = new main.Array(this.gen_size, 0);
     this.max_score = Math.max.apply(Math,this.score_diff);
@@ -199,7 +199,7 @@ Breeder.prototype.control = function () {
 };
 
 // Play many games AI VS AI to verify black/white balance
-Breeder.prototype.bw_balance_check = function (num_games, size) {
+Breeder.prototype.bw_balance_check = function (num_games, gsize) {
     this.timer.start('bw_balance_check', num_games / 1000.0 * 50, num_games / 1000.0 * 512);
     main.log.debug('Checking black/white balance by playing ' + num_games + ' games (komi=' + Breeder.KOMI + ')...');
     var total_score, num_wins;
@@ -214,7 +214,7 @@ Breeder.prototype.bw_balance_check = function (num_games, size) {
         }
         total_score += score;
     }
-    this.timer.stop(false); // size == 9) # if size is not 9 our perf numbers are of course meaningless
+    this.timer.stop(false); // gsize == 9) # if gsize is not 9 our perf numbers are of course meaningless
     main.log.debug('Average score of control against itself: ' + total_score / num_games);
     main.log.debug('Out of ' + num_games + ' games, black won ' + num_wins + ' times');
     return num_wins;

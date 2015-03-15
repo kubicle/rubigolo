@@ -106,7 +106,7 @@ Genes.prototype.mate = function (parent2, kid1, kid2, mutation_rate, wide_mutati
     kid2.set_limits(this.limits);
     var k1 = kid1.map;
     var k2 = kid2.map;
-    var cross_point_2 = ~~(Math.random()*~~(p1.size));
+    var cross_point_2 = ~~(Math.random()*~~(p1.length));
     var cross_point = ~~(Math.random()*~~(cross_point_2));
     var pos = 0;
     return p1.each_key(function (key) {
