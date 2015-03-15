@@ -49,7 +49,7 @@ Stone.prototype.find_neighbors = function () {
     }
 };
 
-Stone.prototype.to_s = function () {
+Stone.prototype.toString = function () {
     if (this.color === main.EMPTY) {
         return 'empty:' + this.as_move();
     } else {
@@ -63,7 +63,7 @@ Stone.prototype.as_move = function () {
 };
 
 Stone.prototype.debug_dump = function () {
-    return this.to_s(); // we could add more info
+    return this.toString(); // we could add more info
 };
 
 // Returns the empty points around this stone
@@ -249,7 +249,7 @@ Stone.prototype.unique_allies = function (color) {
 Stone.prototype.put_down = function (color) {
     this.color = color;
     if (main.debug) {
-        main.log.debug('put_down: ' + this.to_s());
+        main.log.debug('put_down: ' + this.toString());
     }
     var allies = this.unique_allies(color); // note we would not need unique if group#merge ignores dupes
     if (allies.length === 0) {
@@ -275,7 +275,7 @@ Stone.prototype.put_down = function (color) {
 
 Stone.prototype.take_back = function () {
     if (main.debug_group) {
-        main.log.debug('take_back: ' + this.to_s() + ' from group ' + this.group);
+        main.log.debug('take_back: ' + this.toString() + ' from group ' + this.group);
     }
     this.group.unmerge_from(this);
     this.group.disconnect_stone(this);
