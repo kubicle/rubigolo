@@ -7,10 +7,6 @@ var main = require('../main');
 var assertEqual = main.assertEqual;
 
 var Goban = require('../Goban');
-// NB: for debugging think of using @goban.console_display
-TestStone.prototype.init_board = function () {
-    this.goban = new Goban(5);
-};
 
 
 /** @class */
@@ -20,6 +16,11 @@ function TestStone(test_name) {
 }
 inherits(TestStone, main.TestCase);
 module.exports = main.tests.add(TestStone);
+
+// NB: for debugging think of using @goban.console_display
+TestStone.prototype.init_board = function () {
+    this.goban = new Goban(5);
+};
 
 TestStone.prototype.how_many_lives = function (i, j) {
     var s = this.goban.stone_at(i, j);
