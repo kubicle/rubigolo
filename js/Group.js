@@ -60,7 +60,7 @@ Group.prototype.toString = function () {
     for (var stone, stone_array = this.stones, stone_ndx = 0; stone=stone_array[stone_ndx], stone_ndx < stone_array.length; stone_ndx++) {
         s += stone.as_move() + ',';
     }
-    s = main.strChop(s);
+    s = s.chop();
     s += '], lives:' + this.lives;
     if (this.merged_with) {
         s += ' MERGED with #' + this.merged_with.ndx;
