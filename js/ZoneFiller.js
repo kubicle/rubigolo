@@ -12,7 +12,6 @@ function ZoneFiller(goban, grid) {
     if (!grid) {
         grid = goban.scoring_grid.convert(goban.grid);
     }
-    // $log.debug("ZoneFiller.new \n"+grid.to_s) if $debug
     this.goban = goban;
     this.grid = grid;
     this.yx = grid.yx;

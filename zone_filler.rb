@@ -8,7 +8,6 @@ class ZoneFiller
   # otherwise, the goban scoring_grid is used.
   def initialize(goban, grid=nil)
     grid = goban.scoring_grid.convert(goban.grid) if !grid
-    # $log.debug("ZoneFiller.new \n"+grid.to_s) if $debug
     @goban = goban
     @grid = grid
     @yx = grid.yx
