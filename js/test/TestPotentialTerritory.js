@@ -3,7 +3,7 @@
 
 var inherits = require('util').inherits;
 var main = require('../main');
-var assertEqual = main.assertEqual;
+var assert_equal = main.assert_equal;
 
 var GameLogic = require('../GameLogic');
 var PotentialTerritory = require('../PotentialTerritory');
@@ -48,14 +48,14 @@ TestPotentialTerritory.prototype.test_terr1 = function () {
     this.game.load_moves(game);
     var before = this.goban.image();
     var grid = this.ter.guess_territories();
-    assertEqual(before, this.goban.image()); // basic check - goban should have been restored
+    assert_equal(before, this.goban.image()); // basic check - goban should have been restored
     var black_first = ':::O@----,:::O@----,::O@@-@--,::O@@----,:O@@-@@@@,OO@-@-@OO,@@@-@@O::,---@OO:::,---@O::::';
-    assertEqual(black_first, this.ter._grid(main.BLACK).image());
+    assert_equal(black_first, this.ter._grid(main.BLACK).image());
     var white_first = ':::O@----,:::O@----,::OO@@@--,::O:OO@--,:OO:OO@@@,OO@OO:OOO,@@@?@OO::,---@O::::,---@O::::';
-    assertEqual(white_first, this.ter._grid(main.WHITE).image());
+    assert_equal(white_first, this.ter._grid(main.WHITE).image());
     var expected_potential = ':::??----,:::??----,::???\'?--,::?.?\'\'--,:??.\'????,???\'?????,???\'???::,---??.:::,---??::::';
-    assertEqual(grid, this.ter.potential().yx);
-    return assertEqual(expected_potential, this.potential_to_s(this.ter.potential()));
+    assert_equal(grid, this.ter.potential().yx);
+    return assert_equal(expected_potential, this.potential_to_s(this.ter.potential()));
 };
 
 // Test on a finished game
@@ -74,14 +74,14 @@ TestPotentialTerritory.prototype.test_small_game_terr = function () {
     var game2 = 'c3,c6,e7,g3,g7,e2,d2,b4,b3,c7,g5,h4,h5,d8,e8,e5,c4,b5,e3,f2,c5,f6,f7,g6,h6,d7,a4,a5,b6,a3,a6,b7,a4,a7,d9,c9,b8,e6,d5,d6,e9,g4,f5,f4,e1,f1,d1,i5,i6,e4,i4,i3,h8,c8,d3,i5,f3,g2,i4,b5,b4,a5,i5';
     this.game.load_moves(game2);
     var final_pos = '++O@@++++,+@OO@++@+,OOOO@@@++,++OOOOO@@,OO@@O@@@@,@@@+OOOO@,O@@@@@O+O,+++@OOO++,+++@@O+++';
-    assertEqual(final_pos, this.goban.image());
+    assert_equal(final_pos, this.goban.image());
     this.ter.guess_territories();
     var black_first = '-&O@@----,&&OO@--@-,OOOO@@@--,::OOOOO@@,OO@@O@@@@,@@@OOOOO@,#@@@@@O:O,#@-@OOO::,---@@O:::';
-    assertEqual(black_first, this.ter._grid(main.BLACK).image());
+    assert_equal(black_first, this.ter._grid(main.BLACK).image());
     var white_first = ':OO@@----,O:OO@--@-,OOOO@@@--,::OOOOO@@,OO@@O@@@@,@@@OOOOO@,#@@@@@O:O,#@-@OOO::,---@@O:::';
-    assertEqual(white_first, this.ter._grid(main.WHITE).image());
+    assert_equal(white_first, this.ter._grid(main.WHITE).image());
     var expected_potential = '?????----,?.???--?-,???????--,::???????,?????????,?????????,???????:?,??-????::,---???:::';
-    return assertEqual(expected_potential, this.potential_to_s(this.ter.potential()));
+    return assert_equal(expected_potential, this.potential_to_s(this.ter.potential()));
 };
 
 // This test triggers the "if not suicide" in "add_stone" method

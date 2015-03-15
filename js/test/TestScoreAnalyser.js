@@ -4,7 +4,7 @@
 var inherits = require('util').inherits;
 var main = require('../main');
 var Grid = require('../Grid');
-var assertEqual = main.assertEqual;
+var assert_equal = main.assert_equal;
 
 var GameLogic = require('../GameLogic');
 var ScoreAnalyser = require('../ScoreAnalyser');
@@ -40,35 +40,35 @@ TestScoreAnalyser.prototype.test_compute_score = function () {
     this.init_game(7);
     var who_resigned = null;
     var s = this.sa.compute_score(this.goban, 1.5, who_resigned);
-    assertEqual('white wins by 6.5 points', s.shift());
-    assertEqual('black (@): 12 points (12 + 0 prisoners)', s.shift());
-    assertEqual('white (O): 18.5 points (14 + 3 prisoners + 1.5 komi)', s.shift());
-    assertEqual(null, s.shift());
+    assert_equal('white wins by 6.5 points', s.shift());
+    assert_equal('black (@): 12 points (12 + 0 prisoners)', s.shift());
+    assert_equal('white (O): 18.5 points (14 + 3 prisoners + 1.5 komi)', s.shift());
+    assert_equal(null, s.shift());
     // test message when someone resigns
     s = this.sa.compute_score(this.goban, 1.5, main.BLACK);
-    assertEqual(['white won (since black resigned)'], s);
+    assert_equal(['white won (since black resigned)'], s);
     s = this.sa.compute_score(this.goban, 1.5, main.WHITE);
-    return assertEqual(['black won (since white resigned)'], s);
+    return assert_equal(['black won (since white resigned)'], s);
 };
 
 TestScoreAnalyser.prototype.test_compute_score_diff = function () {
     this.init_game(7);
-    return assertEqual(-8.5, this.sa.compute_score_diff(this.goban, 3.5));
+    return assert_equal(-8.5, this.sa.compute_score_diff(this.goban, 3.5));
 };
 
 TestScoreAnalyser.prototype.test_start_scoring = function () {
     this.init_game(7);
     var i = this.sa.start_scoring(this.goban, 0.5, null);
-    assertEqual([12, 17.5], i.shift());
-    return assertEqual([[12, 0, 0], [14, 3, 0.5]], i.shift());
+    assert_equal([12, 17.5], i.shift());
+    return assert_equal([[12, 0, 0], [14, 3, 0.5]], i.shift());
 };
 
 TestScoreAnalyser.prototype.test_scoring_grid = function () {
     this.init_game(7);
     this.sa.start_scoring(this.goban, 1.5, null);
-    assertEqual(main.EMPTY, this.goban.stone_at(1, 1).color); // score analyser leaves the goban untouched
-    assertEqual(Grid.TERRITORY_COLOR + main.WHITE, this.goban.scoring_grid.yx[1][1]); // a1
-    return assertEqual(Grid.TERRITORY_COLOR + main.BLACK, this.goban.scoring_grid.yx[6][2]); // b6
+    assert_equal(main.EMPTY, this.goban.stone_at(1, 1).color); // score analyser leaves the goban untouched
+    assert_equal(Grid.TERRITORY_COLOR + main.WHITE, this.goban.scoring_grid.yx[1][1]); // a1
+    return assert_equal(Grid.TERRITORY_COLOR + main.BLACK, this.goban.scoring_grid.yx[6][2]); // b6
 };
 
 TestScoreAnalyser.prototype.test_score_info_to_s = function () {
@@ -76,16 +76,16 @@ TestScoreAnalyser.prototype.test_score_info_to_s = function () {
     this.sa.compute_score(this.goban, 1.5, null); // just to make the test succeed (these methods could be private, actually)
     var info = [[10, 12], [[1, 2, 3], [4, 5, 6]]];
     var s = this.sa.score_info_to_s(info);
-    assertEqual('white wins by 2 points', s.shift());
-    assertEqual('black (@): 10 points (1 + 2 prisoners + 3 komi)', s.shift());
-    assertEqual('white (O): 12 points (4 + 5 prisoners + 6 komi)', s.shift());
-    return assertEqual(null, s.shift());
+    assert_equal('white wins by 2 points', s.shift());
+    assert_equal('black (@): 10 points (1 + 2 prisoners + 3 komi)', s.shift());
+    assert_equal('white (O): 12 points (4 + 5 prisoners + 6 komi)', s.shift());
+    return assert_equal(null, s.shift());
 };
 
 TestScoreAnalyser.prototype.test_score_diff_to_s = function () {
     this.init_game();
     this.sa.compute_score(this.goban, 1.5, null); // just to make the test succeed (these methods could be private, actually)
-    assertEqual('white wins by 3 points', this.sa.score_diff_to_s(-3));
-    assertEqual('black wins by 4 points', this.sa.score_diff_to_s(4));
-    return assertEqual('Tie game', this.sa.score_diff_to_s(0));
+    assert_equal('white wins by 3 points', this.sa.score_diff_to_s(-3));
+    assert_equal('black wins by 4 points', this.sa.score_diff_to_s(4));
+    return assert_equal('Tie game', this.sa.score_diff_to_s(0));
 };

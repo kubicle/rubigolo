@@ -3,7 +3,7 @@
 
 var inherits = require('util').inherits;
 var Group = require('../Group');
-var assertEqual = main.assertEqual;
+var assert_equal = main.assert_equal;
 
 var GameLogic = require('../GameLogic');
 var BoardAnalyser = require('../BoardAnalyser');
@@ -39,20 +39,20 @@ TestBoardAnalyser.prototype.test_small_game = function () {
     var game2 = 'c3,c6,e7,g3,g7,e2,d2,b4,b3,c7,g5,h4,h5,d8,e8,e5,c4,b5,e3,f2,c5,f6,f7,g6,h6,d7,a4,a5,b6,a3,a6,b7,a4,a7,d9,c9,b8,e6,d5,d6,e9,g4,f5,f4,e1,f1,d1,i5,i6,e4,i4,i3,h8,c8,d3,i5,f3,g2,i4,b5,b4,a5,i5';
     this.game.load_moves(game2);
     var final_pos = '++O@@++++,+@OO@++@+,OOOO@@@++,++OOOOO@@,OO@@O@@@@,@@@+OOOO@,O@@@@@O+O,+++@OOO++,+++@@O+++';
-    assertEqual(final_pos, this.goban.image());
+    assert_equal(final_pos, this.goban.image());
     this.boan = new BoardAnalyser();
     this.boan.count_score(this.goban);
     // we do not test private method anymore
     // tmp_zones = "FFO@@EEEE,F@OO@EE@E,OOOO@@@EE,DDOOOOO@@,OO@@O@@@@,@@@COOOO@,O@@@@@OBO,AAA@OOOBB,AAA@@OBBB"
-    // assertEqual(tmp_zones, @boan.image?)
+    // assert_equal(tmp_zones, @boan.image?)
     var final_zones = '::O@@----,:&OO@--@-,OOOO@@@--,::OOOOO@@,OO@@O@@@@,@@@?OOOO@,#@@@@@O:O,---@OOO::,---@@O:::';
     // @boan.debug_dump if $debug
-    assertEqual(final_zones, this.goban.scoring_grid.image());
+    assert_equal(final_zones, this.goban.scoring_grid.image());
     var prisoners = Group.prisoners(this.goban);
-    assertEqual([4, 5], prisoners);
-    assertEqual([4 + 1, 5 + 1], this.boan.prisoners);
-    assertEqual([16, 12], this.boan.scores);
-    return assertEqual(final_pos, this.goban.image());
+    assert_equal([4, 5], prisoners);
+    assert_equal([4 + 1, 5 + 1], this.boan.prisoners);
+    assert_equal([16, 12], this.boan.scores);
+    return assert_equal(final_pos, this.goban.image());
 };
 
 TestBoardAnalyser.prototype.test_big_game_1 = function () {
@@ -64,11 +64,11 @@ TestBoardAnalyser.prototype.test_big_game_1 = function () {
     this.boan.count_score(this.goban);
     var final_zones = '::::O@@#-----------,:::O:O@@@------@@--,::O::OO@-@@@@-@-##-,O:O&:O@@@-@O@--@@#@,@OO::O@@@#@O@#@@-@-,@@O:O:OO@@OO@@O@@-@,-@@O:O::O@@OOOOO@@@,--@@O:OOOO@@@@OOO@O,--@OOO@@@@--@OO@OOO,-@-@OO@-@-@-@O@@@@O,@#@@@O@@@@-@-@---@O,-#@O@O@O@O@-@---@@O,@#@OO@@OOOO@@@@@@OO,O@@@OOOO@OOOOOOO@O:,OOO@@OOO@O&::O&OO:O,O:O@@@?@@@OO:::&&O:,::OO@-@@--@O:O::O::,::OOO@--@@@O:::O:::,:O:O@@--@OOOO::::::';
     // @boan.debug_dump if $debug
-    assertEqual(final_zones, this.goban.scoring_grid.image());
+    assert_equal(final_zones, this.goban.scoring_grid.image());
     var prisoners = Group.prisoners(this.goban);
-    assertEqual([7, 11], prisoners);
-    assertEqual([7 + 5, 11 + 9], this.boan.prisoners);
-    return assertEqual([67, 59], this.boan.scores);
+    assert_equal([7, 11], prisoners);
+    assert_equal([7 + 5, 11 + 9], this.boan.prisoners);
+    return assert_equal([67, 59], this.boan.scores);
 };
 
 TestBoardAnalyser.prototype.test_big_game_2 = function () {
@@ -81,9 +81,9 @@ TestBoardAnalyser.prototype.test_big_game_2 = function () {
     this.boan.count_score(this.goban);
     var final_zones = '--@OO:::O@@?O@@@---,' + '-@@@O::O:O@??O@-@--,' + '-@@OO:O::O@@OOO@@@@,' + '--@@@O::OO@OO??@-@O,' + '--@OOO:O@@@@O@@@@OO,' + '---@@OO@@-@OOOOO@@O,' + '-@@@-@@#@-@O:O@@@OO,' + '@--@---##@@O::O@@OO,' + 'O@@@@@@@@OOOO:OOOOO,' + 'OO@O@O@O@O:::OO@@@O,' + ':OOOOOOOO@OOO:O@OO:,' + '::&O::::O@@?OOO@@OO,' + ':::OO::&O@-@O@@-@OO,' + '::OO&:OO@@@@@@-@@@?,' + ':O@@OOO:O@O?@O@@O@@,' + ':OO@@OOOO@OOOO@OOO@,' + 'OO@@-@@OO@@O:OO:O:O,' + '@@---@-@OO@@O::::::,' + '------@@O@@@@O:::::';
     // @boan.debug_dump if $debug
-    assertEqual(final_zones, this.goban.scoring_grid.image());
+    assert_equal(final_zones, this.goban.scoring_grid.image());
     var prisoners = Group.prisoners(this.goban);
-    assertEqual([11, 6], prisoners);
-    assertEqual([11 + 3, 6 + 3], this.boan.prisoners);
-    return assertEqual([44, 56], this.boan.scores);
+    assert_equal([11, 6], prisoners);
+    assert_equal([11 + 3, 6 + 3], this.boan.prisoners);
+    return assert_equal([44, 56], this.boan.scores);
 };

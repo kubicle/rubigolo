@@ -6,19 +6,13 @@ var Logger = require('../Logger');
 var inherits = require('util').inherits;
 var Grid = require('../Grid');
 var Stone = require('../Stone');
-var assertEqual = main.assertEqual;
+var assert_equal = main.assert_equal;
 var Goban = require('../Goban');
 var TimeKeeper = require('../TimeKeeper');
 
 main.debug = false; // if true it takes forever...
 main.log.level=(Logger.ERROR);
 main.count = 0;
-TestSpeed.CM_UNDO = [0, TestSpeed.CM_CLEAR = 1, TestSpeed.CM_NEW = 2];
-TestSpeed.prototype.init_board = function (size) {
-    if (size === undefined) size = 9;
-    this.goban = new Goban(size);
-};
-
 
 /** @class */
 function TestSpeed(test_name) {
@@ -27,6 +21,14 @@ function TestSpeed(test_name) {
 }
 inherits(TestSpeed, main.TestCase);
 module.exports = TestSpeed;
+
+
+TestSpeed.prototype.init_board = function (size) {
+    if (size === undefined) size = 9;
+    this.goban = new Goban(size);
+};
+
+TestSpeed.CM_UNDO = [0, TestSpeed.CM_CLEAR = 1, TestSpeed.CM_NEW = 2];
 
 // Not very fancy: add the line $count += 1 wherever you want to count.
 // Need some time to try a good profiler soon...
@@ -69,7 +71,7 @@ TestSpeed.prototype.test_speed1 = function () {
     var game1 = 'c3,f3,d7,e5,c5,f7,e2,e8,d8,f2,f1,g1,e1,h2,e3,d4,e4,f4,d5,d3,d2,c2,c4,d6,e7,e6,c6,f8,e9,f9,d9,c7,c8,b8,b7';
     var game1_moves_ij = this.moves_ij(game1);
     t.start('35 move game, 2000 times and undo', 3.4, 1);
-    for (var i = 1; i <= 2000; i++) {
+    for (i = 1; i <= 2000; i++) {
         this.play_game_and_clean(game1_moves_ij, TestSpeed.CM_UNDO);
     }
     t.stop();
@@ -77,7 +79,7 @@ TestSpeed.prototype.test_speed1 = function () {
     // The idea here is to verify that undoing things is cheaper than throwing it all to GC
     // In a tree exploration strategy the undo should be the only way (otherwise we quickly hog all memory)
     t.start('35 move game, 2000 times new board each time', 4.87, 15);
-    for (var i = 1; i <= 2000; i++) {
+    for (i = 1; i <= 2000; i++) {
         this.play_game_and_clean(game1_moves_ij, TestSpeed.CM_NEW);
     }
     t.stop();
@@ -85,7 +87,7 @@ TestSpeed.prototype.test_speed1 = function () {
     // And here we see that the "clear" is the faster way to restart a game 
     // (and that it does not "leak" anything to GC)
     t.start('35 move game, 2000 times, clear board each time', 2.5, 1);
-    for (var i = 1; i <= 2000; i++) {
+    for (i = 1; i <= 2000; i++) {
         this.play_game_and_clean(game1_moves_ij, TestSpeed.CM_CLEAR);
     }
     t.stop();
@@ -111,7 +113,7 @@ TestSpeed.prototype.test_speed2 = function () {
     // validate the game once
     this.play_moves(game2_moves_ij);
     var final_pos = '++O@@++++,+@OO@++@+,OOOO@@@++,++OOOOO@@,OO@@O@@@@,@@@+OOOO@,O@@@@@O+O,+++@OOO++,+++@@O+++';
-    assertEqual(final_pos, this.goban.image());
+    assert_equal(final_pos, this.goban.image());
     this.init_board();
     t.start('63 move game, 2000 times and undo', 1.56, 3);
     for (var i = 1; i <= 2000; i++) {
@@ -149,7 +151,7 @@ TestSpeed.prototype.play_game_and_clean = function (moves_ij, clean_mode) {
     if (main.debug) {
         main.log.debug('About to play a game of ' + num_moves + ' moves');
     }
-    assertEqual(num_moves, this.play_moves(moves_ij));
+    assert_equal(num_moves, this.play_moves(moves_ij));
     switch (clean_mode) {
     case TestSpeed.CM_UNDO:
         for (var i = 1; i <= num_moves; i++) {
@@ -165,7 +167,7 @@ TestSpeed.prototype.play_game_and_clean = function (moves_ij, clean_mode) {
     default: 
         throw('Invalid clean mode');
     }
-    return assertEqual(null, this.goban.previous_stone());
+    return assert_equal(null, this.goban.previous_stone());
 };
 
 // Our first, basic test
