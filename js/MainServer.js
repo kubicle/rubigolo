@@ -158,7 +158,7 @@ MainServer.prototype.req_accept_score = function (args) {
 // Show prisoner counts during the game  
 MainServer.prototype.req_show_prisoners = function () {
     var prisoners = this.game.prisoners();
-    for (var c = 1; c <= prisoners.size; c++) {
+    for (var c = 1; c <= prisoners.length; c++) {
         this.add_message(prisoners[c] + ' ' + Grid.COLOR_NAMES[c] + ' (' + Grid.COLOR_CHARS[c] + ') are prisoners');
     }
     return this.add_message('');
@@ -171,11 +171,11 @@ MainServer.prototype.req_show_debug_info = function () {
 
 // http://localhost:8080/newGame?size=9&handicap=0&ai=0
 MainServer.prototype.req_new_game = function (args) {
-    var size = this.get_arg_i(args, 'size', 19);
+    var gsize = this.get_arg_i(args, 'size', 19);
     var handicap = this.get_arg_i(args, 'handicap', 0);
     var num_ai = this.get_arg_i(args, 'ai', 1);
     this.game = new GameLogic();
-    this.game.new_game(size, handicap);
+    this.game.new_game(gsize, handicap);
     this.goban = this.game.goban;
     this.have_score = false;
     this.players.clear();
@@ -211,7 +211,7 @@ MainServer.prototype.req_load_moves = function (args) {
 MainServer.prototype.parse_request = function (req_str) {
     // GET /mainMenu?par1=val1 HTTP/1.1
     var reqs = req_str.split();
-    if (reqs.size < 3 || reqs[0] !== 'GET' || reqs[2] !== 'HTTP/1.1') {
+    if (reqs.length < 3 || reqs[0] !== 'GET' || reqs[2] !== 'HTTP/1.1') {
         throw new Error('Unsupported request: ' + reqs);
     }
     var full_url = reqs[1];
@@ -315,7 +315,7 @@ MainServer.prototype.web_display = function (goban, ai_played, question) {
     var ending = (!ended && this.game.game_ending);
     var player = this.players[this.game.cur_color];
     var human_move = (!ended && !ending && !player);
-    var size = this.goban.size;
+    var gsize = this.goban.gsize;
     if (ending) {
         this.show_score_info();
     }
@@ -325,9 +325,9 @@ MainServer.prototype.web_display = function (goban, ai_played, question) {
     s += 'a:hover {color:#00D000} a:active {color:#FFFF00} \n';
     s += 'table {border: 1px solid black;} td {width: 15px;}</style>';
     s += '</head><body><table>';
-    for (var j = size; j >= 1; j--) {
+    for (var j = gsize; j >= 1; j--) {
         s += '<tr><th>' + j.toString() + '</th>';
-        for (var i = 1; i <= size; i++) {
+        for (var i = 1; i <= gsize; i++) {
             if (this.have_score) {
                 var color = goban.scoring_grid.yx[j][i];
             } else {
@@ -347,7 +347,7 @@ MainServer.prototype.web_display = function (goban, ai_played, question) {
         s += '</tr>';
     }
     s += '<tr><td></td>';
-    for (var i = 1; i <= size; i++) {
+    for (var i = 1; i <= gsize; i++) {
         s += '<th>' + Grid.x_label(i) + '</th>';
     }
     s += '</tr></table>';

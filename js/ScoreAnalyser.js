@@ -61,12 +61,12 @@ ScoreAnalyser.prototype.score_info_to_s = function (info) {
     if (info.is_a(main.String)) {
         return [info];
     } // for games where all but 1 resigned
-    if (!info || info.size !== 2) {
+    if (!info || info.length !== 2) {
         throw new Error('Invalid score info: ' + info);
     }
     var totals = info[0];
     var details = info[1];
-    if (totals.size !== details.size) {
+    if (totals.length !== details.length) {
         throw new Error('Invalid score info');
     }
     var s = [];
@@ -77,7 +77,7 @@ ScoreAnalyser.prototype.score_info_to_s = function (info) {
             s.push(Grid.color_name(c) + ' resigned');
             continue;
         }
-        if (detail.size !== 3) {
+        if (detail.length !== 3) {
             throw new Error('Invalid score details');
         }
         var score = detail[0];
@@ -99,23 +99,23 @@ ScoreAnalyser.prototype.score_diff_to_s = function (diff) {
 };
 
 ScoreAnalyser.prototype.score_winner_to_s = function (totals) {
-    if (totals.size === 2) {
+    if (totals.length === 2) {
         var diff = totals[0] - totals[1];
         return this.score_diff_to_s(diff);
     } else {
         var max = Math.max.apply(Math,totals);
         var winners = [];
-        for (var c = 1; c <= totals.size; c++) {
+        for (var c = 1; c <= totals.length; c++) {
             if (totals[c] === max) {
                 winners.push(c);
             }
         }
-        if (winners.size === 1) {
+        if (winners.length === 1) {
             return Grid.color_name(winners[0]) + ' wins with ' + this.pts(max);
         } else {
             return 'Tie between ' + winners.map(function (w) {
                 return '' + Grid.color_name(w);
-            }).join(' & ') + ', ' + ( winners.size === 2 ? 'both' : 'all' ) + ' with ' + this.pts(max);
+            }).join(' & ') + ', ' + ( winners.length === 2 ? 'both' : 'all' ) + ' with ' + this.pts(max);
         }
     }
 };

@@ -8,9 +8,9 @@ var Grid = require('./Grid');
 /** @class */
 function InfluenceMap(goban) {
     this.goban = goban;
-    this.size = goban.size;
-    this.map = new main.Array(this.size + 1, function () {
-        return new main.Array(this.size + 1, function () {
+    this.gsize = goban.gsize;
+    this.map = new main.Array(this.gsize + 1, function () {
+        return new main.Array(this.gsize + 1, function () {
             return [0, 0];
         });
     });
@@ -18,8 +18,8 @@ function InfluenceMap(goban) {
 module.exports = InfluenceMap;
 
 InfluenceMap.prototype.clear = function () {
-    for (var j = 1; j <= this.size; j++) {
-        for (var i = 1; i <= this.size; i++) {
+    for (var j = 1; j <= this.gsize; j++) {
+        for (var i = 1; i <= this.gsize; i++) {
             for (var c = 1; c <= 2; c++) {
                 this.map[j][i][c] = 0;
             }
@@ -31,8 +31,8 @@ InfluenceMap.prototype.build_map = function () {
     this.clear();
     var influence = [4, 2, 1];
     // First we get stones' direct influence
-    for (var j = 1; j <= this.size; j++) {
-        for (var i = 1; i <= this.size; i++) {
+    for (var j = 1; j <= this.gsize; j++) {
+        for (var i = 1; i <= this.gsize; i++) {
             var stone = this.goban.stone_at(i, j);
             var color = stone.color;
             if (color !== main.EMPTY) {
@@ -65,15 +65,15 @@ InfluenceMap.prototype.build_map = function () {
 InfluenceMap.prototype.debug_dump = function () {
     for (var c = 1; c <= 2; c++) {
         console.log('Influence map for ' + Grid.COLOR_NAMES[c] + ':');
-        for (var j = this.size; j >= 1; j--) {
+        for (var j = this.gsize; j >= 1; j--) {
             console.log('' + main.strFormat('%2d', j));
-            for (var i = 1; i <= this.size; i++) {
+            for (var i = 1; i <= this.gsize; i++) {
                 console.log(main.strFormat('%2d', this.map[j][i][c]) + '|');
             }
             console.log('\n');
         }
         console.log('  ');
-        for (var i = 1; i <= this.size; i++) {
+        for (var i = 1; i <= this.gsize; i++) {
             console.log(' ' + Grid.x_label(i) + ' ');
         }
         console.log('\n');

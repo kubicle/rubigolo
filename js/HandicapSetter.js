@@ -36,7 +36,7 @@ HandicapSetter.set_handicap = function (goban, h) {
         
         Stone.play_at(goban, i, j, main.BLACK);
     }
-    return moves.size;
+    return moves.length;
 };
 
 // Places the standard (star points) handicap
@@ -46,16 +46,16 @@ HandicapSetter.set_handicap = function (goban, h) {
 HandicapSetter.set_standard_handicap = function (goban, count) {
     // we want middle points only if the board is big enough 
     // and has an odd number of intersections
-    var size = goban.size;
-    if ((size < 9 || size.modulo(2) === 0) && count > 4) {
+    var gsize = goban.gsize;
+    if ((gsize < 9 || gsize.modulo(2) === 0) && count > 4) {
         count = 4;
     }
     // Compute the distance from the handicap points to the border:
     // on boards smaller than 13, the handicap point is 2 points away from the border
-    var dist_to_border = (( size < 13 ? 2 : 3 ));
+    var dist_to_border = (( gsize < 13 ? 2 : 3 ));
     var short = 1 + dist_to_border;
-    var middle = 1 + size / 2;
-    var long = size - dist_to_border;
+    var middle = 1 + gsize / 2;
+    var long = gsize - dist_to_border;
     for (var ndx = 1; ndx <= count; ndx++) {
         // Compute coordinates from the index.
         // Indexes correspond to this map (with Black playing on North on the board)

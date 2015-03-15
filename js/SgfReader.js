@@ -30,16 +30,16 @@ SgfReader.prototype.to_move_list = function () {
     var moves = '';
     if (this.handicap > 0) {
         expected_player = 'W';
-        if (this.handicap_stones.size !== 0) {
-            if (this.handicap_stones.size !== this.handicap) {
-                throw new Error('List of ' + this.handicap_stones.size + ' handicap stones given does not match the handicap number of ' + this.handicap);
+        if (this.handicap_stones.length !== 0) {
+            if (this.handicap_stones.length !== this.handicap) {
+                throw new Error('List of ' + this.handicap_stones.length + ' handicap stones given does not match the handicap number of ' + this.handicap);
             }
             moves = 'hand:' + this.handicap + '=' + this.handicap_stones.join('-') + ',';
         } else {
             moves = 'hand:' + this.handicap + ',';
         }
     }
-    for (var i = 1; i <= this.nodes.size - 1; i++) {
+    for (var i = 1; i <= this.nodes.length - 1; i++) {
         var name = this.nodes[i][0];
         var value = this.nodes[i][1];
         if (name !== 'B' && name !== 'W') {
@@ -63,7 +63,7 @@ SgfReader.prototype.get_game_info = function () {
     if (!header || header[0] !== 'FF') {
         throw new Error('SGF header missing');
     }
-    for (var p = 0; p <= header.size - 1; p += 2) {
+    for (var p = 0; p <= header.length - 1; p += 2) {
         var name = header[p];
         var val = header[p + 1];
         switch (name) {

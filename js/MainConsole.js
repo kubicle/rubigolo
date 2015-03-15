@@ -33,7 +33,7 @@ module.exports = ConsoleGame;
 // Show prisoner counts during the game  
 ConsoleGame.prototype.show_prisoners = function () {
     var prisoners = this.game.prisoners();
-    for (var c = 1; c <= prisoners.size; c++) {
+    for (var c = 1; c <= prisoners.length; c++) {
         console.log(prisoners[c] + ' ' + Grid.COLOR_NAMES[c] + ' (' + Grid.COLOR_CHARS[c] + ') are prisoners');
     }
     console.log('');

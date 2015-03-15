@@ -9,14 +9,14 @@ var BoardAnalyser = require('./BoardAnalyser');
 /** @class */
 function PotentialTerritory(goban) {
     this.goban = goban;
-    this.size = goban.size;
+    this.gsize = goban.gsize;
     this.boan = new BoardAnalyser();
     this.real_grid = this.goban.scoring_grid; // we can reuse the already allocated grid
     this.real_yx = this.real_grid.yx; // simple shortcut to real yx
     // grids below are used in the evaluation process
-    this.grids = [new Grid(goban.size), new Grid(goban.size)];
-    this.reduced_grid = new Grid(goban.size);
-    this.territory = new Grid(goban.size); // result of evaluation
+    this.grids = [new Grid(this.gsize), new Grid(this.gsize)];
+    this.reduced_grid = new Grid(this.gsize);
+    this.territory = new Grid(this.gsize); // result of evaluation
 }
 module.exports = PotentialTerritory;
 
@@ -34,8 +34,8 @@ PotentialTerritory.prototype.guess_territories = function () {
         main.log.debug('\nBLACK first:\n' + this.grids[0] + 'WHITE first:\n' + this.grids[1]);
     }
     // now merge the result
-    for (var j = 1; j <= this.size; j++) {
-        for (var i = 1; i <= this.size; i++) {
+    for (var j = 1; j <= this.gsize; j++) {
+        for (var i = 1; i <= this.gsize; i++) {
             var owner = 0;
             for (var first = 1; first <= 2; first++) {
                 var terr_color = this.grids[first].yx[j][i] - Grid.TERRITORY_COLOR;
@@ -113,8 +113,8 @@ PotentialTerritory.prototype.enlarge = function (in_grid, out_grid, first, secon
     }
     var in_yx = in_grid.yx;
     var out_yx = out_grid.yx;
-    for (var j = 1; j <= this.size; j++) {
-        for (var i = 1; i <= this.size; i++) {
+    for (var j = 1; j <= this.gsize; j++) {
+        for (var i = 1; i <= this.gsize; i++) {
             if (in_yx[j][i] !== main.EMPTY) {
                 continue;
             }
@@ -126,8 +126,8 @@ PotentialTerritory.prototype.enlarge = function (in_grid, out_grid, first, secon
 // Reduces given grid using the real grid as reference.
 PotentialTerritory.prototype.reduce = function (grid) {
     var yx = grid.yx;
-    for (var j = 1; j <= this.size; j++) {
-        for (var i = 1; i <= this.size; i++) {
+    for (var j = 1; j <= this.gsize; j++) {
+        for (var i = 1; i <= this.gsize; i++) {
             if (this.real_yx[j][i] !== main.EMPTY) {
                 continue;
             } // cannot reduce a real stone
@@ -208,22 +208,22 @@ PotentialTerritory.prototype.diagonal_move_ok = function (yx, i, j, first, secon
 PotentialTerritory.AROUND = [[1, 0, 0, 1], [0, 1, 1, 0], [1, 0, -1, 0], [-1, 0, 1, 0]]; // TODO replace this by pre-computed coords
 // connect stones close to borders to the border
 PotentialTerritory.prototype.connect_to_borders = function (yx) {
-    for (var n = 2; n <= this.size - 1; n++) {
+    for (var n = 2; n <= this.gsize - 1; n++) {
         for (var c, c_array = PotentialTerritory.AROUND, c_ndx = 0; c=c_array[c_ndx], c_ndx < c_array.length; c_ndx++) {
-            var i = (( c[0] < 0 ? this.size : c[0] * n )) + c[1]; // n,1,n,size
-            var j = (( c[2] < 0 ? this.size : c[2] * n )) + c[3]; // 1,n,size,n
+            var i = (( c[0] < 0 ? this.gsize : c[0] * n )) + c[1]; // n,1,n,gsize
+            var j = (( c[2] < 0 ? this.gsize : c[2] * n )) + c[3]; // 1,n,gsize,n
             if (yx[j][i] === main.EMPTY) {
-                var i2 = (( c[0] < 0 ? this.size - 1 : c[0] * n )) + c[1] * 2; // n,2,n,size-1
-                var j2 = (( c[2] < 0 ? this.size - 1 : c[2] * n )) + c[3] * 2; // 2,n,size-1,n
-                var i3 = (( c[0] < 0 ? this.size : c[0] * (n + 1) )) + c[1]; // n+1,1,n+1,size
-                var j3 = (( c[2] < 0 ? this.size : c[2] * (n + 1) )) + c[3]; // 1,n+1,size,n+1
-                var i4 = (( c[0] < 0 ? this.size : c[0] * (n - 1) )) + c[1]; // n-1,1,n-1,size
-                var j4 = (( c[2] < 0 ? this.size : c[2] * (n - 1) )) + c[3]; // 1,n-1,size,n-1
+                var i2 = (( c[0] < 0 ? this.gsize - 1 : c[0] * n )) + c[1] * 2; // n,2,n,gsize-1
+                var j2 = (( c[2] < 0 ? this.gsize - 1 : c[2] * n )) + c[3] * 2; // 2,n,gsize-1,n
+                var i3 = (( c[0] < 0 ? this.gsize : c[0] * (n + 1) )) + c[1]; // n+1,1,n+1,gsize
+                var j3 = (( c[2] < 0 ? this.gsize : c[2] * (n + 1) )) + c[3]; // 1,n+1,gsize,n+1
+                var i4 = (( c[0] < 0 ? this.gsize : c[0] * (n - 1) )) + c[1]; // n-1,1,n-1,gsize
+                var j4 = (( c[2] < 0 ? this.gsize : c[2] * (n - 1) )) + c[3]; // 1,n-1,gsize,n-1
                 var next2border = yx[j2][i2];
                 if (next2border !== main.EMPTY && yx[j3][i3] === main.EMPTY && yx[j4][i4] === main.EMPTY) {
                     this.add_stone(yx, i, j, next2border);
                 }
             }
-        } // if @goban.empty?(i,1) //   next2border = @goban.stone_at?(i,2).color //   if next2border != EMPTY and @goban.empty?(i+1,1) and @goban.empty?(i-1,1) //     Stone.play_at(@goban,i,1,next2border) //   end // end // if @goban.empty?(1,i) //   next2border = @goban.stone_at?(2,i).color //   if next2border != EMPTY and @goban.empty?(1,i+1) and @goban.empty?(1,i-1) //     Stone.play_at(@goban,1,i,next2border) //   end // end // if @goban.empty?(i,@size) //   next2border = @goban.stone_at?(i,@size-1).color //   if next2border != EMPTY and @goban.empty?(i+1,@size) and @goban.empty?(i-1,@size) //     Stone.play_at(@goban,i,@size,next2border) //   end // end // if @goban.empty?(@size,i) //   next2border = @goban.stone_at?(@size-1,i).color //   if next2border != EMPTY and @goban.empty?(@size,i+1) and @goban.empty?(@size,i-1) //     Stone.play_at(@goban,@size,i,next2border) //   end // end
+        }
     }
 };
