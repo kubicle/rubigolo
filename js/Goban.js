@@ -11,23 +11,23 @@ var Group = require('./Group');
 // - It also remembers the list of stones played and can share this info for undo feature.
 // - For console game and debug features, a goban can also "draw" its content as text.
 // See Stone and Group classes for the layer above this.
-//public read-only attribute: size, grid, scoring_grid, merged_groups, killed_groups, garbage_groups;
+//public read-only attribute: gsize, grid, scoring_grid, merged_groups, killed_groups, garbage_groups;
 
 /** @class */
-function Goban(size) {
-    if (size === undefined) size = 19;
-    this.size = size;
-    this.grid = new Grid(size);
-    this.scoring_grid = new Grid(size);
+function Goban(gsize) {
+    if (gsize === undefined) gsize = 19;
+    this.gsize = gsize;
+    this.grid = new Grid(gsize);
+    this.scoring_grid = new Grid(gsize);
     this.ban = this.grid.yx;
-    var i,j;
-    for (j = 1; j <= size; j++) {
-        for (i = 1; i <= size; i++) {
+    var i, j;
+    for (j = 1; j <= gsize; j++) {
+        for (i = 1; i <= gsize; i++) {
             this.ban[j][i] = new Stone(this, i, j, main.EMPTY);
         }
     }
-    for (j = 1; j <= size; j++) {
-        for (i = 1; i <= size; i++) {
+    for (j = 1; j <= gsize; j++) {
+        for (i = 1; i <= gsize; i++) {
             this.ban[j][i].find_neighbors();
         }
     }
@@ -43,8 +43,8 @@ module.exports = Goban;
 
 // Prepares the goban for another game (same size, same number of players)
 Goban.prototype.clear = function () {
-    for (var j = 1; j <= this.size; j++) {
-        for (var i = 1; i <= this.size; i++) {
+    for (var j = 1; j <= this.gsize; j++) {
+        for (var i = 1; i <= this.gsize; i++) {
             var stone = this.ban[j][i];
             if (stone.group) {
                 stone.group.clear();
@@ -120,7 +120,7 @@ Goban.prototype.console_display = function () {
 // Basic validation only: coordinates and checks the intersection is empty
 // See Stone class for evolved version of this (calling this one)
 Goban.prototype.valid_move = function (i, j) {
-    if (i < 1 || i > this.size || j < 1 || j > this.size) {
+    if (i < 1 || i > this.gsize || j < 1 || j > this.gsize) {
         return false;
     }
     return this.ban[j][i].empty();
