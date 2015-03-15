@@ -19,30 +19,25 @@ TestSeries.prototype.add = function (klass) {
 };
 
 TestSeries.prototype.run = function () {
-  var count = 0;
+  var numClass = 0, count = 0;
   for (var t in this.testCases) {
-    count++;
+    numClass++;
     var Klass = this.testCases[t];
-    var obj = new Klass('1');
-    obj.run();
+    for (var m in Klass.prototype) {
+      if (m.substr(0,4) !== 'test') continue;
+      count++;
+      var obj = new Klass('' + count);
+      obj[m].call(obj);
+    }
   }
-  console.log('Completed ' + count + ' tests');
+  console.log('Completed testing of ' + numClass + ' classes (' + count + ' tests)');
 };
+
 
 /** @class */
 function TestCase(testName) {
   this.testName = testName;
 }
-
-TestCase.prototype.run = function () {
-  for (var m in this) {
-    var f = this[m];
-    if (typeof f === 'function' && m.substr(0,4) === 'test') {
-      console.log('Running test ' + this.testName + '::' + m + '...');
-      f.call(this);
-    }
-  }
-};
 
 main.assertEqual = function (val, expected) {
     if (val === expected) return;
