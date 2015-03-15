@@ -28,9 +28,9 @@ module.exports = TestGroup;
 
 TestGroup.prototype.test_group_merge = function () {
     // check the sentinel
-    assert_equal(1, this.goban.merged_groups.size);
+    assert_equal(1, this.goban.merged_groups.length);
     assert_equal(-1, this.goban.merged_groups[0].color);
-    assert_equal(1, this.goban.killed_groups.size);
+    assert_equal(1, this.goban.killed_groups.length);
     assert_equal(-1, this.goban.killed_groups[0].color);
     // single stone
     var s = Stone.play_at(this.goban, 4, 3, main.BLACK);
@@ -67,7 +67,7 @@ TestGroup.prototype.test_group_merge = function () {
     assert_equal(s3, g2.merged_by);
     assert_equal([s2], g2.stones); // g2 still knows s2; will be used for reversing
     // check the list in goban
-    assert_equal(2, this.goban.merged_groups.size);
+    assert_equal(2, this.goban.merged_groups.length);
     return assert_equal(g2, this.goban.merged_groups[this.goban.merged_groups.length-1]);
 };
 
@@ -146,7 +146,7 @@ TestGroup.prototype.test_shared_lives2 = function () {
 
 TestGroup.prototype.check_group = function (g, ndx, num_stones, color, stones, lives) {
     assert_equal(ndx, g.ndx);
-    assert_equal(num_stones, g.stones.size);
+    assert_equal(num_stones, g.stones.length);
     assert_equal(color, g.color);
     assert_equal(lives, g.lives);
     return assert_equal(stones, g.stones_dump());

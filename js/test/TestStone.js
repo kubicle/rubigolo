@@ -39,11 +39,11 @@ TestStone.prototype.how_many_lives = function (i, j) {
 // Not very useful anymore for stones
 TestStone.prototype.test_how_many_lives = function () {
     assert_equal(2, this.how_many_lives(1, 1));
-    assert_equal(2, this.how_many_lives(this.goban.size, this.goban.size));
-    assert_equal(2, this.how_many_lives(1, this.goban.size));
-    assert_equal(2, this.how_many_lives(this.goban.size, 1));
+    assert_equal(2, this.how_many_lives(this.goban.gsize, this.goban.gsize));
+    assert_equal(2, this.how_many_lives(1, this.goban.gsize));
+    assert_equal(2, this.how_many_lives(this.goban.gsize, 1));
     assert_equal(4, this.how_many_lives(2, 2));
-    assert_equal(4, this.how_many_lives(this.goban.size - 1, this.goban.size - 1));
+    assert_equal(4, this.how_many_lives(this.goban.gsize - 1, this.goban.gsize - 1));
     var s = Stone.play_at(this.goban, 2, 2, main.BLACK); // we will try white stones around this one
     var g = s.group;
     assert_equal(2, this.how_many_lives(1, 1));
