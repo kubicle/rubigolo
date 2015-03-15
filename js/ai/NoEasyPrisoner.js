@@ -29,7 +29,7 @@ NoEasyPrisoner.prototype.eval_move = function (i, j) {
     var g = stone.group;
     var score = 0;
     if (g.lives === 1) {
-        score = -g.stones.size;
+        score = -g.stones.length;
         if (main.debug) {
             main.log.debug('NoEasyPrisoner says ' + i + ',' + j + ' is plain foolish (' + score + ')');
         }
@@ -38,7 +38,7 @@ NoEasyPrisoner.prototype.eval_move = function (i, j) {
             main.log.debug('NoEasyPrisoner asking Hunter to look at ' + i + ',' + j);
         }
         if (this.enemy_hunter.escaping_atari_is_caught(stone)) {
-            score = -g.stones.size;
+            score = -g.stones.length;
             if (main.debug) {
                 main.log.debug('NoEasyPrisoner (backed by Hunter) says ' + i + ',' + j + ' is foolish  (' + score + ')');
             }

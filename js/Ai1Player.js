@@ -26,7 +26,7 @@ function Ai1Player(goban, color, genes) {
     main.Player.call(this, false, goban);
     this.inf = new InfluenceMap(this.goban);
     this.ter = new PotentialTerritory(this.goban);
-    this.size = this.goban.size;
+    this.gsize = this.goban.gsize;
     this.genes = (( genes ? genes : new Genes() ));
     this.minimum_score = this.get_gene('smaller-move', 0.033, 0.02, 0.066);
     this.heuristics = [];
@@ -74,7 +74,7 @@ Ai1Player.prototype.get_gene = function (name, def_val, low_limit, high_limit) {
 Ai1Player.prototype.get_move = function () {
     // @timer.start("AI move",0.5,3)
     this.num_moves += 1;
-    if (this.num_moves >= this.size * this.size) {
+    if (this.num_moves >= this.gsize * this.gsize) {
         main.log.error('Forcing AI pass since we already played ' + this.num_moves);
         return 'pass';
     } // force pass after too many moves
@@ -84,8 +84,8 @@ Ai1Player.prototype.get_move = function () {
     var best_i, best_j;
     best_i = best_j = -1;
     var best_num_twin = 0; // number of occurrence of the current best score (so we can randomly pick any of them)
-    for (var j = 1; j <= this.size; j++) {
-        for (var i = 1; i <= this.size; i++) {
+    for (var j = 1; j <= this.gsize; j++) {
+        for (var i = 1; i <= this.gsize; i++) {
             var score = this.eval_move(i, j, best_score);
             // Keep the best move
             if (score > best_score) {

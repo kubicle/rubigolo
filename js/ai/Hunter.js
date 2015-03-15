@@ -36,7 +36,7 @@ Hunter.prototype.eval_move = function (i, j, level) {
         })) {
             continue;
         }
-        if (empties.size === 1 && allies.size === 0) {
+        if (empties.length === 1 && allies.length === 0) {
             // unless this is a snapback, this is a dumb move
             empty = stone.neighbors.forEach(function (n) {
                 var empty;
@@ -48,7 +48,7 @@ Hunter.prototype.eval_move = function (i, j, level) {
             // would not make the enemy group connect to another enemy group
             // (equivalent to: the empty point has no other enemy group as neighbor)
             var enemies_around_empty = empty.unique_allies(eg.color);
-            if (enemies_around_empty.size !== 1 || enemies_around_empty[0] !== eg) {
+            if (enemies_around_empty.length !== 1 || enemies_around_empty[0] !== eg) {
                 continue;
             }
             // here we know this is a snapback
@@ -73,8 +73,8 @@ Hunter.prototype.eval_move = function (i, j, level) {
         return 0;
     }
     // unless snapback, make sure our new stone's group is not in atari
-    if (!snapback && empties.size < 2) {
-        var lives = empties.size;
+    if (!snapback && empties.length < 2) {
+        var lives = empties.length;
         for (var ag, ag_array = allies, ag_ndx = 0; ag=ag_array[ag_ndx], ag_ndx < ag_array.length; ag_ndx++) {
             lives += ag.lives - 1;
         }
@@ -84,9 +84,9 @@ Hunter.prototype.eval_move = function (i, j, level) {
     }
     Stone.play_at(this.goban, i, j, this.color); // our attack takes one of the 2 last lives (the one in i,j)
     // keep the max of both attacks (if both are succeeding)
-    var taken = ( this.atari_is_caught(eg1, level) ? eg1.stones.size : 0 );
-    var taken2 = ( eg2 && this.atari_is_caught(eg2, level) ? eg2.stones.size : 0 );
-    var taken3 = ( eg3 && this.atari_is_caught(eg3, level) ? eg3.stones.size : 0 );
+    var taken = ( this.atari_is_caught(eg1, level) ? eg1.stones.length : 0 );
+    var taken2 = ( eg2 && this.atari_is_caught(eg2, level) ? eg2.stones.length : 0 );
+    var taken3 = ( eg3 && this.atari_is_caught(eg3, level) ? eg3.stones.length : 0 );
     if (taken < taken2) {
         taken = taken2;
     }
@@ -103,8 +103,8 @@ Hunter.prototype.eval_move = function (i, j, level) {
 Hunter.prototype.atari_is_caught = function (g, level) {
     if (level === undefined) level = 1;
     var all_lives = g.all_lives();
-    if (all_lives.size !== 1) {
-        throw new Error('Unexpected: hunter #1: ' + all_lives.size);
+    if (all_lives.length !== 1) {
+        throw new Error('Unexpected: hunter #1: ' + all_lives.length);
     }
     var last_life = all_lives[0];
     var stone = Stone.play_at(this.goban, last_life.i, last_life.j, g.color); // enemy's escape move
@@ -139,10 +139,10 @@ Hunter.prototype.escaping_atari_is_caught = function (stone, level) {
         return true;
     }
     var empties = stone.empties();
-    if (empties.size !== 2) {
+    if (empties.length !== 2) {
         empties = g.all_lives();
     }
-    if (empties.size !== 2) {
+    if (empties.length !== 2) {
         throw new Error('Unexpected: hunter #2');
     }
     var e1 = empties[0]; // need to keep the empties ref since all_lives returns volatile content

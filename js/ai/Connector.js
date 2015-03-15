@@ -23,9 +23,9 @@ Connector.prototype.eval_move = function (i, j) {
     // TODO: the opposite heuristic - a cutter; and make both more clever.
     var stone = this.goban.stone_at(i, j);
     var enemies = stone.unique_enemies(this.color);
-    var num_enemies = enemies.size;
+    var num_enemies = enemies.length;
     var allies = stone.unique_allies(this.color);
-    var num_allies = allies.size;
+    var num_allies = allies.length;
     if (num_allies < 2) {
         return 0;
     } // nothing to connect here

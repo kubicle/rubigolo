@@ -38,7 +38,7 @@ Savior.prototype.eval_escape = function (i, j, stone) {
         var new_threat = null;
         if (g.lives === 1) {
             // NB: if more than 1 group in atari, they merge if we play this "savior" stone
-            new_threat = g.stones.size;
+            new_threat = g.stones.length;
         } else if (g.lives === 2) {
             if (main.debug) {
                 main.log.debug('Savior asking hunter to look at ' + i + ',' + j + ': pre-atari on ' + g);

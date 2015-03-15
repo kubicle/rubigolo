@@ -12,7 +12,7 @@ function Heuristic(player, consultant) {
     this.consultant = consultant;
     this.negative = false;
     this.goban = player.goban;
-    this.size = player.goban.size;
+    this.gsize = player.goban.gsize;
     this.inf = player.inf;
     this.ter = player.ter;
 }
