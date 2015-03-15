@@ -72,8 +72,7 @@ Grid.color_to_char = function (color) {
         throw new Error('Invalid color ' + color);
     }
     if (color < 0) color += Grid.COLOR_CHARS.length;
-    var char = Grid.COLOR_CHARS[color];
-    return char;
+    return Grid.COLOR_CHARS[color];
 };
 
 // Returns the name of the color/player (e.g. "black")
