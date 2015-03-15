@@ -4,7 +4,7 @@
 var main = require('../main');
 var inherits = require('util').inherits;
 var Grid = require('../Grid');
-var assert_equal = main.assert_equal;
+var assertEqual = main.assertEqual;
 
 var GameLogic = require('../GameLogic');
 var Ai1Player = require('../Ai1Player');
@@ -59,7 +59,7 @@ TestAi.prototype.play_and_check = function (exp_move, exp_color, exp_eval) {
         throw('Wrong player turn: ' + Grid.color_name(player.color) + ' to play now');
     }
     var move = player.get_move();
-    assert_equal(exp_move, move);
+    assertEqual(exp_move, move);
     if (exp_eval) {
         assert_in_delta(player.last_move_score, exp_eval + 0.5, 0.5, exp_move + '/' + Grid.color_name(exp_color));
     }
@@ -251,7 +251,7 @@ TestAi.prototype.test_savior_hunter = function () {
     //   abcdefg
     // g4 is actually a valid move for black
     this.game.load_moves('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b5,b3,c4,a4,a5,a3,g6,pass');
-    return this.play_and_check('g4', main.BLACK, 1); // black (@) move should be g4 here // assert_equal("g3", let_ai_play) # FIXME: (O) move should be g3 here (since d2 is already dead)
+    return this.play_and_check('g4', main.BLACK, 1); // black (@) move should be g4 here // assertEqual("g3", let_ai_play) # FIXME: (O) move should be g3 here (since d2 is already dead)
 };
 
 TestAi.prototype.test_killing_saves_nearby_group_in_atari = function () {

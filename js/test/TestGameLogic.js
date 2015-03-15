@@ -2,7 +2,7 @@
 'use strict';
 
 var inherits = require('util').inherits;
-var assert_equal = main.assert_equal;
+var assertEqual = main.assertEqual;
 
 var GameLogic = require('../GameLogic');
 // TODO: very incomplete test
@@ -30,9 +30,9 @@ TestGameLogic.prototype.test_handicap = function () {
     var img = this.goban.image();
     this.game.new_game(19, 6);
     this.game.load_moves('f3');
-    assert_equal(img, this.goban.image());
+    assertEqual(img, this.goban.image());
     // @game.goban.console_display
     this.game.new_game(19, 0);
     this.game.load_moves('hand:6,f3');
-    return assert_equal(img, this.goban.image());
+    return assertEqual(img, this.goban.image());
 };

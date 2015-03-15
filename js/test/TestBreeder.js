@@ -3,7 +3,7 @@
 
 var main = require('../main');
 var inherits = require('util').inherits;
-var assert_equal = main.assert_equal;
+var assertEqual = main.assertEqual;
 main.test = true;
 var Breeder = require('../Breeder');
 
