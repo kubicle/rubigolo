@@ -51,9 +51,8 @@ class Grid
   # Returns the "character" used to represent a stone in text style
   def self.color_to_char(color)
     return ("A".ord + color-ZONE_CODE).chr if color >= ZONE_CODE
-    char = COLOR_CHARS[color]
     raise "Invalid color #{color}" if color<DAME_COLOR or color>=COLOR_CHARS.length
-    return char
+    return COLOR_CHARS[color]
   end
   
   # Returns the name of the color/player (e.g. "black")
