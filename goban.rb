@@ -10,18 +10,18 @@ require_relative "group"
 # See Stone and Group classes for the layer above this.
 class Goban
 
-  attr_reader :size, :grid, :scoring_grid, :merged_groups, :killed_groups, :garbage_groups
+  attr_reader :gsize, :grid, :scoring_grid, :merged_groups, :killed_groups, :garbage_groups
 
-  def initialize(size=19)
-    @size = size
-    @grid = Grid.new(size)
-    @scoring_grid = Grid.new(size)
+  def initialize(gsize=19)
+    @gsize = gsize
+    @grid = Grid.new(gsize)
+    @scoring_grid = Grid.new(gsize)
     @ban = @grid.yx
-    1.upto(size) do |j|
-      1.upto(size) { |i| @ban[j][i] = Stone.new(self,i,j,EMPTY) }
+    1.upto(gsize) do |j|
+      1.upto(gsize) { |i| @ban[j][i] = Stone.new(self,i,j,EMPTY) }
     end
-    1.upto(size) do |j|
-      1.upto(size) { |i| @ban[j][i].find_neighbors }
+    1.upto(gsize) do |j|
+      1.upto(gsize) { |i| @ban[j][i].find_neighbors }
     end
     # sentinel for group list searches; NB: values like -100 helps detecting bugs when value is used by mistake
     @@sentinel = Group.new(self, Stone.new(self,-50,-50,EMPTY), -100, 0)
@@ -34,8 +34,8 @@ class Goban
   
   # Prepares the goban for another game (same size, same number of players)
   def clear
-    1.upto(@size) do |j|
-      1.upto(@size) do |i|
+    1.upto(@gsize) do |j|
+      1.upto(@gsize) do |i|
         stone = @ban[j][i]
         stone.group.clear if stone.group
       end
@@ -89,7 +89,7 @@ class Goban
   # Basic validation only: coordinates and checks the intersection is empty
   # See Stone class for evolved version of this (calling this one)
   def valid_move?(i, j)
-    return false if i < 1 or i > @size or j < 1 or j > @size
+    return false if i < 1 or i > @gsize or j < 1 or j > @gsize
     return @ban[j][i].empty?
   end
   

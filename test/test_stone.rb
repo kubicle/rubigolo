@@ -35,11 +35,11 @@ class TestStone < Test::Unit::TestCase
   # Not very useful anymore for stones
   def test_how_many_lives
     assert_equal(2,how_many_lives?(1,1))
-    assert_equal(2,how_many_lives?(@goban.size,@goban.size))
-    assert_equal(2,how_many_lives?(1,@goban.size))
-    assert_equal(2,how_many_lives?(@goban.size,1))
+    assert_equal(2,how_many_lives?(@goban.gsize,@goban.gsize))
+    assert_equal(2,how_many_lives?(1,@goban.gsize))
+    assert_equal(2,how_many_lives?(@goban.gsize,1))
     assert_equal(4,how_many_lives?(2,2))
-    assert_equal(4,how_many_lives?(@goban.size-1,@goban.size-1))
+    assert_equal(4,how_many_lives?(@goban.gsize-1,@goban.gsize-1))
     s=Stone.play_at(@goban, 2, 2, BLACK); # we will try white stones around this one
     g=s.group
     assert_equal(2,how_many_lives?(1,1))

@@ -21,7 +21,7 @@ class Ai1Player < Player
     super(false, goban)
     @inf = InfluenceMap.new(@goban)
     @ter = PotentialTerritory.new(@goban)
-    @size = @goban.size
+    @gsize = @goban.gsize
 
     @genes = (genes ? genes : Genes.new)
     @minimum_score = get_gene("smaller-move", 0.033, 0.02, 0.066)
@@ -65,7 +65,7 @@ class Ai1Player < Player
   def get_move
     # @timer.start("AI move",0.5,3)
     @num_moves += 1
-    if @num_moves >= @size * @size # force pass after too many moves
+    if @num_moves >= @gsize * @gsize # force pass after too many moves
       $log.error("Forcing AI pass since we already played #{@num_moves}")
       return "pass"
     end
@@ -75,8 +75,8 @@ class Ai1Player < Player
     best_score = second_best = @minimum_score
     best_i = best_j = -1
     best_num_twin = 0 # number of occurrence of the current best score (so we can randomly pick any of them)
-    1.upto(@size) do |j|
-      1.upto(@size) do |i|
+    1.upto(@gsize) do |j|
+      1.upto(@gsize) do |i|
         score = eval_move(i,j,best_score)
         # Keep the best move
         if score > best_score

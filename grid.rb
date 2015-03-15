@@ -18,32 +18,32 @@ class Grid
   CIRCULAR_COLOR_CHARS = DAME_CHAR+EMPTY_CHAR+COLOR_CHARS
   ZONE_CODE = 100 # used for zones (100, 101, etc.); must be > COLOR_CHARS.size
 
-  attr_reader :size, :yx
+  attr_reader :gsize, :yx
 
-  def initialize(size=19)
-    @size = size
-    # TODO: use only 1 extra "nil" cell (0..size instead of 0..size+1)
-    # Idea is to avoid to have to check i,j against size in many places.
+  def initialize(gsize=19)
+    @gsize = gsize
+    # TODO: use only 1 extra "nil" cell (0..gsize instead of 0..gsize+1)
+    # Idea is to avoid to have to check i,j against gsize in many places.
     # In case of bug, e.g. for @yx[5][-1], Ruby returns you @yx[5][@yx.size] (looping back)
     # so having a real item (BORDER) on the way helps to detect a bug.
-    @yx = Array.new(size+2) {Array.new(size+2,BORDER)}
+    @yx = Array.new(gsize+2) {Array.new(gsize+2,BORDER)}
   end
 
   def copy(source_grid)
-    raise "Cannot copy between different sized grids" if source_grid.size != @size
+    raise "Cannot copy between different sized grids" if source_grid.gsize != @gsize
     src_yx = source_grid.yx
-    1.upto(@size) do |j|
-      1.upto(@size) { |i| @yx[j][i] = src_yx[j][i] }
+    1.upto(@gsize) do |j|
+      1.upto(@gsize) { |i| @yx[j][i] = src_yx[j][i] }
     end
     return self
   end
 
   # Converts from goban grid (stones) to simple grid (colors) REVIEWME
   def convert(source_grid)
-    raise "Cannot copy between different sized grids" if source_grid.size != @size
+    raise "Cannot copy between different sized grids" if source_grid.gsize != @gsize
     src_yx = source_grid.yx
-    1.upto(@size) do |j|
-      1.upto(@size) { |i| @yx[j][i] = src_yx[j][i].color }
+    1.upto(@gsize) do |j|
+      1.upto(@gsize) { |i| @yx[j][i] = src_yx[j][i].color }
     end
     return self
   end
@@ -69,10 +69,10 @@ class Grid
   # The block should return a string representation.
   # This method returns the concatenated string showing the grid.
   def to_text(with_labels=true, end_of_row="\n")
-    yx = Grid.new(@size).yx
+    yx = Grid.new(@gsize).yx
     maxlen = 1
-    @size.downto(1) do |j|
-      1.upto(@size) do |i|
+    @gsize.downto(1) do |j|
+      1.upto(@gsize) do |i|
         val = yield(@yx[j][i])
         val = "" if val == nil
         yx[j][i] = val
@@ -82,9 +82,9 @@ class Grid
     num_char = maxlen
     white = "          "
     s = ""
-    @size.downto(1) do |j|
+    @gsize.downto(1) do |j|
       s += "#{'%2d' % j} " if with_labels
-      1.upto(@size) do |i|
+      1.upto(@gsize) do |i|
         val = yx[j][i]
         val = white.slice(1, num_char-val.length) + val if val.length < num_char
         s += val
@@ -93,7 +93,7 @@ class Grid
     end
     if with_labels
       s += "   "
-      1.upto(@size) { |i| s += white.slice(1,num_char-1) + Grid.x_label(i) }
+      1.upto(@gsize) { |i| s += white.slice(1,num_char-1) + Grid.x_label(i) }
       s += "\n"
     end
     return s
@@ -101,8 +101,8 @@ class Grid
 
   def to_s
     s = ""
-    @size.downto(1) do |j|
-      1.upto(@size) { |i| s << Grid.color_to_char(@yx[j][i]) }
+    @gsize.downto(1) do |j|
+      1.upto(@gsize) { |i| s << Grid.color_to_char(@yx[j][i]) }
       s << "\n"
     end
     return s
@@ -110,7 +110,7 @@ class Grid
 
   # Returns a text "image" of the grid. See also copy? method.
   # Image is upside-down to help compare with a copy paste from console log.
-  # So last row (j==size) comes first in image
+  # So last row (j==gsize) comes first in image
   def image?
     if @yx[1][1].instance_of?(Stone) #FIXME
       return to_text(false, ",") { |s| Grid::color_to_char(s.color) } .chop
@@ -120,14 +120,14 @@ class Grid
   end
   
   # Watch out our images are upside-down on purpose (to help copy paste from screen)
-  # So last row (j==size) comes first in image
+  # So last row (j==gsize) comes first in image
   def load_image(image)
     rows = image.split(/\"|,/)
-    raise "Invalid image: #{rows.size} rows instead of #{@size}" if rows.size != @size
-    @size.downto(1) do |j|
-      row = rows[@size-j]
-      raise "Invalid image: row #{row}" if row.length != @size
-      1.upto(@size) do |i|
+    raise "Invalid image: #{rows.size} rows instead of #{@gsize}" if rows.size != @gsize
+    @gsize.downto(1) do |j|
+      row = rows[@gsize-j]
+      raise "Invalid image: row #{row}" if row.length != @gsize
+      1.upto(@gsize) do |i|
         @yx[j][i] = Grid.char_to_color(row[i-1])
       end
     end
