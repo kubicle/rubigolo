@@ -29,7 +29,7 @@ ZoneFiller.prototype.fill_with_color = function (start_i, start_j, to_replace, c
     if (this.yx[start_j][start_i] !== to_replace) {
         return 0;
     }
-    var size = 0;
+    var vcount = 0;
     this.to_replace = to_replace;
     this.groups = neighbors;
     var gaps = [[start_i, start_j, start_j]];
@@ -51,7 +51,7 @@ ZoneFiller.prototype.fill_with_color = function (start_i, start_j, to_replace, c
         while (this._check(i, j1 + 1)) {
             j1 += 1;
         }
-        size += j1 - j0 + 1;
+        vcount += j1 - j0 + 1;
         // $log.debug("Doing column #{i} from #{j0}-#{j1}") if $debug
         for (var ix = (i - 1); ix <= i + 1; ix += 2) {
             var curgap = null;
@@ -80,7 +80,7 @@ ZoneFiller.prototype.fill_with_color = function (start_i, start_j, to_replace, c
         } // each ix
     }
     // while gap
-    return size;
+    return vcount;
 };
 
 //private;
