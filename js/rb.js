@@ -46,12 +46,22 @@ String.prototype.tail = function (count) {
 };
 
 String.prototype.format = function (num) {
-  if (this.toString() === '%2d') {
-    return num > 9 ? '' + num : '0' + num;
-  } else if (this.toString() === '%.02f') {
-    return num.toFixed(2);
+  if (this[0] !== '%') throw new Error('Invalid format: ' + this.toString());
+  var fmt = this.slice(1,-1), res, pos = 0;
+  switch (this.slice(-1)) {
+  case 'd': //'%2d'
+    var padChar = ' ';
+    if (fmt[pos] === '0') { pos++; padChar = '0'; }
+    var len = parseInt(fmt.substr(pos));
+    res = '' + num;
+    for (var i = len - res.length; i > 0; i--) { res = padChar + res; }
+    return res;
+  case 'f': //'%.02f'
+    if (fmt[0] !== '.') break;
+    var prec = parseInt(fmt.substr(1));
+    return num.toFixed(prec);
   }
-  return this + '.format(' + num + ')'; //TODO
+  throw new Error('Unknown format: ' + this.toString());
 };
 
 
