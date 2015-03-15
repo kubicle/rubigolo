@@ -114,7 +114,7 @@ Grid.prototype.to_text2 = function (with_labels, end_of_row, cb) {
     var s = '';
     for (j = this.gsize; j >= 1; j--) {
         if (with_labels) {
-            s += main.strFormat('%2d', j) + ' ';
+            s += '%2d'.format(j) + ' ';
         }
         for (i = 1; i <= this.gsize; i++) {
             val = yx[j][i];

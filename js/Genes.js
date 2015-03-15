@@ -29,7 +29,7 @@ Genes.prototype.set_limits = function (limits) {
 Genes.prototype.toString = function () {
     var s = '';
     this.map.each_key(function (k) {
-        s += k + ':' + main.strFormat('%.02f', this.map[k]) + ', ';
+        s += k + ':' + '%.02f'.format(this.map[k]) + ', ';
     });
     return s.chomp(', ');
 };

@@ -66,9 +66,9 @@ InfluenceMap.prototype.debug_dump = function () {
     for (var c = 1; c <= 2; c++) {
         console.log('Influence map for ' + Grid.COLOR_NAMES[c] + ':');
         for (var j = this.gsize; j >= 1; j--) {
-            console.log('' + main.strFormat('%2d', j));
+            console.log('' + '%2d'.format(j));
             for (var i = 1; i <= this.gsize; i++) {
-                console.log(main.strFormat('%2d', this.map[j][i][c]) + '|');
+                console.log('%2d'.format(this.map[j][i][c]) + '|');
             }
             console.log('\n');
         }

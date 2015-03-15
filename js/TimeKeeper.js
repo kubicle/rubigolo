@@ -38,7 +38,7 @@ TimeKeeper.prototype.calibrate = function (expected) {
     }
     var duration = Date.now() - t0;
     this.ratio = duration / expected;
-    console.log('TimeKeeper calibrated at ratio=' + main.strFormat('%.02f', this.ratio) + ' ' + '(ran calibration in ' + main.strFormat('%.03f', duration) + ' instead of ' + expected + ')');
+    console.log('TimeKeeper calibrated at ratio=' + '%.02f'.format(this.ratio) + ' ' + '(ran calibration in ' + '%.03f'.format(duration) + ' instead of ' + expected + ')');
 };
 
 // Starts timing
@@ -65,7 +65,7 @@ TimeKeeper.prototype.stop = function (raise_if_overlimit) {
 TimeKeeper.prototype.result_report = function () {
     var s = '';
     s += 'Measuring "' + this.task_name + '":';
-    s += ' time: ' + main.strFormat('%.02f', this.duration) + 's (expected ' + main.strFormat('%.02f', this.expected_time) + ' hence ' + main.strFormat('%.02f', (this.duration / this.expected_time * 100)) + '%)';
+    s += ' time: ' + '%.02f'.format(this.duration) + 's (expected ' + '%.02f'.format(this.expected_time) + ' hence ' + '%.02f'.format((this.duration / this.expected_time * 100)) + '%)';
     s += ' GC runs: ' + this.num_gc + ' (' + this.expected_gc + ')';
 };
 

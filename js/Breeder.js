@@ -72,7 +72,7 @@ Breeder.prototype.play_game = function (name1, name2, p1, p2) {
         main.log.debug('\n#' + name1 + ':' + p1 + '\nagainst\n#' + name2 + ':' + p2);
     }
     if (main.debug_breed) {
-        main.log.debug('Distance: ' + main.strFormat('%.02f', p1.distance(p2)));
+        main.log.debug('Distance: ' + '%.02f'.format(p1.distance(p2)));
     }
     if (main.debug_breed) {
         main.log.debug('Score: ' + score_diff);
@@ -190,7 +190,7 @@ Breeder.prototype.control = function () {
         main.log.debug('Winner genes: ' + this.winner);
     }
     if (main.debug_breed) {
-        main.log.debug('Distance between control and current winner genes: ' + main.strFormat('%.02f', this.control_genes.distance(this.winner)));
+        main.log.debug('Distance between control and current winner genes: ' + '%.02f'.format(this.control_genes.distance(this.winner)));
     }
     if (main.debug_breed) {
         main.log.debug('Total score of control against current winner: ' + total_score + ' (out of ' + num_control_games * 2 + ' games, control won ' + num_wins + ' as black and ' + num_wins_w + ' as white)');
