@@ -4,18 +4,19 @@
 var main = require('./main');
 var Stone = require('./Stone');
 
-//public read-only attribute: size, yx;
+// A generic grid - a Goban owns a grid
+//public read-only attribute: gsize, yx;
 
-/** @class A generic grid - a Goban owns a grid */
-function Grid(size) {
-    if (size === undefined) size = 19;
-    this.size = size;
-    // TODO: use only 1 extra "nil" cell (0..size instead of 0..size+1)
-    // Idea is to avoid to have to check i,j against size in many places.
+/** @class */
+function Grid(gsize) {
+    if (gsize === undefined) gsize = 19;
+    this.gsize = gsize;
+    // TODO: use only 1 extra "nil" cell (0..gsize instead of 0..gsize+1)
+    // Idea is to avoid to have to check i,j against gsize in many places.
     // In case of bug, e.g. for @yx[5][-1], Ruby returns you @yx[5][@yx.size] (looping back)
     // so having a real item (BORDER) on the way helps to detect a bug.
-    this.yx = new main.Array(size + 2, function () {
-        return new main.Array(size + 2, main.BORDER);
+    this.yx = new main.Array(gsize + 2, function () {
+        return new main.Array(gsize + 2, main.BORDER);
     });
 }
 module.exports = Grid;
@@ -36,12 +37,12 @@ Grid.CIRCULAR_COLOR_CHARS = Grid.DAME_CHAR + Grid.EMPTY_CHAR + Grid.COLOR_CHARS;
 Grid.ZONE_CODE = 100; // used for zones (100, 101, etc.); must be > COLOR_CHARS.size
 
 Grid.prototype.copy = function (source_grid) {
-    if (source_grid.size !== this.size) {
+    if (source_grid.gsize !== this.gsize) {
         throw new Error('Cannot copy between different sized grids');
     }
     var src_yx = source_grid.yx;
-    for (var j = 1; j <= this.size; j++) {
-        for (var i = 1; i <= this.size; i++) {
+    for (var j = 1; j <= this.gsize; j++) {
+        for (var i = 1; i <= this.gsize; i++) {
             this.yx[j][i] = src_yx[j][i];
         }
     }
@@ -50,12 +51,12 @@ Grid.prototype.copy = function (source_grid) {
 
 // Converts from goban grid (stones) to simple grid (colors) REVIEWME
 Grid.prototype.convert = function (source_grid) {
-    if (source_grid.size !== this.size) {
+    if (source_grid.gsize !== this.gsize) {
         throw new Error('Cannot copy between different sized grids');
     }
     var src_yx = source_grid.yx;
-    for (var j = 1; j <= this.size; j++) {
-        for (var i = 1; i <= this.size; i++) {
+    for (var j = 1; j <= this.gsize; j++) {
+        for (var i = 1; i <= this.gsize; i++) {
             this.yx[j][i] = src_yx[j][i].color;
         }
     }
@@ -94,11 +95,11 @@ function def_to_text(stone) {
 Grid.prototype.to_text = function (cb) { return this.to_text2(true, '\n', cb); };
 Grid.prototype.to_text2 = function (with_labels, end_of_row, cb) {
     if (!cb) cb = def_to_text;
-    var yx = new Grid(this.size).yx;
+    var yx = new Grid(this.gsize).yx;
     var maxlen = 1;
     var i, j, val;
-    for (j = this.size; j >= 1; j--) {
-        for (i = 1; i <= this.size; i++) {
+    for (j = this.gsize; j >= 1; j--) {
+        for (i = 1; i <= this.gsize; i++) {
             val = cb(this.yx[j][i]);
             if (val === null) {
                 val = '';
@@ -112,11 +113,11 @@ Grid.prototype.to_text2 = function (with_labels, end_of_row, cb) {
     var num_char = maxlen;
     var white = '          ';
     var s = '';
-    for (j = this.size; j >= 1; j--) {
+    for (j = this.gsize; j >= 1; j--) {
         if (with_labels) {
             s += main.strFormat('%2d', j) + ' ';
         }
-        for (i = 1; i <= this.size; i++) {
+        for (i = 1; i <= this.gsize; i++) {
             val = yx[j][i];
             if (val.length < num_char) {
                 val = white.substr(1, num_char - val.length) + val;
@@ -127,7 +128,7 @@ Grid.prototype.to_text2 = function (with_labels, end_of_row, cb) {
     }
     if (with_labels) {
         s += '   ';
-        for (i = 1; i <= this.size; i++) {
+        for (i = 1; i <= this.gsize; i++) {
             s += white.substr(1, num_char - 1) + Grid.x_label(i);
         }
         s += '\n';
@@ -137,8 +138,8 @@ Grid.prototype.to_text2 = function (with_labels, end_of_row, cb) {
 
 Grid.prototype.toString = function () {
     var s = '';
-    for (var j = this.size; j >= 1; j--) {
-        for (var i = 1; i <= this.size; i++) {
+    for (var j = this.gsize; j >= 1; j--) {
+        for (var i = 1; i <= this.gsize; i++) {
             s += Grid.color_to_char(this.yx[j][i]);
         }
         s += '\n';
@@ -148,7 +149,7 @@ Grid.prototype.toString = function () {
 
 // Returns a text "image" of the grid. See also copy? method.
 // Image is upside-down to help compare with a copy paste from console log.
-// So last row (j==size) comes first in image
+// So last row (j==gsize) comes first in image
 Grid.prototype.image = function () {
     if (this.yx[1][1].instance_of(Stone)) {
         return this.to_text2(false, ',', function (s) {
@@ -162,18 +163,18 @@ Grid.prototype.image = function () {
 };
 
 // Watch out our images are upside-down on purpose (to help copy paste from screen)
-// So last row (j==size) comes first in image
+// So last row (j==gsize) comes first in image
 Grid.prototype.load_image = function (image) {
     var rows = image.split(/'\"|,'/);
-    if (rows.length !== this.size) {
-        throw new Error('Invalid image: ' + rows.length + ' rows instead of ' + this.size);
+    if (rows.length !== this.gsize) {
+        throw new Error('Invalid image: ' + rows.length + ' rows instead of ' + this.gsize);
     }
-    for (var j = this.size; j >= 1; j--) {
-        var row = rows[this.size - j];
-        if (row.length !== this.size) {
+    for (var j = this.gsize; j >= 1; j--) {
+        var row = rows[this.gsize - j];
+        if (row.length !== this.gsize) {
             throw new Error('Invalid image: row ' + row);
         }
-        for (var i = 1; i <= this.size; i++) {
+        for (var i = 1; i <= this.gsize; i++) {
             this.yx[j][i] = Grid.char_to_color(row[i - 1]);
         }
     }
