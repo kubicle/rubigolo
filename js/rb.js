@@ -45,15 +45,24 @@ String.prototype.tail = function (count) {
   return this.slice(-count);
 };
 
+/** Inclusive range, like s[n..m] - exclusive one is done by using "slice" */
+String.prototype.range = function (begin, end) {
+  if (end === -1 || end === undefined) {
+    return this.slice(begin);
+  }
+  return this.slice(begin, end + 1);
+};
+
 String.prototype.format = function (num) {
   if (this[0] !== '%') throw new Error('Invalid format: ' + this.toString());
   var fmt = this.slice(1,-1), res, pos = 0;
-  switch (this.slice(-1)) {
-  case 'd': //'%2d'
+  var code = this.slice(-1);
+  switch (code) {
+  case 'd', 'x': //'%2d'
     var padChar = ' ';
     if (fmt[pos] === '0') { pos++; padChar = '0'; }
     var len = parseInt(fmt.substr(pos));
-    res = '' + num;
+    res = num.toString(code === 'x' ? 16 : 10);
     for (var i = len - res.length; i > 0; i--) { res = padChar + res; }
     return res;
   case 'f': //'%.02f'
@@ -107,4 +116,12 @@ Array.prototype.count = function (what) {
     }
     return count;
   }
+};
+
+/** Inclusive range, like a[n..m] - exclusive one is done by using "slice" */
+Array.prototype.range = function (begin, end) {
+  if (end === -1 || end === undefined) {
+    return this.slice(begin);
+  }
+  return this.slice(begin, end + 1);
 };
