@@ -8,15 +8,15 @@ require_relative "../goban"
 
 class TestStone < Test::Unit::TestCase
 
-  def init_board()
-    @goban = Goban.new(5)
-  end
-
   def initialize(test_name)
     super(test_name)
     init_board()
   end
   
+  def init_board()
+    @goban = Goban.new(5)
+  end
+
   def how_many_lives?(i,j)
     s = @goban.stone_at?(i,j)
     lives_before = s.empties.size

@@ -4,15 +4,15 @@
 var inherits = require('util').inherits;
 var Stone = require('../Stone');
 var main = require('../main');
+var assertEqual = main.assertEqual;
+
 var Goban = require('../Goban');
-var assert_equal = main.assertEqual;
-
-
+// NB: for debugging think of using @goban.console_display
 
 /** @class */
-function TestStone(test_name) {
-    main.TestCase.call(this, test_name);
-    return this.init_board();
+function TestStone(testName) {
+    main.TestCase.call(this, testName);
+    return this.initBoard();
 }
 inherits(TestStone, main.TestCase);
 module.exports = main.tests.add(TestStone);

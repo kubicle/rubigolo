@@ -5,6 +5,7 @@
   "camelCase": true,
   
   "replacements": {
+    "//require 'test/unit'": "var assertEqual = main.assertEqual",
     "var Logging = require('./Logging')": "",
     "var Logging = require('../Logging')": "",
     "var StoneConstants = require('./StoneConstants')": ""
