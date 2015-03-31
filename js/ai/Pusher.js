@@ -11,22 +11,22 @@ var Heuristic = require('./Heuristic');
 /** @class */
 function Pusher(player) {
     Heuristic.call(this);
-    this.ally_coeff = get_gene('ally-infl', 0.1, 0.01, 4.0);
-    this.enemy_coeff = get_gene('enemy-infl', 0.4, 0.01, 4.0);
+    this.allyCoeff = getGene('ally-infl', 0.1, 0.01, 4.0);
+    this.enemyCoeff = getGene('enemy-infl', 0.4, 0.01, 4.0);
 }
 inherits(Pusher, Heuristic);
 module.exports = Pusher;
 
-Pusher.prototype.eval_move = function (i, j) {
+Pusher.prototype.evalMove = function (i, j) {
     var inf = this.inf.map[j][i];
-    var enemy_inf = inf[this.enemy_color];
-    var ally_inf = inf[this.color];
-    if (enemy_inf === 0 || ally_inf === 0) {
+    var enemyInf = inf[this.enemyColor];
+    var allyInf = inf[this.color];
+    if (enemyInf === 0 || allyInf === 0) {
         return 0;
     }
-    var score = 0.33 * (this.enemy_coeff * enemy_inf - this.ally_coeff * ally_inf);
+    var score = 0.33 * (this.enemyCoeff * enemyInf - this.allyCoeff * allyInf);
     if (main.debug) {
-        main.log.debug('Pusher heuristic sees influences ' + ally_inf + ' - ' + enemy_inf + ' at ' + i + ',' + j + ' -> ' + '%.03f'.format(score));
+        main.log.debug('Pusher heuristic sees influences ' + allyInf + ' - ' + enemyInf + ' at ' + i + ',' + j + ' -> ' + '%.03f'.format(score));
     }
     return score;
 };

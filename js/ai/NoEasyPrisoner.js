@@ -11,21 +11,21 @@ var Hunter = require('./Hunter');
 /** @class */
 function NoEasyPrisoner(player) {
     Heuristic.call(this);
-    set_as_negative();
-    this.enemy_hunter = new Hunter(player, true);
+    setAsNegative();
+    this.enemyHunter = new Hunter(player, true);
 }
 inherits(NoEasyPrisoner, Heuristic);
 module.exports = NoEasyPrisoner;
 
-NoEasyPrisoner.prototype.init_color = function () {
+NoEasyPrisoner.prototype.initColor = function () {
     Heuristic.init_color.call(this);
-    return this.enemy_hunter.init_color();
+    return this.enemyHunter.initColor();
 };
 
-NoEasyPrisoner.prototype.eval_move = function (i, j) {
+NoEasyPrisoner.prototype.evalMove = function (i, j) {
     // NB: snapback is handled in hunter; here we just notice the sacrifice of a stone, which will
     // be balanced by the profit measured by hunter (e.g. lose 1 but kill 3).
-    var stone = Stone.play_at(this.goban, i, j, this.color);
+    var stone = Stone.playAt(this.goban, i, j, this.color);
     var g = stone.group;
     var score = 0;
     if (g.lives === 1) {
@@ -37,7 +37,7 @@ NoEasyPrisoner.prototype.eval_move = function (i, j) {
         if (main.debug) {
             main.log.debug('NoEasyPrisoner asking Hunter to look at ' + i + ',' + j);
         }
-        if (this.enemy_hunter.escaping_atari_is_caught(stone)) {
+        if (this.enemyHunter.escapingAtariIsCaught(stone)) {
             score = -g.stones.length;
             if (main.debug) {
                 main.log.debug('NoEasyPrisoner (backed by Hunter) says ' + i + ',' + j + ' is foolish  (' + score + ')');

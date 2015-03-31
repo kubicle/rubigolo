@@ -36,8 +36,8 @@ Heuristic.prototype.setAsNegative = function () {
     this.negative = true;
 };
 
-Heuristic.prototype.getGene = function (name, def_val, low_limit, high_limit) {
-    if (low_limit === undefined) low_limit = null;
-    if (high_limit === undefined) high_limit = null;
+Heuristic.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
+    if (lowLimit === undefined) lowLimit = null;
+    if (highLimit === undefined) highLimit = null;
     return this.player.genes.get(this.constructor.name + '-' + name, defVal, lowLimit, highLimit);
 };

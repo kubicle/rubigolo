@@ -47,7 +47,7 @@ Hunter.prototype.evalMove = function (i, j, level) {
             // it is a snapback if the last empty point (where the enemy will have to play) 
             // would not make the enemy group connect to another enemy group
             // (equivalent to: the empty point has no other enemy group as neighbor)
-            var enemies_around_empty = empty.uniqueAllies(eg.color);
+            var enemiesAroundEmpty = empty.uniqueAllies(eg.color);
             if (enemiesAroundEmpty.length !== 1 || enemiesAroundEmpty[0] !== eg) {
                 continue;
             }
@@ -102,13 +102,13 @@ Hunter.prototype.evalMove = function (i, j, level) {
 
 Hunter.prototype.atariIsCaught = function (g, level) {
     if (level === undefined) level = 1;
-    var all_lives = g.allLives();
+    var allLives = g.allLives();
     if (allLives.length !== 1) {
         throw new Error('Unexpected: hunter #1: ' + allLives.length);
     }
-    var last_life = allLives[0];
+    var lastLife = allLives[0];
     var stone = Stone.playAt(this.goban, lastLife.i, lastLife.j, g.color); // enemy's escape move
-    var is_caught = this.escapingAtariIsCaught(stone, level);
+    var isCaught = this.escapingAtariIsCaught(stone, level);
     Stone.undo(this.goban);
     if (main.debug) {
         main.log.debug('Hunter: group in atari would be caught: ' + g);
@@ -153,5 +153,3 @@ Hunter.prototype.escapingAtariIsCaught = function (stone, level) {
     }
     return (this.evalMove(e1.i, e1.j, level + 1) > 0 || this.evalMove(e2.i, e2.j, level + 1) > 0);
 };
-
-// E02: unknown method each(...)
