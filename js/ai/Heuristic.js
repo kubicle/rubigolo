@@ -18,26 +18,26 @@ function Heuristic(player, consultant) {
 }
 module.exports = Heuristic;
 
-Heuristic.prototype.init_color = function () {
+Heuristic.prototype.initColor = function () {
     // For consultant heuristics we reverse the colors
     if (this.consultant) {
-        this.color = this.player.enemy_color;
-        this.enemy_color = this.player.color;
+        this.color = this.player.enemyColor;
+        this.enemyColor = this.player.color;
     } else {
         this.color = this.player.color;
-        this.enemy_color = this.player.enemy_color;
+        this.enemyColor = this.player.enemyColor;
     }
 };
 
 // A "negative" heuristic is one that can only give a negative score (or 0.0) to a move.
 // We use this difference to spare some CPU work when a move is not good enough 
 // (after running the "positive" heuristics) to beat the current candidate.
-Heuristic.prototype.set_as_negative = function () {
+Heuristic.prototype.setAsNegative = function () {
     this.negative = true;
 };
 
-Heuristic.prototype.get_gene = function (name, def_val, low_limit, high_limit) {
+Heuristic.prototype.getGene = function (name, def_val, low_limit, high_limit) {
     if (low_limit === undefined) low_limit = null;
     if (high_limit === undefined) high_limit = null;
-    return this.player.genes.get(this.constructor.name + '-' + name, def_val, low_limit, high_limit);
+    return this.player.genes.get(this.constructor.name + '-' + name, defVal, lowLimit, highLimit);
 };
