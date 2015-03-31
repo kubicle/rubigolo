@@ -34,4 +34,5 @@ main.log.level=(Logger.DEBUG);
 // change $debug to true to see all the debug logs
 // NB: note this slows down everything if $debug is true even if the log level is not DEBUG
 main.debug = true;
-main.debug_group = false;
+main.debugGroup = false;
+// E02: unknown method level=(...)

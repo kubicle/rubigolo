@@ -35,22 +35,22 @@ MainServer.prototype.start = function () {
     console.log('Please open a web browser on http://localhost:' + MainServer.PORT + '/index');
     this.webserver = new main.TCPServer('localhost', MainServer.PORT);
     for (;;) {
-        var req = this.get_session_and_request();
-        var reply = this.handle_request(req);
-        this.send_response(reply);
+        var req = this.getSessionAndRequest();
+        var reply = this.handleRequest(req);
+        this.sendResponse(reply);
     }
 };
 
-MainServer.prototype.add_message = function (msg) {
+MainServer.prototype.addMessage = function (msg) {
     return this.messages.push(msg);
 };
 
-MainServer.prototype.get_session_and_request = function () {
+MainServer.prototype.getSessionAndRequest = function () {
     try {
         if (this.session === null) {
             this.session = this.webserver.accept();
             // With IE, the first request is empty so we will raise, rescue, close and reopen. Not sure why...
-            this.session.recv_nonblock(5, main.Socket.MSG_PEEK); // raises Errno::EWOULDBLOCK if no data
+            this.session.recvNonblock(5, main.Socket.MSG_PEEK); // raises Errno::EWOULDBLOCK if no data
             main.log.info('Got session: ' + this.session);
         }
         var req;
@@ -61,53 +61,53 @@ MainServer.prototype.get_session_and_request = function () {
     } catch (err) {
         if (err.constructor.name === 'Errno::EWOULDBLOCK' || err.constructor.name === 'Errno::EAGAIN') {
             main.log.debug('Closing and reopening the session...'); // see comment above about IE
-        } else if (err.constructor.name === 'Errno::ECONNRESET' || err.message() === 'Connection dropped') {
+        } else if (err.constructor.name === 'Errno::ECONNRESET' || err.message() === 'Connection dropped') { // connection dropped or closed by the remote host
             main.log.info('Connection dropped or timed-out; we will create a new session (no issue)');
         } else {
             main.log.error('Unexpected error: ' + err.constructor + ', msg:' + err.message());
-        } // connection dropped or closed by the remote host
-        this.close_session();
+        }
+        this.closeSession();
         error_unhandled_exp('(retry ...)');
     }
     if (main.debug) {
         main.log.debug('Request received: "' + req + '"');
     }
-    this.keep_alive = false;
+    this.keepAlive = false;
     var r;
     while (('' !== (r = this.session.gets().chop()))) {
         if (main.debug) {
             main.log.debug('..."' + r + '"');
         }
         if (/'Connection:[ ]*Keep-Alive'/.test(r)) {
-            this.keep_alive = true;
+            this.keepAlive = true;
         }
     }
     return req;
 };
 
-MainServer.prototype.close_session = function () {
+MainServer.prototype.closeSession = function () {
     this.session.close();
     this.session = null;
 };
 
-MainServer.prototype.send_response = function (reply) {
-    var header = this.response_header(reply);
+MainServer.prototype.sendResponse = function (reply) {
+    var header = this.responseHeader(reply);
     try {
-        console.log(header);
-        console.log(reply); // can throw Broken pipe (Errno::EPIPE)
-        if (!this.keep_alive) {
-            this.close_session();
+        this.session.print(header);
+        this.session.print(reply); // can throw Broken pipe (Errno::EPIPE)
+        if (!this.keepAlive) {
+            this.closeSession();
         }
     } catch (err) {
         main.log.error('Unexpected error: ' + err.constructor + ', msg:' + err.message());
-        this.close_session(); // always close after error here
+        this.closeSession(); // always close after error here
     }
 };
 
-MainServer.prototype.response_header = function (reply) {
+MainServer.prototype.responseHeader = function (reply) {
     var header = 'HTTP/1.1 200 OK\r\n';
     header += 'Date: ' + Date.now().ctime() + '\r\n';
-    header += ( this.keep_alive ? 'Connection: Keep-Alive\r\n' : 'Connection: close\r\n' );
+    header += ( this.keepAlive ? 'Connection: Keep-Alive\r\n' : 'Connection: close\r\n' );
     header += 'Server: local Ruby\r\n';
     header += 'Content-Type: text/html; charset=UTF-8\r\nContent-Length: ' + reply.length + '\r\n\r\n';
     if (main.debug) {
@@ -116,137 +116,137 @@ MainServer.prototype.response_header = function (reply) {
     return header;
 };
 
-MainServer.prototype.let_ai_play = function () {
-    if (this.game.game_ending || this.game.game_ended) {
+MainServer.prototype.letAiPlay = function () {
+    if (this.game.gameEnding || this.game.gameEnded) {
         return null;
     }
-    var player = this.players[this.game.cur_color];
-    if (!player) {
+    var player = this.players[this.game.curColor];
+    if (!player) { // human
         return null;
-    } // human
-    var move = player.get_move();
-    this.game.play_one_move(move);
+    }
+    var move = player.getMove();
+    this.game.playOneMove(move);
     return move;
 };
 
 MainServer.prototype.command = function (cmd) {
-    return this.game.play_one_move(cmd);
+    return this.game.playOneMove(cmd);
 };
 
-MainServer.prototype.show_history = function () {
-    return this.add_message('Moves played: ' + this.game.history_string());
+MainServer.prototype.showHistory = function () {
+    return this.addMessage('Moves played: ' + this.game.historyString());
 };
 
-MainServer.prototype.show_score_info = function () {
-    if (!this.have_score) {
-        this.scorer.start_scoring(this.goban, this.game.komi, this.game.who_resigned);
-        this.have_score = true;
+MainServer.prototype.showScoreInfo = function () {
+    if (!this.haveScore) {
+        this.scorer.startScoring(this.goban, this.game.komi, this.game.whoResigned);
+        this.haveScore = true;
     }
-    for (var line, line_array = this.scorer.get_score(), line_ndx = 0; line=line_array[line_ndx], line_ndx < line_array.length; line_ndx++) {
-        this.add_message(line);
+    for (var line, line_array = this.scorer.getScore(), line_ndx = 0; line=line_array[line_ndx], line_ndx < line_array.length; line_ndx++) {
+        this.addMessage(line);
     }
-    return this.add_message('');
+    return this.addMessage('');
 };
 
-MainServer.prototype.req_accept_score = function (args) {
-    this.game.accept_ending(this.get_arg(args, 'value') === 'y');
-    if (!this.game.game_ending) {
-        this.have_score = false;
+MainServer.prototype.reqAcceptScore = function (args) {
+    this.game.acceptEnding(this.getArg(args, 'value') === 'y');
+    if (!this.game.gameEnding) {
+        this.haveScore = false;
     }
 };
 
 // Show prisoner counts during the game  
-MainServer.prototype.req_show_prisoners = function () {
+MainServer.prototype.reqShowPrisoners = function () {
     var prisoners = this.game.prisoners();
     for (var c = 1; c <= prisoners.length; c++) {
-        this.add_message(prisoners[c] + ' ' + Grid.COLOR_NAMES[c] + ' (' + Grid.COLOR_CHARS[c] + ') are prisoners');
+        this.addMessage(prisoners[c] + ' ' + Grid.COLOR_NAMES[c] + ' (' + Grid.COLOR_CHARS[c] + ') are prisoners');
     }
-    return this.add_message('');
+    return this.addMessage('');
 };
 
-MainServer.prototype.req_show_debug_info = function () {
-    this.goban.debug_display();
-    return this.add_message('Debug output generated on server console window.');
+MainServer.prototype.reqShowDebugInfo = function () {
+    this.goban.debugDisplay();
+    return this.addMessage('Debug output generated on server console window.');
 };
 
 // http://localhost:8080/newGame?size=9&handicap=0&ai=0
-MainServer.prototype.req_new_game = function (args) {
-    var gsize = this.get_arg_i(args, 'size', 19);
-    var handicap = this.get_arg_i(args, 'handicap', 0);
-    var num_ai = this.get_arg_i(args, 'ai', 1);
+MainServer.prototype.reqNewGame = function (args) {
+    var gsize = this.getArgI(args, 'size', 19);
+    var handicap = this.getArgI(args, 'handicap', 0);
+    var numAi = this.getArgI(args, 'ai', 1);
     this.game = new GameLogic();
-    this.game.new_game(gsize, handicap);
+    this.game.newGame(gsize, handicap);
     this.goban = this.game.goban;
-    this.have_score = false;
+    this.haveScore = false;
     this.players.clear();
     for (var color = 1; color <= 2; color++) {
-        this.players[color] = ( num_ai > color ? new Ai1Player(this.goban, color) : null );
+        this.players[color] = ( numAi > color ? new Ai1Player(this.goban, color) : null );
     }
 };
 
 // http://localhost:8080/move?at=b3
-MainServer.prototype.req_new_move = function (args) {
-    var move = this.get_arg(args, 'at');
+MainServer.prototype.reqNewMove = function (args) {
+    var move = this.getArg(args, 'at');
     try {
-        this.game.play_one_move(move);
+        this.game.playOneMove(move);
     } catch (err) {
         // if err.message.start_with?("Invalid move")
         // add_message("Ignored move #{move} (game displayed was maybe not in synch)")
-        this.add_message(err.toString());
+        this.addMessage(err.toString());
     }
 };
 
-MainServer.prototype.req_load_moves = function (args) {
-    var moves = this.get_arg(args, 'value');
+MainServer.prototype.reqLoadMoves = function (args) {
+    var moves = this.getArg(args, 'value');
     try {
-        this.game.load_moves(moves);
+        this.game.loadMoves(moves);
     } catch (err) {
-        if (!err.message().start_with('Invalid move')) {
+        if (!err.message().startWith('Invalid move')) {
             throw err;
         }
-        this.add_message(err.message());
+        this.addMessage(err.message());
     }
 };
 
-MainServer.prototype.parse_request = function (req_str) {
+MainServer.prototype.parseRequest = function (reqStr) {
     // GET /mainMenu?par1=val1 HTTP/1.1
-    var reqs = req_str.split();
+    var reqs = reqStr.split();
     if (reqs.length < 3 || reqs[0] !== 'GET' || reqs[2] !== 'HTTP/1.1') {
         throw new Error('Unsupported request: ' + reqs);
     }
-    var full_url = reqs[1];
-    var url, arg_str;
-    var _m = full_url.split('?');
+    var fullUrl = reqs[1];
+    var url, argStr;
+    var _m = fullUrl.split('?');
     url = _m[0];
-    arg_str = _m[1];
+    argStr = _m[1];
     
-    if (arg_str) {
-        var args = arg_str.split(/'&|='/);
+    if (argStr) {
+        var args = argStr.split(/'&|='/);
     }
     return [url, args];
 };
 
-MainServer.prototype.get_arg = function (args, name, def_val) {
-    if (def_val === undefined) def_val = null;
+MainServer.prototype.getArg = function (args, name, defVal) {
+    if (defVal === undefined) defVal = null;
     var ndx = ( args ? args.index(name) : null );
     if (ndx) {
         return args[ndx + 1];
     }
-    if (!def_val) {
+    if (!defVal) {
         throw new Error('Missing argument ' + name);
     }
-    return def_val;
+    return defVal;
 };
 
-MainServer.prototype.get_arg_i = function (args, name, def_val) {
-    if (def_val === undefined) def_val = null;
-    return parseInt(this.get_arg(args, name, def_val), 10);
+MainServer.prototype.getArgI = function (args, name, defVal) {
+    if (defVal === undefined) defVal = null;
+    return parseInt(this.getArg(args, name, defVal), 10);
 };
 
-MainServer.prototype.handle_request = function (req) {
+MainServer.prototype.handleRequest = function (req) {
     try {
         var url, args;
-        var _m = this.parse_request(req);
+        var _m = this.parseRequest(req);
         url = _m[0];
         args = _m[1];
         
@@ -257,10 +257,10 @@ MainServer.prototype.handle_request = function (req) {
         var question = null;
         switch (url) {
         case '/newGame':
-            this.req_new_game(args);
+            this.reqNewGame(args);
             break;
         case '/move':
-            this.req_new_move(args);
+            this.reqNewMove(args);
             break;
         case '/undo':
             this.command('undo');
@@ -272,7 +272,7 @@ MainServer.prototype.handle_request = function (req) {
             this.command('resign');
             break;
         case '/accept_score':
-            this.req_accept_score(args);
+            this.reqAcceptScore(args);
             break;
         case '/load':
             question = {'action':'load_moves', 'label':'Load moves'};
@@ -281,16 +281,16 @@ MainServer.prototype.handle_request = function (req) {
             //NOP
             break;
         case '/prisoners':
-            this.req_show_prisoners();
+            this.reqShowPrisoners();
             break;
         case '/history':
-            this.show_history();
+            this.showHistory();
             break;
         case '/load_moves':
-            this.req_load_moves(args);
+            this.reqLoadMoves(args);
             break;
         case '/dbg':
-            this.req_show_debug_info();
+            this.reqShowDebugInfo();
             break;
         case '/index':
             return main.File.read(MainServer.INDEX_PAGE);
@@ -298,8 +298,8 @@ MainServer.prototype.handle_request = function (req) {
         default: 
             reply += 'Unknown request: ' + req;
         }
-        var ai_played = this.let_ai_play();
-        reply += this.web_display(this.game.goban, ai_played, question);
+        var aiPlayed = this.letAiPlay();
+        reply += this.webDisplay(this.game.goban, aiPlayed, question);
         return reply;
     } catch (err) {
         console.log('*** Exception: ' + err);
@@ -310,14 +310,14 @@ MainServer.prototype.handle_request = function (req) {
     }
 };
 
-MainServer.prototype.web_display = function (goban, ai_played, question) {
-    var ended = this.game.game_ended;
-    var ending = (!ended && this.game.game_ending);
-    var player = this.players[this.game.cur_color];
-    var human_move = (!ended && !ending && !player);
+MainServer.prototype.webDisplay = function (goban, aiPlayed, question) {
+    var ended = this.game.gameEnded;
+    var ending = (!ended && this.game.gameEnding);
+    var player = this.players[this.game.curColor];
+    var humanMove = (!ended && !ending && !player);
     var gsize = this.goban.gsize;
     if (ending) {
-        this.show_score_info();
+        this.showScoreInfo();
     }
     var s = '<html><head>';
     s += '<style>body {background-color:#f0f0f0; font-family: tahoma, sans serif; font-size:90%} ';
@@ -328,14 +328,14 @@ MainServer.prototype.web_display = function (goban, ai_played, question) {
     for (var j = gsize; j >= 1; j--) {
         s += '<tr><th>' + j.toString() + '</th>';
         for (var i = 1; i <= gsize; i++) {
-            if (this.have_score) {
-                var color = goban.scoring_grid.yx[j][i];
+            if (this.haveScore) {
+                var color = goban.scoringGrid.yx[j][i];
             } else {
-                color = goban.stone_at(i, j).color;
+                color = goban.stoneAt(i, j).color;
             }
             if (color === main.EMPTY) {
-                if (human_move && Stone.valid_move(goban, i, j, this.game.cur_color)) {
-                    s += '<td><a href=\'move?at=' + Grid.x_label(i) + j.toString() + '\'>+</a></td>';
+                if (humanMove && Stone.validMove(goban, i, j, this.game.curColor)) {
+                    s += '<td><a href=\'move?at=' + Grid.xLabel(i) + j.toString() + '\'>+</a></td>';
                 } else {
                     s += '<td>+</td>'; // empty intersection we cannot play on (ko or suicide)
                 }
@@ -348,19 +348,19 @@ MainServer.prototype.web_display = function (goban, ai_played, question) {
     }
     s += '<tr><td></td>';
     for (var i = 1; i <= gsize; i++) {
-        s += '<th>' + Grid.x_label(i) + '</th>';
+        s += '<th>' + Grid.xLabel(i) + '</th>';
     }
     s += '</tr></table>';
-    if (ai_played) {
-        s += 'AI played ' + ai_played + '<br>';
+    if (aiPlayed) {
+        s += 'AI played ' + aiPlayed + '<br>';
     }
     if (ended) {
         s += '<br>Game ended. ' + MainServer.INDEX_LINK + '<br><br>';
-        this.show_score_info();
-        this.show_history();
+        this.showScoreInfo();
+        this.showHistory();
     } else if (ending) {
         question = {'action':'accept_score', 'label':'Do you accept this score? (y/n)'};
-    } else if (human_move) {
+    } else if (humanMove) {
         s += ' <a href=\'undo\'>undo</a> ';
         s += ' <a href=\'pass\'>pass</a> ';
         s += ' <a href=\'resign\'>resign</a> ';
@@ -368,11 +368,11 @@ MainServer.prototype.web_display = function (goban, ai_played, question) {
         s += ' <a href=\'prisoners\'>prisoners</a> ';
         s += ' <a href=\'load\'>load</a> ';
         s += ' <a href=\'dbg\'>debug</a> ';
-        s += ' <br>Who\'s turn: ' + Grid.COLOR_CHARS[this.game.cur_color] + '<br><br>';
+        s += ' <br>Who\'s turn: ' + Grid.COLOR_CHARS[this.game.curColor] + '<br><br>';
     } else {
         s += ' <a href=\'continue\'>continue</a><br>';
     }
-    var errors = this.game.get_errors();
+    var errors = this.game.getErrors();
     var txt;
     while ((txt = errors.shift())) {
         s += txt + '<br>';
@@ -391,3 +391,11 @@ MainServer.prototype.web_display = function (goban, ai_played, question) {
 
 var server = new MainServer();
 server.start();
+// E02: unknown method info(...)
+// E01: unknown no-arg method accept()
+// E02: unknown method recv_nonblock(...)
+// E02: unknown method decode(...)
+// E01: unknown no-arg method close()
+// E02: unknown method print(...)
+// E01: unknown no-arg method ctime()
+// E02: unknown method read(...)

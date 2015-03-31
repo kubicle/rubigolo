@@ -27,13 +27,13 @@ InfluenceMap.prototype.clear = function () {
     }
 };
 
-InfluenceMap.prototype.build_map = function () {
+InfluenceMap.prototype.buildMap = function () {
     this.clear();
     var influence = [4, 2, 1];
     // First we get stones' direct influence
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
-            var stone = this.goban.stone_at(i, j);
+            var stone = this.goban.stoneAt(i, j);
             var color = stone.color;
             if (color !== main.EMPTY) {
                 this.map[j][i][color] += influence[0];
@@ -58,11 +58,11 @@ InfluenceMap.prototype.build_map = function () {
         }
     }
     if (main.debug) {
-        return this.debug_dump();
+        return this.debugDump();
     }
 };
 
-InfluenceMap.prototype.debug_dump = function () {
+InfluenceMap.prototype.debugDump = function () {
     for (var c = 1; c <= 2; c++) {
         console.log('Influence map for ' + Grid.COLOR_NAMES[c] + ':');
         for (var j = this.gsize; j >= 1; j--) {
@@ -74,7 +74,7 @@ InfluenceMap.prototype.debug_dump = function () {
         }
         console.log('  ');
         for (var i = 1; i <= this.gsize; i++) {
-            console.log(' ' + Grid.x_label(i) + ' ');
+            console.log(' ' + Grid.xLabel(i) + ' ');
         }
         console.log('\n');
     }
