@@ -2,7 +2,7 @@
 'use strict';
 
 var inherits = require('util').inherits;
-var assert_equal = main.assert_equal;
+var assertEqual = main.assertEqual;
 
 var GameLogic = require('../GameLogic');
 // TODO: very incomplete test
@@ -21,7 +21,7 @@ function TestGameLogic(testName) {
     return this.initBoard();
 }
 inherits(TestGameLogic, main.TestCase);
-module.exports = TestGameLogic;
+module.exports = main.tests.add(TestGameLogic);
 
 // 3 ways to load the same game with handicap...
 TestGameLogic.prototype.testHandicap = function () {

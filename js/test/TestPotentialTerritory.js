@@ -3,7 +3,7 @@
 
 var inherits = require('util').inherits;
 var main = require('../main');
-var assert_equal = main.assert_equal;
+var assertEqual = main.assertEqual;
 
 var GameLogic = require('../GameLogic');
 var PotentialTerritory = require('../PotentialTerritory');
@@ -24,7 +24,7 @@ function TestPotentialTerritory(testName) {
     return main.TestCase.call(this, testName);
 }
 inherits(TestPotentialTerritory, main.TestCase);
-module.exports = TestPotentialTerritory;
+module.exports = main.tests.add(TestPotentialTerritory);
 
 TestPotentialTerritory.prototype.potentialToS = function (grid) {
     return grid.toText(false, ',', function (v) {

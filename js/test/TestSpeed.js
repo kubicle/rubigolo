@@ -6,7 +6,7 @@ var Logger = require('../Logger');
 var inherits = require('util').inherits;
 var Grid = require('../Grid');
 var Stone = require('../Stone');
-var assert_equal = main.assert_equal;
+var assertEqual = main.assertEqual;
 var Goban = require('../Goban');
 var TimeKeeper = require('../TimeKeeper');
 
@@ -26,7 +26,7 @@ function TestSpeed(testName) {
     return this.initBoard();
 }
 inherits(TestSpeed, main.TestCase);
-module.exports = TestSpeed;
+module.exports = main.tests.add(TestSpeed);
 
 // Not very fancy: add the line $count += 1 wherever you want to count.
 // Need some time to try a good profiler soon...

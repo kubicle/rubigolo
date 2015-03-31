@@ -3,7 +3,7 @@
 
 var main = require('../main');
 var inherits = require('util').inherits;
-var assert_equal = main.assert_equal;
+var assertEqual = main.assertEqual;
 main.test = true;
 var Breeder = require('../Breeder');
 
@@ -12,7 +12,7 @@ function TestBreeder(testName) {
     return main.TestCase.call(this, testName);
 }
 inherits(TestBreeder, main.TestCase);
-module.exports = TestBreeder;
+module.exports = main.tests.add(TestBreeder);
 
 TestBreeder.prototype.testBwBalance = function () {
     var numGames = 200;

@@ -4,7 +4,7 @@
 var Grid = require('../Grid');
 var inherits = require('util').inherits;
 var main = require('../main');
-var assert_equal = main.assert_equal;
+var assertEqual = main.assertEqual;
 var GameLogic = require('../GameLogic');
 
 var ZoneFiller = require('../ZoneFiller');
@@ -28,7 +28,7 @@ function TestZoneFiller(testName) {
     return this.initBoard();
 }
 inherits(TestZoneFiller, main.TestCase);
-module.exports = TestZoneFiller;
+module.exports = main.tests.add(TestZoneFiller);
 
 TestZoneFiller.prototype.testFill1 = function () {
     // 5 +O+++

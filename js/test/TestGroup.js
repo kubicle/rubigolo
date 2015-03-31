@@ -4,7 +4,7 @@
 var inherits = require('util').inherits;
 var Stone = require('../Stone');
 var main = require('../main');
-var assert_equal = main.assert_equal;
+var assertEqual = main.assertEqual;
 
 var GameLogic = require('../GameLogic');
 // NB: for debugging think of using @goban.debug_display
@@ -24,7 +24,7 @@ function TestGroup(testName) {
     return this.initBoard();
 }
 inherits(TestGroup, main.TestCase);
-module.exports = TestGroup;
+module.exports = main.tests.add(TestGroup);
 
 TestGroup.prototype.testGroupMerge = function () {
     // check the sentinel
