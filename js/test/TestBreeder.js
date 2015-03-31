@@ -8,17 +8,19 @@ main.test = true;
 var Breeder = require('../Breeder');
 
 /** @class */
-function TestBreeder(test_name) {
-    return main.TestCase.call(this, test_name);
+function TestBreeder(testName) {
+    return main.TestCase.call(this, testName);
 }
 inherits(TestBreeder, main.TestCase);
 module.exports = TestBreeder;
 
-TestBreeder.prototype.test_bw_balance = function () {
-    var num_games = 200;
+TestBreeder.prototype.testBwBalance = function () {
+    var numGames = 200;
     var size = 9;
     var tolerance = 0.15; // 0.10=>10% (+ or -); the more games you play the lower tolerance you can set (but it takes more time...)
     var b = new Breeder(size);
-    var num_wins = b.bw_balance_check(num_games, size);
-    return assert_in_epsilon(num_wins, num_games / 2, tolerance);
+    var numWins = b.bwBalanceCheck(numGames, size);
+    return assertInEpsilon(numWins, numGames / 2, tolerance);
 };
+
+// E02: unknown method assert_in_epsilon(...)

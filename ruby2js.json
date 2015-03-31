@@ -2,6 +2,7 @@
 {
   "src": ".",
   "target": "js",
+  "camelCase": true,
   
   "replacements": {
     "var Logging = require('./Logging')": "",

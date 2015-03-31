@@ -3,7 +3,7 @@
 
 var main = require('../main');
 // Tests all
-main.test_all = true;
+main.testAll = true;
 var TestAi = require('./TestAi');
 var TestBoardAnalyser = require('./TestBoardAnalyser');
 var TestBreeder = require('./TestBreeder');
