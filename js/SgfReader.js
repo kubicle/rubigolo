@@ -7,34 +7,34 @@ var main = require('./main');
 // SO[http://www.littlegolem.com];B[pd];W[pp];
 // B[ce];W[dc]...;B[tt];W[tt];B[tt];W[aq])
 
-//public read-only attribute: board_size, komi, handicap, handicap_stones;
+//public read-only attribute: boardSize, komi, handicap, handicapStones;
 
 /** @class */
 function SgfReader(sgf) {
     this.text = sgf;
     this.nodes = [];
-    this.board_size = 19;
+    this.boardSize = 19;
     this.handicap = 0;
-    this.handicap_stones = [];
+    this.handicapStones = [];
     this.komi = 6.5;
-    this.parse_game_tree(sgf + '');
-    return this.get_game_info();
+    this.parseGameTree(sgf + '');
+    return this.getGameInfo();
 }
 module.exports = SgfReader;
 
 // Raises an exception if we could not convert the format
-SgfReader.prototype.to_move_list = function () {
+SgfReader.prototype.toMoveList = function () {
     // NB: we verify the expected player since our internal move format
     // does not mention the player each time.
-    var expected_player = 'B';
+    var expectedPlayer = 'B';
     var moves = '';
     if (this.handicap > 0) {
-        expected_player = 'W';
-        if (this.handicap_stones.length !== 0) {
-            if (this.handicap_stones.length !== this.handicap) {
-                throw new Error('List of ' + this.handicap_stones.length + ' handicap stones given does not match the handicap number of ' + this.handicap);
+        expectedPlayer = 'W';
+        if (this.handicapStones.length !== 0) {
+            if (this.handicapStones.length !== this.handicap) {
+                throw new Error('List of ' + this.handicapStones.length + ' handicap stones given does not match the handicap number of ' + this.handicap);
             }
-            moves = 'hand:' + this.handicap + '=' + this.handicap_stones.join('-') + ',';
+            moves = 'hand:' + this.handicap + '=' + this.handicapStones.join('-') + ',';
         } else {
             moves = 'hand:' + this.handicap + ',';
         }
@@ -43,22 +43,22 @@ SgfReader.prototype.to_move_list = function () {
         var name = this.nodes[i][0];
         var value = this.nodes[i][1];
         if (name !== 'B' && name !== 'W') {
-            if (name !== 'C') {
+            if (name !== 'C') { // comments can be ignored
                 main.log.warn('Unknown property ' + name + '[' + value + '] ignored');
-            } // comments can be ignored
+            }
             continue;
         }
-        if (name !== expected_player) {
-            throw new Error('Move for ' + expected_player + ' was expected and we got ' + name + ' instead');
+        if (name !== expectedPlayer) {
+            throw new Error('Move for ' + expectedPlayer + ' was expected and we got ' + name + ' instead');
         }
-        moves += this.convert_move(value) + ',';
-        expected_player = (( expected_player === 'B' ? 'W' : 'B' ));
+        moves += this.convertMove(value) + ',';
+        expectedPlayer = (( expectedPlayer === 'B' ? 'W' : 'B' ));
     }
     return moves.chop();
 };
 
 //private;
-SgfReader.prototype.get_game_info = function () {
+SgfReader.prototype.getGameInfo = function () {
     var header = this.nodes[0];
     if (!header || header[0] !== 'FF') {
         throw new Error('SGF header missing');
@@ -73,16 +73,16 @@ SgfReader.prototype.get_game_info = function () {
             }
             break;
         case 'SZ':
-            this.board_size = parseInt(val, 10);
+            this.boardSize = parseInt(val, 10);
             break;
         case 'HA':
             this.handicap = parseInt(val, 10);
             break;
         case 'AB':
-            this.handicap_stones.push(this.convert_move(val));
+            this.handicapStones.push(this.convertMove(val));
             break;
         case 'KM':
-            this.komi = val.to_f();
+            this.komi = val.toF();
             break;
         case 'RU':
         case 'RE':
@@ -112,27 +112,27 @@ SgfReader.prototype.get_game_info = function () {
     }
 };
 
-SgfReader.prototype.convert_move = function (sgf_move) {
-    if (sgf_move === 'tt') {
+SgfReader.prototype.convertMove = function (sgfMove) {
+    if (sgfMove === 'tt') {
         var move = 'pass';
     } else {
-        move = sgf_move[0] + (this.board_size - ((sgf_move[1]).charCodeAt() - ('a').charCodeAt())).toString();
+        move = sgfMove[0] + (this.boardSize - ((sgfMove[1]).charCodeAt() - ('a').charCodeAt())).toString();
     }
     return move;
 };
 
-SgfReader.prototype.parse_game_tree = function (t) {
+SgfReader.prototype.parseGameTree = function (t) {
     t = this.skip(t);
     t = this.get('(', t);
-    t = this.parse_node(t);
+    t = this.parseNode(t);
     this.finished = false;
     while (!this.finished) {
-        t = this.parse_node(t);
+        t = this.parseNode(t);
     }
     return this.get(')', t);
 };
 
-SgfReader.prototype.parse_node = function (t) {
+SgfReader.prototype.parseNode = function (t) {
     t = this.skip(t);
     if (t[0] !== ';') {
         this.finished = true;
@@ -145,12 +145,12 @@ SgfReader.prototype.parse_node = function (t) {
         while (t[i] && t[i].between('A', 'Z')) {
             i += 1;
         }
-        var prop_ident = t[0];
-        if (prop_ident === '') {
+        var propIdent = t[0];
+        if (propIdent === '') {
             this.error('Property name expected', t);
         }
-        node.push(prop_ident);
-        t = this.get(prop_ident, t);
+        node.push(propIdent);
+        t = this.get(propIdent, t);
         while (true) {
             t = this.get('[', t);
             var brace = t.index(']');
@@ -178,7 +178,7 @@ SgfReader.prototype.skip = function (t) {
 };
 
 SgfReader.prototype.get = function (lex, t) {
-    if (!t.start_with(lex)) {
+    if (!t.startWith(lex)) {
         this.error(lex + ' expected', t);
     }
     return t.sub(lex, '').trimLeft();
@@ -187,3 +187,6 @@ SgfReader.prototype.get = function (lex, t) {
 SgfReader.prototype.error = function (reason, t) {
     throw new Error('Syntax error: \'' + reason + '\' at ...' + t[0] + '...');
 };
+
+// E01: unknown no-arg method to_f()
+// E02: unknown method sub(...)

@@ -1,15 +1,15 @@
 //Translated from player.rb using babyruby2js
 'use strict';
 
-//public read-only attribute: goban, color, is_human;
+//public read-only attribute: goban, color, isHuman;
 
 /** @class */
-function Player(is_human, goban) {
-    this.is_human = is_human;
+function Player(isHuman, goban) {
+    this.isHuman = isHuman;
     this.goban = goban;
 }
 module.exports = Player;
 
-Player.prototype.set_color = function (color) {
+Player.prototype.setColor = function (color) {
     this.color = color;
 };

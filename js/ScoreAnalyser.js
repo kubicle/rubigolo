@@ -13,8 +13,8 @@ function ScoreAnalyser() {
 module.exports = ScoreAnalyser;
 
 // Compute simple score difference for a AI-AI game (score info not needed)
-ScoreAnalyser.prototype.compute_score_diff = function (goban, komi) {
-    this.analyser.count_score(goban);
+ScoreAnalyser.prototype.computeScoreDiff = function (goban, komi) {
+    this.analyser.countScore(goban);
     var scores = this.analyser.scores;
     var prisoners = this.analyser.prisoners;
     var b = scores[main.BLACK] + prisoners[main.WHITE];
@@ -23,44 +23,44 @@ ScoreAnalyser.prototype.compute_score_diff = function (goban, komi) {
 };
 
 // Returns score info as an array of strings
-ScoreAnalyser.prototype.compute_score = function (goban, komi, who_resigned) {
-    this.start_scoring(goban, komi, who_resigned);
-    var txt = this.score_info_to_s(this.score_info);
+ScoreAnalyser.prototype.computeScore = function (goban, komi, whoResigned) {
+    this.startScoring(goban, komi, whoResigned);
+    var txt = this.scoreInfoToS(this.scoreInfo);
     return txt;
 };
 
 // Initialize scoring phase
-ScoreAnalyser.prototype.start_scoring = function (goban, komi, who_resigned) {
+ScoreAnalyser.prototype.startScoring = function (goban, komi, whoResigned) {
     this.goban = goban;
-    if (who_resigned) {
-        var winner = Grid.COLOR_NAMES[1 - who_resigned];
-        var other = Grid.COLOR_NAMES[who_resigned];
-        this.score_info = winner + ' won (since ' + other + ' resigned)';
+    if (whoResigned) {
+        var winner = Grid.COLOR_NAMES[1 - whoResigned];
+        var other = Grid.COLOR_NAMES[whoResigned];
+        this.scoreInfo = winner + ' won (since ' + other + ' resigned)';
         return;
     }
-    this.analyser.count_score(goban);
+    this.analyser.countScore(goban);
     var scores = this.analyser.scores;
     var prisoners = this.analyser.prisoners;
     var totals = [];
     var details = [];
-    var add_pris = true;
+    var addPris = true;
     for (var c = 1; c <= 2; c++) {
         var kom = (( c === main.WHITE ? komi : 0 ));
-        var pris = (( add_pris ? prisoners[1 - c] : -prisoners[c] ));
+        var pris = (( addPris ? prisoners[1 - c] : -prisoners[c] ));
         totals[c] = scores[c] + pris + kom;
         details[c] = [scores[c], pris, kom];
     }
-    this.score_info = [totals, details];
+    this.scoreInfo = [totals, details];
 };
 
-ScoreAnalyser.prototype.get_score = function () {
-    return this.score_info_to_s(this.score_info);
+ScoreAnalyser.prototype.getScore = function () {
+    return this.scoreInfoToS(this.scoreInfo);
 };
 
-ScoreAnalyser.prototype.score_info_to_s = function (info) {
-    if (info.is_a(main.String)) {
+ScoreAnalyser.prototype.scoreInfoToS = function (info) {
+    if (info.isA(main.String)) { // for games where all but 1 resigned
         return [info];
-    } // for games where all but 1 resigned
+    }
     if (!info || info.length !== 2) {
         throw new Error('Invalid score info: ' + info);
     }
@@ -70,11 +70,11 @@ ScoreAnalyser.prototype.score_info_to_s = function (info) {
         throw new Error('Invalid score info');
     }
     var s = [];
-    s.push(this.score_winner_to_s(totals));
+    s.push(this.scoreWinnerToS(totals));
     for (var c = 1; c <= 2; c++) {
         var detail = details[c];
         if (detail === null) {
-            s.push(Grid.color_name(c) + ' resigned');
+            s.push(Grid.colorName(c) + ' resigned');
             continue;
         }
         if (detail.length !== 3) {
@@ -83,25 +83,25 @@ ScoreAnalyser.prototype.score_info_to_s = function (info) {
         var score = detail[0];
         var pris = detail[1];
         var komi = detail[2];
-        var komi_str = (( komi > 0 ? ' + ' + komi + ' komi' : '' ));
-        s.push(Grid.color_name(c) + ' (' + Grid.COLOR_CHARS[c] + '): ' + this.pts(totals[c]) + ' (' + score + ' ' + ( pris < 0 ? '-' : '+' ) + ' ' + Math.abs(pris) + ' prisoners' + komi_str + ')');
+        var komiStr = (( komi > 0 ? ' + ' + komi + ' komi' : '' ));
+        s.push(Grid.colorName(c) + ' (' + Grid.COLOR_CHARS[c] + '): ' + this.pts(totals[c]) + ' (' + score + ' ' + ( pris < 0 ? '-' : '+' ) + ' ' + Math.abs(pris) + ' prisoners' + komiStr + ')');
     }
     return s;
 };
 
-ScoreAnalyser.prototype.score_diff_to_s = function (diff) {
+ScoreAnalyser.prototype.scoreDiffToS = function (diff) {
     if (diff !== 0) {
         var win = ( diff > 0 ? main.BLACK : main.WHITE );
-        return Grid.color_name(win) + ' wins by ' + this.pts(Math.abs(diff));
+        return Grid.colorName(win) + ' wins by ' + this.pts(Math.abs(diff));
     } else {
         return 'Tie game';
     }
 };
 
-ScoreAnalyser.prototype.score_winner_to_s = function (totals) {
+ScoreAnalyser.prototype.scoreWinnerToS = function (totals) {
     if (totals.length === 2) {
         var diff = totals[0] - totals[1];
-        return this.score_diff_to_s(diff);
+        return this.scoreDiffToS(diff);
     } else {
         var max = Math.max.apply(Math,totals);
         var winners = [];
@@ -111,10 +111,10 @@ ScoreAnalyser.prototype.score_winner_to_s = function (totals) {
             }
         }
         if (winners.length === 1) {
-            return Grid.color_name(winners[0]) + ' wins with ' + this.pts(max);
+            return Grid.colorName(winners[0]) + ' wins with ' + this.pts(max);
         } else {
             return 'Tie between ' + winners.map(function (w) {
-                return '' + Grid.color_name(w);
+                return '' + Grid.colorName(w);
             }).join(' & ') + ', ' + ( winners.length === 2 ? 'both' : 'all' ) + ' with ' + this.pts(max);
         }
     }
