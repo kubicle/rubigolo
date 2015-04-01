@@ -64,7 +64,7 @@ HandicapSetter.setStandardHandicap = function (goban, count) {
         // 0 6 3
         // special case: for odd numbers and more than 4 stones, the center is picked
         if (count.modulo(2) === 1 && count > 4 && ndx === count - 1) {
-            var ndx = 8;
+            ndx = 8;
         }
         switch (ndx) {
         case 0:
