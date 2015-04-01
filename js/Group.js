@@ -10,9 +10,9 @@ var main = require('./main');
 // group is killed or merged with another group, etc.).
 // Note that most of the work here is to keep this status information up to date.
 //public read-only attribute: goban, stones, lives, color;
-//public read-only attribute: merged_with, merged_by, killed_by, ndx;
-//public read-write attribute: merged_with, merged_by, extra_lives; // only used in this file
-//public read-only attribute: eyes, voids, extra_lives; // for analyser
+//public read-only attribute: mergedWith, mergedBy, killedBy, ndx;
+//public read-write attribute: mergedWith, mergedBy, extraLives; // only used in this file
+//public read-only attribute: eyes, voids, extraLives; // for analyser
 // Create a new group. Always with a single stone.
 // Do not call this using Group.new but Goban#new_group instead.
 
@@ -22,15 +22,15 @@ function Group(goban, stone, lives, ndx) {
     this.stones = [stone];
     this.lives = lives;
     this.color = stone.color;
-    this.merged_with = null; // a group
-    this.merged_by = null; // a stone
-    this.killed_by = null; // a stone
+    this.mergedWith = null; // a group
+    this.mergedBy = null; // a stone
+    this.killedBy = null; // a stone
     this.ndx = ndx; // unique index
     this.voids = []; // for analyser: empty zones next to a group
     this.eyes = []; // for analyser: eyes (i.e. void surrounded by a group)
-    this.extra_lives = 0; // for analyser: lives granted by dying enemy nearby
-    this.all_enemies = [];
-    this.all_lives = []; // $log.debug("New group created #{self}") if $debug_group
+    this.extraLives = 0; // for analyser: lives granted by dying enemy nearby
+    this.allEnemies = [];
+    this.allLives = []; // $log.debug("New group created #{self}") if $debug_group
 }
 module.exports = Group;
 
@@ -39,11 +39,11 @@ Group.prototype.recycle = function (stone, lives) {
     this.stones.push(stone);
     this.lives = lives;
     this.color = stone.color;
-    this.merged_with = this.merged_by = this.killed_by = null;
+    this.mergedWith = this.mergedBy = this.killedBy = null;
     this.voids.clear();
     this.eyes.clear();
-    this.all_enemies.clear();
-    this.all_lives.clear();
+    this.allEnemies.clear();
+    this.allLives.clear();
     // $log.debug("Use (new) recycled group #{self}") if $debug_group
     return this;
 };
@@ -52,21 +52,21 @@ Group.prototype.clear = function () {
     for (var s, s_array = this.stones, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
         s.clear();
     }
-    return this.goban.garbage_groups.push(this);
+    return this.goban.garbageGroups.push(this);
 };
 
 Group.prototype.toString = function () {
-    var s = '{group #' + this.ndx + ' of ' + this.stones.length + ' ' + Grid.color_name(this.color) + ' stones [';
+    var s = '{group #' + this.ndx + ' of ' + this.stones.length + ' ' + Grid.colorName(this.color) + ' stones [';
     for (var stone, stone_array = this.stones, stone_ndx = 0; stone=stone_array[stone_ndx], stone_ndx < stone_array.length; stone_ndx++) {
-        s += stone.as_move() + ',';
+        s += stone.asMove() + ',';
     }
     s = s.chop();
     s += '], lives:' + this.lives;
-    if (this.merged_with) {
-        s += ' MERGED with #' + this.merged_with.ndx;
+    if (this.mergedWith) {
+        s += ' MERGED with #' + this.mergedWith.ndx;
     }
-    if (this.killed_by) {
-        s += ' KILLED by ' + this.killed_by.as_move();
+    if (this.killedBy) {
+        s += ' KILLED by ' + this.killedBy.asMove();
     }
     s += '}';
     return s;
@@ -74,27 +74,27 @@ Group.prototype.toString = function () {
 
 // debug dump does not have more to display now that stones are simpler
 // TODO: remove it unless stones get more state data to display
-Group.prototype.debug_dump = function () {
+Group.prototype.debugDump = function () {
     return this.toString();
 };
 
-Group.prototype.stones_dump = function () {
+Group.prototype.stonesDump = function () {
     return this.stones.map(function (s) {
-        return s.as_move();
+        return s.asMove();
     }).sort().join(',');
 };
 
 // This also resets the eyes
-Group.prototype.reset_analysis = function () {
-    this.extra_lives = 0;
+Group.prototype.resetAnalysis = function () {
+    this.extraLives = 0;
     this.voids.clear();
     return this.eyes.clear();
 };
 
 // Adds a void or an eye
-Group.prototype.add_void = function (v, is_eye) {
-    if (is_eye === undefined) is_eye = false;
-    if (is_eye) {
+Group.prototype.addVoid = function (v, isEye) {
+    if (isEye === undefined) isEye = false;
+    if (isEye) {
         return this.eyes.push(v);
     } else {
         return this.voids.push(v);
@@ -102,52 +102,52 @@ Group.prototype.add_void = function (v, is_eye) {
 };
 
 // For analyser  
-Group.prototype.count_as_dead = function () {
+Group.prototype.countAsDead = function () {
     for (var stone, stone_array = this.stones, stone_ndx = 0; stone=stone_array[stone_ndx], stone_ndx < stone_array.length; stone_ndx++) {
-        for (var enemy, enemy_array = stone.unique_enemies(this.color), enemy_ndx = 0; enemy=enemy_array[enemy_ndx], enemy_ndx < enemy_array.length; enemy_ndx++) {
-            enemy.extra_lives += 1;
+        for (var enemy, enemy_array = stone.uniqueEnemies(this.color), enemy_ndx = 0; enemy=enemy_array[enemy_ndx], enemy_ndx < enemy_array.length; enemy_ndx++) {
+            enemy.extraLives += 1;
         }
     }
 };
 
 // Builds a list of all lives of the group
-Group.prototype.all_lives = function () {
-    this.all_lives.clear(); // TODO: try if set is more efficient
+Group.prototype.allLives = function () {
+    this.allLives.clear(); // TODO: try if set is more efficient
     for (var s, s_array = this.stones, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
         for (var life, life_array = s.neighbors, life_ndx = 0; life=life_array[life_ndx], life_ndx < life_array.length; life_ndx++) {
             if (life.color !== main.EMPTY) {
                 continue;
             }
-            if (!this.all_lives.contains(life)) {
-                this.all_lives.push(life);
+            if (!this.allLives.findIndex(life)) {
+                this.allLives.push(life);
             }
         }
     }
-    return this.all_lives;
+    return this.allLives;
 };
 
 // Builds a list of all enemies of the group
-Group.prototype.all_enemies = function () {
-    this.all_enemies.clear();
+Group.prototype.allEnemies = function () {
+    this.allEnemies.clear();
     for (var s, s_array = this.stones, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
         for (var en, en_array = s.neighbors, en_ndx = 0; en=en_array[en_ndx], en_ndx < en_array.length; en_ndx++) {
             if (en.color === main.EMPTY || en.color === this.color) {
                 continue;
             }
-            if (!this.all_enemies.contains(en.group)) {
-                this.all_enemies.push(en.group);
+            if (!this.allEnemies.findIndex(en.group)) {
+                this.allEnemies.push(en.group);
             }
         }
     }
-    if (main.debug_group) {
-        main.log.debug(this + ' has ' + this.all_enemies.length + ' enemies');
+    if (main.debugGroup) {
+        main.log.debug(this + ' has ' + this.allEnemies.length + ' enemies');
     }
-    return this.all_enemies;
+    return this.allEnemies;
 };
 
 // Counts the lives of a stone that are not already in the group
 // (the stone is to be added or removed)
-Group.prototype.lives_added_by_stone = function (stone) {
+Group.prototype.livesAddedByStone = function (stone) {
     var lives = 0;
     for (var life, life_array = stone.neighbors, life_ndx = 0; life=life_array[life_ndx], life_ndx < life_array.length; life_ndx++) {
         if (life.color !== main.EMPTY) {
@@ -161,53 +161,53 @@ Group.prototype.lives_added_by_stone = function (stone) {
             }
         }
         if (!res) {
-            lives++;
+            lives += 1;
         }
     }
-    if (main.debug_group) {
+    if (main.debugGroup) {
         main.log.debug(lives + ' lives added by ' + stone + ' for group ' + this);
     }
     return lives;
 };
 
 // Connect a new stone or a merged stone to this group
-Group.prototype.connect_stone = function (stone, on_merge) {
-    if (on_merge === undefined) on_merge = false;
-    if (main.debug_group) {
-        main.log.debug('Connecting ' + stone + ' to group ' + this + ' (on_merge=' + on_merge + ')');
+Group.prototype.connectStone = function (stone, onMerge) {
+    if (onMerge === undefined) onMerge = false;
+    if (main.debugGroup) {
+        main.log.debug('Connecting ' + stone + ' to group ' + this + ' (on_merge=' + onMerge + ')');
     }
     this.stones.push(stone);
-    this.lives += this.lives_added_by_stone(stone);
-    if (!on_merge) {
+    this.lives += this.livesAddedByStone(stone);
+    if (!onMerge) { // minus one since the connection itself removes 1
         this.lives -= 1;
-    } // minus one since the connection itself removes 1
-    if (this.lives < 0) {
+    }
+    if (this.lives < 0) { // can be 0 if suicide-kill
         throw new Error('Unexpected error (lives<0 on connect)');
-    } // can be 0 if suicide-kill
-    if (main.debug_group) {
+    }
+    if (main.debugGroup) {
         return main.log.debug('Final group: ' + this);
     }
 };
 
 // Disconnect a stone
 // on_merge must be true for merge or unmerge-related call 
-Group.prototype.disconnect_stone = function (stone, on_merge) {
-    if (on_merge === undefined) on_merge = false;
-    if (main.debug_group) {
-        main.log.debug('Disconnecting ' + stone + ' from group ' + this + ' (on_merge=' + on_merge + ')');
+Group.prototype.disconnectStone = function (stone, onMerge) {
+    if (onMerge === undefined) onMerge = false;
+    if (main.debugGroup) {
+        main.log.debug('Disconnecting ' + stone + ' from group ' + this + ' (on_merge=' + onMerge + ')');
     }
     // groups of 1 stone become empty groups (->garbage)
     if (this.stones.length > 1) {
-        this.lives -= this.lives_added_by_stone(stone);
-        if (!on_merge) {
+        this.lives -= this.livesAddedByStone(stone);
+        if (!onMerge) { // see comment in connect_stone
             this.lives += 1;
-        } // see comment in connect_stone
-        if (this.lives < 0) {
+        }
+        if (this.lives < 0) { // can be 0 if suicide-kill
             throw new Error('Unexpected error (lives<0 on disconnect)');
-        } // can be 0 if suicide-kill
+        }
     } else {
-        this.goban.garbage_groups.push(this);
-        if (main.debug_group) {
+        this.goban.garbageGroups.push(this);
+        if (main.debugGroup) {
             main.log.debug('Group going to recycle bin: ' + this);
         }
     }
@@ -218,18 +218,18 @@ Group.prototype.disconnect_stone = function (stone, on_merge) {
 };
 
 // When a new stone appears next to this group
-Group.prototype.attacked_by = function (stone) {
+Group.prototype.attackedBy = function (stone) {
     this.lives -= 1;
-    if (this.lives <= 0) {
-        return this.die_from(stone);
-    } // also check <0 so we can raise in die_from method
+    if (this.lives <= 0) { // also check <0 so we can raise in die_from method
+        return this.dieFrom(stone);
+    }
 };
 
 // When a group of stones reappears because we undo
 // NB: it can never kill anything
-Group.prototype.attacked_by_resuscitated = function (stone) {
+Group.prototype.attackedByResuscitated = function (stone) {
     this.lives -= 1;
-    if (main.debug_group) {
+    if (main.debugGroup) {
         main.log.debug(this + ' attacked by resuscitated ' + stone);
     }
     if (this.lives < 1) {
@@ -238,94 +238,94 @@ Group.prototype.attacked_by_resuscitated = function (stone) {
 };
 
 // Stone parameter is just for debug for now
-Group.prototype.not_attacked_anymore = function (stone) {
+Group.prototype.notAttackedAnymore = function (stone) {
     this.lives += 1;
-    if (main.debug_group) {
+    if (main.debugGroup) {
         return main.log.debug(this + ' not attacked anymore by ' + stone);
     }
 };
 
 // Merges a subgroup with this group
-Group.prototype.merge = function (subgroup, by_stone) {
-    if (subgroup.merged_with === this || subgroup === this || this.color !== subgroup.color) {
+Group.prototype.merge = function (subgroup, byStone) {
+    if (subgroup.mergedWith === this || subgroup === this || this.color !== subgroup.color) {
         throw new Error('Invalid merge');
     }
-    if (main.debug_group) {
+    if (main.debugGroup) {
         main.log.debug('Merging subgroup:' + subgroup + ' to main:' + this);
     }
     for (var s, s_array = subgroup.stones, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
-        s.set_group_on_merge(this);
-        this.connect_stone(s, true);
+        s.setGroupOnMerge(this);
+        this.connectStone(s, true);
     }
-    subgroup.merged_with=(this);
-    subgroup.merged_by=(by_stone);
-    this.goban.merged_groups.push(subgroup);
-    if (main.debug_group) {
+    subgroup.mergedWith=(this);
+    subgroup.mergedBy=(byStone);
+    this.goban.mergedGroups.push(subgroup);
+    if (main.debugGroup) {
         return main.log.debug('After merge: subgroup:' + subgroup + ' main:' + this);
     }
 };
 
 // Reverse of merge
 Group.prototype.unmerge = function (subgroup) {
-    if (main.debug_group) {
+    if (main.debugGroup) {
         main.log.debug('Unmerging subgroup:' + subgroup + ' from main:' + this);
     }
     for (var s, s_array = subgroup.stones, s_ndx = s_array.length - 1; s=s_array[s_ndx], s_ndx >= 0; s_ndx--) {
-        this.disconnect_stone(s, true);
-        s.set_group_on_merge(subgroup);
+        this.disconnectStone(s, true);
+        s.setGroupOnMerge(subgroup);
     }
-    subgroup.merged_by=(subgroup.merged_with=(null));
-    if (main.debug_group) {
+    subgroup.mergedBy=(subgroup.mergedWith=(null));
+    if (main.debugGroup) {
         return main.log.debug('After unmerge: subgroup:' + subgroup + ' main:' + this);
     }
 };
 
 // This must be called on the main group (stone.group)
-Group.prototype.unmerge_from = function (stone) {
+Group.prototype.unmergeFrom = function (stone) {
     var subgroup;
-    while ((subgroup = this.goban.merged_groups[this.goban.merged_groups.length-1]).merged_by === stone && subgroup.merged_with === this) {
-        this.unmerge(this.goban.merged_groups.pop());
+    while ((subgroup = this.goban.mergedGroups[this.goban.mergedGroups.length-1]).mergedBy === stone && subgroup.mergedWith === this) {
+        this.unmerge(this.goban.mergedGroups.pop());
     }
 };
 
 // Called when the group has no more life left
-Group.prototype.die_from = function (killer_stone) {
-    if (main.debug_group) {
+Group.prototype.dieFrom = function (killerStone) {
+    if (main.debugGroup) {
         main.log.debug('Group dying: ' + this);
     }
     if (this.lives < 0) {
         throw new Error('Unexpected error (lives<0)');
     }
     for (var stone, stone_array = this.stones, stone_ndx = 0; stone=stone_array[stone_ndx], stone_ndx < stone_array.length; stone_ndx++) {
-        for (var enemy, enemy_array = stone.unique_enemies(this.color), enemy_ndx = 0; enemy=enemy_array[enemy_ndx], enemy_ndx < enemy_array.length; enemy_ndx++) {
-            enemy.not_attacked_anymore(stone);
+        for (var enemy, enemy_array = stone.uniqueEnemies(this.color), enemy_ndx = 0; enemy=enemy_array[enemy_ndx], enemy_ndx < enemy_array.length; enemy_ndx++) {
+            enemy.notAttackedAnymore(stone);
         }
         stone.die();
     }
-    this.killed_by = killer_stone;
-    this.goban.killed_groups.push(this);
-    if (main.debug_group) {
+    this.killedBy = killerStone;
+    this.goban.killedGroups.push(this);
+    if (main.debugGroup) {
         return main.log.debug('Group dead: ' + this);
     }
 };
 
 // Called when "undo" operation removes the killer stone of this group
 Group.prototype.resuscitate = function () {
-    this.killed_by = null;
+    this.killedBy = null;
     this.lives = 1; // always comes back with a single life
     for (var stone, stone_array = this.stones, stone_ndx = 0; stone=stone_array[stone_ndx], stone_ndx < stone_array.length; stone_ndx++) {
-        stone.resuscitate_in(this);
-        for (var enemy, enemy_array = stone.unique_enemies(this.color), enemy_ndx = 0; enemy=enemy_array[enemy_ndx], enemy_ndx < enemy_array.length; enemy_ndx++) {
-            enemy.attacked_by_resuscitated(stone);
+        stone.resuscitateIn(this);
+        for (var enemy, enemy_array = stone.uniqueEnemies(this.color), enemy_ndx = 0; enemy=enemy_array[enemy_ndx], enemy_ndx < enemy_array.length; enemy_ndx++) {
+            enemy.attackedByResuscitated(stone);
         }
     }
 };
 
-Group.resuscitate_from = function (killer_stone, goban) {
-    while (goban.killed_groups[goban.killed_groups.length-1].killed_by === killer_stone) {
-        var group = goban.killed_groups.pop();
-        if (main.debug_group) {
-            main.log.debug('taking back ' + killer_stone + ' so we resuscitate ' + group.debug_dump());
+Group.resuscitateFrom = function (killerStone, goban) {
+    while (goban.killedGroups[goban.killedGroups.length-1].killedBy === killerStone) {
+        var group = goban.killedGroups.pop();
+        if (main.debugGroup) {
+            main.log.debug('taking back ' + killerStone + ' so we resuscitate ' + group.debugDump());
         }
         group.resuscitate();
     }
@@ -334,9 +334,13 @@ Group.resuscitate_from = function (killer_stone, goban) {
 // Returns prisoners grouped by color of dead stones  
 Group.prisoners = function (goban) {
     var prisoners = [0, 0];
-    for (var i = 1; i < goban.killed_groups.length; i++) {
-        var g = goban.killed_groups[i];
+    for (var i = 1; i <= goban.killedGroups.length - 1; i++) {
+        var g = goban.killedGroups[i];
         prisoners[g.color] += g.stones.length;
     }
     return prisoners;
 };
+
+// E02: unknown method map(...)
+// E02: unknown method merged_with=(...)
+// E02: unknown method merged_by=(...)
