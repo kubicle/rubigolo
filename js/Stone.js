@@ -27,6 +27,9 @@ function Stone(goban, i, j, color) {
 }
 module.exports = Stone;
 
+Stone.XY_AROUND = [[0, 1], [1, 0], [0, -1], [-1, 0]]; // top, right, bottom, left
+Stone.XY_DIAGONAL = [[1, 1], [1, -1], [-1, -1], [-1, 1]]; // top-right, bottom-right, bottom-left, top-left
+
 Stone.prototype.clear = function () {
     this.color = main.EMPTY;
     this.group = null;
