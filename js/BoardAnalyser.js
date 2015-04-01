@@ -215,7 +215,7 @@ BoardAnalyser.prototype.findStrongerOwners = function () {
         if (lives.count(function (l) {
             return l === moreLives;
         }) === 1) { // make sure we have a winner, not a tie
-            var c = lives.findIndex(moreLives);
+            c = lives.findIndex(moreLives);
             v.setOwner(c);
             if (main.debug) {
                 main.log.debug('It looks like color ' + c + ', with ' + moreLives + ' lives, owns ' + v + ' (this might change once we identify dead groups)');

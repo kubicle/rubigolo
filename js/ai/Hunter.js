@@ -127,7 +127,7 @@ Hunter.prototype.escapingAtariIsCaught = function (stone, level) {
         return true;
     }
     // g.lives is 1 or 2
-    for (var ally_threatened, ally_threatened_array = stone.neighbors, ally_threatened_ndx = 0; ally_threatened=ally_threatened_array[ally_threatened_ndx], ally_threatened_ndx < ally_threatened_array.length; ally_threatened_ndx++) {
+    for (var allyThreatened, allyThreatened_array = stone.neighbors, allyThreatened_ndx = 0; allyThreatened=allyThreatened_array[allyThreatened_ndx], allyThreatened_ndx < allyThreatened_array.length; allyThreatened_ndx++) {
         if (allyThreatened.color !== this.color) {
             continue;
         }
