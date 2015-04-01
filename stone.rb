@@ -1,5 +1,4 @@
 require_relative "stone_constants"
-# Always require goban instead of stone
 
 # A "stone" stores everything we want to keep track of regarding an intersection on the board.
 # By extension, an empty intersection is also a stone, with a color attribute equals to EMPTY.
