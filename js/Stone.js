@@ -37,12 +37,10 @@ Stone.prototype.clear = function () {
 
 // Computes each stone's neighbors (called for each stone after init)
 // NB: Stones next to side have only 3 neighbors, and the corner stones have 2
-Stone.prototype.find_neighbors = function () {
+Stone.prototype.findNeighbors = function () {
     this.neighbors.clear();
-    for (var coord_change, coord_change_array = Stone.XY_AROUND, coord_change_ndx = 0;
-        coord_change=coord_change_array[coord_change_ndx], coord_change_ndx < coord_change_array.length;
-        coord_change_ndx++) {
-        var stone = this.goban.stone_at(this.i + coord_change[0], this.j + coord_change[1]);
+    for (var coordChange, coordChange_array = Stone.XY_AROUND, coordChange_ndx = 0; coordChange=coordChange_array[coordChange_ndx], coordChange_ndx < coordChange_array.length; coordChange_ndx++) {
+        var stone = this.goban.stoneAt(this.i + coordChange[0], this.j + coordChange[1]);
         if (stone !== main.BORDER) {
             this.neighbors.push(stone);
         }
@@ -51,18 +49,18 @@ Stone.prototype.find_neighbors = function () {
 
 Stone.prototype.toString = function () {
     if (this.color === main.EMPTY) {
-        return 'empty:' + this.as_move();
+        return 'empty:' + this.asMove();
     } else {
-        return 'stone' + Grid.COLOR_CHARS[this.color] + ':' + this.as_move();
+        return 'stone' + Grid.COLOR_CHARS[this.color] + ':' + this.asMove();
     }
 };
 
 // Returns "c3" for a stone in 3,3
-Stone.prototype.as_move = function () {
-    return '' + Grid.move_as_string(this.i, this.j);
+Stone.prototype.asMove = function () {
+    return '' + Grid.moveAsString(this.i, this.j);
 };
 
-Stone.prototype.debug_dump = function () {
+Stone.prototype.debugDump = function () {
     return this.toString(); // we could add more info
 };
 
@@ -74,7 +72,7 @@ Stone.prototype.empties = function () {
 };
 
 // Number of empty points around this stone
-Stone.prototype.num_empties = function () {
+Stone.prototype.numEmpties = function () {
     var count = 0;
     for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
         if (s.color === main.EMPTY) {
@@ -85,9 +83,9 @@ Stone.prototype.num_empties = function () {
 };
 
 // Returns a string with the list of empty points, sorted (debug only)
-Stone.prototype.empties_dump = function () {
+Stone.prototype.emptiesDump = function () {
     return this.empties().map(function (s) {
-        return s.as_move();
+        return s.asMove();
     }).sort().join(',');
 };
 
@@ -95,16 +93,16 @@ Stone.prototype.empty = function () {
     return this.color === main.EMPTY;
 };
 
-Stone.valid_move = function (goban, i, j, color) {
+Stone.validMove = function (goban, i, j, color) {
     // Remark: no log here because of the noise created with web server mode
-    if (!goban.valid_move(i, j)) {
-        return false;
-    } // also checks if empty
-    var stone = goban.stone_at(i, j);
-    if (stone.move_is_suicide(color)) {
+    if (!goban.validMove(i, j)) { // also checks if empty
         return false;
     }
-    if (stone.move_is_ko(color)) {
+    var stone = goban.stoneAt(i, j);
+    if (stone.moveIsSuicide(color)) {
+        return false;
+    }
+    if (stone.moveIsKo(color)) {
         return false;
     }
     return true;
@@ -114,7 +112,7 @@ Stone.valid_move = function (goban, i, j, color) {
 // not a suicide if 1 free life around
 // or if one enemy group will be killed
 // or if the result of the merge of ally groups will have more than 0 life
-Stone.prototype.move_is_suicide = function (color) {
+Stone.prototype.moveIsSuicide = function (color) {
     for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
         if (s.color === main.EMPTY) {
             return false;
@@ -135,7 +133,7 @@ Stone.prototype.move_is_suicide = function (color) {
 // if the move would kill with stone i,j a single stone A (and nothing else!)
 // and the previous move killed with stone A a single stone B in same position i,j
 // then it is a ko
-Stone.prototype.move_is_ko = function (color) {
+Stone.prototype.moveIsKo = function (color) {
     // Must kill a single group
     var group_a = null;
     var res = true;
@@ -148,33 +146,33 @@ Stone.prototype.move_is_ko = function (color) {
         return false;
     }
     // This killed group must be a single stone A
-    if (group_a.stones.length !== 1) {
+    if (groupA.stones.length !== 1) {
         return false;
     }
-    var stone_a = group_a.stones[0];
+    var stoneA = groupA.stones[0];
     // Stone A was played just now
-    if (this.goban.previous_stone() !== stone_a) {
+    if (this.goban.previousStone() !== stoneA) {
         return false;
     }
     // Stone B was killed by A in same position we are looking at
-    var group_b = this.goban.killed_groups[this.goban.killed_groups.length-1];
-    if (group_b.killed_by !== stone_a) {
+    var groupB = this.goban.killedGroups[this.goban.killedGroups.length-1];
+    if (groupB.killedBy !== stoneA) {
         return false;
     }
-    if (group_b.stones.length !== 1) {
+    if (groupB.stones.length !== 1) {
         return false;
     }
-    var stone_b = group_b.stones[0];
-    if (stone_b.i !== this.i || stone_b.j !== this.j) {
+    var stoneB = groupB.stones[0];
+    if (stoneB.i !== this.i || stoneB.j !== this.j) {
         return false;
     }
     // $log.debug("ko in #{@i}, #{@j}, color:#{color} cannot be played now") if $debug
     return true;
 };
 
-Stone.play_at = function (goban, i, j, color) {
-    var stone = goban.play_at(i, j, color);
-    stone.put_down(color);
+Stone.playAt = function (goban, i, j, color) {
+    var stone = goban.playAt(i, j, color);
+    stone.putDown(color);
     return stone;
 };
 
@@ -184,7 +182,7 @@ Stone.prototype.die = function () {
     this.group = null;
 };
 
-Stone.prototype.resuscitate_in = function (group) {
+Stone.prototype.resuscitateIn = function (group) {
     this.group = group;
     this.color = group.color; // update_around_on_new
 };
@@ -198,7 +196,7 @@ Stone.undo = function (goban) {
     if (main.debug) {
         main.log.debug('Stone.undo ' + stone);
     }
-    return stone.take_back();
+    return stone.takeBack();
 };
 
 // Iterate through enemy groups and calls the given block
@@ -206,15 +204,15 @@ Stone.undo = function (goban) {
 // Example: +@@+
 //          +@O+ <- for stone O, the @ group will be selected 2 times
 //          ++++
-Stone.prototype.each_enemy = function (ally_color, cb) {
+Stone.prototype.eachEnemy = function (allyColor, cb) {
     for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
-        if (s.color !== main.EMPTY && s.color !== ally_color) {
+        if (s.color !== main.EMPTY && s.color !== allyColor) {
             cb(s.group);
         }
     }
 };
 
-Stone.prototype.unique_enemies = function (ally_color) {
+Stone.prototype.uniqueEnemies = function (allyColor) {
     this.enemies.clear();
     for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
         if (s.color !== main.EMPTY && s.color !== ally_color && !this.enemies.contains(s.group)) {
@@ -227,15 +225,15 @@ Stone.prototype.unique_enemies = function (ally_color) {
 // Iterate through our groups and calls the given block
 // (same group appears more than once if it faces the stone 2 times or more)
 // See also each_enemy
-Stone.prototype.each_ally = function (ally_color, cb) {
+Stone.prototype.eachAlly = function (allyColor, cb) {
     for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
-        if (s.color === ally_color) {
+        if (s.color === allyColor) {
             cb(s.group);
         }
     }
 };
 
-Stone.prototype.unique_allies = function (color) {
+Stone.prototype.uniqueAllies = function (color) {
     this.allies.clear();
     for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
         if (s.color === color && !this.allies.contains(s.group)) {
@@ -246,12 +244,12 @@ Stone.prototype.unique_allies = function (color) {
 };
 
 // Called for each new stone played
-Stone.prototype.put_down = function (color) {
+Stone.prototype.putDown = function (color) {
     this.color = color;
     if (main.debug) {
         main.log.debug('put_down: ' + this.toString());
     }
-    var allies = this.unique_allies(color); // note we would not need unique if group#merge ignores dupes
+    var allies = this.uniqueAllies(color); // note we would not need unique if group#merge ignores dupes
     if (allies.length === 0) {
         var lives = 0;
         for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
@@ -259,43 +257,43 @@ Stone.prototype.put_down = function (color) {
                 lives += 1;
             }
         }
-        this.group = this.goban.new_group(this, lives);
+        this.group = this.goban.newGroup(this, lives);
     } else {
         this.group = allies[0];
-        this.group.connect_stone(this);
+        this.group.connectStone(this);
     }
     // kill before merging to get the right live-count in merged subgroups
-    for (var g, g_array = this.unique_enemies(color), g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
-        g.attacked_by(this);
+    for (var g, g_array = this.uniqueEnemies(color), g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
+        g.attackedBy(this);
     }
     for (var a = 1; a <= allies.length - 1; a++) {
         this.group.merge(allies[a], this);
     } // update_around_on_new
 };
 
-Stone.prototype.take_back = function () {
-    if (main.debug_group) {
+Stone.prototype.takeBack = function () {
+    if (main.debugGroup) {
         main.log.debug('take_back: ' + this.toString() + ' from group ' + this.group);
     }
-    this.group.unmerge_from(this);
-    this.group.disconnect_stone(this);
-    for (var g, g_array = this.unique_enemies(this.color), g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
-        g.not_attacked_anymore(this);
+    this.group.unmergeFrom(this);
+    this.group.disconnectStone(this);
+    for (var g, g_array = this.uniqueEnemies(this.color), g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
+        g.notAttackedAnymore(this);
     }
     // update_around_before_die
-    var log_group;
-    if (main.debug_group) {
-        log_group = this.group;
+    if (main.debugGroup) {
+        var logGroup = this.group;
     }
     this.group = null;
     this.color = main.EMPTY;
-    Group.resuscitate_from(this, this.goban);
-    if (main.debug_group) {
-        return main.log.debug('take_back: end; main group: ' + log_group.debug_dump());
+    Group.resuscitateFrom(this, this.goban);
+    if (main.debugGroup) {
+        return main.log.debug('take_back: end; main group: ' + logGroup.debugDump());
     }
 };
 
-Stone.prototype.set_group_on_merge = function (new_group) {
-    this.group = new_group;
+Stone.prototype.setGroupOnMerge = function (newGroup) {
+    this.group = newGroup;
 };
  // Not used anymore but could become handy again later // def update_around_on_new //   $log.debug("update_around_on_new #{self.debug_dump}") if $debug // end // Not used anymore but could become handy again later // def update_around_before_die //   $log.debug("update_around_before_die #{self.debug_dump}") if $debug // end
+// E02: unknown method select(...)
