@@ -27,9 +27,6 @@ function Stone(goban, i, j, color) {
 }
 module.exports = Stone;
 
-Stone.XY_AROUND = [[0, 1], [1, 0], [0, -1], [-1, 0]]; // top, right, bottom, left
-Stone.XY_DIAGONAL = [[1, 1], [1, -1], [-1, -1], [-1, 1]]; // top-right, bottom-right, bottom-left, top-left
-
 Stone.prototype.clear = function () {
     this.color = main.EMPTY;
     this.group = null;
@@ -135,14 +132,19 @@ Stone.prototype.moveIsSuicide = function (color) {
 // then it is a ko
 Stone.prototype.moveIsKo = function (color) {
     // Must kill a single group
-    var group_a = null;
+    var groupA = null;
     var res = true;
-    this.each_enemy(color, function (enemy) {
-        if (enemy.lives !== 1) { return; }
-        if (group_a) { res = false; return; }
-        group_a = enemy;
+    this.eachEnemy(color, function (enemy) {
+        if (enemy.lives !== 1) {
+            return;
+        }
+        if (groupA) {
+            res = false;
+            return;
+        }
+        groupA = enemy;
     });
-    if (!res || !group_a) {
+    if (!res || !groupA) {
         return false;
     }
     // This killed group must be a single stone A
@@ -215,7 +217,7 @@ Stone.prototype.eachEnemy = function (allyColor, cb) {
 Stone.prototype.uniqueEnemies = function (allyColor) {
     this.enemies.clear();
     for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
-        if (s.color !== main.EMPTY && s.color !== ally_color && !this.enemies.contains(s.group)) {
+        if (s.color !== main.EMPTY && s.color !== allyColor && !this.enemies.contains(s.group)) {
             this.enemies.push(s.group);
         }
     }
