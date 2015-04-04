@@ -94,9 +94,10 @@ Grid.prototype.toText = function () {
 Grid.prototype.toTextExt = function (withLabels, endOfRow, cb) {
     var yx = new Grid(this.gsize).yx;
     var maxlen = 1;
-    for (var j = this.gsize; j >= 1; j--) {
-        for (var i = 1; i <= this.gsize; i++) {
-            var val = cb(this.yx[j][i]);
+    var j, i, val;
+    for (j = this.gsize; j >= 1; j--) {
+        for (i = 1; i <= this.gsize; i++) {
+            val = cb(this.yx[j][i]);
             if (val === null) {
                 val = '';
             }
@@ -109,11 +110,11 @@ Grid.prototype.toTextExt = function (withLabels, endOfRow, cb) {
     var numChar = maxlen;
     var white = '          ';
     var s = '';
-    for (var j = this.gsize; j >= 1; j--) {
+    for (j = this.gsize; j >= 1; j--) {
         if (withLabels) {
             s += '%2d'.format(j) + ' ';
         }
-        for (var i = 1; i <= this.gsize; i++) {
+        for (i = 1; i <= this.gsize; i++) {
             val = yx[j][i];
             if (val.length < numChar) {
                 val = white.substr(1, numChar - val.length) + val;
@@ -124,7 +125,7 @@ Grid.prototype.toTextExt = function (withLabels, endOfRow, cb) {
     }
     if (withLabels) {
         s += '   ';
-        for (var i = 1; i <= this.gsize; i++) {
+        for (i = 1; i <= this.gsize; i++) {
             s += white.substr(1, numChar - 1) + Grid.xLabel(i);
         }
         s += '\n';
