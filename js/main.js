@@ -40,8 +40,18 @@ function TestCase(testName) {
 }
 
 main.assertEqual = function (val, expected) {
-    if (val === expected) return;
-    throw new Error('Failed assertion: expected [' + expected + '] but got [' + val + ']');
+  if (expected instanceof Array) {
+    if (!val instanceof Array) throw new Error('Failed assertion: expected Array but got ' + val);
+    if (val.length !== expected.length)
+      throw new Error('Failed assertion: expected Array of size ' + expected.length +
+        ' but got size ' + val.length);
+    for (var i = 0; i < expected.length; i++) {
+      main.assertEqual(val[i], expected[i]);
+    }
+    return;
+  }
+  if (val === expected) return;
+  throw new Error('Failed assertion: expected [' + expected + '] but got [' + val + ']');
 };
 
 main.tests = new TestSeries();
