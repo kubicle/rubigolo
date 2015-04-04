@@ -2,7 +2,6 @@
 'use strict';
 
 var main = require('./main');
-
 // Special stone values in goban
 main.BORDER = null;
 // Colors
