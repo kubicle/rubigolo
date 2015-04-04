@@ -8,15 +8,6 @@ var assertEqual = main.assertEqual;
 
 var GameLogic = require('../GameLogic');
 // NB: for debugging think of using @goban.debug_display
-TestGroup.prototype.initBoard = function (size, handicap) {
-    if (size === undefined) size = 5;
-    if (handicap === undefined) handicap = 0;
-    this.game = new GameLogic();
-    this.game.newGame(size, handicap);
-    this.game.messagesToConsole();
-    this.goban = this.game.goban;
-};
-
 
 /** @class */
 function TestGroup(testName) {
@@ -25,6 +16,15 @@ function TestGroup(testName) {
 }
 inherits(TestGroup, main.TestCase);
 module.exports = main.tests.add(TestGroup);
+
+TestGroup.prototype.initBoard = function (size, handicap) {
+    if (size === undefined) size = 5;
+    if (handicap === undefined) handicap = 0;
+    this.game = new GameLogic();
+    this.game.newGame(size, handicap);
+    this.game.messagesToConsole();
+    this.goban = this.game.goban;
+};
 
 TestGroup.prototype.testGroupMerge = function () {
     // check the sentinel

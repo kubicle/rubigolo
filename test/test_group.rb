@@ -8,16 +8,16 @@ require_relative "../game_logic"
 
 class TestGroup < Test::Unit::TestCase
 
+  def initialize(test_name)
+    super(test_name)
+    init_board()
+  end
+
   def init_board(size=5, handicap=0)
     @game = GameLogic.new
     @game.new_game(size, handicap)
     @game.messages_to_console
     @goban = @game.goban
-  end
-
-  def initialize(test_name)
-    super(test_name)
-    init_board()
   end
 
   def test_group_merge
