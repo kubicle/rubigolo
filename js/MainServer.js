@@ -61,10 +61,10 @@ MainServer.prototype.getSessionAndRequest = function () {
     } catch (err) {
         if (err.constructor.name === 'Errno::EWOULDBLOCK' || err.constructor.name === 'Errno::EAGAIN') {
             main.log.debug('Closing and reopening the session...'); // see comment above about IE
-        } else if (err.constructor.name === 'Errno::ECONNRESET' || err.message() === 'Connection dropped') { // connection dropped or closed by the remote host
+        } else if (err.constructor.name === 'Errno::ECONNRESET' || err.message === 'Connection dropped') { // connection dropped or closed by the remote host
             main.log.info('Connection dropped or timed-out; we will create a new session (no issue)');
         } else {
-            main.log.error('Unexpected error: ' + err.constructor + ', msg:' + err.message());
+            main.log.error('Unexpected error: ' + err.constructor + ', msg:' + err.message);
         }
         this.closeSession();
         error_unhandled_exp('(retry ...)');
@@ -99,7 +99,7 @@ MainServer.prototype.sendResponse = function (reply) {
             this.closeSession();
         }
     } catch (err) {
-        main.log.error('Unexpected error: ' + err.constructor + ', msg:' + err.message());
+        main.log.error('Unexpected error: ' + err.constructor + ', msg:' + err.message);
         this.closeSession(); // always close after error here
     }
 };
@@ -201,10 +201,10 @@ MainServer.prototype.reqLoadMoves = function (args) {
     try {
         this.game.loadMoves(moves);
     } catch (err) {
-        if (!err.message().startWith('Invalid move')) {
+        if (!err.message.startWith('Invalid move')) {
             throw err;
         }
-        this.addMessage(err.message());
+        this.addMessage(err.message);
     }
 };
 
