@@ -84,22 +84,19 @@ Grid.charToColor = function (char) {
     return Grid.CIRCULAR_COLOR_CHARS.index(char) + Grid.DAME_COLOR;
 };
 
-function def_to_text(stone) {
-    return Grid.color_to_char(stone.color);
+Grid.prototype.toText = function () {
+    return this.toTextExt(true, '\n');
 };
 
 // Receives a block of code and calls it for each vertex.
 // The block should return a string representation.
 // This method returns the concatenated string showing the grid.
-Grid.prototype.to_text = function (cb) { return this.to_text2(true, '\n', cb); };
-Grid.prototype.to_text2 = function (with_labels, end_of_row, cb) {
-    if (!cb) cb = def_to_text;
+Grid.prototype.toTextExt = function (withLabels, endOfRow, cb) {
     var yx = new Grid(this.gsize).yx;
     var maxlen = 1;
-    var i, j, val;
-    for (j = this.gsize; j >= 1; j--) {
-        for (i = 1; i <= this.gsize; i++) {
-            val = cb(this.yx[j][i]);
+    for (var j = this.gsize; j >= 1; j--) {
+        for (var i = 1; i <= this.gsize; i++) {
+            var val = cb(this.yx[j][i]);
             if (val === null) {
                 val = '';
             }
@@ -112,14 +109,14 @@ Grid.prototype.to_text2 = function (with_labels, end_of_row, cb) {
     var numChar = maxlen;
     var white = '          ';
     var s = '';
-    for (j = this.gsize; j >= 1; j--) {
-        if (with_labels) {
+    for (var j = this.gsize; j >= 1; j--) {
+        if (withLabels) {
             s += '%2d'.format(j) + ' ';
         }
-        for (i = 1; i <= this.gsize; i++) {
+        for (var i = 1; i <= this.gsize; i++) {
             val = yx[j][i];
-            if (val.length < num_char) {
-                val = white.substr(1, num_char - val.length) + val;
+            if (val.length < numChar) {
+                val = white.substr(1, numChar - val.length) + val;
             }
             s += val;
         }
