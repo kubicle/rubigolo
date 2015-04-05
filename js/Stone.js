@@ -20,10 +20,10 @@ function Stone(goban, i, j, color) {
     this.color = color;
     this.group = null;
     // @neighbors contains the neighboring stones (empty or not); no need to compute coordinates anymore
-    this.neighbors = new main.Array(4);
+    this.neighbors = new Array(4);
     // @allies and @enemies are used as buffers for corresponding methods (unique_allies, unique_enemies etc.)
-    this.allies = new main.Array(4);
-    this.enemies = new main.Array(4);
+    this.allies = new Array(4);
+    this.enemies = new Array(4);
 }
 module.exports = Stone;
 
