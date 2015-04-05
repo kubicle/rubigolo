@@ -3,12 +3,19 @@
 var main = require('./main');
 
 
+//--- Misc
+
+main.isA = function (klass, obj) {
+  return obj !== null && obj !== undefined && obj.constructor.name === klass;
+};
+
+
 //--- String
 
 function hasLf(s) {
-    if (s.slice(-1) !== '\n') return 0;
-    if (s.slice(-2) !== '\r\n') return 1;
-    return 2;
+  if (s.slice(-1) !== '\n') return 0;
+  if (s.slice(-2) !== '\r\n') return 1;
+  return 2;
 }
 
 String.prototype.chomp = function (tail) {
@@ -76,10 +83,20 @@ String.prototype.format = function (num) {
 
 //--- Array
 
+/** Mimics the Ruby Array constructor. Same limitation as in Ruby: do not use an object unless
+ *  you really want all items to "point" to this object (i.e. modifying the objet will affect all items)
+ *  @param {int} size
+ *  @param {value|func} init - if a value is given, it is assigned to all items in the array.
+ *         If a func is given, array[i] = func(i) will be performed for each item.
+ *  @return {Array} - the new array
+ */
 main.Array = function (size, init) {
+  if (size === undefined) return [];
+  if (init === undefined) return new Array(size);
+
   var i, a = [];
   if (typeof init === 'function') {
-    for (i = 0; i < size; i++) { a[i] = init(); }
+    for (i = 0; i < size; i++) { a[i] = init(i); }
   } else {
     for (i = 0; i < size; i++) { a[i] = init; }
   }
