@@ -211,7 +211,7 @@ BoardAnalyser.prototype.findStrongerOwners = function () {
                 lives[c] += g.lives;
             }
         }
-        var moreLives = Math.max.apply(Math,lives);
+        var moreLives = Math.max.apply(Math, lives);
         if (lives.count(function (l) {
             return l === moreLives;
         }) === 1) { // make sure we have a winner, not a tie
@@ -329,6 +329,7 @@ BoardAnalyser.prototype.groupLiveliness = function (g) {
     });
 };
 
+// W02: Unknown class or constant supposed to be attached to main: Set
 // E02: unknown method add(...)
 // E02: unknown method count(...)
 // E02: unknown method find_index(...)

@@ -131,8 +131,8 @@ Breeder.prototype.reproduction = function () {
     if (main.debugBreed) {
         main.log.debug('=== Reproduction time for ' + this.generation.length + ' AI');
     }
-    this.picked = new main.Array(this.genSize, 0);
-    this.maxScore = Math.max.apply(Math,this.scoreDiff);
+    this.picked = new Array(this.genSize, 0);
+    this.maxScore = Math.max.apply(Math, this.scoreDiff);
     this.winner = this.generation[this.scoreDiff.findIndex(this.maxScore)];
     this.pickIndex = 0;
     for (var i = 0; i <= this.genSize - 1; i += 2) {
@@ -231,4 +231,5 @@ if (!main.testAll && !main.test) {
     breeder.run(opts['num_tour'], opts['match_per_ai']);
 }
 // E02: unknown method opt(...)
+// W02: Unknown class or constant supposed to be attached to main: Trollop
 // E02: unknown method options(...)
