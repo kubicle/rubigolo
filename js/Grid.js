@@ -22,7 +22,7 @@ function Grid(gsize) {
 module.exports = Grid;
 
 Grid.COLOR_NAMES = ['black', 'white'];
-Grid.NOTATION_A = ('a').charCodeAt(); // notation origin; could be A or a
+Grid.NOTATION_A = 'a'.charCodeAt(); // notation origin; could be A or a
 Grid.EMPTY_CHAR = '+';
 Grid.DAME_CHAR = '?';
 Grid.STONE_CHARS = '@O';
@@ -66,7 +66,7 @@ Grid.prototype.convert = function (sourceGrid) {
 // Returns the "character" used to represent a stone in text style
 Grid.colorToChar = function (color) {
     if (color >= Grid.ZONE_CODE) {
-        return String.fromCharCode((('A').charCodeAt() + color - Grid.ZONE_CODE));
+        return String.fromCharCode(('A'.charCodeAt() + color - Grid.ZONE_CODE));
     }
     if (color < Grid.DAME_COLOR || color >= Grid.COLOR_CHARS.length) {
         throw new Error('Invalid color ' + color);
@@ -162,7 +162,7 @@ Grid.prototype.image = function () {
 // Watch out our images are upside-down on purpose (to help copy paste from screen)
 // So last row (j==gsize) comes first in image
 Grid.prototype.loadImage = function (image) {
-    var rows = image.split(/'\"|,'/);
+    var rows = image.split(/\"|,/);
     if (rows.length !== this.gsize) {
         throw new Error('Invalid image: ' + rows.length + ' rows instead of ' + this.gsize);
     }
@@ -179,7 +179,7 @@ Grid.prototype.loadImage = function (image) {
 
 // Parses a move like "c12" into 3,12
 Grid.parseMove = function (move) {
-    return [(move[0]).charCodeAt() - Grid.NOTATION_A + 1, parseInt(move[1], 10)];
+    return [move[0].charCodeAt() - Grid.NOTATION_A + 1, parseInt(move[1], 10)];
 };
 
 // Builds a string representation of a move (3,12->"c12")  
