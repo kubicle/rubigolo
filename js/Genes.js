@@ -161,7 +161,7 @@ Genes.prototype.mutateAll = function () {
 
 // E02: unknown method each_key(...)
 // E02: unknown method chomp!(...)
-// W02: Unknown class or constant supposed to be attached to main: YAML
+// W02: Unknown constant supposed to be attached to main: YAML
 // E02: unknown method dump(...)
-// W02: Unknown class or constant supposed to be attached to main: YAML
+// W02: Unknown constant supposed to be attached to main: YAML
 // E02: unknown method load(...)

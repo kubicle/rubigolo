@@ -88,5 +88,5 @@ TimeKeeper.prototype.checkLimits = function (raiseIfOverlimit) {
     return '';
 };
 
-// W02: Unknown class or constant supposed to be attached to main: GC
-// W02: Unknown class or constant supposed to be attached to main: GC
+// W02: Unknown constant supposed to be attached to main: GC
+// W02: Unknown constant supposed to be attached to main: GC

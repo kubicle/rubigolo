@@ -231,5 +231,5 @@ if (!main.testAll && !main.test) {
     breeder.run(opts['num_tour'], opts['match_per_ai']);
 }
 // E02: unknown method opt(...)
-// W02: Unknown class or constant supposed to be attached to main: Trollop
+// W02: Unknown class supposed to be attached to main: Trollop
 // E02: unknown method options(...)
