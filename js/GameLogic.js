@@ -81,7 +81,7 @@ GameLogic.prototype.playOneMove = function (move) {
         return this.errorMsg('Game already ended');
     }
     // $log.debug("GameLogic playing #{Grid.color_name(@cur_color)}: #{move}") if $debug
-    if (/'^[a-z][1-2]?[0-9]$'/.test(move)) {
+    if (/^[a-z][1-2]?[0-9]$/.test(move)) {
         return this.playAStone(move);
     } else if (move === 'undo') {
         return this.requestUndo();

@@ -78,7 +78,7 @@ MainServer.prototype.getSessionAndRequest = function () {
         if (main.debug) {
             main.log.debug('..."' + r + '"');
         }
-        if (/'Connection:[ ]*Keep-Alive'/.test(r)) {
+        if (/Connection:[ ]*Keep-Alive/.test(r)) {
             this.keepAlive = true;
         }
     }
@@ -221,7 +221,7 @@ MainServer.prototype.parseRequest = function (reqStr) {
     argStr = _m[1];
     
     if (argStr) {
-        var args = argStr.split(/'&|='/);
+        var args = argStr.split(/&|=/);
     }
     return [url, args];
 };
