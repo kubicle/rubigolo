@@ -392,10 +392,14 @@ MainServer.prototype.webDisplay = function (goban, aiPlayed, question) {
 var server = new MainServer();
 server.start();
 // E02: unknown method info(...)
+// W02: Unknown class or constant supposed to be attached to main: TCPServer
 // E01: unknown no-arg method accept()
+// W02: Unknown class or constant supposed to be attached to main: Socket
 // E02: unknown method recv_nonblock(...)
+// W02: Unknown class or constant supposed to be attached to main: URI
 // E02: unknown method decode(...)
 // E01: unknown no-arg method close()
 // E02: unknown method print(...)
 // E01: unknown no-arg method ctime()
+// W02: Unknown class or constant supposed to be attached to main: File
 // E02: unknown method read(...)

@@ -116,7 +116,7 @@ SgfReader.prototype.convertMove = function (sgfMove) {
     if (sgfMove === 'tt') {
         var move = 'pass';
     } else {
-        move = sgfMove[0] + (this.boardSize - ((sgfMove[1]).charCodeAt() - ('a').charCodeAt())).toString();
+        move = sgfMove[0] + (this.boardSize - (sgfMove[1].charCodeAt() - 'a'.charCodeAt())).toString();
     }
     return move;
 };

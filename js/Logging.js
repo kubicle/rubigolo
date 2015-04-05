@@ -35,4 +35,5 @@ main.log.level=(Logger.DEBUG);
 // NB: note this slows down everything if $debug is true even if the log level is not DEBUG
 main.debug = true;
 main.debugGroup = false;
+// W02: Unknown class or constant supposed to be attached to main: STDOUT
 // E02: unknown method level=(...)
