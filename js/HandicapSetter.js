@@ -14,13 +14,13 @@ HandicapSetter.setHandicap = function (goban, h) {
         return 0;
     }
     // Standard handicap?
-    if (h.isA(main.String)) {
+    if (main.isA('String', h)) {
         var eq = h.index('=');
         if (h[0].between('0', '9') && !eq) {
             h = parseInt(h, 10);
         }
     }
-    if (h.isA(main.Fixnum)) { // e.g. 3
+    if (main.isA('Number', h)) { // e.g. 3
         return HandicapSetter.setStandardHandicap(goban, h);
     }
     // Could be standard or not but we are given the stones so use them   
@@ -47,7 +47,7 @@ HandicapSetter.setStandardHandicap = function (goban, count) {
     // we want middle points only if the board is big enough 
     // and has an odd number of intersections
     var gsize = goban.gsize;
-    if ((gsize < 9 || gsize.modulo(2) === 0) && count > 4) {
+    if ((gsize < 9 || gsize % 2 === 0) && count > 4) {
         count = 4;
     }
     // Compute the distance from the handicap points to the border:
@@ -63,7 +63,7 @@ HandicapSetter.setStandardHandicap = function (goban, count) {
         // 4 8 5
         // 0 6 3
         // special case: for odd numbers and more than 4 stones, the center is picked
-        if (count.modulo(2) === 1 && count > 4 && ndx === count - 1) {
+        if (count % 2 === 1 && count > 4 && ndx === count - 1) {
             ndx = 8;
         }
         switch (ndx) {
@@ -111,6 +111,4 @@ HandicapSetter.setStandardHandicap = function (goban, count) {
     return count;
 };
 
-// E02: unknown method is_a?(...)
 // E02: unknown method between?(...)
-// E02: unknown method modulo(...)
