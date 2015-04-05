@@ -58,7 +58,7 @@ ScoreAnalyser.prototype.getScore = function () {
 };
 
 ScoreAnalyser.prototype.scoreInfoToS = function (info) {
-    if (info.isA(main.String)) { // for games where all but 1 resigned
+    if (main.isA('String', info)) { // for games where all but 1 resigned
         return [info];
     }
     if (!info || info.length !== 2) {
@@ -103,7 +103,7 @@ ScoreAnalyser.prototype.scoreWinnerToS = function (totals) {
         var diff = totals[0] - totals[1];
         return this.scoreDiffToS(diff);
     } else {
-        var max = Math.max.apply(Math,totals);
+        var max = Math.max.apply(Math, totals);
         var winners = [];
         for (var c = 1; c <= totals.length; c++) {
             if (totals[c] === max) {
