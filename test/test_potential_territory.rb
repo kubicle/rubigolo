@@ -23,7 +23,7 @@ class TestPotentialTerritory < Test::Unit::TestCase
   end
 
   def potential_to_s(grid)
-    return grid.to_text(false,",") {|v| POT2CHAR[2+v*2]}.chop
+    return grid.to_line {|v| POT2CHAR[2+v*2]}
   end
 
   def test_terr1

@@ -66,7 +66,7 @@ class Goban
   end
 
   def image?
-    return @grid.to_text_ext(false,","){ |s| Grid::COLOR_CHARS[s.color] }.chop
+    return @grid.to_line { |s| Grid::COLOR_CHARS[s.color] }
   end
 
   # For debugging only

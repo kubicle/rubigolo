@@ -27,9 +27,9 @@ inherits(TestPotentialTerritory, main.TestCase);
 module.exports = main.tests.add(TestPotentialTerritory);
 
 TestPotentialTerritory.prototype.potentialToS = function (grid) {
-    return grid.toText(false, ',', function (v) {
+    return grid.toLine(function (v) {
         return TestPotentialTerritory.POT2CHAR[2 + v * 2];
-    }).chop();
+    });
 };
 
 TestPotentialTerritory.prototype.testTerr1 = function () {
