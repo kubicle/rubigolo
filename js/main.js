@@ -39,14 +39,14 @@ function TestCase(testName) {
   this.testName = testName;
 }
 
-main.assertEqual = function (val, expected) {
+main.assertEqual = function (expected, val) {
   if (expected instanceof Array) {
     if (!val instanceof Array) throw new Error('Failed assertion: expected Array but got ' + val);
     if (val.length !== expected.length)
       throw new Error('Failed assertion: expected Array of size ' + expected.length +
         ' but got size ' + val.length);
     for (var i = 0; i < expected.length; i++) {
-      main.assertEqual(val[i], expected[i]);
+      main.assertEqual(expected[i], val[i]);
     }
     return;
   }
