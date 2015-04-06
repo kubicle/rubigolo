@@ -68,6 +68,10 @@ class Grid
     to_text_ext(true, "\n")
   end
 
+  def to_line
+    to_text_ext(false, ",")
+  end
+
   # Receives a block of code and calls it for each vertex.
   # The block should return a string representation.
   # This method returns the concatenated string showing the grid.
@@ -99,6 +103,7 @@ class Grid
       1.upto(@gsize) { |i| s += white.slice(1,num_char-1) + Grid.x_label(i) }
       s += "\n"
     end
+    return s.chop if end_of_row != "\n"
     return s
   end
 
@@ -116,9 +121,9 @@ class Grid
   # So last row (j==gsize) comes first in image
   def image?
     if @yx[1][1].instance_of?(Stone) #FIXME
-      return to_text(false, ",") { |s| Grid::color_to_char(s.color) } .chop
+      return to_line { |s| Grid::color_to_char(s.color) }
     else
-      return to_text(false, ",") { |c| Grid::color_to_char(c) } .chop
+      return to_line { |c| Grid::color_to_char(c) }
     end
   end
   

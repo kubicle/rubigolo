@@ -88,6 +88,10 @@ Grid.prototype.toText = function () {
     return this.toTextExt(true, '\n');
 };
 
+Grid.prototype.toLine = function () {
+    return this.toTextExt(false, ',');
+};
+
 // Receives a block of code and calls it for each vertex.
 // The block should return a string representation.
 // This method returns the concatenated string showing the grid.
@@ -130,6 +134,9 @@ Grid.prototype.toTextExt = function (withLabels, endOfRow, cb) {
         }
         s += '\n';
     }
+    if (endOfRow !== '\n') {
+        return s.chop();
+    }
     return s;
 };
 
@@ -149,13 +156,13 @@ Grid.prototype.toString = function () {
 // So last row (j==gsize) comes first in image
 Grid.prototype.image = function () {
     if (this.yx[1][1].instanceOf(Stone)) { // FIXME
-        return this.toText(false, ',', function (s) {
+        return this.toLine(function (s) {
             return Grid.colorToChar(s.color);
-        }).chop();
+        });
     } else {
-        return this.toText(false, ',', function (c) {
+        return this.toLine(function (c) {
             return Grid.colorToChar(c);
-        }).chop();
+        });
     }
 };
 
