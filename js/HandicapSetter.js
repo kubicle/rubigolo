@@ -54,7 +54,7 @@ HandicapSetter.setStandardHandicap = function (goban, count) {
     // on boards smaller than 13, the handicap point is 2 points away from the border
     var distToBorder = (( gsize < 13 ? 2 : 3 ));
     var short = 1 + distToBorder;
-    var middle = 1 + gsize / 2;
+    var middle = (1 + gsize) / 2;
     var long = gsize - distToBorder;
     for (var ndx = 1; ndx <= count; ndx++) {
         // Compute coordinates from the index.

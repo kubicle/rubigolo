@@ -40,7 +40,7 @@ class HandicapSetter
     # on boards smaller than 13, the handicap point is 2 points away from the border
     dist_to_border=(gsize<13 ? 2 : 3)
     short = 1 + dist_to_border
-    middle = 1 + gsize/2
+    middle = (1 + gsize) / 2
     long = gsize - dist_to_border
     
     count.times do |ndx|
