@@ -6,7 +6,15 @@ var main = require('./main');
 //--- Misc
 
 main.isA = function (klass, obj) {
-  return obj !== null && obj !== undefined && obj.constructor.name === klass;
+  if (typeof klass === 'string') {
+    if (klass === 'Fixnum') return (typeof obj === 'number' || obj instanceof Number) && ~~obj == obj;
+    if (klass === 'Float')  return (typeof obj === 'number' || obj instanceof Number); // loose equivalence...
+    throw new Error('Invalid parameter for isA: ' + klass);
+  }
+  if (obj instanceof klass) return true;
+  if (obj === null || obj === undefined) return false;
+  if (obj.constructor.name === klass.name) return true; // for String and Number
+  return false;
 };
 
 

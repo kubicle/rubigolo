@@ -14,13 +14,13 @@ HandicapSetter.setHandicap = function (goban, h) {
         return 0;
     }
     // Standard handicap?
-    if (main.isA('String', h)) {
+    if (main.isA(String, h)) {
         var eq = h.index('=');
         if (h[0].between('0', '9') && !eq) {
             h = parseInt(h, 10);
         }
     }
-    if (main.isA('Number', h)) { // e.g. 3
+    if (main.isA('Fixnum', h)) { // e.g. 3
         return HandicapSetter.setStandardHandicap(goban, h);
     }
     // Could be standard or not but we are given the stones so use them   

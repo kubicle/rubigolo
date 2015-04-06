@@ -58,7 +58,7 @@ ScoreAnalyser.prototype.getScore = function () {
 };
 
 ScoreAnalyser.prototype.scoreInfoToS = function (info) {
-    if (main.isA('String', info)) { // for games where all but 1 resigned
+    if (main.isA(String, info)) { // for games where all but 1 resigned
         return [info];
     }
     if (!info || info.length !== 2) {
