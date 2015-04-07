@@ -176,7 +176,7 @@ Stone.prototype.moveIsKo = function (color) {
 };
 
 Stone.playAt = function (goban, i, j, color) {
-    var stone = goban.playAt(i, j, color);
+    var stone = goban.playAt(i, j);
     stone.putDown(color);
     return stone;
 };
