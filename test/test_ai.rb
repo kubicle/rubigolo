@@ -1,4 +1,4 @@
-require 'test/unit'
+require 'minitest/autorun'
 
 require_relative "../logging"
 require_relative "../game_logic"
@@ -7,7 +7,7 @@ require_relative "../ai1_player"
 # NB: for debugging think of using @goban.debug_display
 
 
-class TestAi < Test::Unit::TestCase
+class TestAi < Minitest::Test
 
   def init_board(size=9, handicap=0)
     @game = GameLogic.new
