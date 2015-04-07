@@ -116,7 +116,7 @@ class Goban
   # Actually we simply return the existing stone and the caller will update it
   def play_at(i,j)
     stone=@ban[j][i]
-    raise "Tried to play on existing stone in #{i},#{j}" if stone.color != EMPTY
+    raise "Tried to play on existing stone in #{stone}" if stone.color != EMPTY
     @history.push(stone)
     return stone
   end
