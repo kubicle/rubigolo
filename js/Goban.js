@@ -154,7 +154,7 @@ Goban.prototype.moveNumber = function () {
 Goban.prototype.playAt = function (i, j) {
     var stone = this.ban[j][i];
     if (stone.color !== main.EMPTY) {
-        throw new Error('Tried to play on existing stone in ' + i + ',' + j);
+        throw new Error('Tried to play on existing stone in ' + stone);
     }
     this.history.push(stone);
     return stone;
