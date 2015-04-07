@@ -179,7 +179,7 @@ private
   def find_dying_groups
     @all_groups.each do |g|
       next if g.eyes.size >= 2
-      next if g.eyes.size == 1 and g.eyes[0].size + g.extra_lives >= 3 # actually not enough if gote but well...
+      next if g.eyes.size == 1 and g.eyes[0].vcount + g.extra_lives >= 3 # actually not enough if gote but well...
       color = g.color
       next if g.eyes.size == 1 and g.eyes[0].groups[color].size > 1 # connected by eye
       
