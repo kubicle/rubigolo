@@ -230,7 +230,7 @@ BoardAnalyser.prototype.findDyingGroups = function () {
         if (g.eyes.length >= 2) {
             continue;
         }
-        if (g.eyes.length === 1 && g.eyes[0].length + g.extraLives >= 3) { // actually not enough if gote but well...
+        if (g.eyes.length === 1 && g.eyes[0].vcount + g.extraLives >= 3) { // actually not enough if gote but well...
             continue;
         }
         var color = g.color;
