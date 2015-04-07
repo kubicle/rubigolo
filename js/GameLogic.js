@@ -24,7 +24,7 @@ module.exports = GameLogic;
 
 GameLogic.prototype.newGame = function (gsize, handicap, komi) {
     if (gsize === undefined) gsize = null;
-    if (handicap === undefined) handicap = this.handicap;
+    if (handicap === undefined) handicap = 0;
     if (komi === undefined) komi = null;
     this.history.clear();
     this.errors.clear();
@@ -258,7 +258,7 @@ GameLogic.prototype.sgfToGame = function (game) {
         return game;
     }
     var reader = new SgfReader(game);
-    this.newGame(reader.boardSize, reader.handicap);
+    this.newGame(reader.boardSize);
     this.komi = reader.komi;
     return reader.toMoveList();
 };
