@@ -64,23 +64,23 @@ class Grid
     return CIRCULAR_COLOR_CHARS.index(char) + DAME_COLOR
   end
 
-  def to_text
-    to_text_ext(true, "\n")
+  def to_text(&block)
+    to_text_ext(true, "\n", block)
   end
 
-  def to_line
-    to_text_ext(false, ",")
+  def to_line(&block)
+    to_text_ext(false, ",", block)
   end
 
   # Receives a block of code and calls it for each vertex.
   # The block should return a string representation.
   # This method returns the concatenated string showing the grid.
-  def to_text_ext(with_labels, end_of_row)
+  def to_text_ext(with_labels, end_of_row, block)
     yx = Grid.new(@gsize).yx
     maxlen = 1
     @gsize.downto(1) do |j|
       1.upto(@gsize) do |i|
-        val = yield(@yx[j][i])
+        val = block.call(@yx[j][i])
         val = "" if val == nil
         yx[j][i] = val
         maxlen = val.length if val.length > maxlen
