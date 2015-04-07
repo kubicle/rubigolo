@@ -1,4 +1,4 @@
-require 'test/unit'
+require 'minitest/autorun'
 
 require_relative "../goban"
 require_relative "../time_keeper"
@@ -10,7 +10,7 @@ $log.level=Logger::ERROR
 
 $count = 0
 
-class TestSpeed < Test::Unit::TestCase
+class TestSpeed < Minitest::Test
 
   CM_UNDO = 0, CM_CLEAR = 1, CM_NEW = 2
 

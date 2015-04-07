@@ -1,4 +1,4 @@
-require 'test/unit'
+require 'minitest/autorun'
 
 require_relative "../logging"
 require_relative "../game_logic"
@@ -6,7 +6,7 @@ require_relative "../game_logic"
 # NB: for debugging think of using @goban.debug_display
 
 
-class TestGroup < Test::Unit::TestCase
+class TestGroup < Minitest::Test
 
   def initialize(test_name)
     super(test_name)

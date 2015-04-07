@@ -1,4 +1,4 @@
-require 'test/unit'
+require 'minitest/autorun'
 
 require_relative "../game_logic"
 require_relative "../logging"
@@ -8,7 +8,7 @@ require_relative "../zone_filler"
 
 # TODO: add tests for group detection while filling
 
-class TestZoneFiller < Test::Unit::TestCase
+class TestZoneFiller < Minitest::Test
 
   @@x = 123 # we use this color for replacements - should be rendered as "X"
 

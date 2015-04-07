@@ -1,11 +1,11 @@
-require 'test/unit'
+require 'minitest/autorun'
 
 require_relative "../logging"
 require_relative "../game_logic"
 require_relative "../score_analyser"
 
 
-class TestScoreAnalyser < Test::Unit::TestCase
+class TestScoreAnalyser < Minitest::Test
 
   def initialize(test_name)
     super(test_name)

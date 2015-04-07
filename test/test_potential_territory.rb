@@ -1,4 +1,4 @@
-require 'test/unit'
+require 'minitest/autorun'
 
 require_relative "../logging"
 require_relative "../game_logic"
@@ -7,7 +7,7 @@ require_relative "../potential_territory"
 # NB: for debugging think of using analyser.debug_dump
 
 
-class TestPotentialTerritory < Test::Unit::TestCase
+class TestPotentialTerritory < Minitest::Test
 
   POT2CHAR = "-'?.:"
 

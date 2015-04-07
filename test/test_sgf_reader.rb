@@ -1,9 +1,9 @@
-require 'test/unit'
+require 'minitest/autorun'
 
 require_relative "../sgf_reader"
 
 
-class TestSgfReader < Test::Unit::TestCase
+class TestSgfReader < Minitest::Test
 
   def initialize(test_name)
     super(test_name)
