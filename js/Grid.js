@@ -84,18 +84,18 @@ Grid.charToColor = function (char) {
     return Grid.CIRCULAR_COLOR_CHARS.index(char) + Grid.DAME_COLOR;
 };
 
-Grid.prototype.toText = function () {
-    return this.toTextExt(true, '\n');
+Grid.prototype.toText = function (block) {
+    return this.toTextExt(true, '\n', block);
 };
 
-Grid.prototype.toLine = function () {
-    return this.toTextExt(false, ',');
+Grid.prototype.toLine = function (block) {
+    return this.toTextExt(false, ',', block);
 };
 
 // Receives a block of code and calls it for each vertex.
 // The block should return a string representation.
 // This method returns the concatenated string showing the grid.
-Grid.prototype.toTextExt = function (withLabels, endOfRow, cb) {
+Grid.prototype.toTextExt = function (withLabels, endOfRow, block) {
     var yx = new Grid(this.gsize).yx;
     var maxlen = 1;
     var j, i, val;
