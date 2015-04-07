@@ -127,7 +127,7 @@ class Stone
   end
 
   def Stone.play_at(goban,i,j,color)
-    stone = goban.play_at(i,j,color)
+    stone = goban.play_at(i,j)
     stone.put_down(color)
     return stone
   end
