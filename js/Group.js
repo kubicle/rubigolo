@@ -342,5 +342,6 @@ Group.prisoners = function (goban) {
 };
 
 // E02: unknown method map(...)
+// E02: unknown method find_index(...)
 // E02: unknown method merged_with=(...)
 // E02: unknown method merged_by=(...)

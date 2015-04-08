@@ -124,3 +124,5 @@ ScoreAnalyser.prototype.scoreWinnerToS = function (totals) {
 ScoreAnalyser.prototype.pts = function (n) {
     return ( n !== 1 ? n + ' points' : '1 point' );
 };
+
+// E02: unknown method map(...)

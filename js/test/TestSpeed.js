@@ -185,4 +185,6 @@ TestSpeed.prototype.play10Stones = function () {
     }
 };
 
+// E02: unknown method level=(...)
 // E02: unknown method collect_concat(...)
+// E02: unknown method throw(...)

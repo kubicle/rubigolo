@@ -331,5 +331,4 @@ BoardAnalyser.prototype.groupLiveliness = function (g) {
 
 // W02: Unknown class supposed to be attached to main: Set
 // E02: unknown method add(...)
-// E02: unknown method count(...)
 // E02: unknown method find_index(...)
