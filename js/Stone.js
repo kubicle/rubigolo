@@ -51,7 +51,7 @@ Stone.prototype.toString = function () {
     if (this.color === main.EMPTY) {
         return 'empty:' + this.asMove();
     } else {
-        return 'stone' + Grid.COLOR_CHARS[this.color] + ':' + this.asMove();
+        return 'stone' + Grid.colorToChar(this.color) + ':' + this.asMove();
     }
 };
 

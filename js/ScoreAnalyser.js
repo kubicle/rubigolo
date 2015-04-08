@@ -84,7 +84,7 @@ ScoreAnalyser.prototype.scoreInfoToS = function (info) {
         var pris = detail[1];
         var komi = detail[2];
         var komiStr = (( komi > 0 ? ' + ' + komi + ' komi' : '' ));
-        s.push(Grid.colorName(c) + ' (' + Grid.COLOR_CHARS[c] + '): ' + this.pts(totals[c]) + ' (' + score + ' ' + ( pris < 0 ? '-' : '+' ) + ' ' + Math.abs(pris) + ' prisoners' + komiStr + ')');
+        s.push(Grid.colorName(c) + ' (' + Grid.colorToChar(c) + '): ' + this.pts(totals[c]) + ' (' + score + ' ' + ( pris < 0 ? '-' : '+' ) + ' ' + Math.abs(pris) + ' prisoners' + komiStr + ')');
     }
     return s;
 };

@@ -78,7 +78,7 @@ Goban.prototype.newGroup = function (stone, lives) {
 
 Goban.prototype.image = function () {
     return this.grid.toLine(function (s) {
-        return Grid.COLOR_CHARS[s.color];
+        return Grid.colorToChar(s.color);
     });
 };
 
@@ -86,7 +86,7 @@ Goban.prototype.image = function () {
 Goban.prototype.debugDisplay = function () {
     console.log('Board:');
     console.log(this.grid.toText(function (s) {
-        return Grid.COLOR_CHARS[s.color];
+        return Grid.colorToChar(s.color);
     }));
     console.log('Groups:');
     console.log(this.grid.toText(function (s) {
@@ -115,7 +115,7 @@ Goban.prototype.debugDisplay = function () {
 // This display is for debugging and text-only game
 Goban.prototype.consoleDisplay = function () {
     console.log(this.grid.toText(function (s) {
-        return Grid.COLOR_CHARS[s.color];
+        return Grid.colorToChar(s.color);
     }));
 };
 
