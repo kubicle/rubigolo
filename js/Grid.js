@@ -101,7 +101,7 @@ Grid.prototype.toTextExt = function (withLabels, endOfRow, block) {
     var j, i, val;
     for (j = this.gsize; j >= 1; j--) {
         for (i = 1; i <= this.gsize; i++) {
-            val = cb(this.yx[j][i]);
+            val = block(this.yx[j][i]);
             if (val === null) {
                 val = '';
             }
