@@ -40,6 +40,7 @@ class Stone
   end
   
   def to_s
+    @color==EMPTY ? "empty:#{as_move}" : "stone#{Grid.color_to_char(@color)}:#{as_move}"
   end
   
   # Returns "c3" for a stone in 3,3

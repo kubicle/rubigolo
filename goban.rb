@@ -66,11 +66,13 @@ class Goban
   end
 
   def image?
+    return @grid.to_line { |s| Grid.color_to_char(s.color) }
   end
 
   # For debugging only
   def debug_display
     puts "Board:"
+    print @grid.to_text { |s| Grid.color_to_char(s.color) }
     puts "Groups:"
     print @grid.to_text { |s| s.group ? "#{s.group.ndx}" : "." }
     puts "Full info on groups and stones:"
@@ -81,6 +83,7 @@ class Goban
 
   # This display is for debugging and text-only game
   def console_display
+    print @grid.to_text { |s| Grid.color_to_char(s.color) }
   end
 
   # Basic validation only: coordinates and checks the intersection is empty
