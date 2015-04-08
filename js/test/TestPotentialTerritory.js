@@ -1,8 +1,8 @@
 //Translated from test_potential_territory.rb using babyruby2js
 'use strict';
 
-var inherits = require('util').inherits;
 var main = require('../main');
+var inherits = require('util').inherits;
 var assertEqual = main.assertEqual;
 
 var GameLogic = require('../GameLogic');

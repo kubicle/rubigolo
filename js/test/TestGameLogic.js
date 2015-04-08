@@ -1,6 +1,7 @@
 //Translated from test_game_logic.rb using babyruby2js
 'use strict';
 
+var main = require('../main');
 var inherits = require('util').inherits;
 var assertEqual = main.assertEqual;
 

@@ -1,9 +1,9 @@
 //Translated from test_group.rb using babyruby2js
 'use strict';
 
+var main = require('../main');
 var inherits = require('util').inherits;
 var Stone = require('../Stone');
-var main = require('../main');
 var assertEqual = main.assertEqual;
 
 var GameLogic = require('../GameLogic');

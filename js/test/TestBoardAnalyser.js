@@ -1,6 +1,7 @@
 //Translated from test_board_analyser.rb using babyruby2js
 'use strict';
 
+var main = require('../main');
 var inherits = require('util').inherits;
 var Group = require('../Group');
 var assertEqual = main.assertEqual;

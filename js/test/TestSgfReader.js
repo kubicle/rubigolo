@@ -1,6 +1,7 @@
 //Translated from test_sgf_reader.rb using babyruby2js
 'use strict';
 
+var main = require('../main');
 var inherits = require('util').inherits;
 var assertEqual = main.assertEqual;
 var SgfReader = require('../SgfReader');
