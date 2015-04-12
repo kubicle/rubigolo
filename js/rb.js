@@ -1,22 +1,5 @@
 'use strict';
 
-var main = require('./main');
-
-
-//--- Misc
-
-main.isA = function (klass, obj) {
-  if (typeof klass === 'string') {
-    if (klass === 'Fixnum') return (typeof obj === 'number' || obj instanceof Number) && ~~obj == obj;
-    if (klass === 'Float')  return (typeof obj === 'number' || obj instanceof Number); // loose equivalence...
-    throw new Error('Invalid parameter for isA: ' + klass);
-  }
-  if (obj instanceof klass) return true;
-  if (obj === null || obj === undefined) return false;
-  if (obj.constructor.name === klass.name) return true; // for String and Number
-  return false;
-};
-
 
 //--- String
 
@@ -88,6 +71,24 @@ String.prototype.format = function (num) {
   throw new Error('Unknown format: ' + this.toString());
 };
 
+String.prototype.between = function (low, high) {
+  return this >= low && this <= high;
+};
+
+function escapeRegexp(str) {
+  return str.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, '\\$1');
+}
+
+String.prototype.replaceAll = function (pattern, replaceBy) {
+  if (pattern instanceof RegExp) {
+    if (pattern.global) return this.replace(pattern, replaceBy); // just in case...
+    var mode = pattern.ignoreCase ? 'gi' : 'g';
+    return this.replace(new RegExp(pattern.source, mode), replaceBy);
+  }
+  // NB: this would be fast and simpler on V8: this.split(pattern).join('')
+  return this.replace(new RegExp(escapeRegexp(pattern), 'g'), replaceBy);
+};
+
 
 //--- Array
 
@@ -98,7 +99,7 @@ String.prototype.format = function (num) {
  *         If a func is given, array[i] = func(i) will be performed for each item.
  *  @return {Array} - the new array
  */
-main.Array = function (size, init) {
+Array.new = function (size, init) {
   if (size === undefined) return [];
   if (init === undefined) return new Array(size);
 

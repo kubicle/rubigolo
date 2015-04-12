@@ -6,6 +6,32 @@ function main() {
 }
 module.exports = main;
 
+//--- Misc
+
+/** main.isA(Vehicule, myCar) -> TRUE
+ *  main.isA(Car, myCar) -> true
+ *  klass can be a string for Ruby types that have no exact equivalent in JS
+ */
+main.isA = function (klass, obj) {
+  if (typeof klass === 'string') {
+    if (klass === 'Fixnum') return (typeof obj === 'number' || obj instanceof Number) && ~~obj == obj;
+    if (klass === 'Float')  return (typeof obj === 'number' || obj instanceof Number); // loose equivalence...
+    throw new Error('Invalid parameter for isA: ' + klass);
+  }
+  if (obj instanceof klass) return true;
+  if (obj === null || obj === undefined) return false;
+  if (obj.constructor.name === klass.name) return true; // for String and Number
+  return false;
+};
+
+/** main.isA(Vehicule, myCar) -> FALSE
+ *  main.isA(Car, myCar) -> true
+ */
+main.instanceOf = function (klass, obj) {
+  return obj.constructor.name === klass.name;
+};
+
+
 //--- Tests
 
 /** @class */
