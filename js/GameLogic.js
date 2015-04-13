@@ -9,7 +9,6 @@ var Goban = require('./Goban');
 var SgfReader = require('./SgfReader');
 var HandicapSetter = require('./HandicapSetter');
 // GameLogic enforces the game logic.
-//public read-only attribute: goban, komi, curColor, gameEnded, gameEnding, whoResigned;
 
 /** @class */
 function GameLogic() {
@@ -22,6 +21,7 @@ function GameLogic() {
 }
 module.exports = GameLogic;
 
+//public read-only attribute: goban, komi, curColor, gameEnded, gameEnding, whoResigned;
 GameLogic.prototype.newGame = function (gsize, handicap, komi) {
     if (gsize === undefined) gsize = null;
     if (handicap === undefined) handicap = 0;

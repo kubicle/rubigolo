@@ -3,11 +3,6 @@
 
 var main = require('./main');
 //require 'yaml';
-Genes.SMALL_MUTATION_AMOUNT = 0.05; // e.g. 0.05 -> plus or minus 5%
-//public read-only attribute: map;
-// for limits
-Genes.LOW = 0;
-Genes.HIGH = 1;
 
 /** @class */
 function Genes(map, limits) {
@@ -18,6 +13,11 @@ function Genes(map, limits) {
 }
 module.exports = Genes;
 
+Genes.SMALL_MUTATION_AMOUNT = 0.05; // e.g. 0.05 -> plus or minus 5%
+//public read-only attribute: map;
+// for limits
+Genes.LOW = 0;
+Genes.HIGH = 1;
 Genes.prototype.clone = function () {
     return new Genes(this.map.clone(), this.limits.clone());
 };

@@ -2,7 +2,6 @@
 'use strict';
 
 var main = require('./main');
-
 var Grid = require('./Grid');
 var Stone = require('./Stone');
 var Group = require('./Group');
@@ -11,7 +10,6 @@ var Group = require('./Group');
 // - It also remembers the list of stones played and can share this info for undo feature.
 // - For console game and debug features, a goban can also "draw" its content as text.
 // See Stone and Group classes for the layer above this.
-//public read-only attribute: gsize, grid, scoringGrid, mergedGroups, killedGroups, garbageGroups;
 
 /** @class */
 function Goban(gsize) {
@@ -41,6 +39,7 @@ function Goban(gsize) {
 }
 module.exports = Goban;
 
+//public read-only attribute: gsize, grid, scoringGrid, mergedGroups, killedGroups, garbageGroups;
 // Prepares the goban for another game (same size, same number of players)
 Goban.prototype.clear = function () {
     for (var j = 1; j <= this.gsize; j++) {

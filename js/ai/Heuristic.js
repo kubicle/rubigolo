@@ -3,7 +3,6 @@
 
 // Base class for all heuristics.
 // Anything useful for all of them should be stored as data member here.
-//public read-only attribute: negative;
 
 /** @class */
 function Heuristic(player, consultant) {
@@ -18,6 +17,7 @@ function Heuristic(player, consultant) {
 }
 module.exports = Heuristic;
 
+//public read-only attribute: negative;
 Heuristic.prototype.initColor = function () {
     // For consultant heuristics we reverse the colors
     if (this.consultant) {

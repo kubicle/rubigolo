@@ -18,7 +18,6 @@ var PotentialTerritory = require('./PotentialTerritory');
 var AllHeuristics = require('ai/AllHeuristics');
 var TimeKeeper = require('./TimeKeeper');
 var Genes = require('./Genes');
-//public read-only attribute: goban, inf, ter, enemyColor, genes, lastMoveScore;
 
 /** @class */
 function Ai1Player(goban, color, genes) {
@@ -47,6 +46,7 @@ function Ai1Player(goban, color, genes) {
 inherits(Ai1Player, main.Player);
 module.exports = Ai1Player;
 
+//public read-only attribute: goban, inf, ter, enemyColor, genes, lastMoveScore;
 Ai1Player.prototype.prepareGame = function (genes) {
     this.genes = genes;
     this.numMoves = 0;

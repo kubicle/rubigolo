@@ -4,17 +4,11 @@
 var main = require('./main');
 var Genes = require('./Genes');
 //require 'trollop';
-
 var TimeKeeper = require('./TimeKeeper');
 var GameLogic = require('./GameLogic');
 var ScoreAnalyser = require('./ScoreAnalyser');
 var Ai1Player = require('./Ai1Player');
 main.debugBreed = false; // TODO move me somewhere else?
-Breeder.GENERATION_SIZE = 26; // must be even number
-Breeder.MUTATION_RATE = 0.03; // e.g. 0.02 is 2%
-Breeder.WIDE_MUTATION_RATE = 0.1; // how often do we "widely" mutate
-Breeder.KOMI = 4.5;
-Breeder.TOO_SMALL_SCORE_DIFF = 3; // if final score is less that this, see it as a tie game
 
 /** @class */
 function Breeder(gameSize) {
@@ -33,6 +27,11 @@ function Breeder(gameSize) {
 }
 module.exports = Breeder;
 
+Breeder.GENERATION_SIZE = 26; // must be even number
+Breeder.MUTATION_RATE = 0.03; // e.g. 0.02 is 2%
+Breeder.WIDE_MUTATION_RATE = 0.1; // how often do we "widely" mutate
+Breeder.KOMI = 4.5;
+Breeder.TOO_SMALL_SCORE_DIFF = 3; // if final score is less that this, see it as a tie game
 Breeder.prototype.firstGeneration = function () {
     this.controlGenes = this.players[0].genes.clone();
     this.generation = [];

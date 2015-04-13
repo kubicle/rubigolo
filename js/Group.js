@@ -3,20 +3,15 @@
 
 var Grid = require('./Grid');
 var main = require('./main');
-
 // Always require goban instead of stone
 // A group keeps the list of its stones, the updated number of "lives" (empty intersections around),
 // and whatever status information we need to decide what happens to a group (e.g. when a
 // group is killed or merged with another group, etc.).
 // Note that most of the work here is to keep this status information up to date.
-//public read-only attribute: goban, stones, lives, color;
-//public read-only attribute: mergedWith, mergedBy, killedBy, ndx;
-//public read-write attribute: mergedWith, mergedBy, extraLives; // only used in this file
-//public read-only attribute: eyes, voids, extraLives; // for analyser
-// Create a new group. Always with a single stone.
-// Do not call this using Group.new but Goban#new_group instead.
 
-/** @class */
+/** @class Create a new group. Always with a single stone.
+ *  Do not call this using Group.new but Goban#new_group instead.
+ */
 function Group(goban, stone, lives, ndx) {
     this.goban = goban;
     this.stones = [stone];
@@ -34,6 +29,10 @@ function Group(goban, stone, lives, ndx) {
 }
 module.exports = Group;
 
+//public read-only attribute: goban, stones, lives, color;
+//public read-only attribute: mergedWith, mergedBy, killedBy, ndx;
+//public read-write attribute: mergedWith, mergedBy, extraLives; // only used in this file
+//public read-only attribute: eyes, voids, extraLives; // for analyser
 Group.prototype.recycle = function (stone, lives) {
     this.stones.clear();
     this.stones.push(stone);

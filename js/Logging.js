@@ -3,12 +3,6 @@
 
 var main = require('./main');
 // require "logger"
-Logger.ERROR = 3;
-Logger.WARNING = 2;
-Logger.INFO = 1;
-Logger.DEBUG = 0;
-//public read-only attribute: level;
-//public read-write attribute: level;
 
 /** @class */
 function Logger(stream) {
@@ -16,6 +10,12 @@ function Logger(stream) {
 }
 module.exports = Logger;
 
+Logger.ERROR = 3;
+Logger.WARNING = 2;
+Logger.INFO = 1;
+Logger.DEBUG = 0;
+//public read-only attribute: level;
+//public read-write attribute: level;
 Logger.prototype.error = function (msg) {
     console.log('ERROR: ' + msg);
 };

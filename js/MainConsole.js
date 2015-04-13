@@ -4,14 +4,13 @@
 var Grid = require('./Grid');
 var main = require('./main');
 //require 'trollop';
-
 var GameLogic = require('./GameLogic');
 var ScoreAnalyser = require('./ScoreAnalyser');
 var Ai1Player = require('./Ai1Player');
 var ConsoleHumanPlayer = require('./ConsoleHumanPlayer');
-// Create game & players
 
-/** @class */
+/** @class Create game & players
+ */
 function ConsoleGame(opts) {
     this.game = new GameLogic();
     this.game.messagesToConsole(true);
