@@ -4,7 +4,8 @@
 var main = require('./main');
 var Grid = require('./Grid');
 
-/** @class */
+/** @class public read-only attribute: map
+ */
 function InfluenceMap(goban) {
     this.goban = goban;
     this.gsize = goban.gsize;
@@ -16,7 +17,6 @@ function InfluenceMap(goban) {
 }
 module.exports = InfluenceMap;
 
-//public read-only attribute: map;
 InfluenceMap.prototype.clear = function () {
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {

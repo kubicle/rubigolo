@@ -2,9 +2,11 @@
 'use strict';
 
 var main = require('./main');
-// require "logger"
 
-/** @class */
+/** @class require "logger"
+ *  public read-only attribute: level
+ *  public write attribute: level
+ */
 function Logger(stream) {
     this.level = Logger.INFO;
 }
@@ -14,8 +16,6 @@ Logger.ERROR = 3;
 Logger.WARNING = 2;
 Logger.INFO = 1;
 Logger.DEBUG = 0;
-//public read-only attribute: level;
-//public read-write attribute: level;
 Logger.prototype.error = function (msg) {
     console.log('ERROR: ' + msg);
 };

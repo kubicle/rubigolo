@@ -5,9 +5,9 @@ var main = require('../main');
 var inherits = require('util').inherits;
 var assertEqual = main.assertEqual;
 var GameLogic = require('../GameLogic');
-// TODO: very incomplete test
 
-/** @class */
+/** @class TODO: very incomplete test
+ */
 function TestGameLogic(testName) {
     main.TestCase.call(this, testName);
     return this.initBoard();

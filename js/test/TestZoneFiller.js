@@ -7,10 +7,10 @@ var Grid = require('../Grid');
 var assertEqual = main.assertEqual;
 var GameLogic = require('../GameLogic');
 var ZoneFiller = require('../ZoneFiller');
-// NB: for debugging think of using analyser.debug_dump
-// TODO: add tests for group detection while filling
 
-/** @class */
+/** @class NB: for debugging think of using analyser.debug_dump
+ *  TODO: add tests for group detection while filling
+ */
 function TestZoneFiller(testName) {
     main.TestCase.call(this, testName);
     return this.initBoard();

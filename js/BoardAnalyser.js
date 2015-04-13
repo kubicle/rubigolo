@@ -7,11 +7,12 @@ var Group = require('./Group');
 //require 'set';
 var Goban = require('./Goban');
 var ZoneFiller = require('./ZoneFiller');
-// Class used by BoardAnalyser class.
-// A void in an empty zone surrounded by (and including) various groups.
-// NB: when a void has a single color around; we call this an eye. Can be discussed...
 
-/** @class code is the void code (like a color but higher index)
+/** @class Class used by BoardAnalyser class.
+ *  A void in an empty zone surrounded by (and including) various groups.
+ *  NB: when a void has a single color around; we call this an eye. Can be discussed...
+ *  public read-only attribute: code, i, j, vcount, groups, eyeColor, owner
+ *  code is the void code (like a color but higher index)
  *  neighbors is an array of n arrays, with n == number of colors
  */
 function Void(analyser, code, i, j, vcount, neighbors) {
@@ -27,7 +28,6 @@ function Void(analyser, code, i, j, vcount, neighbors) {
 }
 module.exports = Void;
 
-//public read-only attribute: code, i, j, vcount, groups, eyeColor, owner;
 // Call it once. Populates @eye_color
 // @eye_color stays nil if there is more than 1 color around (not an eye) or full board empty
 Void.prototype.eyeCheck = function () {
@@ -90,7 +90,8 @@ Void.prototype.debugDump = function () {
 };
 
 
-/** @class */
+/** @class public read-only attribute: goban, scores, prisoners
+ */
 function BoardAnalyser() {
     this.goban = null;
     this.voids = [];
@@ -98,7 +99,6 @@ function BoardAnalyser() {
 }
 module.exports = BoardAnalyser;
 
-//public read-only attribute: goban, scores, prisoners;
 // Calling this method updates the goban to show the detected result.
 BoardAnalyser.prototype.countScore = function (goban, grid) {
     if (grid === undefined) grid = null;

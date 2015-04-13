@@ -1,10 +1,11 @@
 //Translated from heuristic.rb using babyruby2js
 'use strict';
 
-// Base class for all heuristics.
-// Anything useful for all of them should be stored as data member here.
 
-/** @class */
+/** @class Base class for all heuristics.
+ *  Anything useful for all of them should be stored as data member here.
+ *  public read-only attribute: negative
+ */
 function Heuristic(player, consultant) {
     if (consultant === undefined) consultant = false;
     this.player = player;
@@ -17,7 +18,6 @@ function Heuristic(player, consultant) {
 }
 module.exports = Heuristic;
 
-//public read-only attribute: negative;
 Heuristic.prototype.initColor = function () {
     // For consultant heuristics we reverse the colors
     if (this.consultant) {

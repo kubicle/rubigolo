@@ -5,13 +5,14 @@ var main = require('./main');
 var Grid = require('./Grid');
 var Stone = require('./Stone');
 var Group = require('./Group');
-// Stores what we have on the board (namely, the stones and the empty spaces).
-// - Giving coordinates, a Goban can return an existing stone.
-// - It also remembers the list of stones played and can share this info for undo feature.
-// - For console game and debug features, a goban can also "draw" its content as text.
-// See Stone and Group classes for the layer above this.
 
-/** @class */
+/** @class Stores what we have on the board (namely, the stones and the empty spaces).
+ *  - Giving coordinates, a Goban can return an existing stone.
+ *  - It also remembers the list of stones played and can share this info for undo feature.
+ *  - For console game and debug features, a goban can also "draw" its content as text.
+ *  See Stone and Group classes for the layer above this.
+ *  public read-only attribute: gsize, grid, scoringGrid, mergedGroups, killedGroups, garbageGroups
+ */
 function Goban(gsize) {
     if (gsize === undefined) gsize = 19;
     this.gsize = gsize;
@@ -39,7 +40,6 @@ function Goban(gsize) {
 }
 module.exports = Goban;
 
-//public read-only attribute: gsize, grid, scoringGrid, mergedGroups, killedGroups, garbageGroups;
 // Prepares the goban for another game (same size, same number of players)
 Goban.prototype.clear = function () {
     for (var j = 1; j <= this.gsize; j++) {

@@ -6,9 +6,9 @@ var inherits = require('util').inherits;
 var Stone = require('../Stone');
 var assertEqual = main.assertEqual;
 var Goban = require('../Goban');
-// NB: for debugging think of using @goban.console_display
 
-/** @class */
+/** @class NB: for debugging think of using @goban.console_display
+ */
 function TestStone(testName) {
     main.TestCase.call(this, testName);
     return this.initBoard();

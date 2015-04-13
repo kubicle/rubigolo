@@ -2,14 +2,14 @@
 'use strict';
 
 
-/** @class */
+/** @class public read-only attribute: goban, color, isHuman
+ */
 function Player(isHuman, goban) {
     this.isHuman = isHuman;
     this.goban = goban;
 }
 module.exports = Player;
 
-//public read-only attribute: goban, color, isHuman;
 Player.prototype.setColor = function (color) {
     this.color = color;
 };

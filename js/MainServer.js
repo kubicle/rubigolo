@@ -12,10 +12,10 @@ var Stone = require('./Stone');
 var GameLogic = require('./GameLogic');
 var ScoreAnalyser = require('./ScoreAnalyser');
 var Ai1Player = require('./Ai1Player');
-// Very simple server that can be used to play a single *local* game
-// using a web browser as GUI.
 
-/** @class */
+/** @class Very simple server that can be used to play a single *local* game
+ *  using a web browser as GUI.
+ */
 function MainServer() {
     this.game = null;
     this.scorer = new ScoreAnalyser();

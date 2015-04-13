@@ -7,9 +7,9 @@ var Grid = require('../Grid');
 var assertEqual = main.assertEqual;
 var GameLogic = require('../GameLogic');
 var Ai1Player = require('../Ai1Player');
-// NB: for debugging think of using @goban.debug_display
 
-/** @class */
+/** @class NB: for debugging think of using @goban.debug_display
+ */
 function TestAi(testName) {
     main.TestCase.call(this, testName);
     return this.initBoard();

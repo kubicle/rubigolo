@@ -6,9 +6,9 @@ var inherits = require('util').inherits;
 var assertEqual = main.assertEqual;
 var GameLogic = require('../GameLogic');
 var PotentialTerritory = require('../PotentialTerritory');
-// NB: for debugging think of using analyser.debug_dump
 
-/** @class */
+/** @class NB: for debugging think of using analyser.debug_dump
+ */
 function TestPotentialTerritory(testName) {
     return main.TestCase.call(this, testName);
 }

@@ -3,7 +3,8 @@
 
 var main = require('./main');
 
-/** @class if a grid is given, it is used as starting point; 
+/** @class public read-only attribute: grid
+ *  if a grid is given, it is used as starting point; 
  *  otherwise, the goban scoring_grid is used.
  */
 function ZoneFiller(goban, grid) {
@@ -18,7 +19,6 @@ function ZoneFiller(goban, grid) {
 }
 module.exports = ZoneFiller;
 
-//public read-only attribute: grid;
 // "Color" a goban zone.
 // to_replace can be EMPTY or a zone code (but cannot be a real color like BLACK)
 // neighbors, if given should be an array of n arrays, with n == number of colors

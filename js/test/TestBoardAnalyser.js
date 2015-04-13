@@ -7,9 +7,9 @@ var Group = require('../Group');
 var assertEqual = main.assertEqual;
 var GameLogic = require('../GameLogic');
 var BoardAnalyser = require('../BoardAnalyser');
-// NB: for debugging think of using analyser.debug_dump
 
-/** @class */
+/** @class NB: for debugging think of using analyser.debug_dump
+ */
 function TestBoardAnalyser(testName) {
     return main.TestCase.call(this, testName);
 }
