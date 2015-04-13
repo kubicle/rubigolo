@@ -8,7 +8,8 @@ var main = require('./main');
 // B[ce];W[dc]...;B[tt];W[tt];B[tt];W[aq])
 
 
-/** @class */
+/** @class public read-only attribute: boardSize, komi, handicap, handicapStones
+ */
 function SgfReader(sgf) {
     this.text = sgf;
     this.nodes = [];
@@ -21,7 +22,6 @@ function SgfReader(sgf) {
 }
 module.exports = SgfReader;
 
-//public read-only attribute: boardSize, komi, handicap, handicapStones;
 // Raises an exception if we could not convert the format
 SgfReader.prototype.toMoveList = function () {
     // NB: we verify the expected player since our internal move format

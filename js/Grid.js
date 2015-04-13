@@ -3,9 +3,10 @@
 
 var main = require('./main');
 var Stone = require('./Stone');
-// A generic grid - a Goban owns a grid
 
-/** @class */
+/** @class A generic grid - a Goban owns a grid
+ *  public read-only attribute: gsize, yx
+ */
 function Grid(gsize) {
     if (gsize === undefined) gsize = 19;
     this.gsize = gsize;
@@ -33,7 +34,6 @@ Grid.DEAD_COLOR = 2;
 Grid.TERRITORY_COLOR = 4;
 Grid.CIRCULAR_COLOR_CHARS = Grid.DAME_CHAR + Grid.EMPTY_CHAR + Grid.COLOR_CHARS;
 Grid.ZONE_CODE = 100; // used for zones (100, 101, etc.); must be > COLOR_CHARS.size
-//public read-only attribute: gsize, yx;
 Grid.prototype.copy = function (sourceGrid) {
     if (sourceGrid.gsize !== this.gsize) {
         throw new Error('Cannot copy between different sized grids');
