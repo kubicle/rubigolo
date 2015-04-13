@@ -1,4 +1,4 @@
-require 'test/unit'
+require 'minitest/autorun'
 
 require_relative "../logging"
 require_relative "../game_logic"
@@ -7,7 +7,7 @@ require_relative "../board_analyser"
 # NB: for debugging think of using analyser.debug_dump
 
 
-class TestBoardAnalyser < Test::Unit::TestCase
+class TestBoardAnalyser < Minitest::Test
 
   def init_board(size=5, handicap=0)
     @game = GameLogic.new

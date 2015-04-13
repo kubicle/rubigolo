@@ -47,7 +47,7 @@ class SgfReader
       moves << "#{convert_move(value)},"
       expected_player = (expected_player == "B" ? "W" : "B")
     end
-    return moves.chop!
+    return moves.chop
   end
 
 private
@@ -81,17 +81,21 @@ private
   end
 
   def parse_game_tree(t)
-    skip(t)
-    get("(",t)
-    parse_node(t)
-    while parse_node(t) do end
+    t = skip(t)
+    t = get("(",t)
+    t = parse_node(t)
+    @finished = false
+    while !@finished do t = parse_node(t) end
     get(")",t)
   end
 
   def parse_node(t)
-    skip(t)
-    return false if t[0]!=";"
-    get(";",t)
+    t = skip(t)
+    if t[0]!=";"
+      @finished = true
+      return t
+    end
+    t = get(";",t)
     node = []
     while true
       i = 0
@@ -99,31 +103,30 @@ private
       prop_ident = t[0,i]
       error("Property name expected",t) if prop_ident == ""
       node.push(prop_ident)
-      get(prop_ident,t)
+      t = get(prop_ident,t)
       while true
-        get("[",t)
+        t = get("[",t)
         brace = t.index("]")
         error("Missing ']'",t) if ! brace
         val = t[0,brace]
         node.push(val)
-        get(val+"]",t)
+        t = get(val+"]",t)
         break if t[0] != "["
         node.push(nil) # multiple values, we use nil as name for 2nd, 3rd, etc.
       end
       break if ! t[0] or ! t[0].between?("A","Z")
     end
     @nodes.push(node)
-    return true
+    return t
   end
 
   def skip(t)
-    t.lstrip!
+    return t.lstrip
   end
   
   def get(lex,t)
     error("#{lex} expected",t) if ! t.start_with?(lex)
-    t.sub!(lex,"")
-    t.lstrip!
+    return t.sub(lex,"").lstrip
   end
   
   def error(reason,t)

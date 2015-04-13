@@ -53,7 +53,7 @@ class Group
     s = "{group ##{@ndx} of #{@stones.size}"+
       " #{Grid.color_name(@color)} stones ["
     @stones.each { |stone| s << "#{stone.as_move}," }
-    s.chop!
+    s = s.chop
     s << "], lives:#{@lives}"
     s << " MERGED with ##{@merged_with.ndx}" if @merged_with
     s << " KILLED by #{@killed_by.as_move}" if @killed_by
@@ -79,8 +79,8 @@ class Group
   end
 
   # Adds a void or an eye
-  def add_void(void, is_eye = false)
-    if is_eye then @eyes.push(void) else @voids.push(void) end
+  def add_void(v, is_eye = false)
+    if is_eye then @eyes.push(v) else @voids.push(v) end
   end
 
   # For analyser  
@@ -121,9 +121,14 @@ class Group
     lives = 0
     stone.neighbors.each do |life|
       next if life.color != EMPTY
-      lives += 1 unless true == life.neighbors.each { |s| break(true) if s.group == self and s != stone }
-      # Using any? or detect makes the code clearer but slower :(
-      # lives += 1 unless life.neighbors.any? { |s| s.group == self and s != stone }
+      res = false
+      life.neighbors.each do |s|
+        if s.group == self and s != stone
+          res = true
+          break
+        end
+      end
+      lives += 1 if !res
     end
     $log.debug("#{lives} lives added by #{stone} for group #{self}") if $debug_group
     return lives

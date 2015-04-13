@@ -5,13 +5,13 @@ class InfluenceMap
 
   def initialize(goban)
     @goban = goban
-    @size = goban.size
-    @map = Array.new(@size+1) {Array.new(@size+1) {[0,0]}}
+    @gsize = goban.gsize
+    @map = Array.new(@gsize+1) {Array.new(@gsize+1) {[0,0]}}
   end
   
   def clear
-    1.upto(@size) do |j|
-      1.upto(@size) do |i|
+    1.upto(@gsize) do |j|
+      1.upto(@gsize) do |i|
         2.times { |c| @map[j][i][c] = 0 }
       end
     end
@@ -21,8 +21,8 @@ class InfluenceMap
     clear
     influence = [4,2,1]
     # First we get stones' direct influence
-    1.upto(@size) do |j|
-      1.upto(@size) do |i|
+    1.upto(@gsize) do |j|
+      1.upto(@gsize) do |i|
         stone = @goban.stone_at?(i,j)
         color = stone.color
         if color != EMPTY
@@ -52,15 +52,15 @@ class InfluenceMap
   def debug_dump
     2.times do |c|
       puts "Influence map for #{Grid::COLOR_NAMES[c]}:"
-      @size.downto(1) do |j|
+      @gsize.downto(1) do |j|
         print "#{'%2d' % j}"
-        1.upto(@size) do |i|
+        1.upto(@gsize) do |i|
           print "#{'%2d' % @map[j][i][c]}|"
         end
         print "\n"
       end
       print "  "
-      1.upto(@size) { |i| print " #{Grid.x_label(i)} " }
+      1.upto(@gsize) { |i| print " #{Grid.x_label(i)} " }
       print "\n"
     end
   end

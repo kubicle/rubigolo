@@ -47,7 +47,7 @@ class Spacer < Heuristic
   end    
   
   def distance_from_border(n)
-    if n - 1 < @size - n then return n - 1 else return @size - n end
+    if n - 1 < @gsize - n then return n - 1 else return @gsize - n end
   end
 
 end

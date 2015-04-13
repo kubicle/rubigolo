@@ -15,15 +15,15 @@ class GameLogic
     @goban = nil
   end
 
-  def new_game(size=nil, handicap=@handicap, komi=nil)
+  def new_game(gsize=nil, handicap=0, komi=nil)
     @history.clear
     @errors.clear
     @num_pass = 0
     @cur_color = BLACK
     @game_ended = @game_ending = false
     @who_resigned = nil
-    if ! @goban or ( size and size != @goban.size )
-      @goban = Goban.new(size)
+    if ! @goban or ( gsize and gsize != @goban.gsize )
+      @goban = Goban.new(gsize)
     else
       @goban.clear
     end
@@ -215,7 +215,7 @@ private
   def sgf_to_game(game)
     return game if ! game.start_with?("(;FF") # are they are always the 1st characters?
     reader = SgfReader.new(game)
-    new_game(reader.board_size, reader.handicap)
+    new_game(reader.board_size)
     @komi = reader.komi
     return reader.to_move_list
   end

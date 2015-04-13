@@ -1,10 +1,10 @@
-require 'test/unit'
+require 'minitest/autorun'
 
 $test = true
 require_relative "../breeder"
 
 
-class TestBreeder < Test::Unit::TestCase
+class TestBreeder < Minitest::Test
 
   def initialize(test_name)
     super(test_name)

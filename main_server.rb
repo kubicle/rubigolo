@@ -147,11 +147,11 @@ class MainServer
 
   # http://localhost:8080/newGame?size=9&handicap=0&ai=0
   def req_new_game(args)
-    size = get_arg_i(args,"size",19)
+    gsize = get_arg_i(args,"size",19)
     handicap = get_arg_i(args,"handicap",0)
     num_ai = get_arg_i(args,"ai",1)
     @game = GameLogic.new
-    @game.new_game(size,handicap)
+    @game.new_game(gsize,handicap)
     @goban = @game.goban
     @have_score = false
     @players.clear
@@ -242,7 +242,7 @@ class MainServer
     ending = (!ended and @game.game_ending)
     player = @players[@game.cur_color]
     human_move = (!ended and !ending and !player)
-    size=@goban.size
+    gsize=@goban.gsize
     show_score_info if ending
     
     s="<html><head>"
@@ -251,9 +251,9 @@ class MainServer
     s << "a:hover {color:#00D000} a:active {color:#FFFF00} \n"
     s << "table {border: 1px solid black;} td {width: 15px;}</style>"
     s << "</head><body><table>"
-    size.downto(1) do |j|
+    gsize.downto(1) do |j|
       s << "<tr><th>"+j.to_s+"</th>"
-      1.upto(size) do |i|
+      1.upto(gsize) do |i|
         if @have_score then color = goban.scoring_grid.yx[j][i]
         else color = goban.stone_at?(i,j).color end
         if color == EMPTY
@@ -269,7 +269,7 @@ class MainServer
       s << "</tr>"
     end
     s << "<tr><td></td>"
-    1.upto(size) { |i| s << "<th>"+Grid.x_label(i)+"</th>" }
+    1.upto(gsize) { |i| s << "<th>"+Grid.x_label(i)+"</th>" }
     s << "</tr></table>"
 
     if ai_played then
@@ -295,8 +295,8 @@ class MainServer
     end
 
     errors = @game.get_errors
-    while txt = errors.shift do s << "#{txt}<br>" end
-    while txt = @messages.shift do s << "#{txt}<br>" end
+    while (txt = errors.shift) do s << "#{txt}<br>" end
+    while (txt = @messages.shift) do s << "#{txt}<br>" end
 
     if question
       s << "<form name='my_form' action='#{question[:action]}'><b>#{question[:label]}</b><br>"
@@ -311,4 +311,3 @@ end
 
 server=MainServer.new
 server.start
-

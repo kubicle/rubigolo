@@ -1,4 +1,4 @@
-require 'test/unit'
+require 'minitest/autorun'
 
 require_relative "../logging"
 require_relative "../game_logic"
@@ -7,7 +7,7 @@ require_relative "../potential_territory"
 # NB: for debugging think of using analyser.debug_dump
 
 
-class TestPotentialTerritory < Test::Unit::TestCase
+class TestPotentialTerritory < Minitest::Test
 
   POT2CHAR = "-'?.:"
 
@@ -23,7 +23,7 @@ class TestPotentialTerritory < Test::Unit::TestCase
   end
 
   def potential_to_s(grid)
-    return grid.to_text(false,",") {|v| POT2CHAR[2+v*2]}.chop
+    return grid.to_line {|v| POT2CHAR[2+v*2]}
   end
 
   def test_terr1

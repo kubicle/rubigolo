@@ -1,10 +1,10 @@
-require 'test/unit'
+require 'minitest/autorun'
 
 require_relative "../logging"
 require_relative "../game_logic"
 
 # TODO: very incomplete test
-class TestGameLogic < Test::Unit::TestCase
+class TestGameLogic < Minitest::Test
 
   def init_board(size=5, handicap=0)
     @game = GameLogic.new

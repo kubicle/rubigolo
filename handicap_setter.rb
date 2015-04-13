@@ -34,14 +34,14 @@ class HandicapSetter
   def HandicapSetter.set_standard_handicap(goban, count)
     # we want middle points only if the board is big enough 
     # and has an odd number of intersections
-    size = goban.size
-    count = 4 if (size<9 or size.modulo(2)==0) and count > 4
+    gsize = goban.gsize
+    count = 4 if (gsize<9 or gsize.modulo(2)==0) and count > 4
     # Compute the distance from the handicap points to the border:
     # on boards smaller than 13, the handicap point is 2 points away from the border
-    dist_to_border=(size<13 ? 2 : 3)
+    dist_to_border=(gsize<13 ? 2 : 3)
     short = 1 + dist_to_border
-    middle = 1 + size/2
-    long = size - dist_to_border
+    middle = (1 + gsize) / 2
+    long = gsize - dist_to_border
     
     count.times do |ndx|
       # Compute coordinates from the index.

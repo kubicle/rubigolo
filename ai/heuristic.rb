@@ -10,7 +10,7 @@ class Heuristic
     @consultant = consultant
     @negative = false
     @goban = player.goban
-    @size = player.goban.size
+    @gsize = player.goban.gsize
     @inf = player.inf
     @ter = player.ter
   end

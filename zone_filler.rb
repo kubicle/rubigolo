@@ -8,7 +8,6 @@ class ZoneFiller
   # otherwise, the goban scoring_grid is used.
   def initialize(goban, grid=nil)
     grid = goban.scoring_grid.convert(goban.grid) if !grid
-    # $log.debug("ZoneFiller.new \n"+grid.to_s) if $debug
     @goban = goban
     @grid = grid
     @yx = grid.yx
@@ -22,7 +21,7 @@ class ZoneFiller
   def fill_with_color(start_i, start_j, to_replace, color, neighbors=nil)
     # $log.debug("fill #{start_i} #{start_j}; replace #{to_replace} with #{color}") if $debug
     return 0 if @yx[start_j][start_i] != to_replace
-    size = 0
+    vcount = 0
     @to_replace = to_replace
     @groups = neighbors
     gaps = [[start_i, start_j, start_j]]
@@ -32,7 +31,7 @@ class ZoneFiller
       next if @yx[j0][i] != to_replace # gap already done by another path
       while _check(i,j0-1) do j0 -= 1 end
       while _check(i,j1+1) do j1 += 1 end
-      size += j1-j0+1
+      vcount += j1-j0+1
       # $log.debug("Doing column #{i} from #{j0}-#{j1}") if $debug
       (i-1).step(i+1,2) do |ix|
         curgap = nil
@@ -57,7 +56,7 @@ class ZoneFiller
         gaps.push([ix,curgap,j1]) if curgap # last gap
       end # each ix
     end # while gap
-    return size
+    return vcount
   end
 
 private

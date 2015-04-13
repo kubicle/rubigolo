@@ -71,7 +71,7 @@ class ScoreAnalyser
       pris = detail[1]
       komi = detail[2]
       komi_str = (komi > 0 ? " + #{komi} komi" : "")
-      s.push("#{Grid.color_name(c)} (#{Grid::COLOR_CHARS[c]}): "+
+      s.push("#{Grid.color_name(c)} (#{Grid.color_to_char(c)}): "+
           "#{pts(totals[c])} (#{score} #{pris<0 ? '-' : '+'} #{pris.abs} prisoners#{komi_str})")
     end
     return s

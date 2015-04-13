@@ -4,14 +4,14 @@ class PotentialTerritory
 
   def initialize(goban)
     @goban = goban
-    @size = goban.size
+    @gsize = goban.gsize
     @boan = BoardAnalyser.new
     @real_grid = @goban.scoring_grid # we can reuse the already allocated grid
     @real_yx = @real_grid.yx # simple shortcut to real yx
     # grids below are used in the evaluation process
-    @grids = [Grid.new(goban.size), Grid.new(goban.size)]
-    @reduced_grid = Grid.new(goban.size)
-    @territory = Grid.new(goban.size) # result of evaluation
+    @grids = [Grid.new(@gsize), Grid.new(@gsize)]
+    @reduced_grid = Grid.new(@gsize)
+    @territory = Grid.new(@gsize) # result of evaluation
   end
 
   # Returns the matrix of potential territory.
@@ -25,8 +25,8 @@ class PotentialTerritory
     $log.debug("\nBLACK first:\n#{@grids[0]}WHITE first:\n#{@grids[1]}") if $debug
 
     # now merge the result
-    1.upto(@size) do |j|
-      1.upto(@size) do |i|
+    1.upto(@gsize) do |j|
+      1.upto(@gsize) do |i|
         owner = 0
         2.times do |first|
           terr_color = @grids[first].yx[j][i] - Grid::TERRITORY_COLOR
@@ -86,8 +86,8 @@ private
     $log.debug("enlarge #{first},#{second}") if $debug
     in_yx = in_grid.yx
     out_yx = out_grid.yx
-    1.upto(@size) do |j|
-      1.upto(@size) do |i|
+    1.upto(@gsize) do |j|
+      1.upto(@gsize) do |i|
         next if in_yx[j][i] != EMPTY
         enlarge_at(in_yx, out_yx, i, j, first, second)
       end
@@ -97,8 +97,8 @@ private
   # Reduces given grid using the real grid as reference.
   def reduce(grid)
     yx = grid.yx
-    1.upto(@size) do |j|
-      1.upto(@size) do |i|
+    1.upto(@gsize) do |j|
+      1.upto(@gsize) do |i|
         next if @real_yx[j][i] != EMPTY # cannot reduce a real stone
         color = yx[j][i]
         next if color == EMPTY # we did not enlarge here, no need to reduce
@@ -158,47 +158,23 @@ private
 
   # connect stones close to borders to the border
   def connect_to_borders(yx)
-    2.upto(@size-1) do |n|
+    2.upto(@gsize-1) do |n|
       AROUND.each do |c|
-        i = (c[0]<0 ? @size   : c[0]*n)     + c[1] # n,1,n,size
-        j = (c[2]<0 ? @size   : c[2]*n)     + c[3] # 1,n,size,n
+        i = (c[0]<0 ? @gsize   : c[0]*n)     + c[1] # n,1,n,gsize
+        j = (c[2]<0 ? @gsize   : c[2]*n)     + c[3] # 1,n,gsize,n
         if yx[j][i]==EMPTY
-          i2= (c[0]<0 ? @size-1 : c[0]*n)     + c[1]*2  # n,2,n,size-1
-          j2= (c[2]<0 ? @size-1 : c[2]*n)     + c[3]*2  # 2,n,size-1,n
-          i3= (c[0]<0 ? @size   : c[0]*(n+1)) + c[1]  # n+1,1,n+1,size
-          j3= (c[2]<0 ? @size   : c[2]*(n+1)) + c[3]  # 1,n+1,size,n+1
-          i4= (c[0]<0 ? @size   : c[0]*(n-1)) + c[1]  # n-1,1,n-1,size
-          j4= (c[2]<0 ? @size   : c[2]*(n-1)) + c[3]  # 1,n-1,size,n-1
+          i2= (c[0]<0 ? @gsize-1 : c[0]*n)     + c[1]*2  # n,2,n,gsize-1
+          j2= (c[2]<0 ? @gsize-1 : c[2]*n)     + c[3]*2  # 2,n,gsize-1,n
+          i3= (c[0]<0 ? @gsize   : c[0]*(n+1)) + c[1]  # n+1,1,n+1,gsize
+          j3= (c[2]<0 ? @gsize   : c[2]*(n+1)) + c[3]  # 1,n+1,gsize,n+1
+          i4= (c[0]<0 ? @gsize   : c[0]*(n-1)) + c[1]  # n-1,1,n-1,gsize
+          j4= (c[2]<0 ? @gsize   : c[2]*(n-1)) + c[3]  # 1,n-1,gsize,n-1
           next2border = yx[j2][i2]
           if next2border!=EMPTY and yx[j3][i3]==EMPTY and yx[j4][i4]==EMPTY
             add_stone(yx, i, j, next2border)
           end
         end
       end
-      # if @goban.empty?(i,1)
-      #   next2border = @goban.stone_at?(i,2).color
-      #   if next2border != EMPTY and @goban.empty?(i+1,1) and @goban.empty?(i-1,1)
-      #     Stone.play_at(@goban,i,1,next2border)
-      #   end
-      # end
-      # if @goban.empty?(1,i)
-      #   next2border = @goban.stone_at?(2,i).color
-      #   if next2border != EMPTY and @goban.empty?(1,i+1) and @goban.empty?(1,i-1)
-      #     Stone.play_at(@goban,1,i,next2border)
-      #   end
-      # end
-      # if @goban.empty?(i,@size)
-      #   next2border = @goban.stone_at?(i,@size-1).color
-      #   if next2border != EMPTY and @goban.empty?(i+1,@size) and @goban.empty?(i-1,@size)
-      #     Stone.play_at(@goban,i,@size,next2border)
-      #   end
-      # end
-      # if @goban.empty?(@size,i)
-      #   next2border = @goban.stone_at?(@size-1,i).color
-      #   if next2border != EMPTY and @goban.empty?(@size,i+1) and @goban.empty?(@size,i-1)
-      #     Stone.play_at(@goban,@size,i,next2border)
-      #   end
-      # end
     end
   end
 

@@ -1,4 +1,4 @@
-require 'test/unit'
+require 'minitest/autorun'
 
 require_relative "../logging"
 require_relative "../goban"
@@ -6,17 +6,17 @@ require_relative "../goban"
 # NB: for debugging think of using @goban.console_display
 
 
-class TestStone < Test::Unit::TestCase
-
-  def init_board()
-    @goban = Goban.new(5)
-  end
+class TestStone < Minitest::Test
 
   def initialize(test_name)
     super(test_name)
     init_board()
   end
   
+  def init_board()
+    @goban = Goban.new(5)
+  end
+
   def how_many_lives?(i,j)
     s = @goban.stone_at?(i,j)
     lives_before = s.empties.size
@@ -35,11 +35,11 @@ class TestStone < Test::Unit::TestCase
   # Not very useful anymore for stones
   def test_how_many_lives
     assert_equal(2,how_many_lives?(1,1))
-    assert_equal(2,how_many_lives?(@goban.size,@goban.size))
-    assert_equal(2,how_many_lives?(1,@goban.size))
-    assert_equal(2,how_many_lives?(@goban.size,1))
+    assert_equal(2,how_many_lives?(@goban.gsize,@goban.gsize))
+    assert_equal(2,how_many_lives?(1,@goban.gsize))
+    assert_equal(2,how_many_lives?(@goban.gsize,1))
     assert_equal(4,how_many_lives?(2,2))
-    assert_equal(4,how_many_lives?(@goban.size-1,@goban.size-1))
+    assert_equal(4,how_many_lives?(@goban.gsize-1,@goban.gsize-1))
     s=Stone.play_at(@goban, 2, 2, BLACK); # we will try white stones around this one
     g=s.group
     assert_equal(2,how_many_lives?(1,1))

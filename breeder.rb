@@ -17,13 +17,13 @@ class Breeder
   TOO_SMALL_SCORE_DIFF = 3 # if final score is less that this, see it as a tie game
 
   def initialize(game_size)
-    @size = game_size
+    @gsize = game_size
     @timer = TimeKeeper.new
     @timer.calibrate(0.7)
     @game = GameLogic.new
     @game.messages_to_console(true)
     @game.set_log_level("all=0")
-    @game.new_game(@size)
+    @game.new_game(@gsize)
     @goban = @game.goban
     @players = [Ai1Player.new(@goban, BLACK), Ai1Player.new(@goban, WHITE)]
     @scorer = ScoreAnalyser.new
@@ -60,7 +60,7 @@ class Breeder
   # Plays a game and returns the score difference in points
   def play_game(name1,name2,p1,p2)
     # @timer.start("AI VS AI game",0.5,3)
-    @game.new_game(@size,0,KOMI)
+    @game.new_game(@gsize,0,KOMI)
     @players[0].prepare_game(p1)
     @players[1].prepare_game(p2)
     play_until_game_ends
@@ -161,7 +161,7 @@ class Breeder
   end
 
   # Play many games AI VS AI to verify black/white balance
-  def bw_balance_check(num_games,size)
+  def bw_balance_check(num_games,gsize)
     @timer.start("bw_balance_check", num_games/1000.0*50, num_games/1000.0*512)
     $log.debug("Checking black/white balance by playing #{num_games} games (komi=#{KOMI})...")
     total_score = num_wins = 0
@@ -171,7 +171,7 @@ class Breeder
       raise "tie game?!" if score == 0
       total_score += score
     end
-    @timer.stop(false) #size == 9) # if size is not 9 our perf numbers are of course meaningless
+    @timer.stop(false) #gsize == 9) # if gsize is not 9 our perf numbers are of course meaningless
     $log.debug("Average score of control against itself: #{total_score/num_games}")
     $log.debug("Out of #{num_games} games, black won #{num_wins} times")
     return num_wins

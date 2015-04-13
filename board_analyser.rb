@@ -7,17 +7,17 @@ require_relative "zone_filler"
 # A void in an empty zone surrounded by (and including) various groups.
 # NB: when a void has a single color around; we call this an eye. Can be discussed...
 class Void
-  attr_reader :code, :i, :j, :size, :groups, :eye_color, :owner
+  attr_reader :code, :i, :j, :vcount, :groups, :eye_color, :owner
   
   # code is the void code (like a color but higher index)
   # neighbors is an array of n arrays, with n == number of colors
-  def initialize(analyser,code,i,j,size,neighbors)
+  def initialize(analyser,code,i,j,vcount,neighbors)
     @analyzer = analyser
     @goban = analyser.goban
     @code = code
     @i = i
     @j = j
-    @size = size
+    @vcount = vcount
     @groups = neighbors # neighboring groups (array of arrays; 1st index is color)
     @eye_color = nil # stays nil if not an eye
     @owner = nil
@@ -54,7 +54,7 @@ class Void
   end
   
   def to_s
-    s = "void #{@code} (#{Grid.color_to_char(@code)}/#{@i},#{@j}), size #{@size}"
+    s = "void #{@code} (#{Grid.color_to_char(@code)}/#{@i},#{@j}), vcount #{@vcount}"
     @groups.size.times do |color|
       s << ", #{@groups[color].size} #{Grid::COLOR_NAMES[color]} neighbors"
     end
@@ -102,7 +102,7 @@ class BoardAnalyser
     color_voids
 
     @voids.each do |v|
-      @scores[v.owner] += v.size if v.owner
+      @scores[v.owner] += v.vcount if v.owner
     end
     
     debug_dump if $debug
@@ -138,10 +138,10 @@ private
     @voids.clear
     
     neighbors = [[],[]]
-    1.upto(@goban.size) do |j|
-      1.upto(@goban.size) do |i|
-        if (size = @filler.fill_with_color(i, j, EMPTY, void_code, neighbors)) > 0
-          @voids.push(Void.new(self,void_code,i,j,size,neighbors))
+    1.upto(@goban.gsize) do |j|
+      1.upto(@goban.gsize) do |i|
+        if (vcount = @filler.fill_with_color(i, j, EMPTY, void_code, neighbors)) > 0
+          @voids.push(Void.new(self,void_code,i,j,vcount,neighbors))
           void_code += 1
           # keep all the groups
           neighbors.each { |n| n.each { |g| @all_groups.add(g) } }
@@ -179,22 +179,22 @@ private
   def find_dying_groups
     @all_groups.each do |g|
       next if g.eyes.size >= 2
-      next if g.eyes.size == 1 and g.eyes[0].size + g.extra_lives >= 3 # actually not enough if gote but well...
+      next if g.eyes.size == 1 and g.eyes[0].vcount + g.extra_lives >= 3 # actually not enough if gote but well...
       color = g.color
       next if g.eyes.size == 1 and g.eyes[0].groups[color].size > 1 # connected by eye
       
       # we need to look at voids around (fake eyes, etc.)
-      owned_voids = size = 0
+      owned_voids = vcount = 0
       one_owner = my_void = nil
       g.voids.each do |v|
         if v.owner
           one_owner = v.owner
-          if v.owner == color then my_void=v; owned_voids+=1; size+=v.size end
+          if v.owner == color then my_void=v; owned_voids+=1; vcount+=v.vcount end
         end
       end
       next if g.eyes.size == 1 and owned_voids >= 1 # TODO: this is too lenient
       next if owned_voids >= 2 # TODO later: here is the horror we read about on the web
-      next if owned_voids == 1 and size + g.extra_lives >= 3
+      next if owned_voids == 1 and vcount + g.extra_lives >= 3
       next if owned_voids == 1 and my_void.groups[color].size > 1 # TODO: check also lives of ally
       # find if the only void around is owned (e.g. lost stones inside big territory)
       # if we don't know who owns the voids around g, leave g as alive (unfinished game)
@@ -207,7 +207,7 @@ private
       @scores[1 - color] += taken
       g.count_as_dead
       $log.debug("Hence #{g} is considered dead (#{taken} prisoners; 1st stone #{stone})") if $debug
-      $log.debug("eyes:#{g.eyes.size} owned_voids:#{owned_voids} size-voids:#{size}") if $debug
+      $log.debug("eyes:#{g.eyes.size} owned_voids:#{owned_voids} vcount-voids:#{vcount}") if $debug
     end
   end
 
@@ -238,9 +238,8 @@ private
   
   # Returns a number telling how "alive" a group is. TODO: review this
   # Really basic logic for now.
-  # - eyes count a lot (proportionaly to their size; instead we should determine if an
-  #   eye shape is right to make 2 eyes)
-  # - owned voids count much less (1 point per void, no matter its size)
+  # (instead we should determine if the shape of a single eye is right to make 2 eyes)
+  # - eyes and owned voids count for 1 point each
   # - non-owned voids (undetermined owner or enemy-owned void) count for 0
   # NB: for end-game counting, this logic is enough because undetermined situations
   # have usually all been resolved (or this means both players cannot see it...)
