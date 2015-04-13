@@ -5,18 +5,9 @@ var main = require('../main');
 var inherits = require('util').inherits;
 var Group = require('../Group');
 var assertEqual = main.assertEqual;
-
 var GameLogic = require('../GameLogic');
 var BoardAnalyser = require('../BoardAnalyser');
 // NB: for debugging think of using analyser.debug_dump
-TestBoardAnalyser.prototype.initBoard = function (size, handicap) {
-    if (size === undefined) size = 5;
-    if (handicap === undefined) handicap = 0;
-    this.game = new GameLogic();
-    this.game.newGame(size, handicap);
-    this.goban = this.game.goban;
-};
-
 
 /** @class */
 function TestBoardAnalyser(testName) {
@@ -24,6 +15,14 @@ function TestBoardAnalyser(testName) {
 }
 inherits(TestBoardAnalyser, main.TestCase);
 module.exports = main.tests.add(TestBoardAnalyser);
+
+TestBoardAnalyser.prototype.initBoard = function (size, handicap) {
+    if (size === undefined) size = 5;
+    if (handicap === undefined) handicap = 0;
+    this.game = new GameLogic();
+    this.game.newGame(size, handicap);
+    this.goban = this.game.goban;
+};
 
 TestBoardAnalyser.prototype.testSmallGame = function () {
     this.initBoard(9);

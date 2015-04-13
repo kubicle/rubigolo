@@ -9,16 +9,9 @@ var Stone = require('../Stone');
 var assertEqual = main.assertEqual;
 var Goban = require('../Goban');
 var TimeKeeper = require('../TimeKeeper');
-
 main.debug = false; // if true it takes forever...
 main.log.level=(Logger.ERROR);
 main.count = 0;
-TestSpeed.CM_UNDO = [0, TestSpeed.CM_CLEAR = 1, TestSpeed.CM_NEW = 2];
-TestSpeed.prototype.initBoard = function (size) {
-    if (size === undefined) size = 9;
-    this.goban = new Goban(size);
-};
-
 
 /** @class */
 function TestSpeed(testName) {
@@ -27,6 +20,12 @@ function TestSpeed(testName) {
 }
 inherits(TestSpeed, main.TestCase);
 module.exports = main.tests.add(TestSpeed);
+
+TestSpeed.CM_UNDO = [0, TestSpeed.CM_CLEAR = 1, TestSpeed.CM_NEW = 2];
+TestSpeed.prototype.initBoard = function (size) {
+    if (size === undefined) size = 9;
+    this.goban = new Goban(size);
+};
 
 // Not very fancy: add the line $count += 1 wherever you want to count.
 // Need some time to try a good profiler soon...

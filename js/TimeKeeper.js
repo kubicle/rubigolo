@@ -2,10 +2,10 @@
 'use strict';
 
 var main = require('./main');
-// tolerance allows you to ignore a bad performance to some extent. E.g 1.05 gives you 5% tolerance up
-// ratio allows you to adapt to slower or faster system. E.g 1.0 if your system is as slow as mine :(
 
-/** @class */
+/** @class tolerance allows you to ignore a bad performance to some extent. E.g 1.05 gives you 5% tolerance up
+ *  ratio allows you to adapt to slower or faster system. E.g 1.0 if your system is as slow as mine :(
+ */
 function TimeKeeper(tolerance, ratio) {
     if (tolerance === undefined) tolerance = 1.15;
     if (ratio === undefined) ratio = 1.0;

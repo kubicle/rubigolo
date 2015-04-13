@@ -1,15 +1,23 @@
 //Translated from test_zone_filler.rb using babyruby2js
 'use strict';
 
-var Grid = require('../Grid');
 var main = require('../main');
 var inherits = require('util').inherits;
+var Grid = require('../Grid');
 var assertEqual = main.assertEqual;
 var GameLogic = require('../GameLogic');
-
 var ZoneFiller = require('../ZoneFiller');
 // NB: for debugging think of using analyser.debug_dump
 // TODO: add tests for group detection while filling
+
+/** @class */
+function TestZoneFiller(testName) {
+    main.TestCase.call(this, testName);
+    return this.initBoard();
+}
+inherits(TestZoneFiller, main.TestCase);
+module.exports = main.tests.add(TestZoneFiller);
+
 TestZoneFiller.x = 123; // we use this color for replacements - should be rendered as "X"
 TestZoneFiller.prototype.initBoard = function (size, handicap) {
     if (size === undefined) size = 5;
@@ -20,15 +28,6 @@ TestZoneFiller.prototype.initBoard = function (size, handicap) {
     this.grid = new Grid(size);
     this.filler = new ZoneFiller(this.goban, this.grid);
 };
-
-
-/** @class */
-function TestZoneFiller(testName) {
-    main.TestCase.call(this, testName);
-    return this.initBoard();
-}
-inherits(TestZoneFiller, main.TestCase);
-module.exports = main.tests.add(TestZoneFiller);
 
 TestZoneFiller.prototype.testFill1 = function () {
     // 5 +O+++

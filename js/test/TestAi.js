@@ -5,19 +5,9 @@ var main = require('../main');
 var inherits = require('util').inherits;
 var Grid = require('../Grid');
 var assertEqual = main.assertEqual;
-
 var GameLogic = require('../GameLogic');
 var Ai1Player = require('../Ai1Player');
 // NB: for debugging think of using @goban.debug_display
-TestAi.prototype.initBoard = function (size, handicap) {
-    if (size === undefined) size = 9;
-    if (handicap === undefined) handicap = 0;
-    this.game = new GameLogic();
-    this.game.newGame(size, handicap);
-    this.goban = this.game.goban;
-    this.players = [new Ai1Player(this.goban, main.BLACK), new Ai1Player(this.goban, main.WHITE)];
-};
-
 
 /** @class */
 function TestAi(testName) {
@@ -26,6 +16,15 @@ function TestAi(testName) {
 }
 inherits(TestAi, main.TestCase);
 module.exports = main.tests.add(TestAi);
+
+TestAi.prototype.initBoard = function (size, handicap) {
+    if (size === undefined) size = 9;
+    if (handicap === undefined) handicap = 0;
+    this.game = new GameLogic();
+    this.game.newGame(size, handicap);
+    this.goban = this.game.goban;
+    this.players = [new Ai1Player(this.goban, main.BLACK), new Ai1Player(this.goban, main.WHITE)];
+};
 
 // old method; rather use play_and_check below
 TestAi.prototype.letAiPlay = function () {

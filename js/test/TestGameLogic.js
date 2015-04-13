@@ -4,17 +4,8 @@
 var main = require('../main');
 var inherits = require('util').inherits;
 var assertEqual = main.assertEqual;
-
 var GameLogic = require('../GameLogic');
 // TODO: very incomplete test
-TestGameLogic.prototype.initBoard = function (size, handicap) {
-    if (size === undefined) size = 5;
-    if (handicap === undefined) handicap = 0;
-    this.game = new GameLogic();
-    this.game.newGame(size, handicap);
-    this.goban = this.game.goban;
-};
-
 
 /** @class */
 function TestGameLogic(testName) {
@@ -23,6 +14,14 @@ function TestGameLogic(testName) {
 }
 inherits(TestGameLogic, main.TestCase);
 module.exports = main.tests.add(TestGameLogic);
+
+TestGameLogic.prototype.initBoard = function (size, handicap) {
+    if (size === undefined) size = 5;
+    if (handicap === undefined) handicap = 0;
+    this.game = new GameLogic();
+    this.game.newGame(size, handicap);
+    this.goban = this.game.goban;
+};
 
 // 3 ways to load the same game with handicap...
 TestGameLogic.prototype.testHandicap = function () {
