@@ -69,7 +69,7 @@ ConsoleGame.prototype.getMoveOrCmd = function () {
 
 ConsoleGame.prototype.playMoveOrCmd = function (move) {
     if (move.startWith('cont')) {
-        this.numAutoplay = parseInt(move.split(':')[1], 10);
+        this.numAutoplay = parseInt(move.split(':')[1]);
         if (this.numAutoplay === 0) { // no arg is equivalent to continue:1
             this.numAutoplay = 1;
         }

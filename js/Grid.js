@@ -15,8 +15,8 @@ function Grid(gsize) {
     // Idea is to avoid to have to check i,j against gsize in many places.
     // In case of bug, e.g. for @yx[5][-1], Ruby returns you @yx[5][@yx.size] (looping back)
     // so having a real item (BORDER) on the way helps to detect a bug.
-    this.yx = new main.Array(gsize + 2, function () {
-        return new main.Array(gsize + 2, main.BORDER);
+    this.yx = Array.new(gsize + 2, function () {
+        return Array.new(gsize + 2, main.BORDER);
     });
 }
 module.exports = Grid;
@@ -81,7 +81,7 @@ Grid.colorName = function (color) { // TODO remove me or?
 };
 
 Grid.charToColor = function (char) {
-    return Grid.CIRCULAR_COLOR_CHARS.index(char) + Grid.DAME_COLOR;
+    return Grid.CIRCULAR_COLOR_CHARS.indexOf(char) + Grid.DAME_COLOR;
 };
 
 Grid.prototype.toText = function (block) {
@@ -155,7 +155,7 @@ Grid.prototype.toString = function () {
 // Image is upside-down to help compare with a copy paste from console log.
 // So last row (j==gsize) comes first in image
 Grid.prototype.image = function () {
-    if (this.yx[1][1].instanceOf(Stone)) { // FIXME
+    if (main.instanceOf(Stone, this.yx[1][1])) { // FIXME
         return this.toLine(function (s) {
             return Grid.colorToChar(s.color);
         });
@@ -186,7 +186,7 @@ Grid.prototype.loadImage = function (image) {
 
 // Parses a move like "c12" into 3,12
 Grid.parseMove = function (move) {
-    return [move[0].charCodeAt() - Grid.NOTATION_A + 1, parseInt(move[1], 10)];
+    return [move[0].charCodeAt() - Grid.NOTATION_A + 1, parseInt(move[1])];
 };
 
 // Builds a string representation of a move (3,12->"c12")  

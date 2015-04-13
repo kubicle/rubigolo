@@ -15,9 +15,9 @@ HandicapSetter.setHandicap = function (goban, h) {
     }
     // Standard handicap?
     if (main.isA(String, h)) {
-        var eq = h.index('=');
-        if (h[0].between('0', '9') && !eq) {
-            h = parseInt(h, 10);
+        var eq = h.indexOf('=');
+        if (h[0].between('0', '9') && eq < 0) {
+            h = parseInt(h);
         }
     }
     if (main.isA('Fixnum', h)) { // e.g. 3
@@ -112,4 +112,3 @@ HandicapSetter.setStandardHandicap = function (goban, count) {
 };
 
 // E02: unknown method index(...)
-// E02: unknown method between?(...)

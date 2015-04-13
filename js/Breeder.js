@@ -131,7 +131,7 @@ Breeder.prototype.reproduction = function () {
     if (main.debugBreed) {
         main.log.debug('=== Reproduction time for ' + this.generation.length + ' AI');
     }
-    this.picked = new main.Array(this.genSize, 0);
+    this.picked = Array.new(this.genSize, 0);
     this.maxScore = Math.max.apply(Math, this.scoreDiff);
     this.winner = this.generation[this.scoreDiff.findIndex(this.maxScore)];
     this.pickIndex = 0;

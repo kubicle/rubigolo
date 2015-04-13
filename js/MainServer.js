@@ -240,7 +240,7 @@ MainServer.prototype.getArg = function (args, name, defVal) {
 
 MainServer.prototype.getArgI = function (args, name, defVal) {
     if (defVal === undefined) defVal = null;
-    return parseInt(this.getArg(args, name, defVal), 10);
+    return parseInt(this.getArg(args, name, defVal));
 };
 
 MainServer.prototype.handleRequest = function (req) {

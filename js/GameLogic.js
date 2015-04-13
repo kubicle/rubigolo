@@ -191,7 +191,7 @@ GameLogic.prototype.getErrors = function () {
 GameLogic.prototype.setLogLevel = function (cmd) {
     try {
         var a = cmd.split('=');
-        var flag = parseInt(a[1], 10) !== 0;
+        var flag = parseInt(a[1]) !== 0;
         if (!flag && a[1] !== '0') {
             throw new Error(0);
         }
