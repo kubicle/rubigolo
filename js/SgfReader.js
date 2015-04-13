@@ -7,7 +7,6 @@ var main = require('./main');
 // SO[http://www.littlegolem.com];B[pd];W[pp];
 // B[ce];W[dc]...;B[tt];W[tt];B[tt];W[aq])
 
-//public read-only attribute: boardSize, komi, handicap, handicapStones;
 
 /** @class */
 function SgfReader(sgf) {
@@ -22,6 +21,7 @@ function SgfReader(sgf) {
 }
 module.exports = SgfReader;
 
+//public read-only attribute: boardSize, komi, handicap, handicapStones;
 // Raises an exception if we could not convert the format
 SgfReader.prototype.toMoveList = function () {
     // NB: we verify the expected player since our internal move format
@@ -68,21 +68,21 @@ SgfReader.prototype.getGameInfo = function () {
         var val = header[p + 1];
         switch (name) {
         case 'FF':
-            if (parseInt(val, 10) < 4) {
+            if (parseInt(val) < 4) {
                 main.log.warn('SGF version FF[' + val + ']. Not sure we handle it.');
             }
             break;
         case 'SZ':
-            this.boardSize = parseInt(val, 10);
+            this.boardSize = parseInt(val);
             break;
         case 'HA':
-            this.handicap = parseInt(val, 10);
+            this.handicap = parseInt(val);
             break;
         case 'AB':
             this.handicapStones.push(this.convertMove(val));
             break;
         case 'KM':
-            this.komi = val.toF();
+            this.komi = parseFloat(val);
             break;
         case 'RU':
         case 'RE':
@@ -154,7 +154,7 @@ SgfReader.prototype.parseNode = function (t) {
         while (true) {
             t = this.get('[', t);
             var brace = t.index(']');
-            if (!brace) {
+            if (brace < 0) {
                 this.error('Missing \']\'', t);
             }
             var val = t[0];
@@ -181,15 +181,12 @@ SgfReader.prototype.get = function (lex, t) {
     if (!t.startWith(lex)) {
         this.error(lex + ' expected', t);
     }
-    return t.sub(lex, '').trimLeft();
+    return t.replace(lex, '').trimLeft();
 };
 
 SgfReader.prototype.error = function (reason, t) {
     throw new Error('Syntax error: \'' + reason + '\' at ...' + t[0] + '...');
 };
 
-// E02: unknown method to_f()
 // E02: unknown method info(...)
-// E02: unknown method between?(...)
 // E02: unknown method index(...)
-// E02: unknown method sub(...)
