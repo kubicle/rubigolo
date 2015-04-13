@@ -153,7 +153,7 @@ SgfReader.prototype.parseNode = function (t) {
         t = this.get(propIdent, t);
         while (true) {
             t = this.get('[', t);
-            var brace = t.index(']');
+            var brace = t.indexOf(']');
             if (brace < 0) {
                 this.error('Missing \']\'', t);
             }
