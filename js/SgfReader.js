@@ -145,7 +145,7 @@ SgfReader.prototype.parseNode = function (t) {
         while (t[i] && t[i].between('A', 'Z')) {
             i += 1;
         }
-        var propIdent = t[0];
+        var propIdent = t.substr(0, i);
         if (propIdent === '') {
             this.error('Property name expected', t);
         }
@@ -157,7 +157,7 @@ SgfReader.prototype.parseNode = function (t) {
             if (brace < 0) {
                 this.error('Missing \']\'', t);
             }
-            var val = t[0];
+            var val = t.substr(0, brace);
             node.push(val);
             t = this.get(val + ']', t);
             if (t[0] !== '[') {
@@ -185,7 +185,7 @@ SgfReader.prototype.get = function (lex, t) {
 };
 
 SgfReader.prototype.error = function (reason, t) {
-    throw new Error('Syntax error: \'' + reason + '\' at ...' + t[0] + '...');
+    throw new Error('Syntax error: \'' + reason + '\' at ...' + t.substr(0, 20) + '...');
 };
 
 // E02: unknown method info(...)
