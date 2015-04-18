@@ -8,11 +8,11 @@ var Player = require('./Player');
 
 /** @class */
 function ConsoleHumanPlayer(goban, color) {
-    main.Player.call(this, true, goban);
+    Player.call(this, true, goban);
     setColor(color);
     this.debugAi = null;
 }
-inherits(ConsoleHumanPlayer, main.Player);
+inherits(ConsoleHumanPlayer, Player);
 module.exports = ConsoleHumanPlayer;
 
 ConsoleHumanPlayer.prototype.getMove = function (color) {

@@ -23,7 +23,7 @@ var Genes = require('./Genes');
  */
 function Ai1Player(goban, color, genes) {
     if (genes === undefined) genes = null;
-    main.Player.call(this, false, goban);
+    Player.call(this, false, goban);
     this.inf = new InfluenceMap(this.goban);
     this.ter = new PotentialTerritory(this.goban);
     this.gsize = this.goban.gsize;
@@ -44,7 +44,7 @@ function Ai1Player(goban, color, genes) {
     // to keep things coherent
     return this.prepareGame(this.genes); // @timer = TimeKeeper.new // @timer.calibrate(0.7)
 }
-inherits(Ai1Player, main.Player);
+inherits(Ai1Player, Player);
 module.exports = Ai1Player;
 
 Ai1Player.prototype.prepareGame = function (genes) {
@@ -53,7 +53,7 @@ Ai1Player.prototype.prepareGame = function (genes) {
 };
 
 Ai1Player.prototype.setColor = function (color) {
-    main.Player.set_color.call(this, color);
+    Player.set_color.call(this, color);
     this.enemyColor = 1 - color;
     for (var h, h_array = this.heuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
         h.initColor();
