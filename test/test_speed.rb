@@ -150,7 +150,7 @@ class TestSpeed < Minitest::Test
     when CM_UNDO then num_moves.times { Stone.undo(@goban) }
     when CM_CLEAR then @goban.clear
     when CM_NEW then init_board
-    else throw "Invalid clean mode"
+    else raise "Invalid clean mode"
     end
     assert_equal(nil, @goban.previous_stone)
   end
