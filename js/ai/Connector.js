@@ -63,16 +63,16 @@ Connector.prototype.evalMove = function (i, j) {
     }
     switch (numEnemies) {
     case 0:
-        var eval = this.inflCoeff / this.inf.map[j][i][this.color];
+        var _eval = this.inflCoeff / this.inf.map[j][i][this.color];
         break;
     case 1:
-        eval = this.allyCoeff1 * numAllies;
+        _eval = this.allyCoeff1 * numAllies;
         break;
     default: 
-        eval = this.allyCoeff2 * numAllies;
+        _eval = this.allyCoeff2 * numAllies;
     }
     if (main.debug) {
-        main.log.debug('Connector gives ' + '%.2f'.format(eval) + ' to ' + i + ',' + j + ' (allies:' + numAllies + ' enemies: ' + numEnemies + ')');
+        main.log.debug('Connector gives ' + '%.2f'.format(_eval) + ' to ' + i + ',' + j + ' (allies:' + numAllies + ' enemies: ' + numEnemies + ')');
     }
-    return eval;
+    return _eval;
 };
