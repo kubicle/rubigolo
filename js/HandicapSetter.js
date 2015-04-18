@@ -5,6 +5,11 @@ var main = require('./main');
 var HandicapSetter = require('./HandicapSetter');
 var Grid = require('./Grid');
 var Stone = require('./Stone');
+
+/** @class */
+function HandicapSetter() {}
+module.exports = HandicapSetter;
+
 // Initializes the handicap points
 // h can be a number or a string
 // string examples: "3" or "3=d4-p16-p4" or "d4-p16-p4"
