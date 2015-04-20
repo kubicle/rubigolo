@@ -121,7 +121,7 @@ Array.prototype.size = function () {
 };
 
 Array.prototype.clear = function () {
-  for (var i=this.length; i>0; i--) this.pop();
+  this.length = 0;
 };
 
 Array.prototype.select = Array.prototype.filter;
