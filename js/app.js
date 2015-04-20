@@ -3,8 +3,10 @@
 var main = require('./main');
 require('./StoneConstants');
 require('./rb');
-require('./test/TestStone');
-require('./test/TestGroup');
+
+require('./test/TestAi');
 require('./test/TestGameLogic');
+require('./test/TestGroup');
+require('./test/TestStone');
 
 main.tests.run();
