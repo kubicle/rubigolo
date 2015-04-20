@@ -14,8 +14,8 @@ inherits(Executioner, Heuristic);
 module.exports = Executioner;
 
 Executioner.prototype.evalMove = function (i, j) {
-    var stone = this.goban.stoneAt(i, j);
     var threat, saving;
+    var stone = this.goban.stoneAt(i, j);
     threat = saving = 0;
     for (var g, g_array = stone.uniqueEnemies(this.color), g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
         if (g.lives > 1) { // NB: more than 1 is a job for hunter

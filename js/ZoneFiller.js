@@ -33,10 +33,9 @@ ZoneFiller.prototype.fillWithColor = function (startI, startJ, toReplace, color,
     this.toReplace = toReplace;
     this.groups = neighbors;
     var gaps = [[startI, startJ, startJ]];
-    var gap;
+    var gap, i, j0, j1;
     while ((gap = gaps.pop())) {
         // $log.debug("About to do gap: #{gap} (left #{gaps.size})") if $debug
-        var i, j0, j1;
         var _m = gap;
         i = _m[0];
         j0 = _m[1];

@@ -100,8 +100,7 @@ ConsoleGame.prototype.playGame = function () {
     console.log(this.game.historyString());
 };
 
-opts = main.Trollop.options(function () {
-    var opts;
+var opts = main.Trollop.options(function () {
     opt('size', 'Goban size', {'default':9});
     opt('ai', 'How many AI players', {'default':2});
     opt('handicap', 'Number of handicap stones', {'default':0});

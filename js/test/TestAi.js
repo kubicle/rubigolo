@@ -55,7 +55,7 @@ TestAi.prototype.playAndCheck = function (expMove, expColor, expEval) {
     }
     var player = this.players[this.game.curColor];
     if (expColor !== player.color) {
-        throw('Wrong player turn: ' + Grid.colorName(player.color) + ' to play now');
+        throw new Error('Wrong player turn: ' + Grid.colorName(player.color) + ' to play now');
     }
     var move = player.getMove();
     assertEqual(expMove, move);
@@ -329,4 +329,3 @@ TestAi.prototype.testSeesAttackNoGood = function () {
 };
 
 // E02: unknown method assert_in_delta(...)
-// E02: unknown method throw(...)

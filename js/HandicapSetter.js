@@ -15,6 +15,7 @@ module.exports = HandicapSetter;
 // string examples: "3" or "3=d4-p16-p4" or "d4-p16-p4"
 // Returns the handicap actual count
 HandicapSetter.setHandicap = function (goban, h) {
+    var i, j;
     if (h === 0 || h === '0') {
         return 0;
     }
@@ -34,7 +35,6 @@ HandicapSetter.setHandicap = function (goban, h) {
     }
     var moves = h.split('-');
     for (var move, move_array = moves, move_ndx = 0; move=move_array[move_ndx], move_ndx < move_array.length; move_ndx++) {
-        var i, j;
         var _m = Grid.parseMove(move);
         i = _m[0];
         j = _m[1];

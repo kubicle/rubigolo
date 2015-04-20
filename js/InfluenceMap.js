@@ -7,10 +7,11 @@ var Grid = require('./Grid');
 /** @class public read-only attribute: map
  */
 function InfluenceMap(goban) {
+    var self = this;
     this.goban = goban;
     this.gsize = goban.gsize;
     this.map = Array.new(this.gsize + 1, function () {
-        return Array.new(this.gsize + 1, function () {
+        return Array.new(self.gsize + 1, function () {
             return [0, 0];
         });
     });
@@ -73,7 +74,7 @@ InfluenceMap.prototype.debugDump = function () {
             console.log('\n');
         }
         console.log('  ');
-        for (var i = 1; i <= this.gsize; i++) {
+        for (i = 1; i <= this.gsize; i++) {
             console.log(' ' + Grid.xLabel(i) + ' ');
         }
         console.log('\n');

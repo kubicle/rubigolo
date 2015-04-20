@@ -18,10 +18,10 @@ module.exports = Hunter;
 
 Hunter.prototype.evalMove = function (i, j, level) {
     if (level === undefined) level = 1;
+    var eg1, eg2, eg3;
     var stone = this.goban.stoneAt(i, j);
     var empties = stone.empties();
     var allies = stone.uniqueAllies(this.color);
-    var eg1, eg2, eg3;
     eg1 = eg2 = eg3 = null;
     var snapback = false;
     for (var eg, eg_array = stone.uniqueEnemies(this.color), eg_ndx = 0; eg=eg_array[eg_ndx], eg_ndx < eg_array.length; eg_ndx++) {
@@ -38,8 +38,7 @@ Hunter.prototype.evalMove = function (i, j, level) {
         }
         if (empties.length === 1 && allies.length === 0) {
             // unless this is a snapback, this is a dumb move
-            empty = stone.neighbors.forEach(function (n) {
-                var empty;
+            var empty = stone.neighbors.forEach(function (n) {
                 if (n.color === main.EMPTY) {
                     error_break_value((n));
                 }
@@ -75,7 +74,7 @@ Hunter.prototype.evalMove = function (i, j, level) {
     // unless snapback, make sure our new stone's group is not in atari
     if (!snapback && empties.length < 2) {
         var lives = empties.length;
-        for (var ag, ag_array = allies, ag_ndx = 0; ag=ag_array[ag_ndx], ag_ndx < ag_array.length; ag_ndx++) {
+        for (ag, ag_array = allies, ag_ndx = 0; ag=ag_array[ag_ndx], ag_ndx < ag_array.length; ag_ndx++) {
             lives += ag.lives - 1;
         }
         if (lives < 2) {

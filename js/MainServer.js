@@ -208,13 +208,13 @@ MainServer.prototype.reqLoadMoves = function (args) {
 };
 
 MainServer.prototype.parseRequest = function (reqStr) {
+    var url, argStr;
     // GET /mainMenu?par1=val1 HTTP/1.1
     var reqs = reqStr.split();
     if (reqs.length < 3 || reqs[0] !== 'GET' || reqs[2] !== 'HTTP/1.1') {
         throw new Error('Unsupported request: ' + reqs);
     }
     var fullUrl = reqs[1];
-    var url, argStr;
     var _m = fullUrl.split('?');
     url = _m[0];
     argStr = _m[1];
@@ -243,8 +243,8 @@ MainServer.prototype.getArgI = function (args, name, defVal) {
 };
 
 MainServer.prototype.handleRequest = function (req) {
+    var url, args;
     try {
-        var url, args;
         var _m = this.parseRequest(req);
         url = _m[0];
         args = _m[1];
@@ -346,7 +346,7 @@ MainServer.prototype.webDisplay = function (goban, aiPlayed, question) {
         s += '</tr>';
     }
     s += '<tr><td></td>';
-    for (var i = 1; i <= gsize; i++) {
+    for (i = 1; i <= gsize; i++) {
         s += '<th>' + Grid.xLabel(i) + '</th>';
     }
     s += '</tr></table>';

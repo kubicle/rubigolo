@@ -55,8 +55,8 @@ Void.prototype.eyeCheck = function () {
             return main.log.debug('Color ' + oneColor + ' surrounds ' + this + ' (eye)');
         }
     } else {
-        for (var n, n_array = this.groups, n_ndx = 0; n=n_array[n_ndx], n_ndx < n_array.length; n_ndx++) {
-            for (var g, g_array = n, g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
+        for (n, n_array = this.groups, n_ndx = 0; n=n_array[n_ndx], n_ndx < n_array.length; n_ndx++) {
+            for (g, g_array = n, g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
                 g.addVoid(this);
             }
         }
@@ -144,13 +144,13 @@ BoardAnalyser.prototype.debugDump = function () {
             }
         }
         console.log('\nGroups with 1 eye: ');
-        for (var g, g_array = this.allGroups, g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
+        for (g, g_array = this.allGroups, g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
             if (g.eyes.length === 1) {
                 console.log(g.ndx + ',');
             }
         }
         console.log('\nGroups with no eye: ');
-        for (var g, g_array = this.allGroups, g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
+        for (g, g_array = this.allGroups, g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
             if (g.eyes.length === 0) {
                 console.log(g.ndx + ',');
             }
@@ -182,7 +182,7 @@ BoardAnalyser.prototype.findVoids = function () {
                 voidCode += 1;
                 // keep all the groups
                 for (var n, n_array = neighbors, n_ndx = 0; n=n_array[n_ndx], n_ndx < n_array.length; n_ndx++) {
-                    for (var g, g_array = n, g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
+                    for (g, g_array = n, g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
                         this.allGroups.add(g);
                     }
                 }
@@ -226,6 +226,7 @@ BoardAnalyser.prototype.findStrongerOwners = function () {
 
 // Reviews the groups and declare "dead" the ones who do not own any void
 BoardAnalyser.prototype.findDyingGroups = function () {
+    var ownedVoids, vcount, oneOwner, myVoid;
     for (var g, g_array = this.allGroups, g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
         if (g.eyes.length >= 2) {
             continue;
@@ -238,9 +239,7 @@ BoardAnalyser.prototype.findDyingGroups = function () {
             continue;
         }
         // we need to look at voids around (fake eyes, etc.)
-        var ownedVoids, vcount;
         ownedVoids = vcount = 0;
-        var oneOwner, myVoid;
         oneOwner = myVoid = null;
         for (var v, v_array = g.voids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
             if (v.owner) {
