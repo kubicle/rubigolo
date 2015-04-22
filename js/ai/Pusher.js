@@ -11,8 +11,8 @@ var Heuristic = require('./Heuristic');
 /** @class */
 function Pusher(player) {
     Heuristic.call(this, player);
-    this.allyCoeff = getGene('ally-infl', 0.1, 0.01, 4.0);
-    this.enemyCoeff = getGene('enemy-infl', 0.4, 0.01, 4.0);
+    this.allyCoeff = this.getGene('ally-infl', 0.1, 0.01, 4.0);
+    this.enemyCoeff = this.getGene('enemy-infl', 0.4, 0.01, 4.0);
 }
 inherits(Pusher, Heuristic);
 module.exports = Pusher;

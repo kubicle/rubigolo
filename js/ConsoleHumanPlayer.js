@@ -9,7 +9,7 @@ var Player = require('./Player');
 /** @class */
 function ConsoleHumanPlayer(goban, color) {
     Player.call(this, true, goban);
-    setColor(color);
+    this.setColor(color);
     this.debugAi = null;
 }
 inherits(ConsoleHumanPlayer, Player);
