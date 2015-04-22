@@ -9,7 +9,7 @@ var Heuristic = require('./Heuristic');
 
 /** @class */
 function Connector(player) {
-    Heuristic.call(this);
+    Heuristic.call(this, player);
     this.inflCoeff = getGene('infl', 0.07, 0.01, 0.5);
     this.allyCoeff1 = getGene('ally-1enemy', 0.33, 0.01, 1.0);
     this.allyCoeff2 = getGene('ally-more-enemies', 1.66, 0.01, 3.0);

@@ -8,7 +8,7 @@ var Heuristic = require('./Heuristic');
 
 /** @class */
 function Executioner(player) {
-    return Heuristic.call(this);
+    Heuristic.call(this, player);
 }
 inherits(Executioner, Heuristic);
 module.exports = Executioner;

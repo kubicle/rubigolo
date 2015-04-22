@@ -11,7 +11,7 @@ var Heuristic = require('./Heuristic');
 /** @class */
 function Hunter(player, consultant) {
     if (consultant === undefined) consultant = false;
-    return Heuristic.call(this);
+    Heuristic.call(this, player, consultant);
 }
 inherits(Hunter, Heuristic);
 module.exports = Hunter;

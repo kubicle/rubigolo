@@ -10,7 +10,7 @@ var Hunter = require('./Hunter');
 
 /** @class */
 function Savior(player) {
-    Heuristic.call(this);
+    Heuristic.call(this, player);
     this.enemyHunter = new Hunter(player, true);
 }
 inherits(Savior, Heuristic);

@@ -10,7 +10,7 @@ var Hunter = require('./Hunter');
 
 /** @class */
 function NoEasyPrisoner(player) {
-    Heuristic.call(this);
+    Heuristic.call(this, player);
     setAsNegative();
     this.enemyHunter = new Hunter(player, true);
 }
