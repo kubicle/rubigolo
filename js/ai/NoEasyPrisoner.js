@@ -18,7 +18,7 @@ inherits(NoEasyPrisoner, Heuristic);
 module.exports = NoEasyPrisoner;
 
 NoEasyPrisoner.prototype.initColor = function () {
-    Heuristic.init_color.call(this);
+    Heuristic.prototype.initColor.call(this);
     return this.enemyHunter.initColor();
 };
 

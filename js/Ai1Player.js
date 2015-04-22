@@ -53,7 +53,7 @@ Ai1Player.prototype.prepareGame = function (genes) {
 };
 
 Ai1Player.prototype.setColor = function (color) {
-    Player.set_color.call(this, color);
+    Player.prototype.setColor.call(this, color);
     this.enemyColor = 1 - color;
     for (var h, h_array = this.heuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
         h.initColor();

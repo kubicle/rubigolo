@@ -17,7 +17,7 @@ inherits(Savior, Heuristic);
 module.exports = Savior;
 
 Savior.prototype.initColor = function () {
-    Heuristic.init_color.call(this);
+    Heuristic.prototype.initColor.call(this);
     return this.enemyHunter.initColor();
 };
 
