@@ -32,7 +32,7 @@ module.exports = Void;
 // @eye_color stays nil if there is more than 1 color around (not an eye) or full board empty
 Void.prototype.eyeCheck = function () {
     var oneColor = null;
-    for (var c = 1; c <= this.groups.length; c++) {
+    for (var c = 0; c < this.groups.length; c++) {
         // is there 1 or more groups of this color?
         if (this.groups[c].length >= 1) {
             if (oneColor) { // we already had groups in another color
@@ -72,7 +72,7 @@ Void.prototype.setOwner = function (color) {
 
 Void.prototype.toString = function () {
     var s = 'void ' + this.code + ' (' + Grid.colorToChar(this.code) + '/' + this.i + ',' + this.j + '), vcount ' + this.vcount;
-    for (var color = 1; color <= this.groups.length; color++) {
+    for (var color = 0; color < this.groups.length; color++) {
         s += ', ' + this.groups[color].length + ' ' + Grid.COLOR_NAMES[color] + ' neighbors';
     }
     return s;
@@ -80,7 +80,7 @@ Void.prototype.toString = function () {
 
 Void.prototype.debugDump = function () {
     console.log(this.toString());
-    for (var color = 1; color <= this.groups.length; color++) {
+    for (var color = 0; color < this.groups.length; color++) {
         console.log('    Color ' + color + ' (' + Grid.colorToChar(color) + '):');
         for (var neighbor, neighbor_array = this.groups[color], neighbor_ndx = 0; neighbor=neighbor_array[neighbor_ndx], neighbor_ndx < neighbor_array.length; neighbor_ndx++) {
             console.log(' #' + neighbor.ndx);
@@ -156,7 +156,7 @@ BoardAnalyser.prototype.debugDump = function () {
             }
         });
         console.log('\nScore:\n');
-        for (var i = 1; i <= this.scores.length; i++) {
+        for (var i = 0; i < this.scores.length; i++) {
             console.log('Player ' + i + ': ' + this.scores[i] + ' points');
         }
     }
@@ -290,7 +290,7 @@ BoardAnalyser.prototype.findDameVoids = function () {
             continue;
         }
         var aliveColors = [];
-        for (var c = 1; c <= 2; c++) {
+        for (var c = 0; c < 2; c++) {
             for (var g, g_array = v.groups[c], g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
                 if (this.groupLiveliness(g) >= 1) {
                     aliveColors.push(c);
