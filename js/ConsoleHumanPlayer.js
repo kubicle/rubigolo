@@ -47,7 +47,7 @@ ConsoleHumanPlayer.prototype.getAnswer = function (validOnes) {
         if (answer === '') {
             continue;
         }
-        if (validOnes && !validOnes.findIndex(answer)) {
+        if (validOnes && validOnes.indexOf(answer) < 0) {
             console.log('Valid answers: ' + validOnes.join(','));
             continue;
         }

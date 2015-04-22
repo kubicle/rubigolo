@@ -94,7 +94,7 @@ ZoneFiller.prototype._check = function (i, j) {
     }
     if (this.groups && color < 2) {
         var group = this.goban.stoneAt(i, j).group;
-        if (group && !this.groups[color].findIndex(group)) {
+        if (group && this.groups[color].indexOf(group) < 0) {
             this.groups[color].push(group);
         }
     }

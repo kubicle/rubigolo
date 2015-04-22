@@ -117,7 +117,7 @@ Group.prototype.allLives = function () {
             if (life.color !== main.EMPTY) {
                 continue;
             }
-            if (!this.allLives.findIndex(life)) {
+            if (this.allLives.indexOf(life) < 0) {
                 this.allLives.push(life);
             }
         }
@@ -133,7 +133,7 @@ Group.prototype.allEnemies = function () {
             if (en.color === main.EMPTY || en.color === this.color) {
                 continue;
             }
-            if (!this.allEnemies.findIndex(en.group)) {
+            if (this.allEnemies.indexOf(en.group) < 0) {
                 this.allEnemies.push(en.group);
             }
         }

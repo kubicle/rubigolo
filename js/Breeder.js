@@ -132,7 +132,7 @@ Breeder.prototype.reproduction = function () {
     }
     this.picked = Array.new(this.genSize, 0);
     this.maxScore = Math.max.apply(Math, this.scoreDiff);
-    this.winner = this.generation[this.scoreDiff.findIndex(this.maxScore)];
+    this.winner = this.generation[this.scoreDiff.indexOf(this.maxScore)];
     this.pickIndex = 0;
     for (var i = 0; i <= this.genSize - 1; i += 2) {
         var parent1 = this.pickParent();
