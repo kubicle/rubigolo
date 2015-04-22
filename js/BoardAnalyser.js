@@ -206,7 +206,7 @@ BoardAnalyser.prototype.findStrongerOwners = function () {
             continue;
         }
         var lives = [0, 0];
-        for (var c = 1; c <= 2; c++) {
+        for (var c = 0; c < 2; c++) {
             for (var g, g_array = v.groups[c], g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
                 lives[c] += g.lives;
             }
