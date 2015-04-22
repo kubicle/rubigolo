@@ -17,7 +17,7 @@ function ConsoleGame(opts) {
     this.game.newGame(opts['size'], opts.handicap);
     this.goban = this.game.goban;
     this.players = [];
-    for (var color = 1; color <= 2; color++) {
+    for (var color = 0; color < 2; color++) {
         this.players[color] = ( opts.ai() > color ? new Ai1Player(this.goban, color) : new ConsoleHumanPlayer(this.goban, color) );
     }
     if (opts.load()) {
@@ -32,7 +32,7 @@ module.exports = ConsoleGame;
 // Show prisoner counts during the game  
 ConsoleGame.prototype.showPrisoners = function () {
     var prisoners = this.game.prisoners();
-    for (var c = 1; c <= prisoners.length; c++) {
+    for (var c = 0; c < prisoners.length; c++) {
         console.log(prisoners[c] + ' ' + Grid.COLOR_NAMES[c] + ' (' + Grid.COLOR_CHARS[c] + ') are prisoners');
     }
     console.log('');

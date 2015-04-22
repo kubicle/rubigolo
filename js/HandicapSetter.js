@@ -61,7 +61,7 @@ HandicapSetter.setStandardHandicap = function (goban, count) {
     var short = 1 + distToBorder;
     var middle = (1 + gsize) / 2;
     var long = gsize - distToBorder;
-    for (var ndx = 1; ndx <= count; ndx++) {
+    for (var ndx = 0; ndx < count; ndx++) {
         // Compute coordinates from the index.
         // Indexes correspond to this map (with Black playing on North on the board)
         // 2 7 1
