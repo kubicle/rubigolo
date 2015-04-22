@@ -27,7 +27,7 @@ PotentialTerritory.prototype.guessTerritories = function () {
     // update real grid to current goban
     this.realGrid.convert(this.goban.grid);
     // evaluate 2 "scenarios" - each player plays everywhere *first*
-    for (var first = 1; first <= 2; first++) {
+    for (var first = 0; first < 2; first++) {
         this.foresee(this.grids[first], first, 1 - first);
     }
     if (main.debug) {
@@ -37,7 +37,7 @@ PotentialTerritory.prototype.guessTerritories = function () {
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
             var owner = 0;
-            for (first = 1; first <= 2; first++) {
+            for (first = 0; first < 2; first++) {
                 var terrColor = this.grids[first].yx[j][i] - Grid.TERRITORY_COLOR;
                 if (terrColor === main.WHITE) {
                     owner += 1;
@@ -102,7 +102,7 @@ PotentialTerritory.prototype.foresee = function (grid, first, second) {
     // passed grid will receive the result (scoring grid)
     this.boan.countScore(this.goban, grid.convert(this.goban.grid));
     // restore goban
-    for (var _i = 1; _i <= (this.goban.moveNumber() - this.moveNumBeforeEnlarge); _i++) {
+    for (var _i = 0; _i < (this.goban.moveNumber() - this.moveNumBeforeEnlarge); _i++) {
         Stone.undo(this.goban);
     }
 };

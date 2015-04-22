@@ -44,7 +44,7 @@ ScoreAnalyser.prototype.startScoring = function (goban, komi, whoResigned) {
     var totals = [];
     var details = [];
     var addPris = true;
-    for (var c = 1; c <= 2; c++) {
+    for (var c = 0; c < 2; c++) {
         var kom = (( c === main.WHITE ? komi : 0 ));
         var pris = (( addPris ? prisoners[1 - c] : -prisoners[c] ));
         totals[c] = scores[c] + pris + kom;
@@ -71,7 +71,7 @@ ScoreAnalyser.prototype.scoreInfoToS = function (info) {
     }
     var s = [];
     s.push(this.scoreWinnerToS(totals));
-    for (var c = 1; c <= 2; c++) {
+    for (var c = 0; c < 2; c++) {
         var detail = details[c];
         if (detail === null) {
             s.push(Grid.colorName(c) + ' resigned');
@@ -105,7 +105,7 @@ ScoreAnalyser.prototype.scoreWinnerToS = function (totals) {
     } else {
         var max = Math.max.apply(Math, totals);
         var winners = [];
-        for (var c = 1; c <= totals.length; c++) {
+        for (var c = 0; c < totals.length; c++) {
             if (totals[c] === max) {
                 winners.push(c);
             }

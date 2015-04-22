@@ -157,7 +157,7 @@ MainServer.prototype.reqAcceptScore = function (args) {
 // Show prisoner counts during the game  
 MainServer.prototype.reqShowPrisoners = function () {
     var prisoners = this.game.prisoners();
-    for (var c = 1; c <= prisoners.length; c++) {
+    for (var c = 0; c < prisoners.length; c++) {
         this.addMessage(prisoners[c] + ' ' + Grid.COLOR_NAMES[c] + ' (' + Grid.COLOR_CHARS[c] + ') are prisoners');
     }
     return this.addMessage('');
@@ -178,7 +178,7 @@ MainServer.prototype.reqNewGame = function (args) {
     this.goban = this.game.goban;
     this.haveScore = false;
     this.players.clear();
-    for (var color = 1; color <= 2; color++) {
+    for (var color = 0; color < 2; color++) {
         this.players[color] = ( numAi > color ? new Ai1Player(this.goban, color) : null );
     }
 };
