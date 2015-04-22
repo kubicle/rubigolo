@@ -95,7 +95,7 @@ Void.prototype.debugDump = function () {
 function BoardAnalyser() {
     this.goban = null;
     this.voids = [];
-    this.allGroups = new main.Set();
+    this.allGroups = new Set();
 }
 module.exports = BoardAnalyser;
 
@@ -138,23 +138,23 @@ BoardAnalyser.prototype.debugDump = function () {
     }
     if (this.scores) {
         console.log('\nGroups with 2 eyes or more: ');
-        for (var g, g_array = this.allGroups, g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
+        this.allGroups.forEach(function (g) {
             if (g.eyes.length >= 2) {
                 console.log(g.ndx + ',');
             }
-        }
+        });
         console.log('\nGroups with 1 eye: ');
-        for (g, g_array = this.allGroups, g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
+        this.allGroups.forEach(function (g) {
             if (g.eyes.length === 1) {
                 console.log(g.ndx + ',');
             }
-        }
+        });
         console.log('\nGroups with no eye: ');
-        for (g, g_array = this.allGroups, g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
+        this.allGroups.forEach(function (g) {
             if (g.eyes.length === 0) {
                 console.log(g.ndx + ',');
             }
-        }
+        });
         console.log('\nScore:\n');
         for (var i = 1; i <= this.scores.length; i++) {
             console.log('Player ' + i + ': ' + this.scores[i] + ' points');
@@ -168,9 +168,9 @@ BoardAnalyser.prototype.findVoids = function () {
         main.log.debug('Find voids...');
     }
     var voidCode = Grid.ZONE_CODE;
-    for (var g, g_array = this.allGroups, g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
+    this.allGroups.forEach(function (g) {
         g.resetAnalysis();
-    }
+    });
     this.allGroups.clear();
     this.voids.clear();
     var neighbors = [[], []];
@@ -227,16 +227,16 @@ BoardAnalyser.prototype.findStrongerOwners = function () {
 // Reviews the groups and declare "dead" the ones who do not own any void
 BoardAnalyser.prototype.findDyingGroups = function () {
     var ownedVoids, vcount, oneOwner, myVoid;
-    for (var g, g_array = this.allGroups, g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
+    this.allGroups.forEach(function (g) {
         if (g.eyes.length >= 2) {
-            continue;
+            return;
         }
         if (g.eyes.length === 1 && g.eyes[0].vcount + g.extraLives >= 3) { // actually not enough if gote but well...
-            continue;
+            return;
         }
         var color = g.color;
         if (g.eyes.length === 1 && g.eyes[0].groups[color].length > 1) { // connected by eye
-            continue;
+            return;
         }
         // we need to look at voids around (fake eyes, etc.)
         ownedVoids = vcount = 0;
@@ -252,21 +252,21 @@ BoardAnalyser.prototype.findDyingGroups = function () {
             }
         }
         if (g.eyes.length === 1 && ownedVoids >= 1) { // TODO: this is too lenient
-            continue;
+            return;
         }
         if (ownedVoids >= 2) { // TODO later: here is the horror we read about on the web
-            continue;
+            return;
         }
         if (ownedVoids === 1 && vcount + g.extraLives >= 3) {
-            continue;
+            return;
         }
         if (ownedVoids === 1 && myVoid.groups[color].length > 1) { // TODO: check also lives of ally
-            continue;
+            return;
         }
         // find if the only void around is owned (e.g. lost stones inside big territory)
         // if we don't know who owns the voids around g, leave g as alive (unfinished game)
         if (g.voids.length !== 0 && !oneOwner) {
-            continue;
+            return;
         }
         // g is dead!
         var stone = g.stones[0];
@@ -280,7 +280,7 @@ BoardAnalyser.prototype.findDyingGroups = function () {
         if (main.debug) {
             main.log.debug('eyes:' + g.eyes.length + ' owned_voids:' + ownedVoids + ' vcount-voids:' + vcount);
         }
-    }
+    });
 };
 
 // Looks for "dame" = neutral voids (if alive groups from more than one color are around)
