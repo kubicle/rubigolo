@@ -182,7 +182,7 @@ BoardAnalyser.prototype.findVoids = function () {
                 voidCode += 1;
                 // keep all the groups
                 for (var n, n_array = neighbors, n_ndx = 0; n=n_array[n_ndx], n_ndx < n_array.length; n_ndx++) {
-                    for (g, g_array = n, g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
+                    for (var g, g_array = n, g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
                         this.allGroups.add(g);
                     }
                 }
