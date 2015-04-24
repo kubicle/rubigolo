@@ -156,7 +156,7 @@ private
   # Decides who owns a void by comparing the "liveness" of each side
   def find_stronger_owners
     @voids.each do |v|
-      next if v.eye_color
+      next if v.eye_color != nil
       lives = [0,0]
       2.times do |c|
         v.groups[c].each do |g|
@@ -211,7 +211,7 @@ private
   # Looks for "dame" = neutral voids (if alive groups from more than one color are around)
   def find_dame_voids
     @voids.each do |v|
-      next if v.eye_color
+      next if v.eye_color != nil
       alive_colors = []
       2.times do |c|
         v.groups[c].each do |g|

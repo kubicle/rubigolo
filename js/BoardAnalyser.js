@@ -201,7 +201,7 @@ BoardAnalyser.prototype.findEyes = function () {
 // Decides who owns a void by comparing the "liveness" of each side
 BoardAnalyser.prototype.findStrongerOwners = function () {
     for (var v, v_array = this.voids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
-        if (v.eyeColor) {
+        if (v.eyeColor !== null) {
             continue;
         }
         var lives = [0, 0];
@@ -285,7 +285,7 @@ BoardAnalyser.prototype.findDyingGroups = function () {
 // Looks for "dame" = neutral voids (if alive groups from more than one color are around)
 BoardAnalyser.prototype.findDameVoids = function () {
     for (var v, v_array = this.voids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
-        if (v.eyeColor) {
+        if (v.eyeColor !== null) {
             continue;
         }
         var aliveColors = [];
