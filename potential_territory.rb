@@ -61,12 +61,12 @@ private
     enlarge(@real_grid, @tmp.copy(@real_grid), first, second)
     enlarge(@tmp, grid.copy(@tmp), second, first)
     connect_to_borders(grid.yx)
-    $log.debug("after 1st enlarge:\n#{@grid}") if $debug
+    $log.debug("after 1st enlarge:\n#{grid}") if $debug
 
     # for reducing we start from the enlarged grid
     reduce(@reduced_grid.copy(grid))
     @reduced_yx = @reduced_grid.yx
-    $log.debug("after reduce:\n#{grid}") if $debug
+    $log.debug("after reduce:\n#{@reduced_grid}") if $debug
 
     # now we have the reduced goban, play the enlarge moves again minus the extra
     enlarge(@real_grid, @tmp.copy(@real_grid), first, second)

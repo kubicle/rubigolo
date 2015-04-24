@@ -81,13 +81,13 @@ PotentialTerritory.prototype.foresee = function (grid, first, second) {
     this.enlarge(this.tmp, grid.copy(this.tmp), second, first);
     this.connectToBorders(grid.yx);
     if (main.debug) {
-        main.log.debug('after 1st enlarge:\n' + this.grid);
+        main.log.debug('after 1st enlarge:\n' + grid);
     }
     // for reducing we start from the enlarged grid
     this.reduce(this.reducedGrid.copy(grid));
     this.reducedYx = this.reducedGrid.yx;
     if (main.debug) {
-        main.log.debug('after reduce:\n' + grid);
+        main.log.debug('after reduce:\n' + this.reducedGrid);
     }
     // now we have the reduced goban, play the enlarge moves again minus the extra
     this.enlarge(this.realGrid, this.tmp.copy(this.realGrid), first, second);
