@@ -115,7 +115,7 @@ BoardAnalyser.prototype.countScore = function (goban, grid) {
     this.findDameVoids();
     this.colorVoids();
     for (var v, v_array = this.voids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
-        if (v.owner) {
+        if (v.owner !== null) {
             this.scores[v.owner] += v.vcount;
         }
     }
@@ -225,8 +225,8 @@ BoardAnalyser.prototype.findStrongerOwners = function () {
 
 // Reviews the groups and declare "dead" the ones who do not own any void
 BoardAnalyser.prototype.findDyingGroups = function () {
-    var ownedVoids, vcount, oneOwner, myVoid;
     this.allGroups.forEach(function (g) {
+    var ownedVoids, vcount;
         if (g.eyes.length >= 2) {
             return;
         }
@@ -239,10 +239,11 @@ BoardAnalyser.prototype.findDyingGroups = function () {
         }
         // we need to look at voids around (fake eyes, etc.)
         ownedVoids = vcount = 0;
-        oneOwner = myVoid = null;
+        var myVoid = null;
+        var oneOwner = false;
         for (var v, v_array = g.voids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
-            if (v.owner) {
-                oneOwner = v.owner;
+            if (v.owner !== null) {
+                oneOwner = true;
                 if (v.owner === color) {
                     myVoid = v;
                     ownedVoids += 1;
@@ -309,7 +310,7 @@ BoardAnalyser.prototype.findDameVoids = function () {
 // Colors the voids with owner's color
 BoardAnalyser.prototype.colorVoids = function () {
     for (var v, v_array = this.voids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
-        var c = (( v.owner ? Grid.TERRITORY_COLOR + v.owner : Grid.DAME_COLOR ));
+        var c = (( v.owner !== null ? Grid.TERRITORY_COLOR + v.owner : Grid.DAME_COLOR ));
         this.filler.fillWithColor(v.i, v.j, v.code, c);
     }
 };

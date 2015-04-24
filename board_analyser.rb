@@ -99,7 +99,7 @@ class BoardAnalyser
     color_voids
 
     @voids.each do |v|
-      @scores[v.owner] += v.vcount if v.owner
+      @scores[v.owner] += v.vcount if v.owner != nil
     end
     
     debug_dump if $debug
@@ -182,10 +182,11 @@ private
       
       # we need to look at voids around (fake eyes, etc.)
       owned_voids = vcount = 0
-      one_owner = my_void = nil
+      my_void = nil
+      one_owner = false
       g.voids.each do |v|
-        if v.owner
-          one_owner = v.owner
+        if v.owner != nil
+          one_owner = true
           if v.owner == color then my_void=v; owned_voids+=1; vcount+=v.vcount end
         end
       end
@@ -228,7 +229,7 @@ private
   # Colors the voids with owner's color
   def color_voids
     @voids.each do |v|
-      c = (v.owner ? Grid::TERRITORY_COLOR+v.owner : Grid::DAME_COLOR)
+      c = (v.owner!=nil ? Grid::TERRITORY_COLOR+v.owner : Grid::DAME_COLOR)
       @filler.fill_with_color(v.i, v.j, v.code, c)
     end
   end
