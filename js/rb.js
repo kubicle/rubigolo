@@ -64,9 +64,11 @@ String.prototype.format = function (num) {
     for (var i = len - res.length; i > 0; i--) { res = padChar + res; }
     return res;
   case 'f': //'%.02f'
-    if (fmt[0] !== '.') break;
-    var prec = parseInt(fmt.substr(1));
-    return num.toFixed(prec);
+    var sign = '';
+    if (fmt[pos] === '+') { pos++; if (num > 0) sign = '+'; }
+    if (fmt[pos++] !== '.') break;
+    var prec = parseInt(fmt.substr(pos));
+    return sign + num.toFixed(prec);
   }
   throw new Error('Unknown format: ' + this.toString());
 };
