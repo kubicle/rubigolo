@@ -74,7 +74,7 @@ Hunter.prototype.evalMove = function (i, j, level) {
     // unless snapback, make sure our new stone's group is not in atari
     if (!snapback && empties.length < 2) {
         var lives = empties.length;
-        for (ag, ag_array = allies, ag_ndx = 0; ag=ag_array[ag_ndx], ag_ndx < ag_array.length; ag_ndx++) {
+        for (var ag, ag_array = allies, ag_ndx = 0; ag=ag_array[ag_ndx], ag_ndx < ag_array.length; ag_ndx++) {
             lives += ag.lives - 1;
         }
         if (lives < 2) {
