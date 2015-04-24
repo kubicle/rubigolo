@@ -2,7 +2,6 @@
 'use strict';
 
 var main = require('./main');
-var Stone = require('./Stone');
 
 /** @class A generic grid - a Goban owns a grid
  *  public read-only attribute: gsize, yx
@@ -96,10 +95,9 @@ Grid.prototype.toLine = function (block) {
 Grid.prototype.toTextExt = function (withLabels, endOfRow, block) {
     var yx = new Grid(this.gsize).yx;
     var maxlen = 1;
-    var j, i, val;
-    for (j = this.gsize; j >= 1; j--) {
-        for (i = 1; i <= this.gsize; i++) {
-            val = block(this.yx[j][i]);
+    for (var j = this.gsize; j >= 1; j--) {
+        for (var i = 1; i <= this.gsize; i++) {
+            var val = block(this.yx[j][i]);
             if (val === null) {
                 val = '';
             }
@@ -153,7 +151,7 @@ Grid.prototype.toString = function () {
 // Image is upside-down to help compare with a copy paste from console log.
 // So last row (j==gsize) comes first in image
 Grid.prototype.image = function () {
-    if (main.instanceOf(Stone, this.yx[1][1])) { // FIXME
+    if (main.instanceOf(Object, this.yx[1][1])) {
         return this.toLine(function (s) {
             return Grid.colorToChar(s.color);
         });
