@@ -31,20 +31,19 @@ module.exports = Void;
 // Call it once. Populates @eye_color
 // @eye_color stays nil if there is more than 1 color around (not an eye) or full board empty
 Void.prototype.eyeCheck = function () {
+    var hasBlack = this.groups[main.BLACK].length > 0;
+    var hasWhite = this.groups[main.WHITE].length > 0;
     var oneColor = null;
-    for (var c = 0; c < this.groups.length; c++) {
-        // is there 1 or more groups of this color?
-        if (this.groups[c].length >= 1) {
-            if (oneColor) { // we already had groups in another color
-                oneColor = null;
-                break;
-            }
-            oneColor = c;
+    if (hasBlack) {
+        if (!hasWhite) {
+            oneColor = main.BLACK;
         }
+    } else if (hasWhite) {
+        oneColor = main.WHITE;
     }
     this.eyeColor = oneColor;
     // Now tell the groups about this void
-    if (oneColor) {
+    if (oneColor !== null) {
         this.setOwner(oneColor);
         for (var n, n_array = this.groups, n_ndx = 0; n=n_array[n_ndx], n_ndx < n_array.length; n_ndx++) {
             for (var g, g_array = n, g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {

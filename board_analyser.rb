@@ -26,20 +26,17 @@ class Void
   # Call it once. Populates @eye_color
   # @eye_color stays nil if there is more than 1 color around (not an eye) or full board empty
   def eye_check!
+    hasBlack = @groups[BLACK].size > 0
+    hasWhite = @groups[WHITE].size > 0
     one_color = nil
-    @groups.size.times do |c|
-      # is there 1 or more groups of this color?
-      if @groups[c].size >= 1
-        if one_color # we already had groups in another color
-          one_color = nil
-          break
-        end
-        one_color = c
-      end
+    if hasBlack
+      one_color = BLACK if !hasWhite
+    elsif hasWhite
+      one_color = WHITE
     end
     @eye_color = one_color
     # Now tell the groups about this void
-    if one_color
+    if one_color != nil
       set_owner(one_color)
       @groups.each { |n| n.each { |g| g.add_void(self,true) } }
       $log.debug("Color #{one_color} surrounds #{self} (eye)") if $debug
