@@ -56,7 +56,7 @@ String.prototype.format = function (num) {
   var fmt = this.slice(1,-1), res, pos = 0;
   var code = this.slice(-1);
   switch (code) {
-  case 'd', 'x': //'%2d'
+  case 'd': case 'x': //'%2d'
     var padChar = ' ';
     if (fmt[pos] === '0') { pos++; padChar = '0'; }
     var len = parseInt(fmt.substr(pos));
