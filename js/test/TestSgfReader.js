@@ -8,7 +8,7 @@ var SgfReader = require('../SgfReader');
 
 /** @class */
 function TestSgfReader(testName) {
-    return main.TestCase.call(this, testName);
+    main.TestCase.call(this, testName);
 }
 inherits(TestSgfReader, main.TestCase);
 module.exports = main.tests.add(TestSgfReader);

@@ -11,7 +11,7 @@ var BoardAnalyser = require('../BoardAnalyser');
 /** @class NB: for debugging think of using analyser.debug_dump
  */
 function TestBoardAnalyser(testName) {
-    return main.TestCase.call(this, testName);
+    main.TestCase.call(this, testName);
 }
 inherits(TestBoardAnalyser, main.TestCase);
 module.exports = main.tests.add(TestBoardAnalyser);

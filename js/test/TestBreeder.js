@@ -9,7 +9,7 @@ var Breeder = require('../Breeder');
 
 /** @class */
 function TestBreeder(testName) {
-    return main.TestCase.call(this, testName);
+    main.TestCase.call(this, testName);
 }
 inherits(TestBreeder, main.TestCase);
 module.exports = main.tests.add(TestBreeder);
