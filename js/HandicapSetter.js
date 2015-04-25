@@ -116,4 +116,4 @@ HandicapSetter.setStandardHandicap = function (goban, count) {
     return count;
 };
 
-// E02: unknown method index(...)
+// E02: unknown method: index(...)

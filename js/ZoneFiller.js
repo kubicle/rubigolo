@@ -101,4 +101,4 @@ ZoneFiller.prototype._check = function (i, j) {
     return false;
 };
 
-// E02: unknown method find_index(...)
+// E02: unknown method: find_index(...)
