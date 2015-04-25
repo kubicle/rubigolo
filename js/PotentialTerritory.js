@@ -75,7 +75,7 @@ PotentialTerritory.prototype._grid = function (first) {
 PotentialTerritory.prototype.foresee = function (grid, first, second) {
     this.tmp = this.territory; // safe to use it as temp grid here
     this.reducedYx = null;
-    this.moveNumBeforeEnlarge = this.goban.moveNumber();
+    var moveCount = this.goban.moveNumber();
     // enlarging starts with real grid
     this.enlarge(this.realGrid, this.tmp.copy(this.realGrid), first, second);
     this.enlarge(this.tmp, grid.copy(this.tmp), second, first);
@@ -102,7 +102,8 @@ PotentialTerritory.prototype.foresee = function (grid, first, second) {
     // passed grid will receive the result (scoring grid)
     this.boan.countScore(this.goban, grid.convert(this.goban.grid));
     // restore goban
-    for (var _i = 0; _i < (this.goban.moveNumber() - this.moveNumBeforeEnlarge); _i++) {
+    moveCount = this.goban.moveNumber() - moveCount;
+    for (var _i = 0; _i < moveCount; _i++) {
         Stone.undo(this.goban);
     }
 };

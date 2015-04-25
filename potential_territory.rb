@@ -55,7 +55,7 @@ private
   def foresee(grid, first, second)
     @tmp = @territory # safe to use it as temp grid here
     @reduced_yx = nil
-    @move_num_before_enlarge = @goban.move_number?
+    move_count = @goban.move_number?
 
     # enlarging starts with real grid
     enlarge(@real_grid, @tmp.copy(@real_grid), first, second)
@@ -79,7 +79,8 @@ private
     @boan.count_score(@goban, grid.convert(@goban.grid))
 
     # restore goban
-    (@goban.move_number? - @move_num_before_enlarge).times { Stone.undo(@goban) }
+    move_count = @goban.move_number? - move_count
+    move_count.times { Stone.undo(@goban) }
   end
 
   def enlarge(in_grid, out_grid, first, second)
