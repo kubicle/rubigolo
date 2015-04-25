@@ -86,6 +86,7 @@ main.assertEqual = function (expected, val, comment) {
   _fail('expected [' + expected + '] but got [' + val + ']', comment);
 };
 
+main.assertInDelta = function (val, expected, delta, comment) {
   if (Math.abs(val - expected) <= delta) return;
   _fail(val + ' is not in ' + delta + ' delta around ' + expected, comment);
 };
