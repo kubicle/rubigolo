@@ -25,8 +25,8 @@ class Group
     @voids = [] # for analyser: empty zones next to a group
     @eyes = [] # for analyser: eyes (i.e. void surrounded by a group)
     @extra_lives = 0 # for analyser: lives granted by dying enemy nearby
-    @all_enemies = []
-    @all_lives = []
+    @_all_enemies = []
+    @_all_lives = []
     # $log.debug("New group created #{self}") if $debug_group
   end
 
@@ -38,8 +38,8 @@ class Group
     @merged_with = @merged_by = @killed_by = nil
     @voids.clear
     @eyes.clear
-    @all_enemies.clear
-    @all_lives.clear
+    @_all_enemies.clear
+    @_all_lives.clear
     # $log.debug("Use (new) recycled group #{self}") if $debug_group
     return self
   end
@@ -92,27 +92,27 @@ class Group
   
   # Builds a list of all lives of the group
   def all_lives
-    @all_lives.clear # TODO: try if set is more efficient
+    @_all_lives.clear # TODO: try if set is more efficient
     @stones.each do |s|
       s.neighbors.each do |life|
         next if life.color != EMPTY
-        @all_lives.push(life) if ! @all_lives.find_index(life)
+        @_all_lives.push(life) if ! @_all_lives.find_index(life)
       end
     end
-    return @all_lives
+    return @_all_lives
   end
 
   # Builds a list of all enemies of the group
   def all_enemies
-    @all_enemies.clear
+    @_all_enemies.clear
     @stones.each do |s|
       s.neighbors.each do |en|
         next if en.color == EMPTY or en.color == @color
-        @all_enemies.push(en.group) if ! @all_enemies.find_index(en.group)
+        @_all_enemies.push(en.group) if ! @_all_enemies.find_index(en.group)
       end
     end
-    $log.debug("#{self} has #{@all_enemies.size} enemies") if $debug_group
-    return @all_enemies    
+    $log.debug("#{self} has #{@_all_enemies.size} enemies") if $debug_group
+    return @_all_enemies    
   end
 
   # Counts the lives of a stone that are not already in the group
