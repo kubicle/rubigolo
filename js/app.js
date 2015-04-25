@@ -5,9 +5,6 @@ main.debug = true;
 require('./StoneConstants');
 require('./rb');
 
-require('./test/TestAi');
-require('./test/TestGameLogic');
-require('./test/TestGroup');
-require('./test/TestStone');
+require('./test/TestAll');
 
 main.tests.run();
