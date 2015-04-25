@@ -118,6 +118,17 @@ Array.prototype.contains = function (e) {
   return this.indexOf(e) !== -1;
 };
 
+Array.prototype.find = function (e) {
+  if (typeof e !== 'function') {
+    var ndx = this.indexOf(e);
+    return ndx === -1 ? undefined : this[ndx];
+  }
+  for (var i = 0; i < this.length; i++) {
+    if (e(this[i])) return this[i];
+  }
+  return undefined;
+};
+
 Array.prototype.size = function () {
   return this.length;
 };

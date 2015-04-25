@@ -88,7 +88,7 @@ main.assertEqual = function (expected, val, comment) {
 
 main.assertInDelta = function (val, expected, delta, comment) {
   if (Math.abs(val - expected) <= delta) return;
-  _fail(val + ' is not in ' + delta + ' delta around ' + expected, comment);
+  _fail(val + ' is not in +/-' + delta + ' delta around ' + expected, comment);
 };
 
 main.tests = new TestSeries();

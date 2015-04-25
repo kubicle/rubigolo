@@ -29,14 +29,14 @@ Hunter.prototype.evalMove = function (i, j, level) {
             continue;
         }
         // if even a single of our groups around is in atari this will not work (enemy will kill our group and escape)
-        if (eg.allEnemies().some(function (ag) {
+        if (eg.allEnemies().find(function (ag) {
             return ag.lives < 2;
         })) {
             continue;
         }
         if (empties.length === 1 && allies.length === 0) {
             // unless this is a snapback, this is a dumb move
-            var empty = stone.neighbors.some(function (n) {
+            var empty = stone.neighbors.find(function (n) {
                 return n.color === main.EMPTY;
             });
             // it is a snapback if the last empty point (where the enemy will have to play) 
