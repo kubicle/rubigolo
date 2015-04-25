@@ -240,7 +240,7 @@ GameLogic.prototype.requestUndo = function () {
     if (this.history.length < 2) {
         return this.errorMsg('Nothing to undo');
     }
-    for (var _i = 1; _i <= 2; _i++) {
+    for (var _i = 0; _i < 2; _i++) {
         if (!this.history[this.history.length-1].endWith('pass')) { // no stone to remove for a pass
             Stone.undo(this.goban);
         }

@@ -173,7 +173,7 @@ TestGroup.prototype.testMergeAndAround = function () {
     var bg2 = b2.group;
     assertEqual(true, bg1 !== bg2);
     var w2 = Stone.playAt(this.goban, 3, 4, main.WHITE);
-    for (var _i = 1; _i <= 3; _i++) {
+    for (var _i = 0; _i < 3; _i++) {
         // ++@
         // O+O
         // @++      

@@ -27,12 +27,12 @@ TimeKeeper.prototype.setGcTolerance = function (numRuns) {
 // NB: measures will always vary a bit unless we find the perfect calibration code (utopia)
 TimeKeeper.prototype.calibrate = function (expected) {
     var t0 = Date.now();
-    for (var _i = 1; _i <= 2000; _i++) {
+    for (var _i = 0; _i < 2000; _i++) {
         var m = {};
-        for (var n = 1; n <= 100; n++) {
+        for (var n = 0; n < 100; n++) {
             m[n.toString()] = n;
         }
-        for (n = 1; n <= 1000; n++) {
+        for (n = 0; n < 1000; n++) {
             m[(n % 100).toString()] += 1;
         }
     }
