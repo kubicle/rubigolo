@@ -225,8 +225,9 @@ BoardAnalyser.prototype.findStrongerOwners = function () {
 
 // Reviews the groups and declare "dead" the ones who do not own any void
 BoardAnalyser.prototype.findDyingGroups = function () {
+    var self = this;
     this.allGroups.forEach(function (g) {
-    var ownedVoids, vcount;
+        var ownedVoids, vcount;
         if (g.eyes.length >= 2) {
             return;
         }
@@ -270,9 +271,9 @@ BoardAnalyser.prototype.findDyingGroups = function () {
         }
         // g is dead!
         var stone = g.stones[0];
-        var taken = this.filler.fillWithColor(stone.i, stone.j, color, Grid.DEAD_COLOR + color);
-        this.prisoners[color] += taken;
-        this.scores[1 - color] += taken;
+        var taken = self.filler.fillWithColor(stone.i, stone.j, color, Grid.DEAD_COLOR + color);
+        self.prisoners[color] += taken;
+        self.scores[1 - color] += taken;
         g.countAsDead();
         if (main.debug) {
             main.log.debug('Hence ' + g + ' is considered dead (' + taken + ' prisoners; 1st stone ' + stone + ')');
