@@ -2,7 +2,6 @@
 'use strict';
 
 var main = require('../main');
-var Logger = require('../Logger');
 var inherits = require('util').inherits;
 var Grid = require('../Grid');
 var Stone = require('../Stone');
@@ -10,7 +9,7 @@ var assertEqual = main.assertEqual;
 var Goban = require('../Goban');
 var TimeKeeper = require('../TimeKeeper');
 main.debug = false; // if true it takes forever...
-main.log.level=(Logger.ERROR);
+main.log.level=(main.Logger.ERROR);
 main.count = 0;
 
 /** @class */
@@ -185,4 +184,6 @@ TestSpeed.prototype.play10Stones = function () {
 };
 
 // E02: unknown method: level=(...)
+// W02: unknown class supposed to be attached to main: Logger
 // E02: unknown method: collect_concat(...)
+// E02: unknown method: debug(...)

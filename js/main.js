@@ -111,13 +111,29 @@ main.TestCase = TestCase;
 
 /** @class */
 function Logger() {
+  this.level = Logger.ERROR;
 }
 
+Logger.ERROR = 0;
+Logger.WARNING = 1;
+Logger.INFO = 2;
+Logger.DEBUG = 3;
+
 Logger.prototype.debug = function (msg) {
+  if (this.level < Logger.DEBUG) return;
   console.log(msg);
+};
+Logger.prototype.info = function (msg) {
+  if (this.level < Logger.INFO) return;
+  console.log(msg);
+};
+Logger.prototype.warning = function (msg) {
+  if (this.level < Logger.WARNING) return;
+  console.warn(msg);
 };
 Logger.prototype.error = function (msg) {
   console.error(msg);
 };
 
 main.log = new Logger();
+main.Logger = Logger;
