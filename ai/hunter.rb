@@ -18,10 +18,10 @@ class Hunter < Heuristic
     stone.unique_enemies(@color).each do |eg|
       next if eg.lives != 2 # NB if 1 this is a case for Executioner
       # if even a single of our groups around is in atari this will not work (enemy will kill our group and escape)
-      next if 1 == eg.all_enemies.each { |ag| break(1) if ag.lives < 2 }
+      next if eg.all_enemies.find { |ag| ag.lives < 2 }
       if empties.size == 1 and allies.size == 0
         # unless this is a snapback, this is a dumb move
-        empty = stone.neighbors.each { |n| break(n) if n.color == EMPTY }
+        empty = stone.neighbors.find { |n| n.color == EMPTY }
         # it is a snapback if the last empty point (where the enemy will have to play) 
         # would not make the enemy group connect to another enemy group
         # (equivalent to: the empty point has no other enemy group as neighbor)

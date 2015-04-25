@@ -29,19 +29,15 @@ Hunter.prototype.evalMove = function (i, j, level) {
             continue;
         }
         // if even a single of our groups around is in atari this will not work (enemy will kill our group and escape)
-        if (1 === eg.allEnemies().forEach(function (ag) {
-            if (ag.lives < 2) {
-                error_break_value((1));
-            }
+        if (eg.allEnemies().some(function (ag) {
+            return ag.lives < 2;
         })) {
             continue;
         }
         if (empties.length === 1 && allies.length === 0) {
             // unless this is a snapback, this is a dumb move
-            var empty = stone.neighbors.forEach(function (n) {
-                if (n.color === main.EMPTY) {
-                    error_break_value((n));
-                }
+            var empty = stone.neighbors.some(function (n) {
+                return n.color === main.EMPTY;
             });
             // it is a snapback if the last empty point (where the enemy will have to play) 
             // would not make the enemy group connect to another enemy group
@@ -152,3 +148,4 @@ Hunter.prototype.escapingAtariIsCaught = function (stone, level) {
     }
     return (this.evalMove(e1.i, e1.j, level + 1) > 0 || this.evalMove(e2.i, e2.j, level + 1) > 0);
 };
+
