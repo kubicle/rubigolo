@@ -45,7 +45,8 @@ TestSeries.prototype.add = function (klass) {
 };
 
 TestSeries.prototype.run = function () {
-  var numClass = 0, count = 0;
+  main.numAssert = 0;
+  var numClass = 0, count = 0, failedCount = 0;
   for (var t in this.testCases) {
     numClass++;
     var Klass = this.testCases[t];
@@ -53,10 +54,16 @@ TestSeries.prototype.run = function () {
       if (m.substr(0,4) !== 'test') continue;
       count++;
       var obj = new Klass('' + count);
-      obj[m].call(obj);
+      try {
+        obj[m].call(obj);
+      } catch(e) {
+        console.error('Test failed: ' + e.message + e.stack);
+        failedCount++;
+      }
     }
   }
-  console.log('Completed testing of ' + numClass + ' classes (' + count + ' tests)');
+  var failedMsg = failedCount ? ', failed: ' + failedCount : ''
+  console.log('Completed testing of ' + numClass + ' classes. ' + main.numAssert + ' assertionss' + failedMsg);
 };
 
 
@@ -70,7 +77,7 @@ function _fail(msg, comment) {
   throw new Error('Failed assertion: ' + comment + msg);
 }
 
-main.assertEqual = function (expected, val, comment) {
+function _checkValue(expected, val, comment) {
   if (expected instanceof Array) {
     if (!val instanceof Array)
       _fail('expected Array but got ' + val, comment);
@@ -78,15 +85,21 @@ main.assertEqual = function (expected, val, comment) {
       _fail('expected Array of size ' + expected.length + ' but got size ' + val.length, comment);
 
     for (var i = 0; i < expected.length; i++) {
-      main.assertEqual(expected[i], val[i], comment);
+      _checkValue(expected[i], val[i], comment);
     }
     return;
   }
   if (val === expected) return;
   _fail('expected [' + expected + '] but got [' + val + ']', comment);
+}
+
+main.assertEqual = function (expected, val, comment) {
+  main.numAssert++;
+  _checkValue(expected, val, comment);
 };
 
 main.assertInDelta = function (val, expected, delta, comment) {
+  main.numAssert++;
   if (Math.abs(val - expected) <= delta) return;
   _fail(val + ' is not in +/-' + delta + ' delta around ' + expected, comment);
 };
