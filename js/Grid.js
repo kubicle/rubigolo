@@ -195,4 +195,4 @@ Grid.xLabel = function (i) {
     return String.fromCharCode((i + Grid.NOTATION_A - 1));
 };
 
-// E02: unknown method index(...)
+// E02: unknown method: index(...)
