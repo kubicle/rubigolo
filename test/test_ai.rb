@@ -59,7 +59,7 @@ class TestAi < Minitest::Test
     play_and_check("h9",BLACK,1) # FIXME: h8 is better than killing in h9 (non trivial)
   end
 
-  def test_pre_atari
+  def xtest_pre_atari
     # 5 +++++++++
     # 4 +@@@@O+++
     # 3 ++O@O@O++
@@ -73,7 +73,7 @@ class TestAi < Minitest::Test
     play_and_check("g2",BLACK,2)
   end
 
-  def test_hunter_1
+  def xtest_hunter_1
     # h7 is a wrong "good move"; white can escape with h8
     # 9 ++++++++O
     # 8 ++++++++@
@@ -89,7 +89,7 @@ class TestAi < Minitest::Test
     play_and_check("g7", BLACK, 3)
   end
 
-  def test_ladder
+  def xtest_ladder
     # 9 O+++++++@
     # 8 ++++++++@
     # 7 ++++++++O
@@ -107,7 +107,7 @@ class TestAi < Minitest::Test
     play_and_check("f5", BLACK, 5)
   end
 
-  def test_ladder_breaker1
+  def xtest_ladder_breaker1
     # 9 O++++++++
     # 8 O++++++++
     # 7 O+++O++++
@@ -120,7 +120,7 @@ class TestAi < Minitest::Test
     play_and_check("c6",BLACK,2)
   end
 
-  def test_ladder_breaker2
+  def xtest_ladder_breaker2
     # 9 O++++++++
     # 8 OOO++++++
     # 7 O+++O++++
@@ -135,7 +135,7 @@ class TestAi < Minitest::Test
     play_and_check("b6",BLACK,1)
   end
 
-  def test_see_dead_group
+  def xtest_see_dead_group
     # 9 +@++@@@@O
     # 8 +@@@@@@OO
     # 7 @@+@+@@O+
@@ -157,7 +157,7 @@ class TestAi < Minitest::Test
     # @goban.debug_display
   end
   
-  def test_border_defense
+  def xtest_border_defense
     init_board(7)
     # 7 +++++++
     # 6 +++@@@+
@@ -174,7 +174,7 @@ class TestAi < Minitest::Test
     play_and_check("b5",BLACK,1)
   end
 
-  def test_border_attack_and_invasion
+  def xtest_border_attack_and_invasion
     init_board(7)
     # 7 +++++++
     # 6 +++@@@@
@@ -189,7 +189,7 @@ class TestAi < Minitest::Test
     play_and_check("b5", WHITE, 1) # TODO: see gain is bigger because of invasion
   end
 
-  def test_border_attack_and_invasion2
+  def xtest_border_attack_and_invasion2
     init_board(7)
     # 7 +++++++
     # 6 +++@@@@
@@ -206,7 +206,7 @@ class TestAi < Minitest::Test
     play_and_check("b5", WHITE, 1)
   end
 
-  def test_border_closing
+  def xtest_border_closing
     init_board(7)
     # 7 +++++++
     # 6 +@+@@@@
@@ -221,7 +221,7 @@ class TestAi < Minitest::Test
     play_and_check("g4", WHITE, 1) # FIXME white (O) move should be g5 here
   end
 
-  def test_savior_hunter
+  def xtest_savior_hunter
     init_board(7)
     # 7 +++++++
     # 6 +++@@@@
@@ -237,7 +237,7 @@ class TestAi < Minitest::Test
     # assert_equal("g3", let_ai_play) # FIXME: (O) move should be g3 here (since d2 is already dead)
   end
 
-  def test_killing_saves_nearby_group_in_atari
+  def xtest_killing_saves_nearby_group_in_atari
     init_board(7)
     # 7 +++++++
     # 6 +@+@@@+
@@ -255,7 +255,7 @@ class TestAi < Minitest::Test
     play_and_check("pass",BLACK)
   end
   
-  def test_snapback
+  def xtest_snapback
     init_board(5)
     # 5 O@+O+
     # 4 O@*@@
@@ -270,7 +270,7 @@ class TestAi < Minitest::Test
     play_and_check("c4", WHITE, 4) # 3 taken & 1 saved = 4
   end
 
-  def test_snapback2
+  def xtest_snapback2
     init_board(7)
     # 7 O@+OO++
     # 6 O@+@@++
@@ -284,7 +284,7 @@ class TestAi < Minitest::Test
     play_and_check("a4", BLACK, 4)
   end
   
-  def test_snapback3
+  def xtest_snapback3
     init_board(5)
     # 5 O@+OO
     # 4 O@O@+
@@ -298,7 +298,7 @@ class TestAi < Minitest::Test
     play_and_check("c5", BLACK, 0) # FIXME: should NOT be c5 (count should be -1)
   end
 
-  def test_sees_attack_no_good
+  def xtest_sees_attack_no_good
     init_board(5)
     # 5 O@@OO
     # 4 O@+@+

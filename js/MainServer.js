@@ -390,17 +390,17 @@ MainServer.prototype.webDisplay = function (goban, aiPlayed, question) {
 
 var server = new MainServer();
 server.start();
-// E02: unknown method info(...)
-// W02: Unknown class supposed to be attached to main: TCPServer
-// E02: unknown method accept()
-// W02: Unknown class supposed to be attached to main: Socket
-// E02: unknown method recv_nonblock(...)
-// E02: unknown method gets()
-// W02: Unknown constant supposed to be attached to main: URI
-// E02: unknown method decode(...)
-// E02: unknown method close()
-// E02: unknown method print(...)
-// E02: unknown method ctime()
-// E02: unknown method index(...)
-// W02: Unknown class supposed to be attached to main: File
-// E02: unknown method read(...)
+// E02: unknown method: info(...)
+// W02: unknown class supposed to be attached to main: TCPServer
+// E02: unknown method: accept()
+// E02: unknown method: recv_nonblock(...)
+// W02: unknown class supposed to be attached to main: Socket
+// E02: unknown method: gets()
+// E02: unknown method: decode(...)
+// W02: unknown constant supposed to be attached to main: URI
+// E02: unknown method: close()
+// E02: unknown method: print(...)
+// E02: unknown method: ctime()
+// E02: unknown method: index(...)
+// E02: unknown method: read(...)
+// W02: unknown class supposed to be attached to main: File

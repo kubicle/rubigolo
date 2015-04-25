@@ -228,7 +228,7 @@ if (!main.testAll && !main.test) {
     var breeder = new Breeder(opts['size']);
     breeder.run(opts['num_tour'], opts['match_per_ai']);
 }
-// E02: unknown method find_index(...)
-// E02: unknown method opt(...)
-// W02: Unknown class supposed to be attached to main: Trollop
-// E02: unknown method options(...)
+// E02: unknown method: find_index(...)
+// E02: unknown method: opt(...)
+// E02: unknown method: options(...)
+// W02: unknown class supposed to be attached to main: Trollop

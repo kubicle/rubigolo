@@ -298,6 +298,6 @@ Stone.prototype.setGroupOnMerge = function (newGroup) {
     this.group = newGroup;
 };
  // Not used anymore but could become handy again later // def update_around_on_new //   $log.debug("update_around_on_new #{self.debug_dump}") if $debug // end // Not used anymore but could become handy again later // def update_around_before_die //   $log.debug("update_around_before_die #{self.debug_dump}") if $debug // end
-// E02: unknown method select(...)
-// E02: unknown method map(...)
-// E02: unknown method find_index(...)
+// E02: unknown method: select(...)
+// E02: unknown method: map(...)
+// E02: unknown method: find_index(...)

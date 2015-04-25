@@ -168,4 +168,4 @@ Goban.prototype.previousStone = function () {
     return this.history[this.history.length-1];
 };
 
-// E02: unknown method concat(...)
+// E02: unknown method: concat(...)

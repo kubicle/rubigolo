@@ -159,8 +159,8 @@ Genes.prototype.mutateAll = function () {
     return this;
 };
 
-// E02: unknown method chomp!(...)
-// W02: Unknown constant supposed to be attached to main: YAML
-// E02: unknown method dump(...)
-// W02: Unknown constant supposed to be attached to main: YAML
-// E02: unknown method load(...)
+// E02: unknown method: chomp!(...)
+// E02: unknown method: dump(...)
+// W02: unknown constant supposed to be attached to main: YAML
+// E02: unknown method: load(...)
+// W02: unknown constant supposed to be attached to main: YAML
