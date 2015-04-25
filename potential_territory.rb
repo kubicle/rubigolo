@@ -36,7 +36,6 @@ class PotentialTerritory
         @territory.yx[j][i] = owner / 2.0
       end
     end
-    $log.debug("\n+1=white, -1=black, 0=no one\n"+@territory.to_text{|v| v==0 ? "    0" : sprintf("%+.1f",v)}) if $debug
     return @territory.yx
   end
 

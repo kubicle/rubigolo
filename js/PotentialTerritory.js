@@ -54,7 +54,7 @@ PotentialTerritory.prototype.guessTerritories = function () {
             if (v === 0) {
                 return '    0';
             } else {
-                return sprintf('%+.1f', v);
+                return '' + '%+.1f'.format(v);
             }
         }));
     }
@@ -227,5 +227,3 @@ PotentialTerritory.prototype.connectToBorders = function (yx) {
         }
     }
 };
-
-// E02: unknown method sprintf(...)
