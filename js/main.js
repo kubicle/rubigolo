@@ -65,19 +65,29 @@ function TestCase(testName) {
   this.testName = testName;
 }
 
-main.assertEqual = function (expected, val) {
+function _fail(msg, comment) {
+  comment = comment ? comment + ': ' : '';
+  throw new Error('Failed assertion: ' + comment + msg);
+}
+
+main.assertEqual = function (expected, val, comment) {
   if (expected instanceof Array) {
-    if (!val instanceof Array) throw new Error('Failed assertion: expected Array but got ' + val);
+    if (!val instanceof Array)
+      _fail('expected Array but got ' + val, comment);
     if (val.length !== expected.length)
-      throw new Error('Failed assertion: expected Array of size ' + expected.length +
-        ' but got size ' + val.length);
+      _fail('expected Array of size ' + expected.length + ' but got size ' + val.length, comment);
+
     for (var i = 0; i < expected.length; i++) {
-      main.assertEqual(expected[i], val[i]);
+      main.assertEqual(expected[i], val[i], comment);
     }
     return;
   }
   if (val === expected) return;
-  throw new Error('Failed assertion: expected [' + expected + '] but got [' + val + ']');
+  _fail('expected [' + expected + '] but got [' + val + ']', comment);
+};
+
+  if (Math.abs(val - expected) <= delta) return;
+  _fail(val + ' is not in ' + delta + ' delta around ' + expected, comment);
 };
 
 main.tests = new TestSeries();

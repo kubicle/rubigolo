@@ -45,7 +45,7 @@ TestAi.prototype.checkEval = function (move, color, expEval) {
     
     var p = this.players[color];
     p.prepareEval();
-    return assertInDelta(p.evalMove(i, j), expEval + 0.5, 0.5);
+    return main.assertInDelta(p.evalMove(i, j), expEval + 0.5, 0.5);
 };
 
 TestAi.prototype.playAndCheck = function (expMove, expColor, expEval) {
@@ -60,7 +60,7 @@ TestAi.prototype.playAndCheck = function (expMove, expColor, expEval) {
     var move = player.getMove();
     assertEqual(expMove, move);
     if (expEval) {
-        assertInDelta(player.lastMoveScore, expEval + 0.5, 0.5, expMove + '/' + Grid.colorName(expColor));
+        main.assertInDelta(player.lastMoveScore, expEval + 0.5, 0.5, expMove + '/' + Grid.colorName(expColor));
     }
     return this.game.playOneMove(move);
 };
@@ -328,4 +328,3 @@ TestAi.prototype.testSeesAttackNoGood = function () {
     return this.checkEval('c5', main.BLACK, 0); // silly move
 };
 
-// E02: unknown method assert_in_delta(...)
