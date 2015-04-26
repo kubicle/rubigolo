@@ -113,8 +113,10 @@ function _checkValue(expected, val, comment) {
   if (expected instanceof Array) {
     if (!val instanceof Array)
       _fail('expected Array but got ' + val, comment);
-    if (val.length !== expected.length)
+    if (val.length !== expected.length) {
+      console.warn('Expected:\n', expected, 'Value:\n', val)
       _fail('expected Array of size ' + expected.length + ' but got size ' + val.length, comment);
+    }
 
     for (var i = 0; i < expected.length; i++) {
       _checkValue(expected[i], val[i], comment);
