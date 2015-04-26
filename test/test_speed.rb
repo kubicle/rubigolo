@@ -124,7 +124,12 @@ class TestSpeed < Minitest::Test
   
   # Converts "a1,b2" in [1,1,2,2]
   def moves_ij(game)
-    return game.split(",").collect_concat { |m| Grid.parse_move(m) }
+    moves_ij = []
+    game.split(",").each do |m|
+      ij = Grid.parse_move(m)
+      moves_ij.push(ij[0]); moves_ij.push(ij[1])
+    end
+    return moves_ij;
   end
 
   def play_moves(moves_ij)

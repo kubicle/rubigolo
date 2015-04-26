@@ -121,9 +121,13 @@ TestSpeed.prototype.testSpeed2 = function () {
 
 // Converts "a1,b2" in [1,1,2,2]
 TestSpeed.prototype.movesIj = function (game) {
-    return game.split(',').collectConcat(function (m) {
-        return Grid.parseMove(m);
-    });
+    var movesIj = [];
+    for (var m, m_array = game.split(','), m_ndx = 0; m=m_array[m_ndx], m_ndx < m_array.length; m_ndx++) {
+        var ij = Grid.parseMove(m);
+        movesIj.push(ij[0]);
+        movesIj.push(ij[1]);
+    }
+    return movesIj;
 };
 
 TestSpeed.prototype.playMoves = function (movesIj) {
@@ -184,6 +188,3 @@ TestSpeed.prototype.play10Stones = function () {
 };
 
 // E02: unknown method: level=(...)
-// W02: unknown class supposed to be attached to main: Logger
-// E02: unknown method: collect_concat(...)
-// E02: unknown method: debug(...)
