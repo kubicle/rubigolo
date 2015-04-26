@@ -32,11 +32,11 @@ ScoreAnalyser.prototype.computeScore = function (goban, komi, whoResigned) {
 // Initialize scoring phase
 ScoreAnalyser.prototype.startScoring = function (goban, komi, whoResigned) {
     this.goban = goban;
-    if (whoResigned) {
+    if (whoResigned !== undefined && whoResigned !== null) {
         var winner = Grid.COLOR_NAMES[1 - whoResigned];
         var other = Grid.COLOR_NAMES[whoResigned];
         this.scoreInfo = winner + ' won (since ' + other + ' resigned)';
-        return;
+        return this.scoreInfo;
     }
     this.analyser.countScore(goban);
     var scores = this.analyser.scores;
@@ -51,6 +51,7 @@ ScoreAnalyser.prototype.startScoring = function (goban, komi, whoResigned) {
         details[c] = [scores[c], pris, kom];
     }
     this.scoreInfo = [totals, details];
+    return this.scoreInfo;
 };
 
 ScoreAnalyser.prototype.getScore = function () {
