@@ -56,6 +56,7 @@ class TimeKeeper
     s << "Measuring \"#{@task_name}\":"
     s << " time: #{'%.02f' % @duration}s (expected #{'%.02f' % @expected_time} hence #{'%.02f' % (@duration / @expected_time * 100)}%)"
     s << " GC runs: #{@num_gc} (#{@expected_gc})"
+    return s
   end
 
 private
