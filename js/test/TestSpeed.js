@@ -39,11 +39,6 @@ TestSpeed.prototype.testSpeed1 = function () {
     var tolerance = 1.2;
     var t = new TimeKeeper(tolerance);
     t.calibrate(3.2);
-    if (main.testAll) {
-        console.log('Ignore the GC numbers below.');
-        console.log('Reason: when we run other tests before the speed test the GC has some catch-up to do.');
-        t.setGcTolerance(20);
-    }
     // Basic test
     t.start('Basic (no move validation) 100,000 stones and undo', 2.8, 0);
     for (var _i = 0; _i < 10000; _i++) {
@@ -167,7 +162,7 @@ TestSpeed.prototype.playGameAndClean = function (movesIj, cleanMode) {
     default: 
         throw new Error('Invalid clean mode');
     }
-    return assertEqual(null, this.goban.previousStone());
+    return assertEqual(true, !this.goban.previousStone());
 };
 
 // Our first, basic test
