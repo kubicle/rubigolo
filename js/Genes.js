@@ -19,7 +19,7 @@ Genes.SMALL_MUTATION_AMOUNT = 0.05; // e.g. 0.05 -> plus or minus 5%
 Genes.LOW = 0;
 Genes.HIGH = 1;
 Genes.prototype.clone = function () {
-    return new Genes(this.map.clone(), this.limits.clone());
+    return new Genes(main.clone(this.map), main.clone(this.limits));
 };
 
 Genes.prototype.setLimits = function (limits) {

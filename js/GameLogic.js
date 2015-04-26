@@ -183,7 +183,7 @@ GameLogic.prototype.messagesToConsole = function (on) {
 
 // Returns the error messages noticed until now and clears the list.
 GameLogic.prototype.getErrors = function () {
-    var errors = this.errors.clone();
+    var errors = main.clone(this.errors);
     this.errors.clear();
     return errors;
 };

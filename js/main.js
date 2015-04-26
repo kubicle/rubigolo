@@ -31,8 +31,30 @@ main.instanceOf = function (klass, obj) {
   return obj.constructor.name === klass.name;
 };
 
+/** Shallow clone helper.
+ *  Usual caution applies - please do some reading about the pitfalls if needed.
+ */
+main.clone = function (obj) {
+  if (obj === null || obj === undefined) return obj;
+  var clone;
+  if (main.isA(Array, obj)) {
+    clone = [];
+    for (var i = 0, len = obj.length; i < len; i++) clone[i] = obj[i];
+  } else if (typeof obj === 'object') {
+    if (typeof obj.clone === 'function') return obj.clone(); // object knows better
+    clone = {};
+    for (var k in obj) {
+      var val = obj[k];
+      if (typeof val !== 'function') clone[k] = val;
+    }
+  } else throw new Error('main.clone called on ' + typeof obj);
+  return clone;
+};
+
 
 //--- Tests
+
+var FAILED_ASSERTION_MSG = 'Failed assertion: ';
 
 /** @class */
 function TestSeries() {
@@ -45,26 +67,35 @@ TestSeries.prototype.add = function (klass) {
 };
 
 TestSeries.prototype.run = function () {
-  main.numAssert = 0;
-  var numClass = 0, count = 0, failedCount = 0;
+  main.assertCount = 0;
+  var startTime = Date.now();
+  var classCount = 0, testCount = 0, failedCount = 0, errorCount = 0;
   for (var t in this.testCases) {
-    numClass++;
-    var countInClass = 0;
+    classCount++;
     var Klass = this.testCases[t];
-    for (var m in Klass.prototype) {
-      if (m.substr(0,4) !== 'test') continue;
-      count++; countInClass++;
-      var obj = new Klass(Klass.name + ' #' + countInClass);
+    for (var method in Klass.prototype) {
+      if (typeof Klass.prototype[method] !== 'function') continue;
+      if (method.substr(0,4) !== 'test') continue;
+      testCount++;
+      var obj = new Klass(Klass.name + '#' + method);
       try {
-        obj[m].call(obj);
+        obj[method].call(obj);
       } catch(e) {
-        console.error('Test failed: ' + obj.testName + ': ' + e.message, e.stack);
-        failedCount++;
+        var header = 'Test failed';
+        if (e.message.startWith(FAILED_ASSERTION_MSG)) {
+          failedCount++;
+        } else {
+          header += ' with exception';
+          errorCount++;
+        }
+        console.error(header + ': ' + obj.testName + ': ' + e.message + '\n' + e.stack);
       }
     }
   }
-  var failedMsg = failedCount ? ', failed: ' + failedCount : ''
-  console.log('Completed testing of ' + numClass + ' classes. ' + main.numAssert + ' assertionss' + failedMsg);
+  var duration = ((Date.now() - startTime) / 1000).toFixed(2);
+  console.log('Completed tests. (' + classCount + ' classes, ' + testCount + ' tests, ' +
+    main.assertCount + ' assertions in ' + duration + 's)' +
+    ', failed: ' + failedCount + ', exceptions: ' + errorCount);
 };
 
 
@@ -75,7 +106,7 @@ function TestCase(testName) {
 
 function _fail(msg, comment) {
   comment = comment ? comment + ': ' : '';
-  throw new Error('Failed assertion: ' + comment + msg);
+  throw new Error(FAILED_ASSERTION_MSG + comment + msg);
 }
 
 function _checkValue(expected, val, comment) {
@@ -95,12 +126,12 @@ function _checkValue(expected, val, comment) {
 }
 
 main.assertEqual = function (expected, val, comment) {
-  main.numAssert++;
+  main.assertCount++;
   _checkValue(expected, val, comment);
 };
 
 main.assertInDelta = function (val, expected, delta, comment) {
-  main.numAssert++;
+  main.assertCount++;
   if (Math.abs(val - expected) <= delta) return;
   _fail(val + ' is not in +/-' + delta + ' delta around ' + expected, comment);
 };
