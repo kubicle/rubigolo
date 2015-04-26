@@ -19,7 +19,7 @@ Genes.SMALL_MUTATION_AMOUNT = 0.05; // e.g. 0.05 -> plus or minus 5%
 Genes.LOW = 0;
 Genes.HIGH = 1;
 Genes.prototype.clone = function () {
-    return new Genes(this.map.clone(), this.limits.clone());
+    return new Genes(main.clone(this.map), main.clone(this.limits));
 };
 
 Genes.prototype.setLimits = function (limits) {
@@ -28,16 +28,16 @@ Genes.prototype.setLimits = function (limits) {
 
 Genes.prototype.toString = function () {
     var s = '';
-    this.map.eachKey(function (k) {
+    for (var k in this.map) {
         s += k + ':' + '%.02f'.format(this.map[k]) + ', ';
-    });
+    }
     return s.chomp(', ');
 };
 
 // Returns a distance between 2 sets of genes
 Genes.prototype.distance = function (gene2) {
     var dist = 0.0;
-    this.map.eachKey(function (k) {
+    for (var k in this.map) {
         var m = this.map[k];
         var n = gene2.map[k];
         // first handle sign differences
@@ -63,7 +63,7 @@ Genes.prototype.distance = function (gene2) {
             d = 1.0 - (( n >= m ? m / n : n / m ));
         }
         dist += d; // puts "Distance for #{k} between #{'%.02f' % @map[k]} and #{'%.02f' % gene2.map[k]}: #{d}"
-    });
+    }
     // puts "Total distance: #{'%.02f' % dist}"
     return dist;
 };
@@ -109,7 +109,7 @@ Genes.prototype.mate = function (parent2, kid1, kid2, mutationRate, wideMutation
     var crossPoint2 = ~~(Math.random()*~~(p1.length));
     var crossPoint = ~~(Math.random()*~~(crossPoint2));
     var pos = 0;
-    return p1.eachKey(function (key) {
+    for (var key in p1) {
         if (pos < crossPoint || pos > crossPoint2) {
             k1[key] = p1[key];
             k2[key] = p2[key];
@@ -124,7 +124,7 @@ Genes.prototype.mate = function (parent2, kid1, kid2, mutationRate, wideMutation
             k2[key] = this.mutation1(key, k2[key], wideMutationRate);
         }
         pos += 1;
-    });
+    }
 };
 
 Genes.prototype.mutation1 = function (name, oldVal, wideMutationRate) {
@@ -153,15 +153,14 @@ Genes.prototype.mutation1 = function (name, oldVal, wideMutationRate) {
 };
 
 Genes.prototype.mutateAll = function () {
-    this.map.eachKey(function (key) {
+    for (var key in this.map) {
         this.map[key] = this.mutation1(key, this.map[key], 1.0);
-    });
+    }
     return this;
 };
 
-// E02: unknown method each_key(...)
-// E02: unknown method chomp!(...)
-// W02: Unknown constant supposed to be attached to main: YAML
-// E02: unknown method dump(...)
-// W02: Unknown constant supposed to be attached to main: YAML
-// E02: unknown method load(...)
+// E02: unknown method: chomp!(...)
+// E02: unknown method: dump(...)
+// W02: unknown constant supposed to be attached to main: YAML
+// E02: unknown method: load(...)
+// W02: unknown constant supposed to be attached to main: YAML

@@ -32,11 +32,11 @@ ScoreAnalyser.prototype.computeScore = function (goban, komi, whoResigned) {
 // Initialize scoring phase
 ScoreAnalyser.prototype.startScoring = function (goban, komi, whoResigned) {
     this.goban = goban;
-    if (whoResigned) {
+    if (whoResigned !== undefined && whoResigned !== null) {
         var winner = Grid.COLOR_NAMES[1 - whoResigned];
         var other = Grid.COLOR_NAMES[whoResigned];
         this.scoreInfo = winner + ' won (since ' + other + ' resigned)';
-        return;
+        return this.scoreInfo;
     }
     this.analyser.countScore(goban);
     var scores = this.analyser.scores;
@@ -44,13 +44,14 @@ ScoreAnalyser.prototype.startScoring = function (goban, komi, whoResigned) {
     var totals = [];
     var details = [];
     var addPris = true;
-    for (var c = 1; c <= 2; c++) {
+    for (var c = 0; c < 2; c++) {
         var kom = (( c === main.WHITE ? komi : 0 ));
         var pris = (( addPris ? prisoners[1 - c] : -prisoners[c] ));
         totals[c] = scores[c] + pris + kom;
         details[c] = [scores[c], pris, kom];
     }
     this.scoreInfo = [totals, details];
+    return this.scoreInfo;
 };
 
 ScoreAnalyser.prototype.getScore = function () {
@@ -71,7 +72,7 @@ ScoreAnalyser.prototype.scoreInfoToS = function (info) {
     }
     var s = [];
     s.push(this.scoreWinnerToS(totals));
-    for (var c = 1; c <= 2; c++) {
+    for (var c = 0; c < 2; c++) {
         var detail = details[c];
         if (detail === null) {
             s.push(Grid.colorName(c) + ' resigned');
@@ -105,7 +106,7 @@ ScoreAnalyser.prototype.scoreWinnerToS = function (totals) {
     } else {
         var max = Math.max.apply(Math, totals);
         var winners = [];
-        for (var c = 1; c <= totals.length; c++) {
+        for (var c = 0; c < totals.length; c++) {
             if (totals[c] === max) {
                 winners.push(c);
             }
@@ -125,4 +126,4 @@ ScoreAnalyser.prototype.pts = function (n) {
     return ( n !== 1 ? n + ' points' : '1 point' );
 };
 
-// E02: unknown method map(...)
+// E02: unknown method: map(...)

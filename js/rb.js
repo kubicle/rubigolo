@@ -56,7 +56,7 @@ String.prototype.format = function (num) {
   var fmt = this.slice(1,-1), res, pos = 0;
   var code = this.slice(-1);
   switch (code) {
-  case 'd', 'x': //'%2d'
+  case 'd': case 'x': //'%2d'
     var padChar = ' ';
     if (fmt[pos] === '0') { pos++; padChar = '0'; }
     var len = parseInt(fmt.substr(pos));
@@ -64,9 +64,11 @@ String.prototype.format = function (num) {
     for (var i = len - res.length; i > 0; i--) { res = padChar + res; }
     return res;
   case 'f': //'%.02f'
-    if (fmt[0] !== '.') break;
-    var prec = parseInt(fmt.substr(1));
-    return num.toFixed(prec);
+    var sign = '';
+    if (fmt[pos] === '+') { pos++; if (num > 0) sign = '+'; }
+    if (fmt[pos++] !== '.') break;
+    var prec = parseInt(fmt.substr(pos));
+    return sign + num.toFixed(prec);
   }
   throw new Error('Unknown format: ' + this.toString());
 };
@@ -116,12 +118,23 @@ Array.prototype.contains = function (e) {
   return this.indexOf(e) !== -1;
 };
 
+Array.prototype.find = function (e) {
+  if (typeof e !== 'function') {
+    var ndx = this.indexOf(e);
+    return ndx === -1 ? undefined : this[ndx];
+  }
+  for (var i = 0; i < this.length; i++) {
+    if (e(this[i])) return this[i];
+  }
+  return undefined;
+};
+
 Array.prototype.size = function () {
   return this.length;
 };
 
 Array.prototype.clear = function () {
-  for (var i=this.length; i>0; i--) this.pop();
+  this.length = 0;
 };
 
 Array.prototype.select = Array.prototype.filter;

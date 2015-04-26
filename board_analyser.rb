@@ -26,20 +26,17 @@ class Void
   # Call it once. Populates @eye_color
   # @eye_color stays nil if there is more than 1 color around (not an eye) or full board empty
   def eye_check!
+    hasBlack = @groups[BLACK].size > 0
+    hasWhite = @groups[WHITE].size > 0
     one_color = nil
-    @groups.size.times do |c|
-      # is there 1 or more groups of this color?
-      if @groups[c].size >= 1
-        if one_color # we already had groups in another color
-          one_color = nil
-          break
-        end
-        one_color = c
-      end
+    if hasBlack
+      one_color = BLACK if !hasWhite
+    elsif hasWhite
+      one_color = WHITE
     end
     @eye_color = one_color
     # Now tell the groups about this void
-    if one_color
+    if one_color != nil
       set_owner(one_color)
       @groups.each { |n| n.each { |g| g.add_void(self,true) } }
       $log.debug("Color #{one_color} surrounds #{self} (eye)") if $debug
@@ -102,7 +99,7 @@ class BoardAnalyser
     color_voids
 
     @voids.each do |v|
-      @scores[v.owner] += v.vcount if v.owner
+      @scores[v.owner] += v.vcount if v.owner != nil
     end
     
     debug_dump if $debug
@@ -159,7 +156,7 @@ private
   # Decides who owns a void by comparing the "liveness" of each side
   def find_stronger_owners
     @voids.each do |v|
-      next if v.eye_color
+      next if v.eye_color != nil
       lives = [0,0]
       2.times do |c|
         v.groups[c].each do |g|
@@ -185,10 +182,11 @@ private
       
       # we need to look at voids around (fake eyes, etc.)
       owned_voids = vcount = 0
-      one_owner = my_void = nil
+      my_void = nil
+      one_owner = false
       g.voids.each do |v|
-        if v.owner
-          one_owner = v.owner
+        if v.owner != nil
+          one_owner = true
           if v.owner == color then my_void=v; owned_voids+=1; vcount+=v.vcount end
         end
       end
@@ -214,7 +212,7 @@ private
   # Looks for "dame" = neutral voids (if alive groups from more than one color are around)
   def find_dame_voids
     @voids.each do |v|
-      next if v.eye_color
+      next if v.eye_color != nil
       alive_colors = []
       2.times do |c|
         v.groups[c].each do |g|
@@ -231,7 +229,7 @@ private
   # Colors the voids with owner's color
   def color_voids
     @voids.each do |v|
-      c = (v.owner ? Grid::TERRITORY_COLOR+v.owner : Grid::DAME_COLOR)
+      c = (v.owner!=nil ? Grid::TERRITORY_COLOR+v.owner : Grid::DAME_COLOR)
       @filler.fill_with_color(v.i, v.j, v.code, c)
     end
   end

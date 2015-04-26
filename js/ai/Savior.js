@@ -10,14 +10,14 @@ var Hunter = require('./Hunter');
 
 /** @class */
 function Savior(player) {
-    Heuristic.call(this);
+    Heuristic.call(this, player);
     this.enemyHunter = new Hunter(player, true);
 }
 inherits(Savior, Heuristic);
 module.exports = Savior;
 
 Savior.prototype.initColor = function () {
-    Heuristic.init_color.call(this);
+    Heuristic.prototype.initColor.call(this);
     return this.enemyHunter.initColor();
 };
 

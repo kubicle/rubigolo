@@ -10,7 +10,7 @@ var ScoreAnalyser = require('../ScoreAnalyser');
 
 /** @class */
 function TestScoreAnalyser(testName) {
-    return main.TestCase.call(this, testName);
+    main.TestCase.call(this, testName);
 }
 inherits(TestScoreAnalyser, main.TestCase);
 module.exports = main.tests.add(TestScoreAnalyser);
@@ -42,7 +42,7 @@ TestScoreAnalyser.prototype.testComputeScore = function () {
     assertEqual('white wins by 6.5 points', s.shift());
     assertEqual('black (@): 12 points (12 + 0 prisoners)', s.shift());
     assertEqual('white (O): 18.5 points (14 + 3 prisoners + 1.5 komi)', s.shift());
-    assertEqual(null, s.shift());
+    assertEqual(undefined, s.shift());
     // test message when someone resigns
     s = this.sa.computeScore(this.goban, 1.5, main.BLACK);
     assertEqual(['white won (since black resigned)'], s);
@@ -78,7 +78,7 @@ TestScoreAnalyser.prototype.testScoreInfoToS = function () {
     assertEqual('white wins by 2 points', s.shift());
     assertEqual('black (@): 10 points (1 + 2 prisoners + 3 komi)', s.shift());
     assertEqual('white (O): 12 points (4 + 5 prisoners + 6 komi)', s.shift());
-    return assertEqual(null, s.shift());
+    return assertEqual(undefined, s.shift());
 };
 
 TestScoreAnalyser.prototype.testScoreDiffToS = function () {

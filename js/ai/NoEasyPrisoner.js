@@ -10,15 +10,15 @@ var Hunter = require('./Hunter');
 
 /** @class */
 function NoEasyPrisoner(player) {
-    Heuristic.call(this);
-    setAsNegative();
+    Heuristic.call(this, player);
+    this.setAsNegative();
     this.enemyHunter = new Hunter(player, true);
 }
 inherits(NoEasyPrisoner, Heuristic);
 module.exports = NoEasyPrisoner;
 
 NoEasyPrisoner.prototype.initColor = function () {
-    Heuristic.init_color.call(this);
+    Heuristic.prototype.initColor.call(this);
     return this.enemyHunter.initColor();
 };
 

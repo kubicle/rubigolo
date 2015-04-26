@@ -40,7 +40,7 @@ class TestAi < Minitest::Test
   def play_and_check(exp_move,exp_color,exp_eval=nil)
     $log.debug("Letting AI play...") if $debug
     player = @players[@game.cur_color]
-    throw "Wrong player turn: #{Grid.color_name(player.color)} to play now" if exp_color!=player.color
+    raise "Wrong player turn: #{Grid.color_name(player.color)} to play now" if exp_color!=player.color
     move = player.get_move
     assert_equal(exp_move, move)
     assert_in_delta(player.last_move_score, exp_eval+0.5, 0.5, "#{exp_move}/#{Grid.color_name(exp_color)}") if exp_eval

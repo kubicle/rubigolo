@@ -124,7 +124,12 @@ class TestSpeed < Minitest::Test
   
   # Converts "a1,b2" in [1,1,2,2]
   def moves_ij(game)
-    return game.split(",").collect_concat { |m| Grid.parse_move(m) }
+    moves_ij = []
+    game.split(",").each do |m|
+      ij = Grid.parse_move(m)
+      moves_ij.push(ij[0]); moves_ij.push(ij[1])
+    end
+    return moves_ij;
   end
 
   def play_moves(moves_ij)
@@ -150,7 +155,7 @@ class TestSpeed < Minitest::Test
     when CM_UNDO then num_moves.times { Stone.undo(@goban) }
     when CM_CLEAR then @goban.clear
     when CM_NEW then init_board
-    else throw "Invalid clean mode"
+    else raise "Invalid clean mode"
     end
     assert_equal(nil, @goban.previous_stone)
   end

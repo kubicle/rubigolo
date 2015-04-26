@@ -17,7 +17,7 @@ function ConsoleGame(opts) {
     this.game.newGame(opts['size'], opts.handicap);
     this.goban = this.game.goban;
     this.players = [];
-    for (var color = 1; color <= 2; color++) {
+    for (var color = 0; color < 2; color++) {
         this.players[color] = ( opts.ai() > color ? new Ai1Player(this.goban, color) : new ConsoleHumanPlayer(this.goban, color) );
     }
     if (opts.load()) {
@@ -32,7 +32,7 @@ module.exports = ConsoleGame;
 // Show prisoner counts during the game  
 ConsoleGame.prototype.showPrisoners = function () {
     var prisoners = this.game.prisoners();
-    for (var c = 1; c <= prisoners.length; c++) {
+    for (var c = 0; c < prisoners.length; c++) {
         console.log(prisoners[c] + ' ' + Grid.COLOR_NAMES[c] + ' (' + Grid.COLOR_CHARS[c] + ') are prisoners');
     }
     console.log('');
@@ -100,8 +100,7 @@ ConsoleGame.prototype.playGame = function () {
     console.log(this.game.historyString());
 };
 
-opts = main.Trollop.options(function () {
-    var opts;
+var opts = main.Trollop.options(function () {
     opt('size', 'Goban size', {'default':9});
     opt('ai', 'How many AI players', {'default':2});
     opt('handicap', 'Number of handicap stones', {'default':0});
@@ -110,8 +109,8 @@ opts = main.Trollop.options(function () {
 console.log('Command line options received: ' + opts);
 // Start the game
 new ConsoleGame(opts).playGame();
-// E02: unknown method ai()
-// E02: unknown method load()
-// E02: unknown method opt(...)
-// W02: Unknown class supposed to be attached to main: Trollop
-// E02: unknown method options(...)
+// E02: unknown method: ai()
+// E02: unknown method: load()
+// E02: unknown method: opt(...)
+// E02: unknown method: options(...)
+// W02: unknown class supposed to be attached to main: Trollop

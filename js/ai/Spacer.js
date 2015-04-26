@@ -8,9 +8,9 @@ var Heuristic = require('./Heuristic');
 
 /** @class */
 function Spacer(player) {
-    Heuristic.call(this);
-    this.inflCoeff = getGene('infl', 2.0, 0.0, 8.0);
-    this.cornerCoeff = getGene('corner', 2.0, 0.0, 8.0);
+    Heuristic.call(this, player);
+    this.inflCoeff = this.getGene('infl', 2.0, 0.0, 8.0);
+    this.cornerCoeff = this.getGene('corner', 2.0, 0.0, 8.0);
 }
 inherits(Spacer, Heuristic);
 module.exports = Spacer;

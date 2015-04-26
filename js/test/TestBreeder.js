@@ -3,13 +3,12 @@
 
 var main = require('../main');
 var inherits = require('util').inherits;
-var assertEqual = main.assertEqual;
 main.test = true;
 var Breeder = require('../Breeder');
 
 /** @class */
 function TestBreeder(testName) {
-    return main.TestCase.call(this, testName);
+    main.TestCase.call(this, testName);
 }
 inherits(TestBreeder, main.TestCase);
 module.exports = main.tests.add(TestBreeder);
@@ -20,7 +19,5 @@ TestBreeder.prototype.testBwBalance = function () {
     var tolerance = 0.15; // 0.10=>10% (+ or -); the more games you play the lower tolerance you can set (but it takes more time...)
     var b = new Breeder(size);
     var numWins = b.bwBalanceCheck(numGames, size);
-    return assertInEpsilon(numWins, numGames / 2, tolerance);
+    return main.assertInDelta(Math.abs(numWins / (numGames / 2)), 1, tolerance);
 };
-
-// E02: unknown method assert_in_epsilon(...)

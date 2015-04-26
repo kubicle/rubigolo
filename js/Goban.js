@@ -19,14 +19,13 @@ function Goban(gsize) {
     this.grid = new Grid(gsize);
     this.scoringGrid = new Grid(gsize);
     this.ban = this.grid.yx;
-    var i, j;
     for (var j = 1; j <= gsize; j++) {
         for (var i = 1; i <= gsize; i++) {
             this.ban[j][i] = new Stone(this, i, j, main.EMPTY);
         }
     }
-    for (var j = 1; j <= gsize; j++) {
-        for (var i = 1; i <= gsize; i++) {
+    for (j = 1; j <= gsize; j++) {
+        for (i = 1; i <= gsize; i++) {
             this.ban[j][i].findNeighbors();
         }
     }
@@ -169,4 +168,4 @@ Goban.prototype.previousStone = function () {
     return this.history[this.history.length-1];
 };
 
-// E02: unknown method concat(...)
+// E02: unknown method: concat(...)

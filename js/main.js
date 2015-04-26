@@ -31,8 +31,30 @@ main.instanceOf = function (klass, obj) {
   return obj.constructor.name === klass.name;
 };
 
+/** Shallow clone helper.
+ *  Usual caution applies - please do some reading about the pitfalls if needed.
+ */
+main.clone = function (obj) {
+  if (obj === null || obj === undefined) return obj;
+  var clone;
+  if (main.isA(Array, obj)) {
+    clone = [];
+    for (var i = 0, len = obj.length; i < len; i++) clone[i] = obj[i];
+  } else if (typeof obj === 'object') {
+    if (typeof obj.clone === 'function') return obj.clone(); // object knows better
+    clone = {};
+    for (var k in obj) {
+      var val = obj[k];
+      if (typeof val !== 'function') clone[k] = val;
+    }
+  } else throw new Error('main.clone called on ' + typeof obj);
+  return clone;
+};
+
 
 //--- Tests
+
+var FAILED_ASSERTION_MSG = 'Failed assertion: ';
 
 /** @class */
 function TestSeries() {
@@ -45,18 +67,35 @@ TestSeries.prototype.add = function (klass) {
 };
 
 TestSeries.prototype.run = function () {
-  var numClass = 0, count = 0;
+  main.assertCount = 0;
+  var startTime = Date.now();
+  var classCount = 0, testCount = 0, failedCount = 0, errorCount = 0;
   for (var t in this.testCases) {
-    numClass++;
+    classCount++;
     var Klass = this.testCases[t];
-    for (var m in Klass.prototype) {
-      if (m.substr(0,4) !== 'test') continue;
-      count++;
-      var obj = new Klass('' + count);
-      obj[m].call(obj);
+    for (var method in Klass.prototype) {
+      if (typeof Klass.prototype[method] !== 'function') continue;
+      if (method.substr(0,4) !== 'test') continue;
+      testCount++;
+      var obj = new Klass(Klass.name + '#' + method);
+      try {
+        obj[method].call(obj);
+      } catch(e) {
+        var header = 'Test failed';
+        if (e.message.startWith(FAILED_ASSERTION_MSG)) {
+          failedCount++;
+        } else {
+          header += ' with exception';
+          errorCount++;
+        }
+        console.error(header + ': ' + obj.testName + ': ' + e.message + '\n' + e.stack);
+      }
     }
   }
-  console.log('Completed testing of ' + numClass + ' classes (' + count + ' tests)');
+  var duration = ((Date.now() - startTime) / 1000).toFixed(2);
+  console.log('Completed tests. (' + classCount + ' classes, ' + testCount + ' tests, ' +
+    main.assertCount + ' assertions in ' + duration + 's)' +
+    ', failed: ' + failedCount + ', exceptions: ' + errorCount);
 };
 
 
@@ -65,19 +104,38 @@ function TestCase(testName) {
   this.testName = testName;
 }
 
-main.assertEqual = function (expected, val) {
+function _fail(msg, comment) {
+  comment = comment ? comment + ': ' : '';
+  throw new Error(FAILED_ASSERTION_MSG + comment + msg);
+}
+
+function _checkValue(expected, val, comment) {
   if (expected instanceof Array) {
-    if (!val instanceof Array) throw new Error('Failed assertion: expected Array but got ' + val);
-    if (val.length !== expected.length)
-      throw new Error('Failed assertion: expected Array of size ' + expected.length +
-        ' but got size ' + val.length);
+    if (!val instanceof Array)
+      _fail('expected Array but got ' + val, comment);
+    if (val.length !== expected.length) {
+      console.warn('Expected:\n', expected, 'Value:\n', val)
+      _fail('expected Array of size ' + expected.length + ' but got size ' + val.length, comment);
+    }
+
     for (var i = 0; i < expected.length; i++) {
-      main.assertEqual(expected[i], val[i]);
+      _checkValue(expected[i], val[i], comment);
     }
     return;
   }
   if (val === expected) return;
-  throw new Error('Failed assertion: expected [' + expected + '] but got [' + val + ']');
+  _fail('expected [' + expected + '] but got [' + val + ']', comment);
+}
+
+main.assertEqual = function (expected, val, comment) {
+  main.assertCount++;
+  _checkValue(expected, val, comment);
+};
+
+main.assertInDelta = function (val, expected, delta, comment) {
+  main.assertCount++;
+  if (Math.abs(val - expected) <= delta) return;
+  _fail(val + ' is not in +/-' + delta + ' delta around ' + expected, comment);
 };
 
 main.tests = new TestSeries();
@@ -87,13 +145,33 @@ main.TestCase = TestCase;
 
 /** @class */
 function Logger() {
+  this.level = Logger.ERROR;
 }
 
+Logger.FATAL = 4;
+Logger.ERROR = 3;
+Logger.WARN = 2;
+Logger.INFO = 1;
+Logger.DEBUG = 0;
+
 Logger.prototype.debug = function (msg) {
+  if (this.level > Logger.DEBUG) return;
   console.log(msg);
+};
+Logger.prototype.info = function (msg) {
+  if (this.level > Logger.INFO) return;
+  console.info(msg);
+};
+Logger.prototype.warn = function (msg) {
+  if (this.level > Logger.WARN) return;
+  console.warn(msg);
 };
 Logger.prototype.error = function (msg) {
   console.error(msg);
 };
+Logger.prototype.fatal = function (msg) {
+  console.error(msg);
+};
 
 main.log = new Logger();
+main.Logger = Logger;

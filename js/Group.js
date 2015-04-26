@@ -28,8 +28,8 @@ function Group(goban, stone, lives, ndx) {
     this.voids = []; // for analyser: empty zones next to a group
     this.eyes = []; // for analyser: eyes (i.e. void surrounded by a group)
     this.extraLives = 0; // for analyser: lives granted by dying enemy nearby
-    this.allEnemies = [];
-    this.allLives = []; // $log.debug("New group created #{self}") if $debug_group
+    this._allEnemies = [];
+    this._allLives = []; // $log.debug("New group created #{self}") if $debug_group
 }
 module.exports = Group;
 
@@ -41,8 +41,8 @@ Group.prototype.recycle = function (stone, lives) {
     this.mergedWith = this.mergedBy = this.killedBy = null;
     this.voids.clear();
     this.eyes.clear();
-    this.allEnemies.clear();
-    this.allLives.clear();
+    this._allEnemies.clear();
+    this._allLives.clear();
     // $log.debug("Use (new) recycled group #{self}") if $debug_group
     return this;
 };
@@ -111,37 +111,37 @@ Group.prototype.countAsDead = function () {
 
 // Builds a list of all lives of the group
 Group.prototype.allLives = function () {
-    this.allLives.clear(); // TODO: try if set is more efficient
+    this._allLives.clear(); // TODO: try if set is more efficient
     for (var s, s_array = this.stones, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
         for (var life, life_array = s.neighbors, life_ndx = 0; life=life_array[life_ndx], life_ndx < life_array.length; life_ndx++) {
             if (life.color !== main.EMPTY) {
                 continue;
             }
-            if (!this.allLives.findIndex(life)) {
-                this.allLives.push(life);
+            if (!this._allLives.contains(life)) {
+                this._allLives.push(life);
             }
         }
     }
-    return this.allLives;
+    return this._allLives;
 };
 
 // Builds a list of all enemies of the group
 Group.prototype.allEnemies = function () {
-    this.allEnemies.clear();
+    this._allEnemies.clear();
     for (var s, s_array = this.stones, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
         for (var en, en_array = s.neighbors, en_ndx = 0; en=en_array[en_ndx], en_ndx < en_array.length; en_ndx++) {
             if (en.color === main.EMPTY || en.color === this.color) {
                 continue;
             }
-            if (!this.allEnemies.findIndex(en.group)) {
-                this.allEnemies.push(en.group);
+            if (!this._allEnemies.contains(en.group)) {
+                this._allEnemies.push(en.group);
             }
         }
     }
     if (main.debugGroup) {
-        main.log.debug(this + ' has ' + this.allEnemies.length + ' enemies');
+        main.log.debug(this + ' has ' + this._allEnemies.length + ' enemies');
     }
-    return this.allEnemies;
+    return this._allEnemies;
 };
 
 // Counts the lives of a stone that are not already in the group
@@ -340,7 +340,7 @@ Group.prisoners = function (goban) {
     return prisoners;
 };
 
-// E02: unknown method map(...)
-// E02: unknown method find_index(...)
-// E02: unknown method merged_with=(...)
-// E02: unknown method merged_by=(...)
+// E02: unknown method: map(...)
+// E02: unknown method: find_index(...)
+// E02: unknown method: merged_with=(...)
+// E02: unknown method: merged_by=(...)

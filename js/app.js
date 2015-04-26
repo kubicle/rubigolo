@@ -1,10 +1,10 @@
 'use strict';
 
 var main = require('./main');
+main.debug = true;
 require('./StoneConstants');
 require('./rb');
-require('./test/TestStone');
-require('./test/TestGroup');
-require('./test/TestGameLogic');
+
+require('./test/TestAll');
 
 main.tests.run();

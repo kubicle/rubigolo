@@ -183,7 +183,7 @@ GameLogic.prototype.messagesToConsole = function (on) {
 
 // Returns the error messages noticed until now and clears the list.
 GameLogic.prototype.getErrors = function () {
-    var errors = this.errors.clone();
+    var errors = main.clone(this.errors);
     this.errors.clear();
     return errors;
 };
@@ -240,7 +240,7 @@ GameLogic.prototype.requestUndo = function () {
     if (this.history.length < 2) {
         return this.errorMsg('Nothing to undo');
     }
-    for (var i = 1; i <= 2; i++) {
+    for (var _i = 0; _i < 2; _i++) {
         if (!this.history[this.history.length-1].endWith('pass')) { // no stone to remove for a pass
             Stone.undo(this.goban);
         }

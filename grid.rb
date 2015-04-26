@@ -120,7 +120,7 @@ class Grid
   # Image is upside-down to help compare with a copy paste from console log.
   # So last row (j==gsize) comes first in image
   def image?
-    if @yx[1][1].instance_of?(Stone) #FIXME
+    if @yx[1][1].instance_of?(Object)
       return to_line { |s| Grid::color_to_char(s.color) }
     else
       return to_line { |c| Grid::color_to_char(c) }

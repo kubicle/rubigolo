@@ -2,7 +2,7 @@
 'use strict';
 
 var inherits = require('util').inherits;
-var Heuristic = require('ai/Heuristic');
+var Heuristic = require('./ai/Heuristic');
 var main = require('./main');
 var Grid = require('./Grid');
 var Stone = require('./Stone');
@@ -15,7 +15,7 @@ var Player = require('./Player');
 var Goban = require('./Goban');
 var InfluenceMap = require('./InfluenceMap');
 var PotentialTerritory = require('./PotentialTerritory');
-var AllHeuristics = require('ai/AllHeuristics');
+var AllHeuristics = require('./ai/AllHeuristics');
 var TimeKeeper = require('./TimeKeeper');
 var Genes = require('./Genes');
 
@@ -23,7 +23,7 @@ var Genes = require('./Genes');
  */
 function Ai1Player(goban, color, genes) {
     if (genes === undefined) genes = null;
-    main.Player.call(this, false, goban);
+    Player.call(this, false, goban);
     this.inf = new InfluenceMap(this.goban);
     this.ter = new PotentialTerritory(this.goban);
     this.gsize = this.goban.gsize;
@@ -44,7 +44,7 @@ function Ai1Player(goban, color, genes) {
     // to keep things coherent
     return this.prepareGame(this.genes); // @timer = TimeKeeper.new // @timer.calibrate(0.7)
 }
-inherits(Ai1Player, main.Player);
+inherits(Ai1Player, Player);
 module.exports = Ai1Player;
 
 Ai1Player.prototype.prepareGame = function (genes) {
@@ -53,12 +53,12 @@ Ai1Player.prototype.prepareGame = function (genes) {
 };
 
 Ai1Player.prototype.setColor = function (color) {
-    main.Player.set_color.call(this, color);
+    Player.prototype.setColor.call(this, color);
     this.enemyColor = 1 - color;
     for (var h, h_array = this.heuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
         h.initColor();
     }
-    for (var h, h_array = this.negativeHeuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
+    for (h, h_array = this.negativeHeuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
         h.initColor();
     }
 };
@@ -72,6 +72,7 @@ Ai1Player.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
 // Returns the move chosen (e.g. c4 or pass)
 // One can check last_move_score to see the score of the move returned
 Ai1Player.prototype.getMove = function () {
+    var bestScore, secondBest, bestI, bestJ;
     // @timer.start("AI move",0.5,3)
     this.numMoves += 1;
     if (this.numMoves >= this.gsize * this.gsize) { // force pass after too many moves
@@ -79,9 +80,7 @@ Ai1Player.prototype.getMove = function () {
         return 'pass';
     }
     this.prepareEval();
-    var bestScore, secondBest;
     bestScore = secondBest = this.minimumScore;
-    var bestI, bestJ;
     bestI = bestJ = -1;
     var bestNumTwin = 0; // number of occurrence of the current best score (so we can randomly pick any of them)
     for (var j = 1; j <= this.gsize; j++) {
@@ -143,7 +142,7 @@ Ai1Player.prototype.evalMove = function (i, j, bestScore) {
     }
     // we run negative heuristics only if this move was a potential candidate
     if (score >= bestScore) {
-        for (var h, h_array = this.negativeHeuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
+        for (h, h_array = this.negativeHeuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
             score += h.evalMove(i, j);
             if (score < bestScore) {
                 break;

@@ -11,17 +11,17 @@ var Heuristic = require('./Heuristic');
 /** @class */
 function Hunter(player, consultant) {
     if (consultant === undefined) consultant = false;
-    return Heuristic.call(this);
+    Heuristic.call(this, player, consultant);
 }
 inherits(Hunter, Heuristic);
 module.exports = Hunter;
 
 Hunter.prototype.evalMove = function (i, j, level) {
     if (level === undefined) level = 1;
+    var eg1, eg2, eg3;
     var stone = this.goban.stoneAt(i, j);
     var empties = stone.empties();
     var allies = stone.uniqueAllies(this.color);
-    var eg1, eg2, eg3;
     eg1 = eg2 = eg3 = null;
     var snapback = false;
     for (var eg, eg_array = stone.uniqueEnemies(this.color), eg_ndx = 0; eg=eg_array[eg_ndx], eg_ndx < eg_array.length; eg_ndx++) {
@@ -29,20 +29,15 @@ Hunter.prototype.evalMove = function (i, j, level) {
             continue;
         }
         // if even a single of our groups around is in atari this will not work (enemy will kill our group and escape)
-        if (1 === eg.allEnemies().forEach(function (ag) {
-            if (ag.lives < 2) {
-                error_break_value((1));
-            }
+        if (eg.allEnemies().find(function (ag) {
+            return ag.lives < 2;
         })) {
             continue;
         }
         if (empties.length === 1 && allies.length === 0) {
             // unless this is a snapback, this is a dumb move
-            empty = stone.neighbors.forEach(function (n) {
-                var empty;
-                if (n.color === main.EMPTY) {
-                    error_break_value((n));
-                }
+            var empty = stone.neighbors.find(function (n) {
+                return n.color === main.EMPTY;
             });
             // it is a snapback if the last empty point (where the enemy will have to play) 
             // would not make the enemy group connect to another enemy group
@@ -153,3 +148,4 @@ Hunter.prototype.escapingAtariIsCaught = function (stone, level) {
     }
     return (this.evalMove(e1.i, e1.j, level + 1) > 0 || this.evalMove(e2.i, e2.j, level + 1) > 0);
 };
+

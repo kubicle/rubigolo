@@ -36,7 +36,7 @@ Breeder.prototype.firstGeneration = function () {
     this.controlGenes = this.players[0].genes.clone();
     this.generation = [];
     this.newGeneration = [];
-    for (var i = 1; i <= this.genSize; i++) {
+    for (var i = 0; i < this.genSize; i++) {
         this.generation.push(this.players[0].genes.clone().mutateAll());
         this.newGeneration.push(new Genes());
     }
@@ -86,7 +86,7 @@ Breeder.prototype.playGame = function (name1, name2, p1, p2) {
 };
 
 Breeder.prototype.run = function (numTournaments, numMatchPerAi) {
-    for (var i = 1; i <= numTournaments; i++) { // TODO: Find a way to appreciate the progress
+    for (var i = 0; i < numTournaments; i++) { // TODO: Find a way to appreciate the progress
         this.timer.start('Breeding tournament ' + i + 1 + '/' + numTournaments + ': each of ' + this.genSize + ' AIs plays ' + numMatchPerAi + ' games', 5.5, 36);
         this.oneTournament(numMatchPerAi);
         this.timer.stop(false);
@@ -101,11 +101,11 @@ Breeder.prototype.oneTournament = function (numMatchPerAi) {
     if (main.debugBreed) {
         main.log.debug('One tournament starts for ' + this.generation.length + ' AIs');
     }
-    for (var p1 = 1; p1 <= this.genSize; p1++) {
+    for (var p1 = 0; p1 < this.genSize; p1++) {
         this.scoreDiff[p1] = 0;
     }
-    for (var i = 1; i <= numMatchPerAi; i++) {
-        for (var p1 = 1; p1 <= this.genSize; p1++) {
+    for (var _i = 0; _i < numMatchPerAi; _i++) {
+        for (p1 = 0; p1 < this.genSize; p1++) {
             var p2 = ~~(Math.random()*~~(this.genSize - 1));
             if (p2 === p1) {
                 p2 = this.genSize - 1;
@@ -132,7 +132,7 @@ Breeder.prototype.reproduction = function () {
     }
     this.picked = Array.new(this.genSize, 0);
     this.maxScore = Math.max.apply(Math, this.scoreDiff);
-    this.winner = this.generation[this.scoreDiff.findIndex(this.maxScore)];
+    this.winner = this.generation[this.scoreDiff.indexOf(this.maxScore)];
     this.pickIndex = 0;
     for (var i = 0; i <= this.genSize - 1; i += 2) {
         var parent1 = this.pickParent();
@@ -140,7 +140,7 @@ Breeder.prototype.reproduction = function () {
         parent1.mate(parent2, this.newGeneration[i], this.newGeneration[i + 1], Breeder.MUTATION_RATE, Breeder.WIDE_MUTATION_RATE);
     }
     if (main.debugBreed) {
-        for (var i = 1; i <= this.genSize; i++) {
+        for (i = 0; i < this.genSize; i++) {
             main.log.debug('#' + i + ', score ' + this.scoreDiff[i] + ', picked ' + this.picked[i] + ' times');
         }
     }
@@ -164,13 +164,13 @@ Breeder.prototype.pickParent = function () {
 };
 
 Breeder.prototype.control = function () {
+    var totalScore, numWins, numWinsW;
     var previous = main.debugBreed;
     main.debugBreed = false;
     var numControlGames = 30;
     main.log.debug('Playing ' + numControlGames * 2 + ' games to measure the current winner against our control AI...');
-    var totalScore, numWins, numWinsW;
     totalScore = numWins = numWinsW = 0;
-    for (var i = 1; i <= numControlGames; i++) {
+    for (var _i = 0; _i < numControlGames; _i++) {
         var score = this.playGame('control', 'winner', this.controlGenes, this.winner);
         var scoreW = this.playGame('winner', 'control', this.winner, this.controlGenes);
         if (score > 0) {
@@ -199,11 +199,11 @@ Breeder.prototype.control = function () {
 
 // Play many games AI VS AI to verify black/white balance
 Breeder.prototype.bwBalanceCheck = function (numGames, gsize) {
+    var totalScore, numWins;
     this.timer.start('bw_balance_check', numGames / 1000.0 * 50, numGames / 1000.0 * 512);
     main.log.debug('Checking black/white balance by playing ' + numGames + ' games (komi=' + Breeder.KOMI + ')...');
-    var totalScore, numWins;
     totalScore = numWins = 0;
-    for (var i = 1; i <= numGames; i++) {
+    for (var _i = 0; _i < numGames; _i++) {
         var score = this.playGame('control', 'control', this.controlGenes, this.controlGenes);
         if (score > 0) {
             numWins += 1;
@@ -220,8 +220,7 @@ Breeder.prototype.bwBalanceCheck = function (numGames, gsize) {
 };
 
 if (!main.testAll && !main.test) {
-    opts = main.Trollop.options(function () {
-        var opts;
+    var opts = main.Trollop.options(function () {
         opt('size', 'Goban size', {'default':9});
         opt('num_tour', 'Number of tournaments', {'default':2});
         return opt('match_per_ai', 'Number of matches per AI per tournament', {'default':3});
@@ -229,7 +228,7 @@ if (!main.testAll && !main.test) {
     var breeder = new Breeder(opts['size']);
     breeder.run(opts['num_tour'], opts['match_per_ai']);
 }
-// E02: unknown method find_index(...)
-// E02: unknown method opt(...)
-// W02: Unknown class supposed to be attached to main: Trollop
-// E02: unknown method options(...)
+// E02: unknown method: find_index(...)
+// E02: unknown method: opt(...)
+// E02: unknown method: options(...)
+// W02: unknown class supposed to be attached to main: Trollop

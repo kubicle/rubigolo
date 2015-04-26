@@ -8,11 +8,11 @@ var Player = require('./Player');
 
 /** @class */
 function ConsoleHumanPlayer(goban, color) {
-    main.Player.call(this, true, goban);
-    setColor(color);
+    Player.call(this, true, goban);
+    this.setColor(color);
     this.debugAi = null;
 }
-inherits(ConsoleHumanPlayer, main.Player);
+inherits(ConsoleHumanPlayer, Player);
 module.exports = ConsoleHumanPlayer;
 
 ConsoleHumanPlayer.prototype.getMove = function (color) {
@@ -47,7 +47,7 @@ ConsoleHumanPlayer.prototype.getAnswer = function (validOnes) {
         if (answer === '') {
             continue;
         }
-        if (validOnes && !validOnes.findIndex(answer)) {
+        if (validOnes && validOnes.indexOf(answer) < 0) {
             console.log('Valid answers: ' + validOnes.join(','));
             continue;
         }
@@ -55,5 +55,5 @@ ConsoleHumanPlayer.prototype.getAnswer = function (validOnes) {
     }
 };
 
-// E02: unknown method gets()
-// E02: unknown method find_index(...)
+// E02: unknown method: gets()
+// E02: unknown method: find_index(...)

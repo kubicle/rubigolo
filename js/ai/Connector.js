@@ -9,10 +9,10 @@ var Heuristic = require('./Heuristic');
 
 /** @class */
 function Connector(player) {
-    Heuristic.call(this);
-    this.inflCoeff = getGene('infl', 0.07, 0.01, 0.5);
-    this.allyCoeff1 = getGene('ally-1enemy', 0.33, 0.01, 1.0);
-    this.allyCoeff2 = getGene('ally-more-enemies', 1.66, 0.01, 3.0);
+    Heuristic.call(this, player);
+    this.inflCoeff = this.getGene('infl', 0.07, 0.01, 0.5);
+    this.allyCoeff1 = this.getGene('ally-1enemy', 0.33, 0.01, 1.0);
+    this.allyCoeff2 = this.getGene('ally-more-enemies', 1.66, 0.01, 3.0);
 }
 inherits(Connector, Heuristic);
 module.exports = Connector;
@@ -63,16 +63,16 @@ Connector.prototype.evalMove = function (i, j) {
     }
     switch (numEnemies) {
     case 0:
-        var eval = this.inflCoeff / this.inf.map[j][i][this.color];
+        var _eval = this.inflCoeff / this.inf.map[j][i][this.color];
         break;
     case 1:
-        eval = this.allyCoeff1 * numAllies;
+        _eval = this.allyCoeff1 * numAllies;
         break;
     default: 
-        eval = this.allyCoeff2 * numAllies;
+        _eval = this.allyCoeff2 * numAllies;
     }
     if (main.debug) {
-        main.log.debug('Connector gives ' + '%.2f'.format(eval) + ' to ' + i + ',' + j + ' (allies:' + numAllies + ' enemies: ' + numEnemies + ')');
+        main.log.debug('Connector gives ' + '%.2f'.format(_eval) + ' to ' + i + ',' + j + ' (allies:' + numAllies + ' enemies: ' + numEnemies + ')');
     }
-    return eval;
+    return _eval;
 };

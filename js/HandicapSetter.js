@@ -5,11 +5,17 @@ var main = require('./main');
 var HandicapSetter = require('./HandicapSetter');
 var Grid = require('./Grid');
 var Stone = require('./Stone');
+
+/** @class */
+function HandicapSetter() {}
+module.exports = HandicapSetter;
+
 // Initializes the handicap points
 // h can be a number or a string
 // string examples: "3" or "3=d4-p16-p4" or "d4-p16-p4"
 // Returns the handicap actual count
 HandicapSetter.setHandicap = function (goban, h) {
+    var i, j;
     if (h === 0 || h === '0') {
         return 0;
     }
@@ -29,7 +35,6 @@ HandicapSetter.setHandicap = function (goban, h) {
     }
     var moves = h.split('-');
     for (var move, move_array = moves, move_ndx = 0; move=move_array[move_ndx], move_ndx < move_array.length; move_ndx++) {
-        var i, j;
         var _m = Grid.parseMove(move);
         i = _m[0];
         j = _m[1];
@@ -56,7 +61,7 @@ HandicapSetter.setStandardHandicap = function (goban, count) {
     var short = 1 + distToBorder;
     var middle = (1 + gsize) / 2;
     var long = gsize - distToBorder;
-    for (var ndx = 1; ndx <= count; ndx++) {
+    for (var ndx = 0; ndx < count; ndx++) {
         // Compute coordinates from the index.
         // Indexes correspond to this map (with Black playing on North on the board)
         // 2 7 1
@@ -111,4 +116,4 @@ HandicapSetter.setStandardHandicap = function (goban, count) {
     return count;
 };
 
-// E02: unknown method index(...)
+// E02: unknown method: index(...)

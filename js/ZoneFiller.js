@@ -33,10 +33,9 @@ ZoneFiller.prototype.fillWithColor = function (startI, startJ, toReplace, color,
     this.toReplace = toReplace;
     this.groups = neighbors;
     var gaps = [[startI, startJ, startJ]];
-    var gap;
+    var gap, i, j0, j1;
     while ((gap = gaps.pop())) {
         // $log.debug("About to do gap: #{gap} (left #{gaps.size})") if $debug
-        var i, j0, j1;
         var _m = gap;
         i = _m[0];
         j0 = _m[1];
@@ -95,11 +94,11 @@ ZoneFiller.prototype._check = function (i, j) {
     }
     if (this.groups && color < 2) {
         var group = this.goban.stoneAt(i, j).group;
-        if (group && !this.groups[color].findIndex(group)) {
+        if (group && this.groups[color].indexOf(group) < 0) {
             this.groups[color].push(group);
         }
     }
     return false;
 };
 
-// E02: unknown method find_index(...)
+// E02: unknown method: find_index(...)

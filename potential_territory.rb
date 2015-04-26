@@ -36,7 +36,7 @@ class PotentialTerritory
         @territory.yx[j][i] = owner / 2.0
       end
     end
-    $log.debug("\n+1=white, -1=black, 0=no one\n"+@territory.to_text{|v| v==0 ? "    0" : sprintf("%+.1f",v)}) if $debug
+    $log.debug("\n+1=white, -1=black, 0=no one\n"+@territory.to_text{|v| v==0 ? "    0" : "#{'%+.1f' % v}"}) if $debug
     return @territory.yx
   end
 
@@ -55,18 +55,18 @@ private
   def foresee(grid, first, second)
     @tmp = @territory # safe to use it as temp grid here
     @reduced_yx = nil
-    @move_num_before_enlarge = @goban.move_number?
+    move_count = @goban.move_number?
 
     # enlarging starts with real grid
     enlarge(@real_grid, @tmp.copy(@real_grid), first, second)
     enlarge(@tmp, grid.copy(@tmp), second, first)
     connect_to_borders(grid.yx)
-    $log.debug("after 1st enlarge:\n#{@grid}") if $debug
+    $log.debug("after 1st enlarge:\n#{grid}") if $debug
 
     # for reducing we start from the enlarged grid
     reduce(@reduced_grid.copy(grid))
     @reduced_yx = @reduced_grid.yx
-    $log.debug("after reduce:\n#{grid}") if $debug
+    $log.debug("after reduce:\n#{@reduced_grid}") if $debug
 
     # now we have the reduced goban, play the enlarge moves again minus the extra
     enlarge(@real_grid, @tmp.copy(@real_grid), first, second)
@@ -79,7 +79,8 @@ private
     @boan.count_score(@goban, grid.convert(@goban.grid))
 
     # restore goban
-    (@goban.move_number? - @move_num_before_enlarge).times { Stone.undo(@goban) }
+    move_count = @goban.move_number? - move_count
+    move_count.times { Stone.undo(@goban) }
   end
 
   def enlarge(in_grid, out_grid, first, second)

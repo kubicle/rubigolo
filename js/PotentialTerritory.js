@@ -27,7 +27,7 @@ PotentialTerritory.prototype.guessTerritories = function () {
     // update real grid to current goban
     this.realGrid.convert(this.goban.grid);
     // evaluate 2 "scenarios" - each player plays everywhere *first*
-    for (var first = 1; first <= 2; first++) {
+    for (var first = 0; first < 2; first++) {
         this.foresee(this.grids[first], first, 1 - first);
     }
     if (main.debug) {
@@ -37,7 +37,7 @@ PotentialTerritory.prototype.guessTerritories = function () {
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
             var owner = 0;
-            for (var first = 1; first <= 2; first++) {
+            for (first = 0; first < 2; first++) {
                 var terrColor = this.grids[first].yx[j][i] - Grid.TERRITORY_COLOR;
                 if (terrColor === main.WHITE) {
                     owner += 1;
@@ -54,7 +54,7 @@ PotentialTerritory.prototype.guessTerritories = function () {
             if (v === 0) {
                 return '    0';
             } else {
-                return sprintf('%+.1f', v);
+                return '' + '%+.1f'.format(v);
             }
         }));
     }
@@ -75,19 +75,19 @@ PotentialTerritory.prototype._grid = function (first) {
 PotentialTerritory.prototype.foresee = function (grid, first, second) {
     this.tmp = this.territory; // safe to use it as temp grid here
     this.reducedYx = null;
-    this.moveNumBeforeEnlarge = this.goban.moveNumber();
+    var moveCount = this.goban.moveNumber();
     // enlarging starts with real grid
     this.enlarge(this.realGrid, this.tmp.copy(this.realGrid), first, second);
     this.enlarge(this.tmp, grid.copy(this.tmp), second, first);
     this.connectToBorders(grid.yx);
     if (main.debug) {
-        main.log.debug('after 1st enlarge:\n' + this.grid);
+        main.log.debug('after 1st enlarge:\n' + grid);
     }
     // for reducing we start from the enlarged grid
     this.reduce(this.reducedGrid.copy(grid));
     this.reducedYx = this.reducedGrid.yx;
     if (main.debug) {
-        main.log.debug('after reduce:\n' + grid);
+        main.log.debug('after reduce:\n' + this.reducedGrid);
     }
     // now we have the reduced goban, play the enlarge moves again minus the extra
     this.enlarge(this.realGrid, this.tmp.copy(this.realGrid), first, second);
@@ -102,7 +102,8 @@ PotentialTerritory.prototype.foresee = function (grid, first, second) {
     // passed grid will receive the result (scoring grid)
     this.boan.countScore(this.goban, grid.convert(this.goban.grid));
     // restore goban
-    for (var i = 1; i <= (this.goban.moveNumber() - this.moveNumBeforeEnlarge); i++) {
+    moveCount = this.goban.moveNumber() - moveCount;
+    for (var _i = 0; _i < moveCount; _i++) {
         Stone.undo(this.goban);
     }
 };
@@ -227,5 +228,3 @@ PotentialTerritory.prototype.connectToBorders = function (yx) {
         }
     }
 };
-
-// E02: unknown method sprintf(...)
