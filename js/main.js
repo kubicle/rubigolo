@@ -49,15 +49,16 @@ TestSeries.prototype.run = function () {
   var numClass = 0, count = 0, failedCount = 0;
   for (var t in this.testCases) {
     numClass++;
+    var countInClass = 0;
     var Klass = this.testCases[t];
     for (var m in Klass.prototype) {
       if (m.substr(0,4) !== 'test') continue;
-      count++;
-      var obj = new Klass('' + count);
+      count++; countInClass++;
+      var obj = new Klass(Klass.name + ' #' + countInClass);
       try {
         obj[m].call(obj);
       } catch(e) {
-        console.error('Test failed: ' + e.message + e.stack);
+        console.error('Test failed: ' + obj.testName + ': ' + e.message, e.stack);
         failedCount++;
       }
     }
@@ -114,24 +115,28 @@ function Logger() {
   this.level = Logger.ERROR;
 }
 
-Logger.ERROR = 0;
-Logger.WARNING = 1;
-Logger.INFO = 2;
-Logger.DEBUG = 3;
+Logger.FATAL = 4;
+Logger.ERROR = 3;
+Logger.WARN = 2;
+Logger.INFO = 1;
+Logger.DEBUG = 0;
 
 Logger.prototype.debug = function (msg) {
-  if (this.level < Logger.DEBUG) return;
+  if (this.level > Logger.DEBUG) return;
   console.log(msg);
 };
 Logger.prototype.info = function (msg) {
-  if (this.level < Logger.INFO) return;
-  console.log(msg);
+  if (this.level > Logger.INFO) return;
+  console.info(msg);
 };
-Logger.prototype.warning = function (msg) {
-  if (this.level < Logger.WARNING) return;
+Logger.prototype.warn = function (msg) {
+  if (this.level > Logger.WARN) return;
   console.warn(msg);
 };
 Logger.prototype.error = function (msg) {
+  console.error(msg);
+};
+Logger.prototype.fatal = function (msg) {
   console.error(msg);
 };
 
