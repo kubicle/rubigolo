@@ -3,7 +3,13 @@ rubigolo
 
 Game of Go (weiqi, igo, baduk, etc.), implemented in Ruby, then translated to Javascript... (to be continued)
 
-Still in development. Check the [help page](http://htmlpreview.github.io/?https://github.com/kubicle/rubigolo/blob/master/help-index.html)
+Still in development.
+
+JavaScript:
+- [run it](http://rawgit.com/kubicle/rubigolo/master/js/index.html) in your browser.
+- [unit tests](http://rawgit.com/kubicle/rubigolo/master/js/tests.html)
+
+Ruby: check the [help page](http://htmlpreview.github.io/?https://github.com/kubicle/rubigolo/blob/master/help-index.html)
 
 =======
 
