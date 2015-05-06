@@ -66,7 +66,10 @@ TestSeries.prototype.add = function (klass) {
   return klass;
 };
 
-TestSeries.prototype.run = function () {
+TestSeries.prototype.run = function (logfunc) {
+  main.log.setLogFunc(logfunc);
+  main.log.level = Logger.INFO;
+
   main.assertCount = 0;
   var startTime = Date.now();
   var classCount = 0, testCount = 0, failedCount = 0, errorCount = 0;
@@ -88,14 +91,16 @@ TestSeries.prototype.run = function () {
           header += ' with exception';
           errorCount++;
         }
-        console.error(header + ': ' + obj.testName + ': ' + e.message + '\n' + e.stack);
+        main.log.error(header + ': ' + obj.testName + ': ' + e.message + '\n' + e.stack);
       }
     }
   }
   var duration = ((Date.now() - startTime) / 1000).toFixed(2);
-  console.log('Completed tests. (' + classCount + ' classes, ' + testCount + ' tests, ' +
+  var report = 'Completed tests. (' + classCount + ' classes, ' + testCount + ' tests, ' +
     main.assertCount + ' assertions in ' + duration + 's)' +
-    ', failed: ' + failedCount + ', exceptions: ' + errorCount);
+    ', failed: ' + failedCount + ', exceptions: ' + errorCount;
+  main.log.info(report);
+  return report;
 };
 
 
@@ -146,6 +151,12 @@ main.TestCase = TestCase;
 /** @class */
 function Logger() {
   this.level = Logger.ERROR;
+
+  Logger.prototype.debug = this._newLogFn(Logger.DEBUG, console.debug);
+  Logger.prototype.info = this._newLogFn(Logger.INFO, console.info);
+  Logger.prototype.warn = this._newLogFn(Logger.WARN, console.warn);
+  Logger.prototype.error = this._newLogFn(Logger.ERROR, console.error);
+  Logger.prototype.fatal = this._newLogFn(Logger.FATAL, console.error);
 }
 
 Logger.FATAL = 4;
@@ -154,24 +165,18 @@ Logger.WARN = 2;
 Logger.INFO = 1;
 Logger.DEBUG = 0;
 
-Logger.prototype.debug = function (msg) {
-  if (this.level > Logger.DEBUG) return;
-  console.log(msg);
+Logger.prototype.setLogFunc = function (fn) {
+  this.logfunc = fn;
 };
-Logger.prototype.info = function (msg) {
-  if (this.level > Logger.INFO) return;
-  console.info(msg);
-};
-Logger.prototype.warn = function (msg) {
-  if (this.level > Logger.WARN) return;
-  console.warn(msg);
-};
-Logger.prototype.error = function (msg) {
-  console.error(msg);
-};
-Logger.prototype.fatal = function (msg) {
-  console.error(msg);
-};
+
+Logger.prototype._newLogFn = function (lvl, consoleFn) {
+  var self = this;
+  return function (msg) {
+    if (self.level > lvl) return;
+    if (self.logfunc && !self.logfunc(lvl, msg)) return;
+    consoleFn.call(console, msg);
+  };
+}
 
 main.log = new Logger();
 main.Logger = Logger;
