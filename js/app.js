@@ -7,4 +7,4 @@ require('./rb');
 
 require('./test/TestAll');
 
-main.tests.run();
+window.main = main;
