@@ -4418,9 +4418,12 @@ require('./rb');
 
 require('./test/TestAll');
 
+main.GameLogic = require('./GameLogic');
+main.Grid = require('./Grid');
+main.Ai1Player = require('./Ai1Player');
 window.main = main;
 
-},{"./StoneConstants":20,"./main":33,"./rb":34,"./test/TestAll":36}],33:[function(require,module,exports){
+},{"./Ai1Player":5,"./GameLogic":8,"./Grid":11,"./StoneConstants":20,"./main":33,"./rb":34,"./test/TestAll":36}],33:[function(require,module,exports){
 //main class for babyruby2js
 'use strict';
 
@@ -4523,6 +4526,7 @@ TestSeries.prototype.run = function (logfunc) {
     main.assertCount + ' assertions in ' + duration + 's)' +
     ', failed: ' + failedCount + ', exceptions: ' + errorCount;
   main.log.info(report);
+  return report;
 };
 
 
