@@ -11,6 +11,7 @@ function TimeKeeper(tolerance, ratio) {
     if (ratio === undefined) ratio = 1.0;
     this.tolerance = tolerance;
     this.ratio = ratio;
+    this.log = main.log;
 }
 module.exports = TimeKeeper;
 
@@ -38,7 +39,7 @@ TimeKeeper.prototype.calibrate = function (expected) {
     // In the meantime we use a conservative 0.5 ratio.
     this.ratio = 0.5;
 
-    console.log('TimeKeeper calibrated at ratio=' + '%.02f'.format(this.ratio) + ' ' + '(ran calibration in ' + '%.03f'.format(duration) + ' instead of ' + expected + ')');
+    this.log.info('TimeKeeper calibrated at ratio=' + '%.02f'.format(this.ratio) + ' ' + '(ran calibration in ' + '%.03f'.format(duration) + ' instead of ' + expected + ')');
 };
 
 // Starts timing
@@ -46,7 +47,7 @@ TimeKeeper.prototype.calibrate = function (expected) {
 TimeKeeper.prototype.start = function (taskName, expectedInSec, expectedGc) {
     this.taskName = taskName;
     this.expectedTime = expectedInSec * this.ratio;
-    console.log('Started "' + taskName + '"...'); // (expected time #{'%.02f' % @expected_time}s)..."
+    this.log.info('Started "' + taskName + '"...'); // (expected time #{'%.02f' % @expected_time}s)..."
     this.t0 = Date.now();
 };
 
@@ -55,7 +56,7 @@ TimeKeeper.prototype.start = function (taskName, expectedInSec, expectedGc) {
 TimeKeeper.prototype.stop = function (raiseIfOverlimit) {
     if (raiseIfOverlimit === undefined) raiseIfOverlimit = true;
     this.duration = (Date.now() - this.t0) / 1000;
-    console.log(' => ' + this.resultReport());
+    this.log.info(' => ' + this.resultReport());
     return this.checkLimits(raiseIfOverlimit);
 };
 
