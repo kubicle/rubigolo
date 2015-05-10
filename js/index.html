@@ -2,33 +2,14 @@
 <html>
     <head>
         <title>Rubigolo</title>
-        <script src="./build.js" type="text/JavaScript"></script>
-        <script src="../lib/wgo.js" type="text/JavaScript"></script>
     </head>
     <body>
         <h1>Rubigolo</h1>
         <div id="board"></div>
-<script>
-  var GameLogic = main.GameLogic;
-  var Grid = main.Grid;
-  var Ai1Player = main.Ai1Player;
-
-  var size = 19, handicap = 0;
-  var board = new WGo.Board(document.getElementById("board"), { width: 600 });
-  var game = new GameLogic();
-  game.newGame(size, handicap);
-  var aiPlayer = new Ai1Player(game.goban, main.WHITE);
-  board.addEventListener('click', function (x, y) {
-    console.log(x,y);
-    board.addObject({ x: x, y: y, c: WGo.B });
-    var move = Grid.moveAsString(x + 1, y + 1);
-    game.playOneMove(move);
-    // now AI plays
-    move = aiPlayer.getMove();
-    game.playOneMove(move);
-    var xy = Grid.parseMove(move);
-    board.addObject({ x: xy[0] - 1, y: xy[1] - 1, c: WGo.W });
-  });
-</script>
+        <div id="controls"></div>
+        <script src="./build.js" type="text/JavaScript"></script>
+        <!--tmp below-->
+        <script src="../lib/wgo.js" type="text/JavaScript"></script>
+        <script src="./Ui.js"></script>
     </body>
 </html>
