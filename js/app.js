@@ -1,13 +1,15 @@
 'use strict';
 
 var main = require('./main');
-main.debug = true;
+window.main = main;
+
 require('./StoneConstants');
 require('./rb');
-
-require('./test/TestAll');
 
 main.GameLogic = require('./GameLogic');
 main.Grid = require('./Grid');
 main.Ai1Player = require('./Ai1Player');
-window.main = main;
+
+//main.Ui = require('./Ui');
+
+main.debug = false;
