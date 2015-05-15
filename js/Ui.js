@@ -12,6 +12,7 @@ var Ai1Player = main.Ai1Player;
 function Ui() {
   this.gsize = 19;
   this.handicap = 0;
+  this.withCoords = true;
 
   this.createBoard();
   this.createControls();
@@ -20,7 +21,9 @@ function Ui() {
 //TMP module.exports = Ui;
 
 Ui.prototype.createBoard = function () {
-  this.board = new WGo.Board(document.getElementById('board'), { width: 600 });
+  var config = { width: 600, section: { top: -0.5, left: -0.5, right: -0.5, bottom: -0.5 } };
+  this.board = new WGo.Board(document.getElementById('board'), config);
+  if (this.withCoords) this.board.addCustomObject(WGo.Board.coordinates);
   var self = this;
   this.board.addEventListener('click', function (x,y) { self.onClick(x,y); });
 };
@@ -38,7 +41,7 @@ toWgoColor[main.WHITE] = WGo.W;
 Ui.prototype.refreshBoard = function () {
   for (var j = 0; j < this.gsize; j++) {
     for (var i = 0; i < this.gsize; i++) {
-      var color = toWgoColor[this.game.goban.color(i + 1, j + 1)];
+      var color = toWgoColor[this.game.goban.color(i + 1, this.gsize - j)];
       var obj = this.board.obj_arr[i][j][0];
       if (color === null) {
         if (obj) this.board.removeObjectsAt(i,j);
@@ -143,7 +146,8 @@ Ui.prototype.letAiPlay = function () {
 };
 
 Ui.prototype.onClick = function (x, y) {
-  var move = Grid.moveAsString(x + 1, y + 1);
+  if (x < 0 || y < 0 || x >= this.gsize || y >= this.gsize) return;
+  var move = Grid.moveAsString(x + 1, this.gsize - y);
   if (!this.playerMove(move)) return;
 
   this.letAiPlay();
