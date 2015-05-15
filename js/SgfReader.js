@@ -114,11 +114,11 @@ SgfReader.prototype.getGameInfo = function () {
 
 SgfReader.prototype.convertMove = function (sgfMove) {
     if (sgfMove === 'tt') {
-        var move = 'pass';
-    } else {
-        move = sgfMove[0] + (this.boardSize - (sgfMove[1].charCodeAt() - 'a'.charCodeAt())).toString();
+        return 'pass';
     }
-    return move;
+    var i = sgfMove[0];
+    if (i >= 'i') i = String.fromCharCode(i.charCodeAt() + 1);
+    return i + (this.boardSize - (sgfMove[1].charCodeAt() - 'a'.charCodeAt())).toString();
 };
 
 SgfReader.prototype.parseGameTree = function (t) {

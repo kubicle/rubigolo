@@ -72,8 +72,8 @@ TestAi.prototype.testCornering = function () {
     // 6 +++++++++
     // 5 ++O++++++
     // 4 +++++++++
-    //   abcdefghi
-    this.game.loadMoves('i8,i9,d7,c5');
+    //   abcdefghj
+    this.game.loadMoves('j8,j9,d7,c5');
     return this.playAndCheck('h9', main.BLACK, 1); // FIXME: h8 is better than killing in h9 (non trivial)
 };
 
@@ -83,7 +83,7 @@ TestAi.prototype.testPreAtari = function () {
     // 3 ++O@O@O++
     // 2 ++O@O@+++
     // 1 +++OO++++
-    //   abcdefghi
+    //   abcdefghj
     // f3-f2 can be saved in g2
     // Hunter should not attack in c1 since c1 would be in atari
     this.game.loadMoves('d4,e2,d2,c3,d3,c2,b4,d1,c4,f4,f3,e3,e4,g3,f2,e1');
@@ -99,8 +99,8 @@ TestAi.prototype.testHunter1 = function () {
     // 6 ++++++++O
     // 5 ++++++++@
     // 4 +++@++++@
-    //   abcdefghi
-    this.game.loadMoves('d4,i7,i8,i6,i5,i9,i4,pass,h8,pass');
+    //   abcdefghj
+    this.game.loadMoves('d4,j7,j8,j6,j5,j9,j4,pass,h8,pass');
     this.playAndCheck('h6', main.BLACK, 2); // h7 ladder was OK too here but capturing same 2 stones in a ladder
     // the choice between h6 and h7 is decided by smaller differences like distance to corner, etc.
     this.game.loadMoves('h7');
@@ -114,8 +114,8 @@ TestAi.prototype.testLadder = function () {
     // 6 ++++++++O
     // 5 ++++++++@
     // 4 ++++++++@
-    //   abcdefghi
-    this.game.loadMoves('i9,i7,i8,i6,i5,a9,i4,pass');
+    //   abcdefghj
+    this.game.loadMoves('j9,j7,j8,j6,j5,a9,j4,pass');
     this.playAndCheck('h7', main.BLACK, 2);
     this.game.loadMoves('h6');
     this.playAndCheck('g6', main.BLACK, 3);
@@ -132,7 +132,7 @@ TestAi.prototype.testLadderBreaker1 = function () {
     // 6 +++++++++
     // 5 @OO@+++++
     // 4 @@@@+++++
-    //   abcdefghi
+    //   abcdefghj
     // Ladder breaker a7 does not work since the whole group dies
     this.game.loadMoves('a4,a9,a5,a8,b4,a7,c4,e7,d4,b5,d5,c5');
     return this.playAndCheck('c6', main.BLACK, 2);
@@ -145,7 +145,7 @@ TestAi.prototype.testLadderBreaker2 = function () {
     // 6 ++*++++++
     // 5 @OO@+++++
     // 4 @@@@+++++
-    //   abcdefghi
+    //   abcdefghj
     // Ladder breaker are a7 and e7
     // What is sure is that neither b6 nor c6 works. However b6 is boosted by pusher
     this.game.loadMoves('a4,a9,a5,a8,b4,a7,c4,e7,d4,b5,d5,c5,pass,b8,pass,c8');
@@ -163,9 +163,9 @@ TestAi.prototype.testSeeDeadGroup = function () {
     // 3 @OO@@@@O+
     // 2 OO+OOO@OO
     // 1 ++O@@@@O+
-    //   abcdefghi
+    //   abcdefghj
     // Interesting here: SW corner group O (white) is dead. Both sides should see it and play accordingly.
-    this.game.loadMoves('d6,f4,e5,f6,g5,f5,g7,h6,g6,e7,f7,e6,g3,h4,g4,h5,d8,c7,d7,f8,e8,d4,d5,e4,f9,g9,e9,c9,g8,c8,h9,d9,e3,f2,f3,h7,c4,c5,d3,c6,b5,h8,b7,a6,b6,a4,b9,a5,b8,b3,b4,c3,c2,e2,a7,d2,a3,b2,g1,c1,g2,h2,i3,h3,f1,i2,e1,i4,d1,a2,a4,h1,c8,i8,f8,i9,g9');
+    this.game.loadMoves('d6,f4,e5,f6,g5,f5,g7,h6,g6,e7,f7,e6,g3,h4,g4,h5,d8,c7,d7,f8,e8,d4,d5,e4,f9,g9,e9,c9,g8,c8,h9,d9,e3,f2,f3,h7,c4,c5,d3,c6,b5,h8,b7,a6,b6,a4,b9,a5,b8,b3,b4,c3,c2,e2,a7,d2,a3,b2,g1,c1,g2,h2,j3,h3,f1,j2,e1,j4,d1,a2,a4,h1,c8,j8,f8,j9,g9');
     this.playAndCheck('pass', main.WHITE);
     this.playAndCheck('c2', main.BLACK, 2); // TODO: optim here would be @ realizing O group is dead
     this.playAndCheck('d2', main.WHITE, 1);
@@ -327,4 +327,3 @@ TestAi.prototype.testSeesAttackNoGood = function () {
     this.playAndCheck('c4', main.WHITE, 5); // kills 3 and saves 2
     return this.checkEval('c5', main.BLACK, 0); // silly move
 };
-
