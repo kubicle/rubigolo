@@ -2,7 +2,7 @@
 <html>
     <head>
         <title>Rubigolo - Tests</title>
-        <script src="./build.js" type="text/JavaScript"></script>
+        <script src="./build_tests.js" type="text/JavaScript"></script>
     </head>
     <body>
         <h1>Rubigolo - Tests</h1>
@@ -12,6 +12,8 @@
         <h2>Errors</h2>
         <div id="errors" style="margin-top:20px"></div>
 <script>
+  var main = window.main;
+  main.debug = true;
   startBtn.addEventListener('click', function () {
     var Logger = main.Logger;
     output.textContent = 'Running unit tests...';
@@ -19,7 +21,7 @@
     this.hidden = true;
     window.setTimeout(function () {
       output.textContent = '';
-      window.main.tests.run(function (lvl, msg) {
+      main.tests.run(function (lvl, msg) {
         var firstLine = msg.indexOf('\n');
         if (firstLine > 0) msg = msg.substr(0, firstLine);
         msg += '<br>';

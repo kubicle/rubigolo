@@ -834,7 +834,7 @@ Ai1Player.prototype.evalMove = function (i, j, bestScore) {
     return score;
 };
 
-},{"./Genes":8,"./Goban":9,"./Grid":10,"./InfluenceMap":13,"./Player":14,"./PotentialTerritory":15,"./Stone":17,"./TimeKeeper":19,"./ai/AllHeuristics":21,"./ai/Heuristic":24,"./main":31,"util":4}],6:[function(require,module,exports){
+},{"./Genes":9,"./Goban":10,"./Grid":11,"./InfluenceMap":14,"./Player":15,"./PotentialTerritory":16,"./Stone":19,"./TimeKeeper":21,"./ai/AllHeuristics":23,"./ai/Heuristic":26,"./main":32,"util":4}],6:[function(require,module,exports){
 //Translated from board_analyser.rb using babyruby2js
 'use strict';
 
@@ -1169,7 +1169,242 @@ BoardAnalyser.prototype.groupLiveliness = function (g) {
 // W02: unknown class supposed to be attached to main: Set
 // E02: unknown method: add(...)
 // E02: unknown method: find_index(...)
-},{"./Goban":9,"./Grid":10,"./Group":11,"./ZoneFiller":20,"./main":31}],7:[function(require,module,exports){
+},{"./Goban":10,"./Grid":11,"./Group":12,"./ZoneFiller":22,"./main":32}],7:[function(require,module,exports){
+//Translated from breeder.rb using babyruby2js
+'use strict';
+
+var main = require('./main');
+var Genes = require('./Genes');
+//require 'trollop';
+var TimeKeeper = require('./TimeKeeper');
+var GameLogic = require('./GameLogic');
+var ScoreAnalyser = require('./ScoreAnalyser');
+var Ai1Player = require('./Ai1Player');
+main.debugBreed = false; // TODO move me somewhere else?
+
+/** @class */
+function Breeder(gameSize) {
+    this.gsize = gameSize;
+    this.timer = new TimeKeeper();
+    this.timer.calibrate(0.7);
+    this.game = new GameLogic();
+    this.game.messagesToConsole(true);
+    this.game.setLogLevel('all=0');
+    this.game.newGame(this.gsize);
+    this.goban = this.game.goban;
+    this.players = [new Ai1Player(this.goban, main.BLACK), new Ai1Player(this.goban, main.WHITE)];
+    this.scorer = new ScoreAnalyser();
+    this.genSize = Breeder.GENERATION_SIZE;
+    return this.firstGeneration();
+}
+module.exports = Breeder;
+
+Breeder.GENERATION_SIZE = 26; // must be even number
+Breeder.MUTATION_RATE = 0.03; // e.g. 0.02 is 2%
+Breeder.WIDE_MUTATION_RATE = 0.1; // how often do we "widely" mutate
+Breeder.KOMI = 4.5;
+Breeder.TOO_SMALL_SCORE_DIFF = 3; // if final score is less that this, see it as a tie game
+Breeder.prototype.firstGeneration = function () {
+    this.controlGenes = this.players[0].genes.clone();
+    this.generation = [];
+    this.newGeneration = [];
+    for (var i = 0; i < this.genSize; i++) {
+        this.generation.push(this.players[0].genes.clone().mutateAll());
+        this.newGeneration.push(new Genes());
+    }
+    this.scoreDiff = [];
+};
+
+Breeder.prototype.playUntilGameEnds = function () {
+    while (!this.game.gameEnding) {
+        var curPlayer = this.players[this.game.curColor];
+        var move = curPlayer.getMove();
+        try {
+            this.game.playOneMove(move);
+        } catch (err) {
+            console.log('' + err);
+            console.log('Exception occurred during a breeding game.\n' + curPlayer + ' with genes: ' + curPlayer.genes);
+            console.log(this.game.historyString());
+            throw err;
+        }
+    }
+};
+
+// Plays a game and returns the score difference in points
+Breeder.prototype.playGame = function (name1, name2, p1, p2) {
+    // @timer.start("AI VS AI game",0.5,3)
+    this.game.newGame(this.gsize, 0, Breeder.KOMI);
+    this.players[0].prepareGame(p1);
+    this.players[1].prepareGame(p2);
+    this.playUntilGameEnds();
+    var scoreDiff = this.scorer.computeScoreDiff(this.goban, Breeder.KOMI);
+    // @timer.stop(false) # no exception if it takes longer but an error in the log
+    if (main.debugBreed) {
+        main.log.debug('\n#' + name1 + ':' + p1 + '\nagainst\n#' + name2 + ':' + p2);
+    }
+    if (main.debugBreed) {
+        main.log.debug('Distance: ' + '%.02f'.format(p1.distance(p2)));
+    }
+    if (main.debugBreed) {
+        main.log.debug('Score: ' + scoreDiff);
+    }
+    if (main.debugBreed) {
+        main.log.debug('Moves: ' + this.game.historyString());
+    }
+    if (main.debugBreed) {
+        this.goban.consoleDisplay();
+    }
+    return scoreDiff;
+};
+
+Breeder.prototype.run = function (numTournaments, numMatchPerAi) {
+    for (var i = 0; i < numTournaments; i++) { // TODO: Find a way to appreciate the progress
+        this.timer.start('Breeding tournament ' + i + 1 + '/' + numTournaments + ': each of ' + this.genSize + ' AIs plays ' + numMatchPerAi + ' games', 5.5, 36);
+        this.oneTournament(numMatchPerAi);
+        this.timer.stop(false);
+        this.reproduction();
+        this.control();
+    }
+};
+
+// NB: we only update score for black so komi unbalance does not matter.
+// Sadly this costs us a lot: we need to play twice more games to get score data...
+Breeder.prototype.oneTournament = function (numMatchPerAi) {
+    if (main.debugBreed) {
+        main.log.debug('One tournament starts for ' + this.generation.length + ' AIs');
+    }
+    for (var p1 = 0; p1 < this.genSize; p1++) {
+        this.scoreDiff[p1] = 0;
+    }
+    for (var _i = 0; _i < numMatchPerAi; _i++) {
+        for (p1 = 0; p1 < this.genSize; p1++) {
+            var p2 = ~~(Math.random()*~~(this.genSize - 1));
+            if (p2 === p1) {
+                p2 = this.genSize - 1;
+            }
+            var diff = this.playGame(p1.toString(), p2.toString(), this.generation[p1], this.generation[p2]);
+            if (Math.abs(diff) < Breeder.TOO_SMALL_SCORE_DIFF) {
+                diff = 0;
+            } else {
+                diff = Math.abs(diff) / diff; // get sign of diff only -> -1,+1
+            }
+            // diff is now -1, 0 or +1
+            this.scoreDiff[p1] += diff;
+            if (main.debugBreed) {
+                main.log.debug('Match #' + p1 + ' against #' + p2 + '; final scores #' + p1 + ':' + this.scoreDiff[p1] + ', #' + p2 + ':' + this.scoreDiff[p2]);
+            }
+        }
+    }
+    return this.rank;
+};
+
+Breeder.prototype.reproduction = function () {
+    if (main.debugBreed) {
+        main.log.debug('=== Reproduction time for ' + this.generation.length + ' AI');
+    }
+    this.picked = Array.new(this.genSize, 0);
+    this.maxScore = Math.max.apply(Math, this.scoreDiff);
+    this.winner = this.generation[this.scoreDiff.indexOf(this.maxScore)];
+    this.pickIndex = 0;
+    for (var i = 0; i <= this.genSize - 1; i += 2) {
+        var parent1 = this.pickParent();
+        var parent2 = this.pickParent();
+        parent1.mate(parent2, this.newGeneration[i], this.newGeneration[i + 1], Breeder.MUTATION_RATE, Breeder.WIDE_MUTATION_RATE);
+    }
+    if (main.debugBreed) {
+        for (i = 0; i < this.genSize; i++) {
+            main.log.debug('#' + i + ', score ' + this.scoreDiff[i] + ', picked ' + this.picked[i] + ' times');
+        }
+    }
+    // swap new generation to replace old one
+    var swap = this.generation;
+    this.generation = this.newGeneration;
+    this.newGeneration = swap;
+    this.generation[0] = this.winner; // TODO review this; we force the winner (a parent) to stay alive
+};
+
+Breeder.prototype.pickParent = function () {
+    while (true) {
+        var i = this.pickIndex;
+        this.pickIndex = (this.pickIndex + 1) % this.genSize;
+        if (Math.random() < this.scoreDiff[i] / this.maxScore) {
+            this.picked[i] += 1;
+            // $log.debug("Picked parent #{i} (score #{@score_diff[i]})") if $debug_breed
+            return this.generation[i];
+        }
+    }
+};
+
+Breeder.prototype.control = function () {
+    var totalScore, numWins, numWinsW;
+    var previous = main.debugBreed;
+    main.debugBreed = false;
+    var numControlGames = 30;
+    main.log.debug('Playing ' + numControlGames * 2 + ' games to measure the current winner against our control AI...');
+    totalScore = numWins = numWinsW = 0;
+    for (var _i = 0; _i < numControlGames; _i++) {
+        var score = this.playGame('control', 'winner', this.controlGenes, this.winner);
+        var scoreW = this.playGame('winner', 'control', this.winner, this.controlGenes);
+        if (score > 0) {
+            numWins += 1;
+        }
+        if (scoreW < 0) {
+            numWinsW += 1;
+        }
+        totalScore += score - scoreW;
+    }
+    main.debugBreed = true;
+    if (main.debugBreed) {
+        main.log.debug('Average score: ' + totalScore / numControlGames);
+    }
+    if (main.debugBreed) {
+        main.log.debug('Winner genes: ' + this.winner);
+    }
+    if (main.debugBreed) {
+        main.log.debug('Distance between control and current winner genes: ' + '%.02f'.format(this.controlGenes.distance(this.winner)));
+    }
+    if (main.debugBreed) {
+        main.log.debug('Total score of control against current winner: ' + totalScore + ' (out of ' + numControlGames * 2 + ' games, control won ' + numWins + ' as black and ' + numWinsW + ' as white)');
+    }
+    main.debugBreed = previous;
+};
+
+// Play many games AI VS AI to verify black/white balance
+Breeder.prototype.bwBalanceCheck = function (numGames, gsize) {
+    var totalScore, numWins;
+    this.timer.start('bw_balance_check', numGames / 1000.0 * 50, numGames / 1000.0 * 512);
+    main.log.debug('Checking black/white balance by playing ' + numGames + ' games (komi=' + Breeder.KOMI + ')...');
+    totalScore = numWins = 0;
+    for (var _i = 0; _i < numGames; _i++) {
+        var score = this.playGame('control', 'control', this.controlGenes, this.controlGenes);
+        if (score > 0) {
+            numWins += 1;
+        }
+        if (score === 0) {
+            throw new Error('tie game?!');
+        }
+        totalScore += score;
+    }
+    this.timer.stop(false); // gsize == 9) # if gsize is not 9 our perf numbers are of course meaningless
+    main.log.debug('Average score of control against itself: ' + totalScore / numGames);
+    main.log.debug('Out of ' + numGames + ' games, black won ' + numWins + ' times');
+    return numWins;
+};
+
+if (!main.testAll && !main.test) {
+    var opts = main.Trollop.options(function () {
+        opt('size', 'Goban size', {'default':9});
+        opt('num_tour', 'Number of tournaments', {'default':2});
+        return opt('match_per_ai', 'Number of matches per AI per tournament', {'default':3});
+    });
+    var breeder = new Breeder(opts['size']);
+    breeder.run(opts['num_tour'], opts['match_per_ai']);
+}
+// E02: unknown method: find_index(...)
+// E02: unknown method: opt(...)
+// E02: unknown method: options(...)
+// W02: unknown class supposed to be attached to main: Trollop
+},{"./Ai1Player":5,"./GameLogic":8,"./Genes":9,"./ScoreAnalyser":17,"./TimeKeeper":21,"./main":32}],8:[function(require,module,exports){
 //Translated from game_logic.rb using babyruby2js
 'use strict';
 
@@ -1435,7 +1670,7 @@ GameLogic.prototype.sgfToGame = function (game) {
     return reader.toMoveList();
 };
 
-},{"./Goban":9,"./Grid":10,"./Group":11,"./HandicapSetter":12,"./SgfReader":16,"./Stone":17,"./main":31}],8:[function(require,module,exports){
+},{"./Goban":10,"./Grid":11,"./Group":12,"./HandicapSetter":13,"./SgfReader":18,"./Stone":19,"./main":32}],9:[function(require,module,exports){
 //Translated from genes.rb using babyruby2js
 'use strict';
 
@@ -1602,7 +1837,7 @@ Genes.prototype.mutateAll = function () {
 // W02: unknown constant supposed to be attached to main: YAML
 // E02: unknown method: load(...)
 // W02: unknown constant supposed to be attached to main: YAML
-},{"./main":31}],9:[function(require,module,exports){
+},{"./main":32}],10:[function(require,module,exports){
 //Translated from goban.rb using babyruby2js
 'use strict';
 
@@ -1774,7 +2009,7 @@ Goban.prototype.previousStone = function () {
 };
 
 // E02: unknown method: concat(...)
-},{"./Grid":10,"./Group":11,"./Stone":17,"./main":31}],10:[function(require,module,exports){
+},{"./Grid":11,"./Group":12,"./Stone":19,"./main":32}],11:[function(require,module,exports){
 //Translated from grid.rb using babyruby2js
 'use strict';
 
@@ -1980,7 +2215,7 @@ Grid.xLabel = function (i) {
 
 // E02: unknown method: index(...)
 
-},{"./main":31}],11:[function(require,module,exports){
+},{"./main":32}],12:[function(require,module,exports){
 //Translated from group.rb using babyruby2js
 'use strict';
 
@@ -2328,7 +2563,7 @@ Group.prisoners = function (goban) {
 // E02: unknown method: merged_with=(...)
 // E02: unknown method: merged_by=(...)
 
-},{"./Grid":10,"./main":31}],12:[function(require,module,exports){
+},{"./Grid":11,"./main":32}],13:[function(require,module,exports){
 //Translated from handicap_setter.rb using babyruby2js
 'use strict';
 
@@ -2449,7 +2684,7 @@ HandicapSetter.setStandardHandicap = function (goban, count) {
 
 // E02: unknown method: index(...)
 
-},{"./Grid":10,"./HandicapSetter":12,"./Stone":17,"./main":31}],13:[function(require,module,exports){
+},{"./Grid":11,"./HandicapSetter":13,"./Stone":19,"./main":32}],14:[function(require,module,exports){
 //Translated from influence_map.rb using babyruby2js
 'use strict';
 
@@ -2533,7 +2768,7 @@ InfluenceMap.prototype.debugDump = function () {
     }
 };
 
-},{"./Grid":10,"./main":31}],14:[function(require,module,exports){
+},{"./Grid":11,"./main":32}],15:[function(require,module,exports){
 //Translated from player.rb using babyruby2js
 'use strict';
 
@@ -2550,7 +2785,7 @@ Player.prototype.setColor = function (color) {
     this.color = color;
 };
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 //Translated from potential_territory.rb using babyruby2js
 'use strict';
 
@@ -2782,7 +3017,137 @@ PotentialTerritory.prototype.connectToBorders = function (yx) {
     }
 };
 
-},{"./BoardAnalyser":6,"./Grid":10,"./Stone":17,"./main":31}],16:[function(require,module,exports){
+},{"./BoardAnalyser":6,"./Grid":11,"./Stone":19,"./main":32}],17:[function(require,module,exports){
+//Translated from score_analyser.rb using babyruby2js
+'use strict';
+
+var main = require('./main');
+var Grid = require('./Grid');
+var BoardAnalyser = require('./BoardAnalyser');
+
+/** @class */
+function ScoreAnalyser() {
+    this.goban = null;
+    this.analyser = new BoardAnalyser();
+}
+module.exports = ScoreAnalyser;
+
+// Compute simple score difference for a AI-AI game (score info not needed)
+ScoreAnalyser.prototype.computeScoreDiff = function (goban, komi) {
+    this.analyser.countScore(goban);
+    var scores = this.analyser.scores;
+    var prisoners = this.analyser.prisoners;
+    var b = scores[main.BLACK] + prisoners[main.WHITE];
+    var w = scores[main.WHITE] + prisoners[main.BLACK] + komi;
+    return b - w;
+};
+
+// Returns score info as an array of strings
+ScoreAnalyser.prototype.computeScore = function (goban, komi, whoResigned) {
+    this.startScoring(goban, komi, whoResigned);
+    var txt = this.scoreInfoToS(this.scoreInfo);
+    return txt;
+};
+
+// Initialize scoring phase
+ScoreAnalyser.prototype.startScoring = function (goban, komi, whoResigned) {
+    this.goban = goban;
+    if (whoResigned !== undefined && whoResigned !== null) {
+        var winner = Grid.COLOR_NAMES[1 - whoResigned];
+        var other = Grid.COLOR_NAMES[whoResigned];
+        this.scoreInfo = winner + ' won (since ' + other + ' resigned)';
+        return this.scoreInfo;
+    }
+    this.analyser.countScore(goban);
+    var scores = this.analyser.scores;
+    var prisoners = this.analyser.prisoners;
+    var totals = [];
+    var details = [];
+    var addPris = true;
+    for (var c = 0; c < 2; c++) {
+        var kom = (( c === main.WHITE ? komi : 0 ));
+        var pris = (( addPris ? prisoners[1 - c] : -prisoners[c] ));
+        totals[c] = scores[c] + pris + kom;
+        details[c] = [scores[c], pris, kom];
+    }
+    this.scoreInfo = [totals, details];
+    return this.scoreInfo;
+};
+
+ScoreAnalyser.prototype.getScore = function () {
+    return this.scoreInfoToS(this.scoreInfo);
+};
+
+ScoreAnalyser.prototype.scoreInfoToS = function (info) {
+    if (main.isA(String, info)) { // for games where all but 1 resigned
+        return [info];
+    }
+    if (!info || info.length !== 2) {
+        throw new Error('Invalid score info: ' + info);
+    }
+    var totals = info[0];
+    var details = info[1];
+    if (totals.length !== details.length) {
+        throw new Error('Invalid score info');
+    }
+    var s = [];
+    s.push(this.scoreWinnerToS(totals));
+    for (var c = 0; c < 2; c++) {
+        var detail = details[c];
+        if (detail === null) {
+            s.push(Grid.colorName(c) + ' resigned');
+            continue;
+        }
+        if (detail.length !== 3) {
+            throw new Error('Invalid score details');
+        }
+        var score = detail[0];
+        var pris = detail[1];
+        var komi = detail[2];
+        var komiStr = (( komi > 0 ? ' + ' + komi + ' komi' : '' ));
+        s.push(Grid.colorName(c) + ' (' + Grid.colorToChar(c) + '): ' + this.pts(totals[c]) + ' (' + score + ' ' + ( pris < 0 ? '-' : '+' ) + ' ' + Math.abs(pris) + ' prisoners' + komiStr + ')');
+    }
+    return s;
+};
+
+ScoreAnalyser.prototype.scoreDiffToS = function (diff) {
+    if (diff !== 0) {
+        var win = ( diff > 0 ? main.BLACK : main.WHITE );
+        return Grid.colorName(win) + ' wins by ' + this.pts(Math.abs(diff));
+    } else {
+        return 'Tie game';
+    }
+};
+
+ScoreAnalyser.prototype.scoreWinnerToS = function (totals) {
+    if (totals.length === 2) {
+        var diff = totals[0] - totals[1];
+        return this.scoreDiffToS(diff);
+    } else {
+        var max = Math.max.apply(Math, totals);
+        var winners = [];
+        for (var c = 0; c < totals.length; c++) {
+            if (totals[c] === max) {
+                winners.push(c);
+            }
+        }
+        if (winners.length === 1) {
+            return Grid.colorName(winners[0]) + ' wins with ' + this.pts(max);
+        } else {
+            return 'Tie between ' + winners.map(function (w) {
+                return '' + Grid.colorName(w);
+            }).join(' & ') + ', ' + ( winners.length === 2 ? 'both' : 'all' ) + ' with ' + this.pts(max);
+        }
+    }
+};
+
+//private;
+ScoreAnalyser.prototype.pts = function (n) {
+    return ( n !== 1 ? n + ' points' : '1 point' );
+};
+
+// E02: unknown method: map(...)
+},{"./BoardAnalyser":6,"./Grid":11,"./main":32}],18:[function(require,module,exports){
 //Translated from sgf_reader.rb using babyruby2js
 'use strict';
 
@@ -2975,7 +3340,7 @@ SgfReader.prototype.error = function (reason, t) {
 
 // E02: unknown method: info(...)
 // E02: unknown method: index(...)
-},{"./main":31}],17:[function(require,module,exports){
+},{"./main":32}],19:[function(require,module,exports){
 //Translated from stone.rb using babyruby2js
 'use strict';
 
@@ -3280,7 +3645,7 @@ Stone.prototype.setGroupOnMerge = function (newGroup) {
 // E02: unknown method: map(...)
 // E02: unknown method: find_index(...)
 
-},{"./Grid":10,"./Group":11,"./main":31}],18:[function(require,module,exports){
+},{"./Grid":11,"./Group":12,"./main":32}],20:[function(require,module,exports){
 //Translated from stone_constants.rb using babyruby2js
 'use strict';
 
@@ -3291,7 +3656,7 @@ main.BORDER = null;
 main.EMPTY = -1;
 main.BLACK = 0;
 main.WHITE = 1;
-},{"./main":31}],19:[function(require,module,exports){
+},{"./main":32}],21:[function(require,module,exports){
 //Translated from time_keeper.rb using babyruby2js
 'use strict';
 
@@ -3375,7 +3740,7 @@ TimeKeeper.prototype.checkLimits = function (raiseIfOverlimit) {
     return '';
 };
 
-},{"./main":31}],20:[function(require,module,exports){
+},{"./main":32}],22:[function(require,module,exports){
 //Translated from zone_filler.rb using babyruby2js
 'use strict';
 
@@ -3480,7 +3845,7 @@ ZoneFiller.prototype._check = function (i, j) {
 };
 
 // E02: unknown method: find_index(...)
-},{"./main":31}],21:[function(require,module,exports){
+},{"./main":32}],23:[function(require,module,exports){
 //Translated from all_heuristics.rb using babyruby2js
 'use strict';
 
@@ -3497,7 +3862,7 @@ Heuristic.allHeuristics = function () {
     return [Spacer, Executioner, Savior, Hunter, Connector, Pusher, NoEasyPrisoner];
 };
 
-},{"./Connector":22,"./Executioner":23,"./Heuristic":24,"./Hunter":25,"./NoEasyPrisoner":26,"./Pusher":27,"./Savior":28,"./Spacer":29}],22:[function(require,module,exports){
+},{"./Connector":24,"./Executioner":25,"./Heuristic":26,"./Hunter":27,"./NoEasyPrisoner":28,"./Pusher":29,"./Savior":30,"./Spacer":31}],24:[function(require,module,exports){
 //Translated from connector.rb using babyruby2js
 'use strict';
 
@@ -3577,7 +3942,7 @@ Connector.prototype.evalMove = function (i, j) {
     return _eval;
 };
 
-},{"../main":31,"./Heuristic":24,"util":4}],23:[function(require,module,exports){
+},{"../main":32,"./Heuristic":26,"util":4}],25:[function(require,module,exports){
 //Translated from executioner.rb using babyruby2js
 'use strict';
 
@@ -3621,7 +3986,7 @@ Executioner.prototype.evalMove = function (i, j) {
     return threat + saving;
 };
 
-},{"../main":31,"./Heuristic":24,"util":4}],24:[function(require,module,exports){
+},{"../main":32,"./Heuristic":26,"util":4}],26:[function(require,module,exports){
 //Translated from heuristic.rb using babyruby2js
 'use strict';
 
@@ -3666,7 +4031,7 @@ Heuristic.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
     return this.player.genes.get(this.constructor.name + '-' + name, defVal, lowLimit, highLimit);
 };
 
-},{}],25:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 //Translated from hunter.rb using babyruby2js
 'use strict';
 
@@ -3819,7 +4184,7 @@ Hunter.prototype.escapingAtariIsCaught = function (stone, level) {
 };
 
 
-},{"../Stone":17,"../main":31,"./Heuristic":24,"util":4}],26:[function(require,module,exports){
+},{"../Stone":19,"../main":32,"./Heuristic":26,"util":4}],28:[function(require,module,exports){
 //Translated from no_easy_prisoner.rb using babyruby2js
 'use strict';
 
@@ -3870,7 +4235,7 @@ NoEasyPrisoner.prototype.evalMove = function (i, j) {
     return score;
 };
 
-},{"../Stone":17,"../main":31,"./Heuristic":24,"./Hunter":25,"util":4}],27:[function(require,module,exports){
+},{"../Stone":19,"../main":32,"./Heuristic":26,"./Hunter":27,"util":4}],29:[function(require,module,exports){
 //Translated from pusher.rb using babyruby2js
 'use strict';
 
@@ -3904,7 +4269,7 @@ Pusher.prototype.evalMove = function (i, j) {
     return score;
 };
 
-},{"../main":31,"./Heuristic":24,"util":4}],28:[function(require,module,exports){
+},{"../main":32,"./Heuristic":26,"util":4}],30:[function(require,module,exports){
 //Translated from savior.rb using babyruby2js
 'use strict';
 
@@ -3984,7 +4349,7 @@ Savior.prototype.evalEscape = function (i, j, stone) {
     return threat;
 };
 
-},{"../Stone":17,"../main":31,"./Heuristic":24,"./Hunter":25,"util":4}],29:[function(require,module,exports){
+},{"../Stone":19,"../main":32,"./Heuristic":26,"./Hunter":27,"util":4}],31:[function(require,module,exports){
 //Translated from spacer.rb using babyruby2js
 'use strict';
 
@@ -4049,24 +4414,7 @@ Spacer.prototype.distanceFromBorder = function (n) {
     }
 };
 
-},{"../main":31,"./Heuristic":24,"util":4}],30:[function(require,module,exports){
-'use strict';
-
-var main = require('./main');
-window.main = main;
-
-require('./StoneConstants');
-require('./rb');
-
-main.GameLogic = require('./GameLogic');
-main.Grid = require('./Grid');
-main.Ai1Player = require('./Ai1Player');
-
-//main.Ui = require('./Ui');
-
-main.debug = false;
-
-},{"./Ai1Player":5,"./GameLogic":7,"./Grid":10,"./StoneConstants":18,"./main":31,"./rb":32}],31:[function(require,module,exports){
+},{"../main":32,"./Heuristic":26,"util":4}],32:[function(require,module,exports){
 //main class for babyruby2js
 'use strict';
 
@@ -4250,7 +4598,7 @@ Logger.prototype._newLogFn = function (lvl, consoleFn) {
 main.log = new Logger();
 main.Logger = Logger;
 
-},{}],32:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 'use strict';
 
 
@@ -4418,4 +4766,1423 @@ Array.prototype.range = function (begin, end) {
   return this.slice(begin, end + 1);
 };
 
-},{}]},{},[30]);
+},{}],34:[function(require,module,exports){
+//Translated from test_ai.rb using babyruby2js
+'use strict';
+
+var main = require('../main');
+var inherits = require('util').inherits;
+var Grid = require('../Grid');
+var assertEqual = main.assertEqual;
+var GameLogic = require('../GameLogic');
+var Ai1Player = require('../Ai1Player');
+
+/** @class NB: for debugging think of using @goban.debug_display
+ */
+function TestAi(testName) {
+    main.TestCase.call(this, testName);
+    return this.initBoard();
+}
+inherits(TestAi, main.TestCase);
+module.exports = main.tests.add(TestAi);
+
+TestAi.prototype.initBoard = function (size, handicap) {
+    if (size === undefined) size = 9;
+    if (handicap === undefined) handicap = 0;
+    this.game = new GameLogic();
+    this.game.newGame(size, handicap);
+    this.goban = this.game.goban;
+    this.players = [new Ai1Player(this.goban, main.BLACK), new Ai1Player(this.goban, main.WHITE)];
+};
+
+// old method; rather use play_and_check below
+TestAi.prototype.letAiPlay = function () {
+    if (main.debug) {
+        main.log.debug('Letting AI play...');
+    }
+    var player = this.players[this.game.curColor];
+    var move = player.getMove();
+    this.game.playOneMove(move);
+    return move;
+};
+
+TestAi.prototype.checkEval = function (move, color, expEval) {
+    var i, j;
+    var _m = Grid.parseMove(move);
+    i = _m[0];
+    j = _m[1];
+    
+    var p = this.players[color];
+    p.prepareEval();
+    return main.assertInDelta(p.evalMove(i, j), expEval + 0.5, 0.5);
+};
+
+TestAi.prototype.playAndCheck = function (expMove, expColor, expEval) {
+    if (expEval === undefined) expEval = null;
+    if (main.debug) {
+        main.log.debug('Letting AI play...');
+    }
+    var player = this.players[this.game.curColor];
+    if (expColor !== player.color) {
+        throw new Error('Wrong player turn: ' + Grid.colorName(player.color) + ' to play now');
+    }
+    var move = player.getMove();
+    assertEqual(expMove, move);
+    if (expEval) {
+        main.assertInDelta(player.lastMoveScore, expEval + 0.5, 0.5, expMove + '/' + Grid.colorName(expColor));
+    }
+    return this.game.playOneMove(move);
+};
+
+TestAi.prototype.testCornering = function () {
+    // 9 ++++++++O
+    // 8 ++++++++@
+    // 7 +++@+++++
+    // 6 +++++++++
+    // 5 ++O++++++
+    // 4 +++++++++
+    //   abcdefghj
+    this.game.loadMoves('j8,j9,d7,c5');
+    return this.playAndCheck('h9', main.BLACK, 1); // FIXME: h8 is better than killing in h9 (non trivial)
+};
+
+TestAi.prototype.testPreAtari = function () {
+    // 5 +++++++++
+    // 4 +@@@@O+++
+    // 3 ++O@O@O++
+    // 2 ++O@O@+++
+    // 1 +++OO++++
+    //   abcdefghj
+    // f3-f2 can be saved in g2
+    // Hunter should not attack in c1 since c1 would be in atari
+    this.game.loadMoves('d4,e2,d2,c3,d3,c2,b4,d1,c4,f4,f3,e3,e4,g3,f2,e1');
+    this.checkEval('c1', main.BLACK, 0);
+    return this.playAndCheck('g2', main.BLACK, 2);
+};
+
+TestAi.prototype.testHunter1 = function () {
+    // h7 is a wrong "good move"; white can escape with h8
+    // 9 ++++++++O
+    // 8 ++++++++@
+    // 7 ++++++++O
+    // 6 ++++++++O
+    // 5 ++++++++@
+    // 4 +++@++++@
+    //   abcdefghj
+    this.game.loadMoves('d4,j7,j8,j6,j5,j9,j4,pass,h8,pass');
+    this.playAndCheck('h6', main.BLACK, 2); // h7 ladder was OK too here but capturing same 2 stones in a ladder
+    // the choice between h6 and h7 is decided by smaller differences like distance to corner, etc.
+    this.game.loadMoves('h7');
+    return this.playAndCheck('g7', main.BLACK, 3);
+};
+
+TestAi.prototype.testLadder = function () {
+    // 9 O+++++++@
+    // 8 ++++++++@
+    // 7 ++++++++O
+    // 6 ++++++++O
+    // 5 ++++++++@
+    // 4 ++++++++@
+    //   abcdefghj
+    this.game.loadMoves('j9,j7,j8,j6,j5,a9,j4,pass');
+    this.playAndCheck('h7', main.BLACK, 2);
+    this.game.loadMoves('h6');
+    this.playAndCheck('g6', main.BLACK, 3);
+    this.game.loadMoves('h5');
+    this.playAndCheck('h4', main.BLACK, 6); // 6 because i4-i5 black group is now also threatened
+    this.game.loadMoves('g5');
+    return this.playAndCheck('f5', main.BLACK, 5);
+};
+
+TestAi.prototype.testLadderBreaker1 = function () {
+    // 9 O++++++++
+    // 8 O++++++++
+    // 7 O+++O++++
+    // 6 +++++++++
+    // 5 @OO@+++++
+    // 4 @@@@+++++
+    //   abcdefghj
+    // Ladder breaker a7 does not work since the whole group dies
+    this.game.loadMoves('a4,a9,a5,a8,b4,a7,c4,e7,d4,b5,d5,c5');
+    return this.playAndCheck('c6', main.BLACK, 2);
+};
+
+TestAi.prototype.testLadderBreaker2 = function () {
+    // 9 O++++++++
+    // 8 OOO++++++
+    // 7 O+++O++++
+    // 6 ++*++++++
+    // 5 @OO@+++++
+    // 4 @@@@+++++
+    //   abcdefghj
+    // Ladder breaker are a7 and e7
+    // What is sure is that neither b6 nor c6 works. However b6 is boosted by pusher
+    this.game.loadMoves('a4,a9,a5,a8,b4,a7,c4,e7,d4,b5,d5,c5,pass,b8,pass,c8');
+    this.checkEval('c6', main.BLACK, 0.5);
+    return this.playAndCheck('b6', main.BLACK, 1);
+};
+
+TestAi.prototype.testSeeDeadGroup = function () {
+    // 9 +@++@@@@O
+    // 8 +@@@@@@OO
+    // 7 @@+@+@@O+
+    // 6 +@+@++@O+
+    // 5 +@+@@+@O+
+    // 4 @@@+++@OO
+    // 3 @OO@@@@O+
+    // 2 OO+OOO@OO
+    // 1 ++O@@@@O+
+    //   abcdefghj
+    // Interesting here: SW corner group O (white) is dead. Both sides should see it and play accordingly.
+    this.game.loadMoves('d6,f4,e5,f6,g5,f5,g7,h6,g6,e7,f7,e6,g3,h4,g4,h5,d8,c7,d7,f8,e8,d4,d5,e4,f9,g9,e9,c9,g8,c8,h9,d9,e3,f2,f3,h7,c4,c5,d3,c6,b5,h8,b7,a6,b6,a4,b9,a5,b8,b3,b4,c3,c2,e2,a7,d2,a3,b2,g1,c1,g2,h2,j3,h3,f1,j2,e1,j4,d1,a2,a4,h1,c8,j8,f8,j9,g9');
+    this.playAndCheck('pass', main.WHITE);
+    this.playAndCheck('c2', main.BLACK, 2); // TODO: optim here would be @ realizing O group is dead
+    this.playAndCheck('d2', main.WHITE, 1);
+    this.playAndCheck('e2', main.BLACK, 1);
+    this.playAndCheck('pass', main.WHITE);
+    return this.playAndCheck('pass', main.BLACK); // @goban.debug_display
+};
+
+TestAi.prototype.testBorderDefense = function () {
+    this.initBoard(7);
+    // 7 +++++++
+    // 6 +++@@@+
+    // 5 @++@OO+
+    // 4 O@@@O@+
+    // 3 OOOO+O+
+    // 2 ++O@O++
+    // 1 +++++++
+    //   abcdefg
+    // Issue: after W:a3 we expect B:b5 or b6 but AI does not see attack in b5; 
+    this.game.loadMoves('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3');
+    this.checkEval('g5', main.BLACK, 0); // no stone to kill for black in g5
+    // check_eval("b6",BLACK,1) #FIXME how? black to see he can save a5 in b6 too
+    return this.playAndCheck('b5', main.BLACK, 1);
+};
+
+TestAi.prototype.testBorderAttackAndInvasion = function () {
+    this.initBoard(7);
+    // 7 +++++++
+    // 6 +++@@@@
+    // 5 @*+@OO@
+    // 4 O@@@O+O
+    // 3 OOOO+O+
+    // 2 ++O+O++
+    // 1 +++O+++
+    //   abcdefg
+    // AI should see attack in b5 with territory invasion
+    this.game.loadMoves('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,g6,d1,g5,g4,pass');
+    return this.playAndCheck('b5', main.WHITE, 1); // TODO: see gain is bigger because of invasion
+};
+
+TestAi.prototype.testBorderAttackAndInvasion2 = function () {
+    this.initBoard(7);
+    // 7 +++++++
+    // 6 +++@@@@
+    // 5 @*+@OO+
+    // 4 O@@@O@+
+    // 3 OOOO+O+
+    // 2 ++O@O++
+    // 1 +++++++
+    //   abcdefg
+    // AI should see attack in b5 with territory invasion.
+    // Actually O in g4 is chosen because pusher gives it 0.33 pts.
+    // NB: g4 is actually a valid move for black
+    this.game.loadMoves('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,g6');
+    return this.playAndCheck('b5', main.WHITE, 1);
+};
+
+TestAi.prototype.testBorderClosing = function () {
+    this.initBoard(7);
+    // 7 +++++++
+    // 6 +@+@@@@
+    // 5 @++@OO+
+    // 4 O@@@O@+
+    // 3 OOOO+O+
+    // 2 ++O+O++
+    // 1 +++O+++
+    //   abcdefg
+    // AI should see f4 is dead inside white territory if g5 is played (non trivial)
+    this.game.loadMoves('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,b6,d1,g6');
+    return this.playAndCheck('g4', main.WHITE, 1); // FIXME white (O) move should be g5 here
+};
+
+TestAi.prototype.testSaviorHunter = function () {
+    this.initBoard(7);
+    // 7 +++++++
+    // 6 +++@@@@
+    // 5 @@+@OO+
+    // 4 O+@@O@+
+    // 3 OOOO+O+
+    // 2 ++O@O++
+    // 1 +++++++
+    //   abcdefg
+    // g4 is actually a valid move for black
+    this.game.loadMoves('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b5,b3,c4,a4,a5,a3,g6,pass');
+    return this.playAndCheck('g4', main.BLACK, 1); // black (@) move should be g4 here // assert_equal("g3", let_ai_play) # FIXME: (O) move should be g3 here (since d2 is already dead)
+};
+
+TestAi.prototype.testKillingSavesNearbyGroupInAtari = function () {
+    this.initBoard(7);
+    // 7 +++++++
+    // 6 +@+@@@+
+    // 5 @++@OO@
+    // 4 O@@@O@+
+    // 3 OOOO+O+
+    // 2 ++O+O++
+    // 1 +++O+++
+    //   abcdefg
+    this.game.loadMoves('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,b6,d1,g5');
+    this.checkEval('e3', main.WHITE, 3);
+    this.playAndCheck('g4', main.WHITE, 4);
+    this.playAndCheck('g6', main.BLACK, 1);
+    this.playAndCheck('pass', main.WHITE);
+    return this.playAndCheck('pass', main.BLACK);
+};
+
+TestAi.prototype.testSnapback = function () {
+    this.initBoard(5);
+    // 5 O@+O+
+    // 4 O@*@@
+    // 3 OO@++
+    // 2 ++@++
+    // 1 +++++
+    //   abcde
+    // c4 expected for white, then if c5, c4 again (snapback)
+    this.game.loadMoves('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,e4');
+    this.playAndCheck('c4', main.WHITE, 1); // FIXME: it should be 2
+    this.game.playOneMove('c5');
+    return this.playAndCheck('c4', main.WHITE, 4); // 3 taken & 1 saved = 4
+};
+
+TestAi.prototype.testSnapback2 = function () {
+    this.initBoard(7);
+    // 7 O@+OO++
+    // 6 O@+@@++
+    // 4 OO@@+++
+    // 4 +@@++++
+    // 3 ++++O++
+    //   abcdefg
+    // Snapback is bad idea since a2 can kill white group
+    this.game.loadMoves('b7,a7,b6,a6,c5,b5,c4,a5,d6,d7,d5,e7,b4,e3,e6');
+    this.playAndCheck('f7', main.WHITE, 2); // FIXME white should see d7-e7 are dead (territory detection)
+    return this.playAndCheck('a4', main.BLACK, 4);
+};
+
+TestAi.prototype.testSnapback3 = function () {
+    this.initBoard(5);
+    // 5 O@+OO
+    // 4 O@O@+
+    // 3 OO@@+
+    // 2 ++@++
+    // 1 ++@++
+    //   abcde
+    // 
+    this.game.loadMoves('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,d3,e5,c1,c4');
+    // @goban.debug_display
+    return this.playAndCheck('c5', main.BLACK, 0); // FIXME: should NOT be c5 (count should be -1)
+};
+
+TestAi.prototype.testSeesAttackNoGood = function () {
+    this.initBoard(5);
+    // 5 O@@OO
+    // 4 O@+@+
+    // 3 OO@@+
+    // 2 ++@++
+    // 1 ++@++
+    //   abcde
+    // NB: we could use this game to check when AI can see dead groups
+    this.game.loadMoves('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,d3,e5,c1,c4,c5');
+    this.playAndCheck('c4', main.WHITE, 5); // kills 3 and saves 2
+    return this.checkEval('c5', main.BLACK, 0); // silly move
+};
+
+},{"../Ai1Player":5,"../GameLogic":8,"../Grid":11,"../main":32,"util":4}],35:[function(require,module,exports){
+//Translated from test_all.rb using babyruby2js
+'use strict';
+
+var main = require('../main');
+window.main = main;
+
+main.testAll = true;
+
+require('../StoneConstants');
+require('../rb');
+
+var TestAi = require('./TestAi');
+var TestBoardAnalyser = require('./TestBoardAnalyser');
+var TestBreeder = require('./TestBreeder');
+var TestGameLogic = require('./TestGameLogic');
+var TestGroup = require('./TestGroup');
+var TestPotentialTerritory = require('./TestPotentialTerritory');
+var TestScoreAnalyser = require('./TestScoreAnalyser');
+var TestSgfReader = require('./TestSgfReader');
+var TestSpeed = require('./TestSpeed');
+var TestStone = require('./TestStone');
+var TestZoneFiller = require('./TestZoneFiller');
+
+},{"../StoneConstants":20,"../main":32,"../rb":33,"./TestAi":34,"./TestBoardAnalyser":36,"./TestBreeder":37,"./TestGameLogic":38,"./TestGroup":39,"./TestPotentialTerritory":40,"./TestScoreAnalyser":41,"./TestSgfReader":42,"./TestSpeed":43,"./TestStone":44,"./TestZoneFiller":45}],36:[function(require,module,exports){
+//Translated from test_board_analyser.rb using babyruby2js
+'use strict';
+
+var main = require('../main');
+var inherits = require('util').inherits;
+var Group = require('../Group');
+var assertEqual = main.assertEqual;
+var GameLogic = require('../GameLogic');
+var BoardAnalyser = require('../BoardAnalyser');
+
+/** @class NB: for debugging think of using analyser.debug_dump
+ */
+function TestBoardAnalyser(testName) {
+    main.TestCase.call(this, testName);
+}
+inherits(TestBoardAnalyser, main.TestCase);
+module.exports = main.tests.add(TestBoardAnalyser);
+
+TestBoardAnalyser.prototype.initBoard = function (size, handicap) {
+    if (size === undefined) size = 5;
+    if (handicap === undefined) handicap = 0;
+    this.game = new GameLogic();
+    this.game.newGame(size, handicap);
+    this.goban = this.game.goban;
+};
+
+TestBoardAnalyser.prototype.testSmallGame = function () {
+    this.initBoard(9);
+    // 9 ++O@@++++
+    // 8 +@OO@++@+
+    // 7 OOOO@@@++
+    // 6 ++OOOOO@@
+    // 5 OO@@O@@@@
+    // 4 @@@+OOOO@
+    // 3 O@@@@@O+O
+    // 2 +++@OOO++
+    // 1 +++@@O+++
+    //   abcdefghj
+    var game2 = 'c3,c6,e7,g3,g7,e2,d2,b4,b3,c7,g5,h4,h5,d8,e8,e5,c4,b5,e3,f2,c5,f6,f7,g6,h6,d7,a4,a5,b6,a3,a6,b7,a4,a7,d9,c9,b8,e6,d5,d6,e9,g4,f5,f4,e1,f1,d1,j5,j6,e4,j4,j3,h8,c8,d3,j5,f3,g2,j4,b5,b4,a5,j5';
+    this.game.loadMoves(game2);
+    var finalPos = '++O@@++++,+@OO@++@+,OOOO@@@++,++OOOOO@@,OO@@O@@@@,@@@+OOOO@,O@@@@@O+O,+++@OOO++,+++@@O+++';
+    assertEqual(finalPos, this.goban.image());
+    this.boan = new BoardAnalyser();
+    this.boan.countScore(this.goban);
+    // we do not test private method anymore
+    // tmp_zones = "FFO@@EEEE,F@OO@EE@E,OOOO@@@EE,DDOOOOO@@,OO@@O@@@@,@@@COOOO@,O@@@@@OBO,AAA@OOOBB,AAA@@OBBB"
+    // assert_equal(tmp_zones, @boan.image?)
+    var finalZones = '::O@@----,:&OO@--@-,OOOO@@@--,::OOOOO@@,OO@@O@@@@,@@@?OOOO@,#@@@@@O:O,---@OOO::,---@@O:::';
+    // @boan.debug_dump if $debug
+    assertEqual(finalZones, this.goban.scoringGrid.image());
+    var prisoners = Group.prisoners(this.goban);
+    assertEqual([4, 5], prisoners);
+    assertEqual([4 + 1, 5 + 1], this.boan.prisoners);
+    assertEqual([16, 12], this.boan.scores);
+    return assertEqual(finalPos, this.goban.image());
+};
+
+TestBoardAnalyser.prototype.testBigGame1 = function () {
+    var game = '(;FF[4]EV[go19.mc.2010.mar.1.21]PB[fuego19 bot]PW[Olivier Lombart]KM[0.5]SZ[19]SO[http://www.littlegolem.com]HA[6]AB[pd]AB[dp]AB[pp]AB[dd]AB[pj]AB[dj];W[fq];B[fp];W[dq];B[eq];W[er];B[ep];W[cq];B[fr];W[cp];B[cn];W[co];B[dn];W[nq];B[oc];W[fc];B[ql];W[pr];B[cg];W[qq];B[mc];W[pg];B[nh];W[qi];B[dr];W[cr];B[nk];W[qe];B[hc];W[db];B[jc];W[cc];B[qj];W[qc];B[qd];W[rd];B[re];W[rc];B[qf];W[rf];B[pe];W[se];B[rg];W[qe];B[qg];W[jq];B[es];W[fe];B[ci];W[no];B[bn];W[bo];B[cs];W[bs];B[pb];W[ef];B[ao];W[ap];B[ip];W[pn];B[qn];W[qo];B[jp];W[iq];B[kq];W[lq];B[kr];W[kp];B[hq];W[lr];B[ko];W[lp];B[kg];W[hh];B[ir];W[ce];B[pm];W[rn];B[ek];W[an];B[am];W[ao];B[re];W[sk];B[qm];W[rm];B[ro];W[rp];B[qp];W[po];B[oo];W[on];B[om];W[nn];B[ii];W[bm];B[cm];W[bl];B[cl];W[bk];B[gi];W[ll];B[lm];W[km];B[kl];W[jm];B[lk];W[ln];B[hi];W[hf];B[kc];W[hm];B[ml];W[jo];B[io];W[jn];B[in];W[im];B[bf];W[be];B[bj];W[ri];B[rj];W[sj];B[rl];W[sl];B[qb];W[ph];B[pi];W[qh];B[ae];W[ad];B[ck];W[ds];B[gm];W[ik];B[kj];W[of];B[gb];W[hn];B[gl];W[ho];B[hp];W[fo];B[nf];W[ne];B[oe];W[ng];B[mf];W[mg];B[mh];W[lg];B[lh];W[lf];B[me];W[le];B[md];W[kf];B[jg];W[eh];B[af];W[cd];B[ak];W[fn];B[sf];W[gh];B[hk];W[fi];B[nm];W[ih];B[ji];W[jh];B[kh];W[er];B[fs];W[oh];B[ib];W[oi];B[oj];W[ni];B[mi];W[nj];B[jk];W[hl];B[ij];W[em];B[ls];W[ms];B[dh];W[ks];B[jr];W[cf];B[bg];W[fj];B[gj];W[fk];B[gk];W[fb];B[hd];W[gc];B[fa];W[ea];B[ga];W[dg];B[mj];W[dl];B[il];W[ej];B[gd];W[fd];B[el];W[fl];B[dk];W[dm];B[sd];W[dr];B[ge];W[gf];B[id];W[jl];B[ik];W[ig];B[jf];W[ld];B[lc];W[di];B[ei];W[ha];B[hb];W[di];B[ch];W[ei];B[fm];W[en];B[do];W[mn];B[mm];W[je];B[kd];W[go];B[gq];W[js];B[is];W[ls];B[ke];W[og];B[ie];W[sh];B[if];W[so];B[he];W[fg];B[pf];W[si];B[sg];W[kn];B[rh];W[sm];B[rk];W[gn];B[eo];W[tt];B[tt];W[tt];B[tt])';
+    this.initBoard();
+    this.game.loadMoves(game);
+    this.goban = this.game.goban;
+    this.boan = new BoardAnalyser();
+    this.boan.countScore(this.goban);
+    var finalZones = '::::O@@#-----------,:::O:O@@@------@@--,::O::OO@-@@@@-@-##-,O:O&:O@@@-@O@--@@#@,@OO::O@@@#@O@#@@-@-,@@O:O:OO@@OO@@O@@-@,-@@O:O::O@@OOOOO@@@,--@@O:OOOO@@@@OOO@O,--@OOO@@@@--@OO@OOO,-@-@OO@-@-@-@O@@@@O,@#@@@O@@@@-@-@---@O,-#@O@O@O@O@-@---@@O,@#@OO@@OOOO@@@@@@OO,O@@@OOOO@OOOOOOO@O:,OOO@@OOO@O&::O&OO:O,O:O@@@?@@@OO:::&&O:,::OO@-@@--@O:O::O::,::OOO@--@@@O:::O:::,:O:O@@--@OOOO::::::';
+    // @boan.debug_dump if $debug
+    assertEqual(finalZones, this.goban.scoringGrid.image());
+    var prisoners = Group.prisoners(this.goban);
+    assertEqual([7, 11], prisoners);
+    assertEqual([7 + 5, 11 + 9], this.boan.prisoners);
+    return assertEqual([67, 59], this.boan.scores);
+};
+
+TestBoardAnalyser.prototype.testBigGame2 = function () {
+    // NB: game was initially downloaded with an extra illegal move (dupe) at the end (;W[aq])
+    var game = '(;FF[4]EV[go19.ch.10.4.3]PB[kyy]PW[Olivier Lombart]KM[6.5]SZ[19]SO[http://www.littlegolem.com];B[pd];W[pp];B[ce];W[dc];B[dp];W[ee];B[dg];W[cn];B[fq];W[bp];B[cq];W[bq];B[br];W[cp];B[dq];W[dj];B[cc];W[cb];B[bc];W[nc];B[qf];W[pb];B[qc];W[jc];B[qn];W[nq];B[pj];W[ch];B[cg];W[bh];B[bg];W[iq];B[en];W[gr];B[fr];W[ol];B[ql];W[rp];B[ro];W[qo];B[po];W[qp];B[pn];W[no];B[cl];W[dm];B[cj];W[dl];B[di];W[ck];B[ej];W[dk];B[ci];W[bj];B[bi];W[bk];B[ah];W[gc];B[lc];W[ld];B[kd];W[md];B[kc];W[jd];B[ke];W[nf];B[kg];W[oh];B[qh];W[nj];B[hf];W[ff];B[fg];W[gf];B[gg];W[he];B[if];W[ki];B[jp];W[ip];B[jo];W[io];B[jn];W[im];B[in];W[hn];B[jm];W[il];B[jl];W[ik];B[jk];W[jj];B[ho];W[go];B[hm];W[gn];B[ij];W[hj];B[ii];W[gk];B[kj];W[ji];B[lj];W[li];B[mj];W[mi];B[nk];W[ok];B[ni];W[oj];B[nh];W[ng];B[mh];W[lh];B[mg];W[lg];B[nn];W[pi];B[om];W[ml];B[mo];W[mp];B[ln];W[mk];B[qj];W[qi];B[jq];W[ir];B[ar];W[mm];B[oo];W[np];B[mn];W[ri];B[dd];W[ec];B[bb];W[rk];B[pl];W[rg];B[qb];W[pf];B[pe];W[of];B[qg];W[rh];B[ob];W[nb];B[pc];W[sd];B[rc];W[re];B[qe];W[ih];B[hi];W[hh];B[gi];W[hg];B[jh];W[lf];B[kf];W[lp];B[nm];W[kk];B[lr];W[lq];B[kr];W[jr];B[kq];W[mr];B[kb];W[jb];B[ja];W[ia];B[ka];W[hb];B[ie];W[id];B[ed];W[fd];B[db];W[eb];B[ca];W[de];B[cd];W[ek];B[ei];W[em];B[gq];W[gp];B[hr];W[hq];B[gs];W[eo];B[do];W[dn];B[co];W[bo];B[ep];W[fo];B[kl];W[lk];B[lm];W[rm];B[rn];W[rl];B[rj];W[sj];B[rf];W[sf];B[rd];W[se];B[sc];W[sg];B[qm];W[oc];B[pa];W[ko];B[kn];W[ea];B[op];W[oq];B[df];W[fe];B[ef];W[da];B[cb];W[aq];B[gj];W[hk];B[na];W[ma];B[oa];W[mc];B[le];W[me];B[oe];W[nl];B[sp];W[sq];B[so];W[qq];B[ne];W[ls];B[ks];W[aj];B[ms];W[ns];B[ls];W[ai];B[dh];W[fj];B[fi];W[fk];B[je];W[is];B[hs];W[sm];B[sk];W[sl];B[si];W[sh];B[ph];W[oi];B[pg];W[kp];B[og];W[mf];B[kh];W[qk];B[pk];W[si];B[ig];W[fp];B[js];W[hp];B[tt];W[tt];B[tt])';
+    this.initBoard();
+    this.game.loadMoves(game);
+    this.goban = this.game.goban;
+    this.boan = new BoardAnalyser();
+    this.boan.countScore(this.goban);
+    var finalZones = '--@OO:::O@@?O@@@---,' + '-@@@O::O:O@??O@-@--,' + '-@@OO:O::O@@OOO@@@@,' + '--@@@O::OO@OO??@-@O,' + '--@OOO:O@@@@O@@@@OO,' + '---@@OO@@-@OOOOO@@O,' + '-@@@-@@#@-@O:O@@@OO,' + '@--@---##@@O::O@@OO,' + 'O@@@@@@@@OOOO:OOOOO,' + 'OO@O@O@O@O:::OO@@@O,' + ':OOOOOOOO@OOO:O@OO:,' + '::&O::::O@@?OOO@@OO,' + ':::OO::&O@-@O@@-@OO,' + '::OO&:OO@@@@@@-@@@?,' + ':O@@OOO:O@O?@O@@O@@,' + ':OO@@OOOO@OOOO@OOO@,' + 'OO@@-@@OO@@O:OO:O:O,' + '@@---@-@OO@@O::::::,' + '------@@O@@@@O:::::';
+    // @boan.debug_dump if $debug
+    assertEqual(finalZones, this.goban.scoringGrid.image());
+    var prisoners = Group.prisoners(this.goban);
+    assertEqual([11, 6], prisoners);
+    assertEqual([11 + 3, 6 + 3], this.boan.prisoners);
+    return assertEqual([44, 56], this.boan.scores);
+};
+
+},{"../BoardAnalyser":6,"../GameLogic":8,"../Group":12,"../main":32,"util":4}],37:[function(require,module,exports){
+//Translated from test_breeder.rb using babyruby2js
+'use strict';
+
+var main = require('../main');
+var inherits = require('util').inherits;
+main.test = true;
+var Breeder = require('../Breeder');
+
+/** @class */
+function TestBreeder(testName) {
+    main.TestCase.call(this, testName);
+}
+inherits(TestBreeder, main.TestCase);
+module.exports = main.tests.add(TestBreeder);
+
+TestBreeder.prototype.testBwBalance = function () {
+    var numGames = 200;
+    var size = 9;
+    var tolerance = 0.15; // 0.10=>10% (+ or -); the more games you play the lower tolerance you can set (but it takes more time...)
+    var b = new Breeder(size);
+    var numWins = b.bwBalanceCheck(numGames, size);
+    return main.assertInDelta(Math.abs(numWins / (numGames / 2)), 1, tolerance);
+};
+
+},{"../Breeder":7,"../main":32,"util":4}],38:[function(require,module,exports){
+//Translated from test_game_logic.rb using babyruby2js
+'use strict';
+
+var main = require('../main');
+var inherits = require('util').inherits;
+var assertEqual = main.assertEqual;
+var GameLogic = require('../GameLogic');
+
+/** @class TODO: very incomplete test
+ */
+function TestGameLogic(testName) {
+    main.TestCase.call(this, testName);
+    return this.initBoard();
+}
+inherits(TestGameLogic, main.TestCase);
+module.exports = main.tests.add(TestGameLogic);
+
+TestGameLogic.prototype.initBoard = function (size, handicap) {
+    if (size === undefined) size = 5;
+    if (handicap === undefined) handicap = 0;
+    this.game = new GameLogic();
+    this.game.newGame(size, handicap);
+    this.goban = this.game.goban;
+};
+
+// 3 ways to load the same game with handicap...
+TestGameLogic.prototype.testHandicap = function () {
+    var game6 = '(;FF[4]KM[0.5]SZ[19]HA[6]AB[pd]AB[dp]AB[pp]AB[dd]AB[pj]AB[dj];W[fq])';
+    this.game.loadMoves(game6);
+    var img = this.goban.image();
+    this.game.newGame(19, 6);
+    this.game.loadMoves('f3');
+    assertEqual(img, this.goban.image());
+    // @game.goban.console_display
+    this.game.newGame(19, 0);
+    this.game.loadMoves('hand:6,f3');
+    return assertEqual(img, this.goban.image());
+};
+
+},{"../GameLogic":8,"../main":32,"util":4}],39:[function(require,module,exports){
+//Translated from test_group.rb using babyruby2js
+'use strict';
+
+var main = require('../main');
+var inherits = require('util').inherits;
+var Stone = require('../Stone');
+var assertEqual = main.assertEqual;
+var GameLogic = require('../GameLogic');
+
+/** @class NB: for debugging think of using @goban.debug_display
+ */
+function TestGroup(testName) {
+    main.TestCase.call(this, testName);
+    return this.initBoard();
+}
+inherits(TestGroup, main.TestCase);
+module.exports = main.tests.add(TestGroup);
+
+TestGroup.prototype.initBoard = function (size, handicap) {
+    if (size === undefined) size = 5;
+    if (handicap === undefined) handicap = 0;
+    this.game = new GameLogic();
+    this.game.newGame(size, handicap);
+    this.game.messagesToConsole();
+    this.goban = this.game.goban;
+};
+
+TestGroup.prototype.testGroupMerge = function () {
+    // check the sentinel
+    assertEqual(1, this.goban.mergedGroups.length);
+    assertEqual(-1, this.goban.mergedGroups[0].color);
+    assertEqual(1, this.goban.killedGroups.length);
+    assertEqual(-1, this.goban.killedGroups[0].color);
+    // single stone
+    var s = Stone.playAt(this.goban, 4, 3, main.BLACK);
+    var g = s.group;
+    assertEqual(this.goban, g.goban);
+    assertEqual([s], g.stones);
+    assertEqual(4, g.lives);
+    assertEqual(main.BLACK, g.color);
+    assertEqual(null, g.mergedBy);
+    assertEqual(null, g.killedBy);
+    // connect a stone to 1 group
+    var s2 = Stone.playAt(this.goban, 4, 2, main.BLACK);
+    assertEqual(g, s.group); // not changed
+    assertEqual([s, s2], g.stones);
+    assertEqual(6, g.lives);
+    assertEqual(null, g.mergedBy);
+    assertEqual(s2.group, g); // same group    
+    // connect 2 groups of 1 stone each
+    // (s1 on top, s2 2 rows below, and s3 between them)
+    var s1 = Stone.playAt(this.goban, 2, 5, main.WHITE);
+    var g1 = s1.group;
+    s2 = Stone.playAt(this.goban, 2, 3, main.WHITE);
+    var g2 = s2.group;
+    var s3 = Stone.playAt(this.goban, 2, 4, main.WHITE);
+    g = s3.group;
+    assertEqual(g1, g); // g1 was kept because on top of stone (comes first)
+    assertEqual(g, s1.group);
+    assertEqual(g, s2.group);
+    assertEqual(7, g.lives);
+    assertEqual([s1, s3, s2], g.stones);
+    assertEqual(main.WHITE, g.color);
+    assertEqual(null, g.mergedBy);
+    assertEqual(g, g2.mergedWith); // g2 was merged into g/g1
+    assertEqual(s3, g2.mergedBy);
+    assertEqual([s2], g2.stones); // g2 still knows s2; will be used for reversing
+    // check the list in goban
+    assertEqual(2, this.goban.mergedGroups.length);
+    return assertEqual(g2, this.goban.mergedGroups[this.goban.mergedGroups.length-1]);
+};
+
+TestGroup.prototype.testGroupKill = function () {
+    Stone.playAt(this.goban, 1, 5, main.WHITE); // a5
+    var s = Stone.playAt(this.goban, 1, 4, main.WHITE); // a4
+    var g = s.group;
+    assertEqual(3, g.lives);
+    var b1 = Stone.playAt(this.goban, 2, 4, main.BLACK); // b4
+    Stone.playAt(this.goban, 2, 5, main.BLACK); // b5
+    var bg = b1.group;
+    assertEqual(1, g.lives); // g in atari
+    assertEqual(3, bg.lives); // black group has 3 lives because of white group on its left
+    s = Stone.playAt(this.goban, 1, 3, main.BLACK); // kill!
+    assertEqual(5, bg.lives); // black group has now 5 lives
+    assertEqual(0, g.lives); // dead
+    assertEqual(s, g.killedBy);
+    assertEqual(true, this.goban.stoneAt(1, 5).empty());
+    return assertEqual(true, this.goban.stoneAt(1, 4).empty());
+};
+
+// Shape like  O <- the new stone brings only 2 lives
+//            OO    because the one in 3,4 was already owned
+TestGroup.prototype.testSharedLivesOnConnect = function () {
+    Stone.playAt(this.goban, 3, 3, main.WHITE);
+    var s = Stone.playAt(this.goban, 4, 3, main.WHITE);
+    assertEqual(6, s.group.lives);
+    var s2 = Stone.playAt(this.goban, 4, 4, main.WHITE);
+    assertEqual(7, s2.group.lives);
+    Stone.undo(this.goban);
+    return assertEqual(6, s.group.lives); // @goban.debug_display
+};
+
+// Shape like  OO
+//              O <- the new stone brings 1 life but shared lives 
+//             OO    are not counted anymore in merged group
+TestGroup.prototype.testSharedLivesOnMerge = function () {
+    Stone.playAt(this.goban, 3, 2, main.WHITE);
+    var s1 = Stone.playAt(this.goban, 4, 2, main.WHITE);
+    assertEqual(6, s1.group.lives);
+    var s2 = Stone.playAt(this.goban, 3, 4, main.WHITE);
+    assertEqual(4, s2.group.lives);
+    Stone.playAt(this.goban, 4, 4, main.WHITE);
+    assertEqual(6, s2.group.lives);
+    var s3 = Stone.playAt(this.goban, 4, 3, main.WHITE);
+    assertEqual(10, s3.group.lives);
+    Stone.undo(this.goban);
+    assertEqual(6, s1.group.lives);
+    assertEqual(6, s2.group.lives);
+    Stone.undo(this.goban);
+    return assertEqual(4, s2.group.lives); // @goban.debug_display
+};
+
+// Case of connect + kill at the same time
+// Note the quick way to play a few stones for a test
+// (methods writen before this one used the old, painful style)
+TestGroup.prototype.testCase1 = function () {
+    this.game.loadMoves('a2,a1,b2,b1,c2,d1,pass,e1,c1');
+    var s = this.goban.stoneAt(1, 2);
+    return assertEqual(6, s.group.lives);
+};
+
+// Other case
+// OOO
+//   O <- new stone
+// OOO
+TestGroup.prototype.testSharedLives2 = function () {
+    this.game.loadMoves('a1,pass,a3,pass,b3,pass,b1,pass,c1,pass,c3,pass,c2');
+    var s = this.goban.stoneAt(1, 1);
+    assertEqual(8, s.group.lives);
+    Stone.undo(this.goban);
+    assertEqual(4, s.group.lives);
+    this.goban.stoneAt(3, 1);
+    return assertEqual(4, s.group.lives); // @goban.debug_display
+};
+
+TestGroup.prototype.checkGroup = function (g, ndx, numStones, color, stones, lives) {
+    assertEqual(ndx, g.ndx);
+    assertEqual(numStones, g.stones.length);
+    assertEqual(color, g.color);
+    assertEqual(lives, g.lives);
+    return assertEqual(stones, g.stonesDump());
+};
+
+TestGroup.prototype.checkStone = function (s, color, move, around) {
+    assertEqual(color, s.color);
+    assertEqual(move, s.asMove());
+    return assertEqual(around, s.emptiesDump());
+};
+
+// Verifies the around values are updated after merge
+// 5 +++++
+// 4 ++@++
+// 3 OOO++
+// 2 @++++
+// 1 +++++
+//   abcde
+TestGroup.prototype.testMergeAndAround = function () {
+    var b1 = Stone.playAt(this.goban, 1, 3, main.BLACK);
+    var bg1 = b1.group;
+    var w1 = Stone.playAt(this.goban, 1, 2, main.WHITE);
+    assertEqual(2, w1.group.lives);
+    var b2 = Stone.playAt(this.goban, 3, 3, main.BLACK);
+    var bg2 = b2.group;
+    assertEqual(true, bg1 !== bg2);
+    var w2 = Stone.playAt(this.goban, 3, 4, main.WHITE);
+    for (var _i = 0; _i < 3; _i++) {
+        // ++@
+        // O+O
+        // @++      
+        this.goban.stoneAt(4, 3);
+        // now merge black groups:
+        var b3 = Stone.playAt(this.goban, 2, 3, main.BLACK);
+        assertEqual(true, (b1.group === b2.group) && (b3.group === b1.group));
+        assertEqual(3, b1.group.ndx); // and group #3 was used as main (not mandatory but for now it is the case)
+        assertEqual(5, b1.group.lives);
+        // now get back a bit
+        Stone.undo(this.goban);
+        this.checkGroup(bg1, 1, 1, 0, 'a3', 2); // group #1 of 1 black stones [a3], lives:2
+        this.checkStone(b1, 0, 'a3', 'a4,b3'); // stoneO:a3 around:  +[a4 b3]
+        this.checkGroup(w1.group, 2, 1, 1, 'a2', 2); // group #2 of 1 white stones [a2], lives:2
+        this.checkStone(w1, 1, 'a2', 'a1,b2'); // stone@:a2 around:  +[a1 b2]
+        this.checkGroup(bg2, 3, 1, 0, 'c3', 3); // group #3 of 1 black stones [c3], lives:3
+        this.checkStone(b2, 0, 'c3', 'b3,c2,d3'); // stoneO:c3 around:  +[d3 c2 b3]
+        this.checkGroup(w2.group, 4, 1, 1, 'c4', 3); // group #4 of 1 white stones [c4], lives:3 
+        this.checkStone(w2, 1, 'c4', 'b4,c5,d4'); // stone@:c4 around:  +[c5 d4 b4]
+        // the one below is nasty: we connect with black, then undo and reconnect with white
+        assertEqual(main.BLACK, this.game.curColor); // otherwise things are reversed below
+        this.game.loadMoves('c2,b2,pass,b4,b3,undo,b4,pass,b3');
+        // +++++ 5 +++++
+        // +@@++ 4 +@@++
+        // OOO++ 3 O@O++
+        // @@O++ 2 @@O++
+        // +++++ 1 +++++
+        // abcde   abcde
+        this.checkGroup(bg1, 1, 1, 0, 'a3', 1); // group #1 of 1 black stones [a3], lives:1
+        this.checkStone(b1, 0, 'a3', 'a4'); // stoneO:a3 around:  +[a4]
+        var wgm = w1.group; // white group after merge
+        this.checkGroup(wgm, 4, 5, 1, 'a2,b2,b3,b4,c4', 6);
+        this.checkStone(w1, 1, 'a2', 'a1'); // stone@:a2 around:  +[a1]
+        this.checkStone(this.goban.stoneAt(2, 2), 1, 'b2', 'b1'); // stone@:b2 around:  +[b1]
+        this.checkStone(this.goban.stoneAt(2, 3), 1, 'b3', ''); // stone@:b3 around:  +[]
+        this.checkStone(this.goban.stoneAt(2, 4), 1, 'b4', 'a4,b5'); // stone@:b4 around:  +[b5 a4]
+        this.checkStone(w2, 1, 'c4', 'c5,d4'); // stone@:c4 around:  +[c5 d4]
+        this.checkGroup(bg2, 3, 2, 0, 'c2,c3', 3); // group #3 of 2 black stones [c3,c2], lives:3
+        this.checkStone(b2, 0, 'c3', 'd3'); // stoneO:c3 around:  +[d3]
+        this.checkStone(this.goban.stoneAt(3, 2), 0, 'c2', 'c1,d2'); // stoneO:c2 around:  +[d2 c1]
+        this.game.loadMoves('undo,undo,undo');
+        assertEqual(0, this.game.moveNumber()); // @goban.debug_display # if any assert shows you might need this to understand what happened...
+    }
+};
+
+// Fixed bug. This was when undo removes a "kill" and restores a stone 
+// ...which attacks (wrongfully) the undone stone
+TestGroup.prototype.testKoBug1 = function () {
+    this.initBoard(9, 5);
+    return this.game.loadMoves('e4,e3,f5,f4,g4,f2,f3,d1,f4,undo,d2,c2,f4,d1,f3,undo,c1,d1,f3,g1,f4,undo,undo,f6');
+};
+
+// At the same time a stone kills (with 0 lives left) and connects to existing surrounded group,
+// killing actually the enemy around. We had wrong raise showing since at a point the group
+// we connect to has 0 lives. We simply made the raise test accept 0 lives as legit.
+TestGroup.prototype.testKamikazeKillWhileConnect = function () {
+    this.initBoard(5, 0);
+    return this.game.loadMoves('a1,a3,b3,a4,b2,b1,b4,pass,a5,a2,a1,a2,undo,undo');
+};
+
+// This was not a bug actually but the test is nice to have.
+TestGroup.prototype.testKo2 = function () {
+    this.initBoard(5, 0);
+    this.game.loadMoves('a3,b3,b4,c2,b2,b1,c3,a2,pass,b3');
+    // @game.history.each do |move| puts(move) end
+    assertEqual(false, Stone.validMove(this.goban, 2, 2, main.BLACK)); // KO
+    this.game.loadMoves('e5,d5');
+    assertEqual(true, Stone.validMove(this.goban, 2, 2, main.BLACK)); // KO can be taken again
+    this.game.loadMoves('undo');
+    return assertEqual(false, Stone.validMove(this.goban, 2, 2, main.BLACK)); // since we are back to the ko time because of undo
+};
+
+// Fixed. Bug was when undo was picking last group by "merged_with" (implemented merged_by)
+TestGroup.prototype.testBug2 = function () {
+    this.initBoard(9, 5);
+    return this.game.loadMoves('i1,d3,i3,d4,i5,d5,i7,d6,undo');
+};
+
+// At this moment this corresponds more or less to the speed test case too
+TestGroup.prototype.testVarious1 = function () {
+    this.initBoard(9, 0);
+    return this.game.loadMoves('pass,b2,a2,a3,b1,a1,d4,d5,a2,e5,e4,a1,undo,undo,undo,undo,undo,undo');
+};
+
+// This test for fixing bug we had if a group is merged then killed and then another stone played
+// on same spot as the merging stone, then we undo... We used to only look at merging stone to undo a merge.
+// We simply added a check that the merged group is also the same.
+TestGroup.prototype.testUndo1 = function () {
+    this.initBoard(5, 0);
+    return this.game.loadMoves('e1,e2,c1,d1,d2,e1,e3,e1,undo,undo,undo,undo');
+};
+
+// Makes sure that die & resuscite actions behave well
+TestGroup.prototype.testUndo2 = function () {
+    this.initBoard(5, 0);
+    this.game.loadMoves('a1,b1,c3');
+    var ws = this.goban.stoneAt(1, 1);
+    var wg = ws.group;
+    this.game.loadMoves('a2');
+    assertEqual(0, wg.lives);
+    assertEqual(main.EMPTY, ws.color);
+    assertEqual(true, ws.group === null);
+    this.game.loadMoves('undo');
+    assertEqual(1, wg.lives);
+    assertEqual(main.BLACK, ws.color);
+    this.game.loadMoves('c3,a2'); // and kill again the same
+    assertEqual(0, wg.lives);
+    assertEqual(main.EMPTY, ws.color);
+    return assertEqual(true, ws.group === null);
+};
+
+// From another real life situation; kill while merging; black's turn
+// 7 OOO
+// 6 @@O
+// 5 +O@
+// 4 @+@
+TestGroup.prototype.testUndo3 = function () {
+    this.initBoard(5);
+    this.game.loadMoves('a2,a5,c2,b3,c3,c4,b4,b5,a4,c5');
+    assertEqual('OOO++,@@O++,+O@++,@+@++,+++++', this.goban.image());
+    this.game.loadMoves('b2,a3,b4,a4');
+    assertEqual('OOO++,O+O++,OO@++,@@@++,+++++', this.goban.image());
+    Stone.undo(this.goban);
+    assertEqual('OOO++,+@O++,OO@++,@@@++,+++++', this.goban.image());
+    var w1 = this.goban.stoneAt(1, 5).group;
+    var w2 = this.goban.stoneAt(1, 3).group;
+    var b1 = this.goban.stoneAt(2, 4).group;
+    var b2 = this.goban.stoneAt(1, 2).group;
+    assertEqual(3, w1.lives);
+    assertEqual(1, w2.lives);
+    assertEqual(1, b1.lives);
+    return assertEqual(5, b2.lives);
+};
+
+},{"../GameLogic":8,"../Stone":19,"../main":32,"util":4}],40:[function(require,module,exports){
+//Translated from test_potential_territory.rb using babyruby2js
+'use strict';
+
+var main = require('../main');
+var inherits = require('util').inherits;
+var assertEqual = main.assertEqual;
+var GameLogic = require('../GameLogic');
+var PotentialTerritory = require('../PotentialTerritory');
+
+/** @class NB: for debugging think of using analyser.debug_dump
+ */
+function TestPotentialTerritory(testName) {
+    main.TestCase.call(this, testName);
+}
+inherits(TestPotentialTerritory, main.TestCase);
+module.exports = main.tests.add(TestPotentialTerritory);
+
+TestPotentialTerritory.POT2CHAR = '-\'?.:';
+TestPotentialTerritory.prototype.initBoard = function (size, handicap) {
+    if (size === undefined) size = 5;
+    if (handicap === undefined) handicap = 0;
+    this.game = new GameLogic();
+    this.game.newGame(size, handicap);
+    this.goban = this.game.goban;
+    this.ter = new PotentialTerritory(this.goban);
+};
+
+TestPotentialTerritory.prototype.potentialToS = function (grid) {
+    return grid.toLine(function (v) {
+        return TestPotentialTerritory.POT2CHAR[2 + v * 2];
+    });
+};
+
+TestPotentialTerritory.prototype.testTerr1 = function () {
+    this.initBoard(9);
+    // 9 +++++++++
+    // 8 +++O@++++
+    // 7 ++O+@+@++
+    // 6 ++O++++++
+    // 5 +O++O+@@+
+    // 4 +O@++++O+
+    // 3 +@@+@+O++
+    // 2 +++@O++++
+    // 1 +++++++++
+    //   abcdefghi
+    var game = 'c3,c6,e7,g3,g7,e2,d2,b4,b3,c7,g5,h4,h5,d8,e8,e5,c4,b5,e3'; // ,f2,c5,f6,f7,g6,h6,d7,a4,a5,b6,a3,a6,b7,a4,a7,d9,c9,b8,e6,d5,d6,e9,g4,f5,f4,e1,f1,d1,i5,i6,e4,i4,i3,h8,c8,d3,i5,f3,g2,i4,b5,b4,a5,i5"
+    this.game.loadMoves(game);
+    var before = this.goban.image();
+    var grid = this.ter.guessTerritories();
+    assertEqual(before, this.goban.image()); // basic check - goban should have been restored
+    var blackFirst = ':::O@----,:::O@----,::O@@-@--,::O@@----,:O@@-@@@@,OO@-@-@OO,@@@-@@O::,---@OO:::,---@O::::';
+    assertEqual(blackFirst, this.ter._grid(main.BLACK).image());
+    var whiteFirst = ':::O@----,:::O@----,::OO@@@--,::O:OO@--,:OO:OO@@@,OO@OO:OOO,@@@?@OO::,---@O::::,---@O::::';
+    assertEqual(whiteFirst, this.ter._grid(main.WHITE).image());
+    var expectedPotential = ':::??----,:::??----,::???\'?--,::?.?\'\'--,:??.\'????,???\'?????,???\'???::,---??.:::,---??::::';
+    assertEqual(grid, this.ter.potential().yx);
+    return assertEqual(expectedPotential, this.potentialToS(this.ter.potential()));
+};
+
+// Test on a finished game
+TestPotentialTerritory.prototype.testSmallGameTerr = function () {
+    this.initBoard(9);
+    // 9 ++O@@++++
+    // 8 +@OO@++@+
+    // 7 OOOO@@@++
+    // 6 ++OOOOO@@
+    // 5 OO@@O@@@@
+    // 4 @@@+OOOO@
+    // 3 O@@@@@O+O
+    // 2 +++@OOO++
+    // 1 +++@@O+++
+    //   abcdefghi
+    var game2 = 'c3,c6,e7,g3,g7,e2,d2,b4,b3,c7,g5,h4,h5,d8,e8,e5,c4,b5,e3,f2,c5,f6,f7,g6,h6,d7,a4,a5,b6,a3,a6,b7,a4,a7,d9,c9,b8,e6,d5,d6,e9,g4,f5,f4,e1,f1,d1,i5,i6,e4,i4,i3,h8,c8,d3,i5,f3,g2,i4,b5,b4,a5,i5';
+    this.game.loadMoves(game2);
+    var finalPos = '++O@@++++,+@OO@++@+,OOOO@@@++,++OOOOO@@,OO@@O@@@@,@@@+OOOO@,O@@@@@O+O,+++@OOO++,+++@@O+++';
+    assertEqual(finalPos, this.goban.image());
+    this.ter.guessTerritories();
+    var blackFirst = '-&O@@----,&&OO@--@-,OOOO@@@--,::OOOOO@@,OO@@O@@@@,@@@OOOOO@,#@@@@@O:O,#@-@OOO::,---@@O:::';
+    assertEqual(blackFirst, this.ter._grid(main.BLACK).image());
+    var whiteFirst = ':OO@@----,O:OO@--@-,OOOO@@@--,::OOOOO@@,OO@@O@@@@,@@@OOOOO@,#@@@@@O:O,#@-@OOO::,---@@O:::';
+    assertEqual(whiteFirst, this.ter._grid(main.WHITE).image());
+    var expectedPotential = '?????----,?.???--?-,???????--,::???????,?????????,?????????,???????:?,??-????::,---???:::';
+    return assertEqual(expectedPotential, this.potentialToS(this.ter.potential()));
+};
+
+// This test triggers the "if not suicide" in "add_stone" method
+TestPotentialTerritory.prototype.testNoSuicideWhileEvaluating = function () {
+    this.initBoard(7);
+    this.game.loadMoves('d4,d2,e3,b4,e1,c5,d6,d5,c3,e5,d3,b3,b2,c2,a2,e2,f1,f2,b6,c6,f6,e6,f4,d7,f5,f3');
+    return this.ter.guessTerritories();
+};
+
+},{"../GameLogic":8,"../PotentialTerritory":16,"../main":32,"util":4}],41:[function(require,module,exports){
+//Translated from test_score_analyser.rb using babyruby2js
+'use strict';
+
+var main = require('../main');
+var inherits = require('util').inherits;
+var Grid = require('../Grid');
+var assertEqual = main.assertEqual;
+var GameLogic = require('../GameLogic');
+var ScoreAnalyser = require('../ScoreAnalyser');
+
+/** @class */
+function TestScoreAnalyser(testName) {
+    main.TestCase.call(this, testName);
+}
+inherits(TestScoreAnalyser, main.TestCase);
+module.exports = main.tests.add(TestScoreAnalyser);
+
+TestScoreAnalyser.prototype.initGame = function (size) {
+    if (size === undefined) size = 5;
+    this.game = new GameLogic();
+    this.game.newGame(size, 0);
+    this.goban = this.game.goban;
+    this.sa = new ScoreAnalyser();
+    // when size is 7 we load an ending game to get real score situation
+    if (size === 7) {
+        // 7 +++++++
+        // 6 +++@@@@
+        // 5 @*+@OO@
+        // 4 O@@@O+O
+        // 3 OOOO+O+
+        // 2 ++O+O++
+        // 1 +++O+++
+        //   abcdefg
+        return this.game.loadMoves('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,g6,d1,g5,g4,pass,pass');
+    }
+};
+
+TestScoreAnalyser.prototype.testComputeScore = function () {
+    this.initGame(7);
+    var whoResigned = null;
+    var s = this.sa.computeScore(this.goban, 1.5, whoResigned);
+    assertEqual('white wins by 6.5 points', s.shift());
+    assertEqual('black (@): 12 points (12 + 0 prisoners)', s.shift());
+    assertEqual('white (O): 18.5 points (14 + 3 prisoners + 1.5 komi)', s.shift());
+    assertEqual(undefined, s.shift());
+    // test message when someone resigns
+    s = this.sa.computeScore(this.goban, 1.5, main.BLACK);
+    assertEqual(['white won (since black resigned)'], s);
+    s = this.sa.computeScore(this.goban, 1.5, main.WHITE);
+    return assertEqual(['black won (since white resigned)'], s);
+};
+
+TestScoreAnalyser.prototype.testComputeScoreDiff = function () {
+    this.initGame(7);
+    return assertEqual(-8.5, this.sa.computeScoreDiff(this.goban, 3.5));
+};
+
+TestScoreAnalyser.prototype.testStartScoring = function () {
+    this.initGame(7);
+    var i = this.sa.startScoring(this.goban, 0.5, null);
+    assertEqual([12, 17.5], i.shift());
+    return assertEqual([[12, 0, 0], [14, 3, 0.5]], i.shift());
+};
+
+TestScoreAnalyser.prototype.testScoringGrid = function () {
+    this.initGame(7);
+    this.sa.startScoring(this.goban, 1.5, null);
+    assertEqual(main.EMPTY, this.goban.stoneAt(1, 1).color); // score analyser leaves the goban untouched
+    assertEqual(Grid.TERRITORY_COLOR + main.WHITE, this.goban.scoringGrid.yx[1][1]); // a1
+    return assertEqual(Grid.TERRITORY_COLOR + main.BLACK, this.goban.scoringGrid.yx[6][2]); // b6
+};
+
+TestScoreAnalyser.prototype.testScoreInfoToS = function () {
+    this.initGame();
+    this.sa.computeScore(this.goban, 1.5, null); // just to make the test succeed (these methods could be private, actually)
+    var info = [[10, 12], [[1, 2, 3], [4, 5, 6]]];
+    var s = this.sa.scoreInfoToS(info);
+    assertEqual('white wins by 2 points', s.shift());
+    assertEqual('black (@): 10 points (1 + 2 prisoners + 3 komi)', s.shift());
+    assertEqual('white (O): 12 points (4 + 5 prisoners + 6 komi)', s.shift());
+    return assertEqual(undefined, s.shift());
+};
+
+TestScoreAnalyser.prototype.testScoreDiffToS = function () {
+    this.initGame();
+    this.sa.computeScore(this.goban, 1.5, null); // just to make the test succeed (these methods could be private, actually)
+    assertEqual('white wins by 3 points', this.sa.scoreDiffToS(-3));
+    assertEqual('black wins by 4 points', this.sa.scoreDiffToS(4));
+    return assertEqual('Tie game', this.sa.scoreDiffToS(0));
+};
+
+},{"../GameLogic":8,"../Grid":11,"../ScoreAnalyser":17,"../main":32,"util":4}],42:[function(require,module,exports){
+//Translated from test_sgf_reader.rb using babyruby2js
+'use strict';
+
+var main = require('../main');
+var inherits = require('util').inherits;
+var assertEqual = main.assertEqual;
+var SgfReader = require('../SgfReader');
+
+/** @class */
+function TestSgfReader(testName) {
+    main.TestCase.call(this, testName);
+}
+inherits(TestSgfReader, main.TestCase);
+module.exports = main.tests.add(TestSgfReader);
+
+TestSgfReader.prototype.test1 = function () {
+    var game1 = '(;FF[4]EV[go19.ch.10.4.3]PB[kyy]PW[Olivier Lombart]KM[6.5]SZ[19]SO[http://www.littlegolem.com];B[pd];W[pp];B[ce];W[dc];B[dp];W[ee];B[dg];W[cn];B[fq];W[bp];B[cq];W[bq];B[br];W[cp];B[dq];W[dj];B[cc];W[cb];B[bc];W[nc];B[qf];W[pb];B[qc];W[jc];B[qn];W[nq];B[pj];W[ch];B[cg];W[bh];B[bg];W[iq];B[en];W[gr];B[fr];W[ol];B[ql];W[rp];B[ro];W[qo];B[po];W[qp];B[pn];W[no];B[cl];W[dm];B[cj];W[dl];B[di];W[ck];B[ej];W[dk];B[ci];W[bj];B[bi];W[bk];B[ah];W[gc];B[lc];W[ld];B[kd];W[md];B[kc];W[jd];B[ke];W[nf];B[kg];W[oh];B[qh];W[nj];B[hf];W[ff];B[fg];W[gf];B[gg];W[he];B[if];W[ki];B[jp];W[ip];B[jo];W[io];B[jn];W[im];B[in];W[hn];B[jm];W[il];B[jl];W[ik];B[jk];W[jj];B[ho];W[go];B[hm];W[gn];B[ij];W[hj];B[ii];W[gk];B[kj];W[ji];B[lj];W[li];B[mj];W[mi];B[nk];W[ok];B[ni];W[oj];B[nh];W[ng];B[mh];W[lh];B[mg];W[lg];B[nn];W[pi];B[om];W[ml];B[mo];W[mp];B[ln];W[mk];B[qj];W[qi];B[jq];W[ir];B[ar];W[mm];B[oo];W[np];B[mn];W[ri];B[dd];W[ec];B[bb];W[rk];B[pl];W[rg];B[qb];W[pf];B[pe];W[of];B[qg];W[rh];B[ob];W[nb];B[pc];W[sd];B[rc];W[re];B[qe];W[ih];B[hi];W[hh];B[gi];W[hg];B[jh];W[lf];B[kf];W[lp];B[nm];W[kk];B[lr];W[lq];B[kr];W[jr];B[kq];W[mr];B[kb];W[jb];B[ja];W[ia];B[ka];W[hb];B[ie];W[id];B[ed];W[fd];B[db];W[eb];B[ca];W[de];B[cd];W[ek];B[ei];W[em];B[gq];W[gp];B[hr];W[hq];B[gs];W[eo];B[do];W[dn];B[co];W[bo];B[ep];W[fo];B[kl];W[lk];B[lm];W[rm];B[rn];W[rl];B[rj];W[sj];B[rf];W[sf];B[rd];W[se];B[sc];W[sg];B[qm];W[oc];B[pa];W[ko];B[kn];W[ea];B[op];W[oq];B[df];W[fe];B[ef];W[da];B[cb];W[aq];B[gj];W[hk];B[na];W[ma];B[oa];W[mc];B[le];W[me];B[oe];W[nl];B[sp];W[sq];B[so];W[qq];B[ne];W[ls];B[ks];W[aj];B[ms];W[ns];B[ls];W[ai];B[dh];W[fj];B[fi];W[fk];B[je];W[is];B[hs];W[sm];B[sk];W[sl];B[si];W[sh];B[ph];W[oi];B[pg];W[kp];B[og];W[mf];B[kh];W[qk];B[pk];W[si];B[ig];W[fp];B[js];W[hp];B[tt];W[tt];B[tt])';
+    var reader = new SgfReader(game1);
+    assertEqual(6.5, reader.komi);
+    assertEqual(0, reader.handicap);
+    assertEqual(19, reader.boardSize);
+    assertEqual([], reader.handicapStones);
+    var moves = reader.toMoveList();
+    var expMoves = 'q16,q4,c15,d17,d4,e15,d13,c6,f3,b4,c3,b3,b2,c4,d3,d10,c17,c18,b17,o17,r14,q18,r17,k17,r6,o3,q10,c12,c13,b12,b13,j3,e6,g2,f2,p8,r8,s4,s5,r5,q5,r4,q6,o5,c8,d7,c10,d8,d11,c9,e10,d9,c11,b10,b11,b9,a12,g17,m17,m16,l16,n16,l17,k16,l15,o14,l13,p12,r12,o10,h14,f14,f13,g14,g13,h15,j14,l11,k4,j4,k5,j5,k6,j7,j6,h6,k7,j8,k8,j9,k9,k10,h5,g5,h7,g6,j10,h10,j11,g9,l10,k11,m10,m11,n10,n11,o9,p9,o11,p10,o12,o13,n12,m12,n13,m13,o6,q11,p7,n8,n5,n4,m6,n9,r10,r11,k3,j2,a2,n7,p5,o4,n6,s11,d16,e17,b18,s9,q8,s13,r18,q14,q15,p14,r13,s12,p18,o18,q17,t16,s17,s15,r15,j12,h11,h12,g11,h13,k12,m14,l14,m4,o7,l9,m2,m3,l2,k2,l3,n2,l18,k18,k19,j19,l19,h18,j15,j16,e16,f16,d18,e18,c19,d15,c16,e9,e11,e7,g3,g4,h2,h3,g1,e5,d5,d6,c5,b5,e4,f5,l8,m9,m7,s7,s6,s8,s10,t10,s14,t14,s16,t15,t17,t13,r7,p17,q19,l5,l6,e19,p4,p3,d14,f15,e14,d19,c18,a3,g10,h9,o19,n19,p19,n17,m15,n15,p15,o8,t4,t3,t5,r3,o15,m1,l1,a10,n1,o1,m1,a11,d12,f10,f11,f9,k15,j1,h1,t7,t9,t8,t11,t12,q12,p11,q13,l4,p13,n14,l12,r9,q9,t11,j13,f4,k1,h4,pass,pass,pass';
+    return assertEqual(expMoves, moves);
+};
+
+TestSgfReader.prototype.test2 = function () {
+    var game2 = '(;FF[4]EV[go19.mc.2010.mar.1.21]PB[fuego19 bot]PW[Olivier Lombart]KM[0.5]SZ[19]SO[http://www.littlegolem.com]HA[6]AB[pd]AB[dp]AB[pp]AB[dd]AB[pj]AB[dj];W[fq];B[fp];W[dq];B[eq];W[er];B[ep];W[cq];B[fr];W[cp];B[cn];W[co];B[dn];W[nq];B[oc];W[fc];B[ql];W[pr];B[cg];W[qq];B[mc];W[pg];B[nh];W[qi];B[dr];W[cr];B[nk];W[qe];B[hc];W[db];B[jc];W[cc];B[qj];W[qc];B[qd];W[rd];B[re];W[rc];B[qf];W[rf];B[pe];W[se];B[rg];W[qe];B[qg];W[jq];B[es];W[fe];B[ci];W[no];B[bn];W[bo];B[cs];W[bs];B[pb];W[ef];B[ao];W[ap];B[ip];W[pn];B[qn];W[qo];B[jp];W[iq];B[kq];W[lq];B[kr];W[kp];B[hq];W[lr];B[ko];W[lp];B[kg];W[hh];B[ir];W[ce];B[pm];W[rn];B[ek];W[an];B[am];W[ao];B[re];W[sk];B[qm];W[rm];B[ro];W[rp];B[qp];W[po];B[oo];W[on];B[om];W[nn];B[ii];W[bm];B[cm];W[bl];B[cl];W[bk];B[gi];W[ll];B[lm];W[km];B[kl];W[jm];B[lk];W[ln];B[hi];W[hf];B[kc];W[hm];B[ml];W[jo];B[io];W[jn];B[in];W[im];B[bf];W[be];B[bj];W[ri];B[rj];W[sj];B[rl];W[sl];B[qb];W[ph];B[pi];W[qh];B[ae];W[ad];B[ck];W[ds];B[gm];W[ik];B[kj];W[of];B[gb];W[hn];B[gl];W[ho];B[hp];W[fo];B[nf];W[ne];B[oe];W[ng];B[mf];W[mg];B[mh];W[lg];B[lh];W[lf];B[me];W[le];B[md];W[kf];B[jg];W[eh];B[af];W[cd];B[ak];W[fn];B[sf];W[gh];B[hk];W[fi];B[nm];W[ih];B[ji];W[jh];B[kh];W[er];B[fs];W[oh];B[ib];W[oi];B[oj];W[ni];B[mi];W[nj];B[jk];W[hl];B[ij];W[em];B[ls];W[ms];B[dh];W[ks];B[jr];W[cf];B[bg];W[fj];B[gj];W[fk];B[gk];W[fb];B[hd];W[gc];B[fa];W[ea];B[ga];W[dg];B[mj];W[dl];B[il];W[ej];B[gd];W[fd];B[el];W[fl];B[dk];W[dm];B[sd];W[dr];B[ge];W[gf];B[id];W[jl];B[ik];W[ig];B[jf];W[ld];B[lc];W[di];B[ei];W[ha];B[hb];W[di];B[ch];W[ei];B[fm];W[en];B[do];W[mn];B[mm];W[je];B[kd];W[go];B[gq];W[js];B[is];W[ls];B[ke];W[og];B[ie];W[sh];B[if];W[so];B[he];W[fg];B[pf];W[si];B[sg];W[kn];B[rh];W[sm];B[rk];W[gn];B[eo];W[tt];B[tt];W[tt];B[tt])';
+    var reader = new SgfReader(game2);
+    assertEqual(0.5, reader.komi);
+    assertEqual(6, reader.handicap);
+    assertEqual(19, reader.boardSize);
+    assertEqual(['q16', 'd4', 'q4', 'd16', 'q10', 'd10'], reader.handicapStones);
+    var moves = reader.toMoveList();
+    var expMoves = 'hand:6=q16-d4-q4-d16-q10-d10,f3,f4,d3,e3,e2,e4,c3,f2,c4,c6,c5,d6,o3,p17,f17,r8,q2,c13,r3,n17,q13,o12,r11,d2,c2,o9,r15,h17,d18,k17,c17,r10,r17,r16,s16,s15,s17,r14,s14,q15,t15,s13,r15,r13,k3,e1,f15,c11,o5,b6,b5,c1,b1,q18,e14,a5,a4,j4,q6,r6,r5,k4,j3,l3,m3,l2,l4,h3,m2,l5,m4,l13,h12,j2,c15,q7,s6,e9,a6,a7,a5,s15,t9,r7,s7,s5,s4,r4,q5,p5,p6,p7,o6,j11,b7,c7,b8,c8,b9,g11,m8,m7,l7,l8,k7,m9,m6,h11,h14,l17,h7,n8,k5,j5,k6,j6,j7,b14,b15,b10,s11,s10,t10,s8,t8,r18,q12,q11,r12,a15,a16,c9,d1,g7,j9,l10,p14,g18,h6,g8,h5,h4,f5,o14,o15,p15,o13,n14,n13,n12,m13,m12,m14,n15,m15,n16,l14,k13,e12,a14,c16,a9,f6,t14,g12,h9,f11,o7,j12,k11,k12,l12,e2,f1,p12,j18,p11,p10,o11,n11,o10,k9,h8,j10,e7,m1,n1,d12,l1,k2,c14,b13,f10,g10,f9,g9,f18,h16,g17,f19,e19,g19,d13,n10,d8,j8,e10,g16,f16,e8,f8,d9,d7,t16,d2,g15,g14,j16,k8,j9,j13,k14,m16,m17,d11,e11,h19,h18,d11,c12,e11,f7,e6,d5,n6,n7,k15,l16,g5,g3,k1,j1,m1,l15,p13,j15,t12,j14,t5,h15,f13,q14,t11,t13,l6,s12,t7,s9,g6,e5,pass,pass,pass,pass';
+    return assertEqual(expMoves, moves);
+};
+
+},{"../SgfReader":18,"../main":32,"util":4}],43:[function(require,module,exports){
+//Translated from test_speed.rb using babyruby2js
+'use strict';
+
+var main = require('../main');
+var inherits = require('util').inherits;
+var Grid = require('../Grid');
+var Stone = require('../Stone');
+var assertEqual = main.assertEqual;
+var Goban = require('../Goban');
+var TimeKeeper = require('../TimeKeeper');
+main.debug = false; // if true it takes forever...
+main.log.level=(main.Logger.ERROR);
+main.count = 0;
+
+/** @class */
+function TestSpeed(testName) {
+    main.TestCase.call(this, testName);
+    return this.initBoard();
+}
+inherits(TestSpeed, main.TestCase);
+module.exports = main.tests.add(TestSpeed);
+
+TestSpeed.CM_UNDO = [0, TestSpeed.CM_CLEAR = 1, TestSpeed.CM_NEW = 2];
+TestSpeed.prototype.initBoard = function (size) {
+    if (size === undefined) size = 9;
+    this.goban = new Goban(size);
+};
+
+// Not very fancy: add the line $count += 1 wherever you want to count.
+// Need some time to try a good profiler soon...
+TestSpeed.prototype.showCount = function () {
+    if (main.count !== 0) {
+        console.log('Code called ' + main.count + ' times');
+        main.count = 0;
+    }
+};
+
+TestSpeed.prototype.testSpeed1 = function () {
+    var tolerance = 1.2;
+    var t = new TimeKeeper(tolerance);
+    t.calibrate(3.2);
+    // Basic test
+    t.start('Basic (no move validation) 100,000 stones and undo', 2.8, 0);
+    for (var _i = 0; _i < 10000; _i++) {
+        this.play10Stones();
+    }
+    t.stop();
+    this.showCount();
+    // prepare games so we isolate the GC caused by that 
+    // (in real AI thinking there will be many other things but...)
+    // 35 moves, final position:
+    // 9 +++@@O+++
+    // 8 +O@@OO+++
+    // 7 +@+@@O+++
+    // 6 ++@OO++++
+    // 5 ++@@O++++
+    // 4 ++@+@O+++
+    // 3 ++@+@O+++
+    // 2 ++O@@O+O+
+    // 1 ++++@@O++
+    //   abcdefghi
+    var game1 = 'c3,f3,d7,e5,c5,f7,e2,e8,d8,f2,f1,g1,e1,h2,e3,d4,e4,f4,d5,d3,d2,c2,c4,d6,e7,e6,c6,f8,e9,f9,d9,c7,c8,b8,b7';
+    var game1MovesIj = this.movesIj(game1);
+    t.start('35 move game, 2000 times and undo', 3.4, 1);
+    for (_i = 0; _i < 2000; _i++) {
+        this.playGameAndClean(game1MovesIj, TestSpeed.CM_UNDO);
+    }
+    t.stop();
+    this.showCount();
+    // The idea here is to verify that undoing things is cheaper than throwing it all to GC
+    // In a tree exploration strategy the undo should be the only way (otherwise we quickly hog all memory)
+    t.start('35 move game, 2000 times new board each time', 4.87, 15);
+    for (_i = 0; _i < 2000; _i++) {
+        this.playGameAndClean(game1MovesIj, TestSpeed.CM_NEW);
+    }
+    t.stop();
+    this.showCount();
+    // And here we see that the "clear" is the faster way to restart a game 
+    // (and that it does not "leak" anything to GC)
+    t.start('35 move game, 2000 times, clear board each time', 2.5, 1);
+    for (_i = 0; _i < 2000; _i++) {
+        this.playGameAndClean(game1MovesIj, TestSpeed.CM_CLEAR);
+    }
+    t.stop();
+    return this.showCount();
+};
+
+TestSpeed.prototype.testSpeed2 = function () {
+    var tolerance = 1.1;
+    var t = new TimeKeeper(tolerance);
+    t.calibrate(0.7);
+    // 9 ++O@@++++
+    // 8 +@OO@++@+
+    // 7 OOOO@@@++
+    // 6 ++OOOOO@@
+    // 5 OO@@O@@@@
+    // 4 @@@+OOOO@
+    // 3 O@@@@@O+O
+    // 2 +++@OOO++
+    // 1 +++@@O+++
+    //   abcdefghi
+    var game2 = 'c3,c6,e7,g3,g7,e2,d2,b4,b3,c7,g5,h4,h5,d8,e8,e5,c4,b5,e3,f2,c5,f6,f7,g6,h6,d7,a4,a5,b6,a3,a6,b7,a4,a7,d9,c9,b8,e6,d5,d6,e9,g4,f5,f4,e1,f1,d1,i5,i6,e4,i4,i3,h8,c8,d3,i5,f3,g2,i4,b5,b4,a5,i5';
+    var game2MovesIj = this.movesIj(game2);
+    // validate the game once
+    this.playMoves(game2MovesIj);
+    var finalPos = '++O@@++++,+@OO@++@+,OOOO@@@++,++OOOOO@@,OO@@O@@@@,@@@+OOOO@,O@@@@@O+O,+++@OOO++,+++@@O+++';
+    assertEqual(finalPos, this.goban.image());
+    this.initBoard();
+    t.start('63 move game, 2000 times and undo', 1.56, 3);
+    for (var _i = 0; _i < 2000; _i++) {
+        this.playGameAndClean(game2MovesIj, TestSpeed.CM_UNDO);
+    }
+    t.stop();
+    return this.showCount();
+};
+
+// Converts "a1,b2" in [1,1,2,2]
+TestSpeed.prototype.movesIj = function (game) {
+    var movesIj = [];
+    for (var m, m_array = game.split(','), m_ndx = 0; m=m_array[m_ndx], m_ndx < m_array.length; m_ndx++) {
+        var ij = Grid.parseMove(m);
+        movesIj.push(ij[0]);
+        movesIj.push(ij[1]);
+    }
+    return movesIj;
+};
+
+TestSpeed.prototype.playMoves = function (movesIj) {
+    var moveCount = 0;
+    var curColor = main.BLACK;
+    for (var n = 0; n <= movesIj.length - 2; n += 2) {
+        var i = movesIj[n];
+        var j = movesIj[n + 1];
+        if (!Stone.validMove(this.goban, i, j, curColor)) {
+            throw new Error('Invalid move: ' + i + ',' + j);
+        }
+        Stone.playAt(this.goban, i, j, curColor);
+        moveCount += 1;
+        curColor = (curColor + 1) % 2;
+    }
+    return moveCount;
+};
+
+TestSpeed.prototype.playGameAndClean = function (movesIj, cleanMode) {
+    var numMoves = movesIj.length / 2;
+    if (main.debug) {
+        main.log.debug('About to play a game of ' + numMoves + ' moves');
+    }
+    assertEqual(numMoves, this.playMoves(movesIj));
+    switch (cleanMode) {
+    case TestSpeed.CM_UNDO:
+        for (var _i = 0; _i < numMoves; _i++) {
+            Stone.undo(this.goban);
+        }
+        break;
+    case TestSpeed.CM_CLEAR:
+        this.goban.clear();
+        break;
+    case TestSpeed.CM_NEW:
+        this.initBoard();
+        break;
+    default: 
+        throw new Error('Invalid clean mode');
+    }
+    return assertEqual(true, !this.goban.previousStone());
+};
+
+// Our first, basic test
+TestSpeed.prototype.play10Stones = function () {
+    Stone.playAt(this.goban, 2, 2, main.WHITE);
+    Stone.playAt(this.goban, 1, 2, main.BLACK);
+    Stone.playAt(this.goban, 1, 3, main.WHITE);
+    Stone.playAt(this.goban, 2, 1, main.BLACK);
+    Stone.playAt(this.goban, 1, 1, main.WHITE);
+    Stone.playAt(this.goban, 4, 4, main.BLACK);
+    Stone.playAt(this.goban, 4, 5, main.WHITE);
+    Stone.playAt(this.goban, 1, 2, main.BLACK);
+    Stone.playAt(this.goban, 5, 5, main.WHITE);
+    Stone.playAt(this.goban, 5, 4, main.BLACK);
+    for (var _i = 0; _i < 10; _i++) {
+        Stone.undo(this.goban);
+    }
+};
+
+// E02: unknown method: level=(...)
+
+},{"../Goban":10,"../Grid":11,"../Stone":19,"../TimeKeeper":21,"../main":32,"util":4}],44:[function(require,module,exports){
+//Translated from test_stone.rb using babyruby2js
+'use strict';
+
+var main = require('../main');
+var inherits = require('util').inherits;
+var Stone = require('../Stone');
+var assertEqual = main.assertEqual;
+var Goban = require('../Goban');
+
+/** @class NB: for debugging think of using @goban.console_display
+ */
+function TestStone(testName) {
+    main.TestCase.call(this, testName);
+    return this.initBoard();
+}
+inherits(TestStone, main.TestCase);
+module.exports = main.tests.add(TestStone);
+
+TestStone.prototype.initBoard = function () {
+    this.goban = new Goban(5);
+};
+
+TestStone.prototype.howManyLives = function (i, j) {
+    var s = this.goban.stoneAt(i, j);
+    var livesBefore = s.empties().length;
+    // we test the play/undo too
+    s = Stone.playAt(this.goban, i, j, main.WHITE);
+    var lives = s.empties().length;
+    assertEqual(livesBefore, lives);
+    Stone.undo(this.goban);
+    var livesAfter = s.empties().length;
+    assertEqual(livesAfter, lives);
+    return lives;
+};
+
+// Not very useful anymore for stones
+TestStone.prototype.testHowManyLives = function () {
+    assertEqual(2, this.howManyLives(1, 1));
+    assertEqual(2, this.howManyLives(this.goban.gsize, this.goban.gsize));
+    assertEqual(2, this.howManyLives(1, this.goban.gsize));
+    assertEqual(2, this.howManyLives(this.goban.gsize, 1));
+    assertEqual(4, this.howManyLives(2, 2));
+    assertEqual(4, this.howManyLives(this.goban.gsize - 1, this.goban.gsize - 1));
+    var s = Stone.playAt(this.goban, 2, 2, main.BLACK); // we will try white stones around this one
+    var g = s.group;
+    assertEqual(2, this.howManyLives(1, 1));
+    assertEqual(4, g.lives);
+    assertEqual(2, this.howManyLives(1, 2));
+    assertEqual(4, g.lives); // verify the live count did not change
+    assertEqual(2, this.howManyLives(2, 1));
+    assertEqual(3, this.howManyLives(2, 3));
+    assertEqual(3, this.howManyLives(3, 2));
+    return assertEqual(4, this.howManyLives(3, 3));
+};
+
+TestStone.prototype.testPlayAt = function () {
+    // single stone
+    var s = Stone.playAt(this.goban, 5, 4, main.BLACK);
+    assertEqual(s, this.goban.stoneAt(5, 4));
+    assertEqual(this.goban, s.goban);
+    assertEqual(main.BLACK, s.color);
+    assertEqual(5, s.i);
+    return assertEqual(4, s.j);
+};
+
+TestStone.prototype.testSuicide = function () {
+    // a2 b2 b1 a3 pass c1
+    Stone.playAt(this.goban, 1, 2, main.BLACK);
+    Stone.playAt(this.goban, 2, 2, main.WHITE);
+    Stone.playAt(this.goban, 2, 1, main.BLACK);
+    assertEqual(false, Stone.validMove(this.goban, 1, 1, main.WHITE)); // suicide invalid
+    Stone.playAt(this.goban, 1, 3, main.WHITE);
+    assertEqual(true, Stone.validMove(this.goban, 1, 1, main.WHITE)); // now this would be a kill
+    assertEqual(true, Stone.validMove(this.goban, 1, 1, main.BLACK)); // black could a1 too (merge)
+    Stone.playAt(this.goban, 3, 1, main.WHITE); // now 2 black stones share a last life
+    return assertEqual(false, Stone.validMove(this.goban, 1, 1, main.BLACK)); // so this would be a suicide with merge
+};
+
+TestStone.prototype.testKo = function () {
+    // pass b2 a2 a3 b1 a1
+    Stone.playAt(this.goban, 2, 2, main.WHITE);
+    Stone.playAt(this.goban, 1, 2, main.BLACK);
+    Stone.playAt(this.goban, 1, 3, main.WHITE);
+    Stone.playAt(this.goban, 2, 1, main.BLACK);
+    Stone.playAt(this.goban, 1, 1, main.WHITE); // kill!
+    assertEqual(false, Stone.validMove(this.goban, 1, 2, main.BLACK)); // now this is a ko
+    Stone.playAt(this.goban, 4, 4, main.BLACK); // play once anywhere else
+    Stone.playAt(this.goban, 4, 5, main.WHITE);
+    assertEqual(true, Stone.validMove(this.goban, 1, 2, main.BLACK)); // ko can be taken by black
+    Stone.playAt(this.goban, 1, 2, main.BLACK); // black takes the ko
+    assertEqual(false, Stone.validMove(this.goban, 1, 1, main.WHITE)); // white cannot take the ko
+    Stone.playAt(this.goban, 5, 5, main.WHITE); // play once anywhere else
+    Stone.playAt(this.goban, 5, 4, main.BLACK);
+    assertEqual(true, Stone.validMove(this.goban, 1, 1, main.WHITE)); // ko can be taken back by white
+    Stone.playAt(this.goban, 1, 1, main.WHITE); // white takes the ko
+    return assertEqual(false, Stone.validMove(this.goban, 1, 2, main.BLACK)); // and black cannot take it now
+};
+
+},{"../Goban":10,"../Stone":19,"../main":32,"util":4}],45:[function(require,module,exports){
+//Translated from test_zone_filler.rb using babyruby2js
+'use strict';
+
+var main = require('../main');
+var inherits = require('util').inherits;
+var Grid = require('../Grid');
+var assertEqual = main.assertEqual;
+var GameLogic = require('../GameLogic');
+var ZoneFiller = require('../ZoneFiller');
+
+/** @class NB: for debugging think of using analyser.debug_dump
+ *  TODO: add tests for group detection while filling
+ */
+function TestZoneFiller(testName) {
+    main.TestCase.call(this, testName);
+    return this.initBoard();
+}
+inherits(TestZoneFiller, main.TestCase);
+module.exports = main.tests.add(TestZoneFiller);
+
+TestZoneFiller.x = 123; // we use this color for replacements - should be rendered as "X"
+TestZoneFiller.prototype.initBoard = function (size, handicap) {
+    if (size === undefined) size = 5;
+    if (handicap === undefined) handicap = 0;
+    this.game = new GameLogic();
+    this.game.newGame(size, handicap);
+    this.goban = this.game.goban;
+    this.grid = new Grid(size);
+    this.filler = new ZoneFiller(this.goban, this.grid);
+};
+
+TestZoneFiller.prototype.testFill1 = function () {
+    // 5 +O+++
+    // 4 +@+O+
+    // 3 +O+@+
+    // 2 +@+O+
+    // 1 +++@+
+    //   abcde
+    this.grid.loadImage('+O+++,+@+O+,+O+@+,+@+O+,+++@+');
+    this.filler.fillWithColor(3, 1, main.EMPTY, TestZoneFiller.x);
+    assertEqual('XOXXX,X@XOX,XOX@X,X@XOX,XXX@X', this.grid.image());
+    this.grid.loadImage('+O+++,+@+O+,+O+@+,+@+O+,+++@+');
+    this.filler.fillWithColor(1, 3, main.EMPTY, TestZoneFiller.x);
+    return assertEqual('XOXXX,X@XOX,XOX@X,X@XOX,XXX@X', this.grid.image());
+};
+
+TestZoneFiller.prototype.testFill2 = function () {
+    // 5 +++++
+    // 4 +OOO+
+    // 3 +O+O+
+    // 2 +++O+
+    // 1 +OOO+
+    //   abcde
+    this.grid.loadImage('+++++,+OOO+,+O+O+,+++O+,+OOO+');
+    this.filler.fillWithColor(3, 3, main.EMPTY, TestZoneFiller.x);
+    assertEqual('XXXXX,XOOOX,XOXOX,XXXOX,XOOOX', this.grid.image());
+    this.grid.loadImage('+++++,+OOO+,+O+O+,+++O+,+OOO+');
+    this.filler.fillWithColor(1, 1, main.EMPTY, TestZoneFiller.x);
+    assertEqual('XXXXX,XOOOX,XOXOX,XXXOX,XOOOX', this.grid.image());
+    this.grid.loadImage('+++++,+OOO+,+O+O+,+++O+,+OOO+');
+    this.filler.fillWithColor(5, 3, main.EMPTY, TestZoneFiller.x);
+    return assertEqual('XXXXX,XOOOX,XOXOX,XXXOX,XOOOX', this.grid.image());
+};
+
+TestZoneFiller.prototype.testFill3 = function () {
+    // 5 +++O+
+    // 4 +++OO
+    // 3 +O+++
+    // 2 ++OO+
+    // 1 +O+O+
+    //   abcde
+    this.grid.loadImage('+++O+,+++OO,+O+++,++OO+,+O+O+');
+    this.filler.fillWithColor(2, 4, main.EMPTY, TestZoneFiller.x);
+    assertEqual('XXXO+,XXXOO,XOXXX,XXOOX,XO+OX', this.grid.image());
+    this.grid.loadImage('+++O+,+++OO,+O+++,++OO+,+O+O+');
+    this.filler.fillWithColor(2, 2, main.EMPTY, TestZoneFiller.x);
+    assertEqual('XXXO+,XXXOO,XOXXX,XXOOX,XO+OX', this.grid.image());
+    this.grid.loadImage('+++O+,+++OO,+O+++,++OO+,+O+O+');
+    this.filler.fillWithColor(3, 1, main.EMPTY, TestZoneFiller.x);
+    assertEqual('+++O+,+++OO,+O+++,++OO+,+OXO+', this.grid.image());
+    this.grid.loadImage('+++O+,+++OO,+O+++,++OO+,+O+O+');
+    this.filler.fillWithColor(5, 5, main.EMPTY, TestZoneFiller.x);
+    return assertEqual('+++OX,+++OO,+O+++,++OO+,+O+O+', this.grid.image());
+};
+
+},{"../GameLogic":8,"../Grid":11,"../ZoneFiller":22,"../main":32,"util":4}]},{},[35]);
