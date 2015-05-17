@@ -14,7 +14,7 @@ main.debugBreed = false; // TODO move me somewhere else?
 function Breeder(gameSize) {
     this.gsize = gameSize;
     this.timer = new TimeKeeper();
-    this.timer.calibrate(0.7);
+    this.timer.calibrate(0.3);
     this.game = new GameLogic();
     this.game.messagesToConsole(true);
     this.game.setLogLevel('all=0');
