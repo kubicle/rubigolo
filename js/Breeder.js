@@ -7,7 +7,7 @@ var Genes = require('./Genes');
 var TimeKeeper = require('./TimeKeeper');
 var GameLogic = require('./GameLogic');
 var ScoreAnalyser = require('./ScoreAnalyser');
-var Ai1Player = require('./Ai1Player');
+var Ai1Player = require('./ai/Ai1Player');
 main.debugBreed = false; // TODO move me somewhere else?
 
 /** @class */

@@ -2,14 +2,14 @@
 'use strict';
 
 var inherits = require('util').inherits;
-var allHeuristics = require('./ai/AllHeuristics');
-var main = require('./main');
-var Grid = require('./Grid');
-var Stone = require('./Stone');
-var Player = require('./Player');
-var InfluenceMap = require('./InfluenceMap');
-var PotentialTerritory = require('./PotentialTerritory');
-var Genes = require('./Genes');
+var allHeuristics = require('./AllHeuristics');
+var main = require('../main');
+var Grid = require('../Grid');
+var Stone = require('../Stone');
+var Player = require('../Player');
+var InfluenceMap = require('../InfluenceMap');
+var PotentialTerritory = require('../PotentialTerritory');
+var Genes = require('../Genes');
 
 
 /** @class

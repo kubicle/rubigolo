@@ -6,7 +6,7 @@ var inherits = require('util').inherits;
 var Grid = require('../Grid');
 var assertEqual = main.assertEqual;
 var GameLogic = require('../GameLogic');
-var Ai1Player = require('../Ai1Player');
+var Ai1Player = require('../ai/Ai1Player');
 
 /** @class NB: for debugging think of using @goban.debug_display
  */
@@ -339,4 +339,15 @@ TestAi.prototype.testSeesAttackNoGood = function () {
     this.game.loadMoves('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,d3,e5,c1,c4,c5');
     this.playAndCheck('c4', main.WHITE, 12); // kills 3 and saves 2
     this.checkEval('c5', main.BLACK, 0); // silly move
+};
+
+TestAi.prototype.testSemiAndEndGame = function () {
+    this.initBoard(9);
+    this.game.loadMoves('d4,f6,f3,f4,e4,e5,d6,c5,c7,d5,g3,c6,c4,d7,b4,e6,g4,f5,h6,h5,g5,h4,h3,g6,j5,c8,j4,b7,h7,g8,g7,j8,h8,f8,f7,a5,b5,a6,b6,a3,a4,b3,a7,d3,e3,c3,e7,e2,f2,d2,c1,f1,g1,e1,b1,c2,a1,a2,a8,h9,j7,b9,j9,g9,j8,e8');
+    this.playAndCheck('b8', main.BLACK, 0.7); // huge threat only if white does not answer it
+    this.playAndCheck('c7', main.WHITE, 99); // big cost if not c7
+    this.playAndCheck('a9', main.BLACK, 99);
+    this.playAndCheck('c9', main.WHITE, 99);
+    this.playAndCheck('pass', main.BLACK);
+    this.playAndCheck('pass', main.WHITE);
 };
