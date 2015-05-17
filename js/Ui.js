@@ -10,7 +10,7 @@ var Ai1Player = main.Ai1Player;
 
 
 function Ui() {
-  this.gsize = 19;
+  this.gsize = 9;
   this.handicap = 0;
   this.withCoords = true;
 
@@ -21,7 +21,7 @@ function Ui() {
 //TMP module.exports = Ui;
 
 Ui.prototype.createBoard = function () {
-  var config = { width: 600, section: { top: -0.5, left: -0.5, right: -0.5, bottom: -0.5 } };
+  var config = { size: this.gsize, width: 600, section: { top: -0.5, left: -0.5, right: -0.5, bottom: -0.5 } };
   this.board = new WGo.Board(document.getElementById('board'), config);
   if (this.withCoords) this.board.addCustomObject(WGo.Board.coordinates);
   var self = this;
@@ -50,11 +50,13 @@ Ui.prototype.refreshBoard = function () {
       }
     }
   }
+  this.message(this.game.historyString());
 };
 
 Ui.prototype.newButton = function (name, label) {
   var self = this;
   var btn = this.ctrl[name] = document.createElement('button');
+  btn.className = 'gameButton';
   btn.innerText = label;
   btn.addEventListener('click', function () {
     self.onButton(name);
@@ -68,13 +70,12 @@ Ui.prototype.createControls = function () {
   this.newButton('pass', 'Pass');
   this.newButton('undo', 'Undo');
   this.newButton('resi', 'Resign');
-  this.newButton('hist', 'History');
   this.newButton('newg', 'New game');
 };
 
 Ui.prototype.toggleControls = function () {
   var inGame = !this.game.gameEnded;
-  this.setVisible(['pass', 'undo', 'resi', 'hist'], inGame);
+  this.setVisible(['pass', 'undo', 'resi'], inGame);
   this.setVisible(['newg'], !inGame);
 };
 
@@ -115,9 +116,6 @@ Ui.prototype.onButton = function (btnName) {
     return this.checkEnd();
   case 'undo':
     return this.playerMove(btnName);
-  case 'hist':
-    this.message(this.game.historyString());
-    return;
   case 'newg':
     this.startGame();
     return this.refreshBoard();
@@ -138,7 +136,6 @@ Ui.prototype.letAiPlay = function () {
   if (this.checkEnd()) return;
   var move = this.aiPlayer.getMove();
   this.game.playOneMove(move);
-  this.message('AI: ' + move);
   // AI passed or resigned?
   if (this.checkEnd() || move === 'pass') return;
 
