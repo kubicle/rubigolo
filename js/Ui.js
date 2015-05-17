@@ -50,7 +50,10 @@ Ui.prototype.refreshBoard = function () {
       }
     }
   }
-  this.message(this.game.historyString());
+};
+
+Ui.prototype.refreshHistory = function () {
+  this.message(this.game.historyString().replace(/,/g, ', '));
 };
 
 Ui.prototype.newButton = function (name, label) {
@@ -118,6 +121,7 @@ Ui.prototype.onButton = function (btnName) {
     return this.playerMove(btnName);
   case 'newg':
     this.startGame();
+    this.refreshHistory();
     return this.refreshBoard();
   default:
     throw new Error('Button not handled: ' + btnName);
@@ -128,6 +132,7 @@ Ui.prototype.playerMove = function (move) {
   if (!this.game.playOneMove(move)) {
     return this.message(this.game.getErrors().join('<br>'));
   }
+  this.refreshHistory();
   this.refreshBoard();
   return true;
 };
@@ -136,9 +141,11 @@ Ui.prototype.letAiPlay = function () {
   if (this.checkEnd()) return;
   var move = this.aiPlayer.getMove();
   this.game.playOneMove(move);
-  // AI passed or resigned?
-  if (this.checkEnd() || move === 'pass') return;
+  // AI resigned?
+  if (this.checkEnd()) return;
 
+  this.refreshHistory();
+  if (move === 'pass') return;
   this.refreshBoard();
 };
 
