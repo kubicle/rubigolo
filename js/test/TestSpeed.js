@@ -38,7 +38,7 @@ TestSpeed.prototype.showCount = function () {
 TestSpeed.prototype.testSpeed1 = function () {
     var tolerance = 1.2;
     var t = new TimeKeeper(tolerance);
-    t.calibrate(3.2);
+    t.calibrate(0.3);
     // Basic test
     t.start('Basic (no move validation) 100,000 stones and undo', 2.8, 0);
     for (var _i = 0; _i < 10000; _i++) {
@@ -88,7 +88,7 @@ TestSpeed.prototype.testSpeed1 = function () {
 TestSpeed.prototype.testSpeed2 = function () {
     var tolerance = 1.1;
     var t = new TimeKeeper(tolerance);
-    t.calibrate(0.7);
+    t.calibrate(0.3);
     // 9 ++O@@++++
     // 8 +@OO@++@+
     // 7 OOOO@@@++
