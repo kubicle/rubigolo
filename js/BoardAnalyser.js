@@ -4,9 +4,8 @@
 var main = require('./main');
 var Grid = require('./Grid');
 var Group = require('./Group');
-//require 'set';
-var Goban = require('./Goban');
 var ZoneFiller = require('./ZoneFiller');
+
 
 /** @class Class used by BoardAnalyser class.
  *  A void in an empty zone surrounded by (and including) various groups.
@@ -328,7 +327,3 @@ BoardAnalyser.prototype.groupLiveliness = function (g) {
         return z.owner === g.color;
     });
 };
-
-// W02: unknown class supposed to be attached to main: Set
-// E02: unknown method: add(...)
-// E02: unknown method: find_index(...)
