@@ -36,15 +36,13 @@ TimeKeeper.prototype.calibrate = function (expected) {
     // TODO: re-estimate decent numbers for JS. The lines above are MUCH faster in JS/Chrome
     // than Ruby used to be (on same machine). But the speed tests we have are not always that 
     // much faster, hence if we accept the ratio we computed here we would fail many of them.
-    // In the meantime we use a conservative 0.5 ratio.
-    this.ratio = 0.5;
 
     this.log.info('TimeKeeper calibrated at ratio=' + '%.02f'.format(this.ratio) + ' ' + '(ran calibration in ' + '%.03f'.format(duration) + ' instead of ' + expected + ')');
 };
 
 // Starts timing
 // the expected time given will be adjusted according to the current calibration
-TimeKeeper.prototype.start = function (taskName, expectedInSec, expectedGc) {
+TimeKeeper.prototype.start = function (taskName, expectedInSec) {
     this.taskName = taskName;
     this.expectedTime = expectedInSec * this.ratio;
     this.log.info('Started "' + taskName + '"...'); // (expected time #{'%.02f' % @expected_time}s)..."

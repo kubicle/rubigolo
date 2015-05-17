@@ -66,39 +66,43 @@ TestSeries.prototype.add = function (klass) {
   return klass;
 };
 
-TestSeries.prototype.run = function (logfunc) {
-  main.log.setLogFunc(logfunc);
-  main.log.level = Logger.INFO;
-
-  main.assertCount = 0;
-  var startTime = Date.now();
-  var classCount = 0, testCount = 0, failedCount = 0, errorCount = 0;
-  for (var t in this.testCases) {
-    classCount++;
-    var Klass = this.testCases[t];
-    for (var method in Klass.prototype) {
-      if (typeof Klass.prototype[method] !== 'function') continue;
-      if (method.substr(0,4) !== 'test') continue;
-      testCount++;
-      var obj = new Klass(Klass.name + '#' + method);
-      try {
-        obj[method].call(obj);
-      } catch(e) {
-        var header = 'Test failed';
-        if (e.message.startWith(FAILED_ASSERTION_MSG)) {
-          failedCount++;
-        } else {
-          header += ' with exception';
-          errorCount++;
-        }
-        main.log.error(header + ': ' + obj.testName + ': ' + e.message + '\n' + e.stack);
+TestSeries.prototype.testOneClass = function (Klass) {
+  for (var method in Klass.prototype) {
+    if (typeof Klass.prototype[method] !== 'function') continue;
+    if (method.substr(0,4) !== 'test') continue;
+    this.testCount++;
+    var obj = new Klass(Klass.name + '#' + method);
+    try {
+      obj[method].call(obj);
+    } catch(e) {
+      var header = 'Test failed';
+      if (e.message.startWith(FAILED_ASSERTION_MSG)) {
+        this.failedCount++;
+      } else {
+        header += ' with exception';
+        this.errorCount++;
       }
+      main.log.error(header + ': ' + obj.testName + ': ' + e.message + '\n' + e.stack);
     }
   }
+};
+
+TestSeries.prototype.run = function (logfunc, specificClass) {
+  main.log.setLogFunc(logfunc);
+  main.assertCount = 0;
+  var startTime = Date.now();
+  var classCount = 0;
+  this.testCount = this.failedCount = this.errorCount = 0;
+  for (var t in this.testCases) {
+    if (specificClass && t !== specificClass) continue;
+    classCount++;
+    var Klass = this.testCases[t];
+    this.testOneClass(Klass);
+  }
   var duration = ((Date.now() - startTime) / 1000).toFixed(2);
-  var report = 'Completed tests. (' + classCount + ' classes, ' + testCount + ' tests, ' +
+  var report = 'Completed tests. (' + classCount + ' classes, ' + this.testCount + ' tests, ' +
     main.assertCount + ' assertions in ' + duration + 's)' +
-    ', failed: ' + failedCount + ', exceptions: ' + errorCount;
+    ', failed: ' + this.failedCount + ', exceptions: ' + this.errorCount;
   main.log.info(report);
   return report;
 };
@@ -119,7 +123,7 @@ function _checkValue(expected, val, comment) {
     if (!val instanceof Array)
       _fail('expected Array but got ' + val, comment);
     if (val.length !== expected.length) {
-      console.warn('Expected:\n', expected, 'Value:\n', val)
+      console.warn('Expected:\n', expected, 'Value:\n', val);
       _fail('expected Array of size ' + expected.length + ' but got size ' + val.length, comment);
     }
 
@@ -176,7 +180,7 @@ Logger.prototype._newLogFn = function (lvl, consoleFn) {
     if (self.logfunc && !self.logfunc(lvl, msg)) return;
     consoleFn.call(console, msg);
   };
-}
+};
 
 main.log = new Logger();
 main.Logger = Logger;

@@ -7,14 +7,14 @@ var Genes = require('./Genes');
 var TimeKeeper = require('./TimeKeeper');
 var GameLogic = require('./GameLogic');
 var ScoreAnalyser = require('./ScoreAnalyser');
-var Ai1Player = require('./Ai1Player');
+var Ai1Player = require('./ai/Ai1Player');
 main.debugBreed = false; // TODO move me somewhere else?
 
 /** @class */
 function Breeder(gameSize) {
     this.gsize = gameSize;
     this.timer = new TimeKeeper();
-    this.timer.calibrate(0.7);
+    this.timer.calibrate(0.3);
     this.game = new GameLogic();
     this.game.messagesToConsole(true);
     this.game.setLogLevel('all=0');

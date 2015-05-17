@@ -18,31 +18,28 @@ module.exports = Hunter;
 
 Hunter.prototype.evalMove = function (i, j, level) {
     if (level === undefined) level = 1;
-    var eg1, eg2, eg3;
     var stone = this.goban.stoneAt(i, j);
     var empties = stone.empties();
     var allies = stone.uniqueAllies(this.color);
-    eg1 = eg2 = eg3 = null;
+    var egroups = null;
     var snapback = false;
     for (var eg, eg_array = stone.uniqueEnemies(this.color), eg_ndx = 0; eg=eg_array[eg_ndx], eg_ndx < eg_array.length; eg_ndx++) {
         if (eg.lives !== 2) { // NB if 1 this is a case for Executioner
             continue;
         }
         // if even a single of our groups around is in atari this will not work (enemy will kill our group and escape)
-        if (eg.allEnemies().find(function (ag) {
-            return ag.lives < 2;
-        })) {
-            continue;
+        var ourGroups = eg.allEnemies(), atari = false;
+        for (var n = ourGroups.length - 1; n >= 0; n--) {
+            if (ourGroups[n].lives < 2) { atari = true; break; }
         }
+        if (atari) continue;
+        
         if (empties.length === 1 && allies.length === 0) {
             // unless this is a snapback, this is a dumb move
-            var empty = stone.neighbors.find(function (n) {
-                return n.color === main.EMPTY;
-            });
             // it is a snapback if the last empty point (where the enemy will have to play) 
             // would not make the enemy group connect to another enemy group
             // (equivalent to: the empty point has no other enemy group as neighbor)
-            var enemiesAroundEmpty = empty.uniqueAllies(eg.color);
+            var enemiesAroundEmpty = empties[0].uniqueAllies(eg.color);
             if (enemiesAroundEmpty.length !== 1 || enemiesAroundEmpty[0] !== eg) {
                 continue;
             }
@@ -55,18 +52,11 @@ Hunter.prototype.evalMove = function (i, j, level) {
         if (main.debug) {
             main.log.debug('Hunter (level ' + level + ') looking at ' + i + ',' + j + ' threat on ' + eg);
         }
-        if (!eg1) {
-            eg1 = eg;
-        } else if (!eg2) {
-            eg2 = eg;
-        } else {
-            eg3 = eg;
-        }
+        if (!egroups) egroups = [eg];
+        else egroups.push(eg);
     }
-    // each eg
-    if (!eg1) {
-        return 0;
-    }
+    if (!egroups) return 0;
+
     // unless snapback, make sure our new stone's group is not in atari
     if (!snapback && empties.length < 2) {
         var lives = empties.length;
@@ -78,21 +68,23 @@ Hunter.prototype.evalMove = function (i, j, level) {
         }
     }
     Stone.playAt(this.goban, i, j, this.color); // our attack takes one of the 2 last lives (the one in i,j)
-    // keep the max of both attacks (if both are succeeding)
-    var taken = ( this.atariIsCaught(eg1, level) ? eg1.stones.length : 0 );
-    var taken2 = ( eg2 && this.atariIsCaught(eg2, level) ? eg2.stones.length : 0 );
-    var taken3 = ( eg3 && this.atariIsCaught(eg3, level) ? eg3.stones.length : 0 );
-    if (taken < taken2) {
-        taken = taken2;
+    // filter out the attacks that fail
+    for (var g = egroups.length - 1; g >= 0; g--) {
+        if (!this.atariIsCaught(egroups[g], level)) egroups.splice(g, 1);
     }
-    if (taken < taken3) {
-        taken = taken3;
+    Stone.undo(this.goban); // important to undo before, so we compute threat right
+    if (!egroups.length) return 0; // none is caught
+    
+    // find the bigger threat if more than 1 chase is possible
+    var threat = 0;
+    for (g = egroups.length - 1; g >= 0; g--) {
+        var t = this.groupThreat(egroups[g]);
+        if (t > threat) threat = t;
     }
-    Stone.undo(this.goban);
-    if (main.debug && taken > 0) {
-        main.log.debug('Hunter found a threat of ' + taken + ' at ' + i + ',' + j);
+    if (main.debug) {
+        main.log.debug('Hunter found a threat of ' + threat + ' at ' + i + ',' + j);
     }
-    return taken;
+    return threat;
 };
 
 Hunter.prototype.atariIsCaught = function (g, level) {

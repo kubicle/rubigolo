@@ -8,7 +8,7 @@ require('./rb');
 
 main.GameLogic = require('./GameLogic');
 main.Grid = require('./Grid');
-main.Ai1Player = require('./Ai1Player');
+main.Ai1Player = require('./ai/Ai1Player');
 
 //main.Ui = require('./Ui');
 

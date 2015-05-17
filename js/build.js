@@ -680,170 +680,14 @@ function hasOwnProperty(obj, prop) {
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"./support/isBuffer":3,"_process":2,"inherits":1}],5:[function(require,module,exports){
-//Translated from ai1_player.rb using babyruby2js
-'use strict';
-
-var inherits = require('util').inherits;
-var Heuristic = require('./ai/Heuristic');
-var main = require('./main');
-var Grid = require('./Grid');
-var Stone = require('./Stone');
-// TODO: 
-// - do not fill my own territory (potential territory recognition will use analyser.enlarge method)
-// - identify all foolish moves (like NoEasyPrisoner but once for all) in a map that all heuristics can use
-// - foresee a poursuit = on attack/defense (and/or use a reverse-killer?)
-// - an eye shape constructor
-var Player = require('./Player');
-var Goban = require('./Goban');
-var InfluenceMap = require('./InfluenceMap');
-var PotentialTerritory = require('./PotentialTerritory');
-var AllHeuristics = require('./ai/AllHeuristics');
-var TimeKeeper = require('./TimeKeeper');
-var Genes = require('./Genes');
-
-/** @class public read-only attribute: goban, inf, ter, enemyColor, genes, lastMoveScore
- */
-function Ai1Player(goban, color, genes) {
-    if (genes === undefined) genes = null;
-    Player.call(this, false, goban);
-    this.inf = new InfluenceMap(this.goban);
-    this.ter = new PotentialTerritory(this.goban);
-    this.gsize = this.goban.gsize;
-    this.genes = (( genes ? genes : new Genes() ));
-    this.minimumScore = this.getGene('smaller-move', 0.033, 0.02, 0.066);
-    this.heuristics = [];
-    this.negativeHeuristics = [];
-    for (var cl, cl_array = Heuristic.allHeuristics(), cl_ndx = 0; cl=cl_array[cl_ndx], cl_ndx < cl_array.length; cl_ndx++) {
-        var h = new cl(this);
-        if (!h.negative) {
-            this.heuristics.push(h);
-        } else {
-            this.negativeHeuristics.push(h);
-        }
-    }
-    this.setColor(color);
-    // genes need to exist before we create heuristics so passing genes below is done
-    // to keep things coherent
-    return this.prepareGame(this.genes); // @timer = TimeKeeper.new // @timer.calibrate(0.7)
-}
-inherits(Ai1Player, Player);
-module.exports = Ai1Player;
-
-Ai1Player.prototype.prepareGame = function (genes) {
-    this.genes = genes;
-    this.numMoves = 0;
-};
-
-Ai1Player.prototype.setColor = function (color) {
-    Player.prototype.setColor.call(this, color);
-    this.enemyColor = 1 - color;
-    for (var h, h_array = this.heuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
-        h.initColor();
-    }
-    for (h, h_array = this.negativeHeuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
-        h.initColor();
-    }
-};
-
-Ai1Player.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
-    if (lowLimit === undefined) lowLimit = null;
-    if (highLimit === undefined) highLimit = null;
-    return this.genes.get(this.constructor.name + '-' + name, defVal, lowLimit, highLimit);
-};
-
-// Returns the move chosen (e.g. c4 or pass)
-// One can check last_move_score to see the score of the move returned
-Ai1Player.prototype.getMove = function () {
-    var bestScore, secondBest, bestI, bestJ;
-    // @timer.start("AI move",0.5,3)
-    this.numMoves += 1;
-    if (this.numMoves >= this.gsize * this.gsize) { // force pass after too many moves
-        main.log.error('Forcing AI pass since we already played ' + this.numMoves);
-        return 'pass';
-    }
-    this.prepareEval();
-    bestScore = secondBest = this.minimumScore;
-    bestI = bestJ = -1;
-    var bestNumTwin = 0; // number of occurrence of the current best score (so we can randomly pick any of them)
-    for (var j = 1; j <= this.gsize; j++) {
-        for (var i = 1; i <= this.gsize; i++) {
-            var score = this.evalMove(i, j, bestScore);
-            // Keep the best move
-            if (score > bestScore) {
-                secondBest = bestScore;
-                if (main.debug) {
-                    main.log.debug('=> ' + Grid.moveAsString(i, j) + ' becomes the best move with ' + score + ' (2nd best is ' + Grid.moveAsString(bestI, bestJ) + ' with ' + bestScore + ')');
-                }
-                bestScore = score;
-                bestI = i;
-                bestJ = j;
-                bestNumTwin = 1;
-            } else if (score === bestScore) {
-                bestNumTwin += 1;
-                if (~~(Math.random()*~~(bestNumTwin)) === 0) {
-                    if (main.debug) {
-                        main.log.debug('=> ' + Grid.moveAsString(i, j) + ' replaces equivalent best move with ' + score + ' (equivalent best was ' + Grid.moveAsString(bestI, bestJ) + ')');
-                    }
-                    bestScore = score;
-                    bestI = i;
-                    bestJ = j;
-                }
-            } else if (score >= secondBest) {
-                if (main.debug) {
-                    main.log.debug('=> ' + Grid.moveAsString(i, j) + ' is second best move with ' + score + ' (best is ' + Grid.moveAsString(bestI, bestJ) + ' with ' + bestScore + ')');
-                }
-                secondBest = score;
-            }
-        }
-    }
-    this.lastMoveScore = bestScore;
-    // @timer.stop(false) # false: no exception if it takes longer but an error in the log
-    if (bestScore > this.minimumScore) {
-        return Grid.moveAsString(bestI, bestJ);
-    }
-    if (main.debug) {
-        main.log.debug('AI is passing...');
-    }
-    return 'pass';
-};
-
-Ai1Player.prototype.prepareEval = function () {
-    this.inf.buildMap();
-    return this.ter.guessTerritories();
-};
-
-Ai1Player.prototype.evalMove = function (i, j, bestScore) {
-    if (bestScore === undefined) bestScore = this.minimumScore;
-    if (!Stone.validMove(this.goban, i, j, this.color)) {
-        return 0.0;
-    }
-    var score = 0.0;
-    // run all positive heuristics
-    for (var h, h_array = this.heuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
-        score += h.evalMove(i, j);
-    }
-    // we run negative heuristics only if this move was a potential candidate
-    if (score >= bestScore) {
-        for (h, h_array = this.negativeHeuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
-            score += h.evalMove(i, j);
-            if (score < bestScore) {
-                break;
-            }
-        }
-    }
-    return score;
-};
-
-},{"./Genes":8,"./Goban":9,"./Grid":10,"./InfluenceMap":13,"./Player":14,"./PotentialTerritory":15,"./Stone":17,"./TimeKeeper":19,"./ai/AllHeuristics":21,"./ai/Heuristic":24,"./main":31,"util":4}],6:[function(require,module,exports){
 //Translated from board_analyser.rb using babyruby2js
 'use strict';
 
 var main = require('./main');
 var Grid = require('./Grid');
 var Group = require('./Group');
-//require 'set';
-var Goban = require('./Goban');
 var ZoneFiller = require('./ZoneFiller');
+
 
 /** @class Class used by BoardAnalyser class.
  *  A void in an empty zone surrounded by (and including) various groups.
@@ -1166,10 +1010,7 @@ BoardAnalyser.prototype.groupLiveliness = function (g) {
     });
 };
 
-// W02: unknown class supposed to be attached to main: Set
-// E02: unknown method: add(...)
-// E02: unknown method: find_index(...)
-},{"./Goban":9,"./Grid":10,"./Group":11,"./ZoneFiller":20,"./main":31}],7:[function(require,module,exports){
+},{"./Grid":9,"./Group":10,"./ZoneFiller":18,"./main":30}],6:[function(require,module,exports){
 //Translated from game_logic.rb using babyruby2js
 'use strict';
 
@@ -1435,7 +1276,7 @@ GameLogic.prototype.sgfToGame = function (game) {
     return reader.toMoveList();
 };
 
-},{"./Goban":9,"./Grid":10,"./Group":11,"./HandicapSetter":12,"./SgfReader":16,"./Stone":17,"./main":31}],8:[function(require,module,exports){
+},{"./Goban":8,"./Grid":9,"./Group":10,"./HandicapSetter":11,"./SgfReader":15,"./Stone":16,"./main":30}],7:[function(require,module,exports){
 //Translated from genes.rb using babyruby2js
 'use strict';
 
@@ -1602,7 +1443,7 @@ Genes.prototype.mutateAll = function () {
 // W02: unknown constant supposed to be attached to main: YAML
 // E02: unknown method: load(...)
 // W02: unknown constant supposed to be attached to main: YAML
-},{"./main":31}],9:[function(require,module,exports){
+},{"./main":30}],8:[function(require,module,exports){
 //Translated from goban.rb using babyruby2js
 'use strict';
 
@@ -1774,7 +1615,7 @@ Goban.prototype.previousStone = function () {
 };
 
 // E02: unknown method: concat(...)
-},{"./Grid":10,"./Group":11,"./Stone":17,"./main":31}],10:[function(require,module,exports){
+},{"./Grid":9,"./Group":10,"./Stone":16,"./main":30}],9:[function(require,module,exports){
 //Translated from grid.rb using babyruby2js
 'use strict';
 
@@ -1980,7 +1821,7 @@ Grid.xLabel = function (i) {
 
 // E02: unknown method: index(...)
 
-},{"./main":31}],11:[function(require,module,exports){
+},{"./main":30}],10:[function(require,module,exports){
 //Translated from group.rb using babyruby2js
 'use strict';
 
@@ -2328,7 +2169,7 @@ Group.prisoners = function (goban) {
 // E02: unknown method: merged_with=(...)
 // E02: unknown method: merged_by=(...)
 
-},{"./Grid":10,"./main":31}],12:[function(require,module,exports){
+},{"./Grid":9,"./main":30}],11:[function(require,module,exports){
 //Translated from handicap_setter.rb using babyruby2js
 'use strict';
 
@@ -2449,7 +2290,7 @@ HandicapSetter.setStandardHandicap = function (goban, count) {
 
 // E02: unknown method: index(...)
 
-},{"./Grid":10,"./HandicapSetter":12,"./Stone":17,"./main":31}],13:[function(require,module,exports){
+},{"./Grid":9,"./HandicapSetter":11,"./Stone":16,"./main":30}],12:[function(require,module,exports){
 //Translated from influence_map.rb using babyruby2js
 'use strict';
 
@@ -2533,7 +2374,7 @@ InfluenceMap.prototype.debugDump = function () {
     }
 };
 
-},{"./Grid":10,"./main":31}],14:[function(require,module,exports){
+},{"./Grid":9,"./main":30}],13:[function(require,module,exports){
 //Translated from player.rb using babyruby2js
 'use strict';
 
@@ -2550,7 +2391,7 @@ Player.prototype.setColor = function (color) {
     this.color = color;
 };
 
-},{}],15:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 //Translated from potential_territory.rb using babyruby2js
 'use strict';
 
@@ -2782,7 +2623,7 @@ PotentialTerritory.prototype.connectToBorders = function (yx) {
     }
 };
 
-},{"./BoardAnalyser":6,"./Grid":10,"./Stone":17,"./main":31}],16:[function(require,module,exports){
+},{"./BoardAnalyser":5,"./Grid":9,"./Stone":16,"./main":30}],15:[function(require,module,exports){
 //Translated from sgf_reader.rb using babyruby2js
 'use strict';
 
@@ -2975,7 +2816,7 @@ SgfReader.prototype.error = function (reason, t) {
 
 // E02: unknown method: info(...)
 // E02: unknown method: index(...)
-},{"./main":31}],17:[function(require,module,exports){
+},{"./main":30}],16:[function(require,module,exports){
 //Translated from stone.rb using babyruby2js
 'use strict';
 
@@ -3041,18 +2882,19 @@ Stone.prototype.debugDump = function () {
 
 // Returns the empty points around this stone
 Stone.prototype.empties = function () {
-    return this.neighbors.select(function (s) {
-        return s.color === main.EMPTY;
-    });
+    var empties = [], neighbors = this.neighbors;
+    for (var i = neighbors.length - 1; i >= 0; i--) {
+        var s = neighbors[i];
+        if (s.color === main.EMPTY) empties.push(s);
+    }
+    return empties;
 };
 
 // Number of empty points around this stone
 Stone.prototype.numEmpties = function () {
-    var count = 0;
-    for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
-        if (s.color === main.EMPTY) {
-            count += 1;
-        }
+    var count = 0, neighbors = this.neighbors;
+    for (var i = neighbors.length - 1; i >= 0; i--) {
+        if (neighbors[i].color === main.EMPTY) count++;
     }
     return count;
 };
@@ -3280,7 +3122,7 @@ Stone.prototype.setGroupOnMerge = function (newGroup) {
 // E02: unknown method: map(...)
 // E02: unknown method: find_index(...)
 
-},{"./Grid":10,"./Group":11,"./main":31}],18:[function(require,module,exports){
+},{"./Grid":9,"./Group":10,"./main":30}],17:[function(require,module,exports){
 //Translated from stone_constants.rb using babyruby2js
 'use strict';
 
@@ -3291,91 +3133,7 @@ main.BORDER = null;
 main.EMPTY = -1;
 main.BLACK = 0;
 main.WHITE = 1;
-},{"./main":31}],19:[function(require,module,exports){
-//Translated from time_keeper.rb using babyruby2js
-'use strict';
-
-var main = require('./main');
-
-/** @class tolerance allows you to ignore a bad performance to some extent. E.g 1.05 gives you 5% tolerance up
- *  ratio allows you to adapt to slower or faster system. E.g 1.0 if your system is as slow as mine :(
- */
-function TimeKeeper(tolerance, ratio) {
-    if (tolerance === undefined) tolerance = 1.15;
-    if (ratio === undefined) ratio = 1.0;
-    this.tolerance = tolerance;
-    this.ratio = ratio;
-    this.log = main.log;
-}
-module.exports = TimeKeeper;
-
-TimeKeeper.prototype.setGcTolerance = function () {};
-
-// Call this before start() if you want to compute the ratio automatically
-// NB: measures will always vary a bit unless we find the perfect calibration code (utopia)
-TimeKeeper.prototype.calibrate = function (expected) {
-    var t0 = Date.now();
-    for (var _i = 0; _i < 2000; _i++) {
-        var m = {};
-        for (var n = 0; n < 100; n++) {
-            m[n.toString()] = n;
-        }
-        for (n = 0; n < 1000; n++) {
-            m[(n % 100).toString()] += 1;
-        }
-    }
-    var duration = (Date.now() - t0) / 1000;
-    this.ratio = duration / expected;
-
-    // TODO: re-estimate decent numbers for JS. The lines above are MUCH faster in JS/Chrome
-    // than Ruby used to be (on same machine). But the speed tests we have are not always that 
-    // much faster, hence if we accept the ratio we computed here we would fail many of them.
-    // In the meantime we use a conservative 0.5 ratio.
-    this.ratio = 0.5;
-
-    this.log.info('TimeKeeper calibrated at ratio=' + '%.02f'.format(this.ratio) + ' ' + '(ran calibration in ' + '%.03f'.format(duration) + ' instead of ' + expected + ')');
-};
-
-// Starts timing
-// the expected time given will be adjusted according to the current calibration
-TimeKeeper.prototype.start = function (taskName, expectedInSec, expectedGc) {
-    this.taskName = taskName;
-    this.expectedTime = expectedInSec * this.ratio;
-    this.log.info('Started "' + taskName + '"...'); // (expected time #{'%.02f' % @expected_time}s)..."
-    this.t0 = Date.now();
-};
-
-// Stops timing, displays the report and raises exception if we went over limit
-// Unless raise_if_overlimit is false, in which case we would simply log and return the error message
-TimeKeeper.prototype.stop = function (raiseIfOverlimit) {
-    if (raiseIfOverlimit === undefined) raiseIfOverlimit = true;
-    this.duration = (Date.now() - this.t0) / 1000;
-    this.log.info(' => ' + this.resultReport());
-    return this.checkLimits(raiseIfOverlimit);
-};
-
-TimeKeeper.prototype.resultReport = function () {
-    var s = '';
-    s += 'Measuring "' + this.taskName + '":';
-    s += ' time: ' + '%.02f'.format(this.duration) + 's (expected ' +
-        '%.02f'.format(this.expectedTime) + ' hence ' +
-        '%.02f'.format((this.duration / this.expectedTime * 100)) + '%)';
-    return s;
-};
-
-//private;
-TimeKeeper.prototype.checkLimits = function (raiseIfOverlimit) {
-    if (this.duration > this.expectedTime * this.tolerance) {
-        var msg1 = 'Duration over limit: ' + this.duration;
-        if (raiseIfOverlimit) {
-            throw new Error(msg1);
-        }
-        return msg1;
-    }
-    return '';
-};
-
-},{"./main":31}],20:[function(require,module,exports){
+},{"./main":30}],18:[function(require,module,exports){
 //Translated from zone_filler.rb using babyruby2js
 'use strict';
 
@@ -3480,11 +3238,179 @@ ZoneFiller.prototype._check = function (i, j) {
 };
 
 // E02: unknown method: find_index(...)
-},{"./main":31}],21:[function(require,module,exports){
+},{"./main":30}],19:[function(require,module,exports){
+//Translated from ai1_player.rb using babyruby2js
+'use strict';
+
+var inherits = require('util').inherits;
+var allHeuristics = require('./AllHeuristics');
+var main = require('../main');
+var Grid = require('../Grid');
+var Stone = require('../Stone');
+var Player = require('../Player');
+var InfluenceMap = require('../InfluenceMap');
+var PotentialTerritory = require('../PotentialTerritory');
+var Genes = require('../Genes');
+
+
+/** @class
+ *  public read-only attribute: goban, inf, ter, enemyColor, genes, lastMoveScore
+ *  TODO: 
+ *  - do not fill my own territory (potential territory recognition will use analyser.enlarge method)
+ *  - identify all foolish moves (like NoEasyPrisoner but once for all) in a map that all heuristics can use
+ *  - foresee a poursuit = on attack/defense (and/or use a reverse-killer?)
+ *  - an eye shape constructor
+ */
+function Ai1Player(goban, color, genes) {
+    if (genes === undefined) genes = null;
+    Player.call(this, false, goban);
+    this.inf = new InfluenceMap(this.goban);
+    this.ter = new PotentialTerritory(this.goban);
+    this.gsize = this.goban.gsize;
+    this.genes = (( genes ? genes : new Genes() ));
+    this.minimumScore = this.getGene('smaller-move', 0.033, 0.02, 0.066);
+
+    this.heuristics = [];
+    this.negativeHeuristics = [];
+    var heuristics = allHeuristics();
+    for (var i = 0; i < heuristics.length; i++) {
+        var h = new (heuristics[i])(this);
+        if (!h.negative) {
+            this.heuristics.push(h);
+        } else {
+            this.negativeHeuristics.push(h);
+        }
+    }
+    this.setColor(color);
+    // genes need to exist before we create heuristics so passing genes below is done
+    // to keep things coherent
+    return this.prepareGame(this.genes);
+}
+inherits(Ai1Player, Player);
+module.exports = Ai1Player;
+
+Ai1Player.prototype.prepareGame = function (genes) {
+    this.genes = genes;
+    this.numMoves = 0;
+};
+
+Ai1Player.prototype.setColor = function (color) {
+    Player.prototype.setColor.call(this, color);
+    this.enemyColor = 1 - color;
+    for (var h, h_array = this.heuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
+        h.initColor();
+    }
+    for (h, h_array = this.negativeHeuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
+        h.initColor();
+    }
+};
+
+Ai1Player.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
+    if (lowLimit === undefined) lowLimit = null;
+    if (highLimit === undefined) highLimit = null;
+    return this.genes.get(this.constructor.name + '-' + name, defVal, lowLimit, highLimit);
+};
+
+// Returns the move chosen (e.g. c4 or pass)
+// One can check last_move_score to see the score of the move returned
+Ai1Player.prototype.getMove = function () {
+    var bestScore, secondBest, bestI, bestJ;
+    // @timer.start("AI move",0.5,3)
+    this.numMoves += 1;
+    if (this.numMoves >= this.gsize * this.gsize) { // force pass after too many moves
+        main.log.error('Forcing AI pass since we already played ' + this.numMoves);
+        return 'pass';
+    }
+    this.prepareEval();
+    bestScore = secondBest = this.minimumScore;
+    bestI = bestJ = -1;
+    var bestNumTwin = 0; // number of occurrence of the current best score (so we can randomly pick any of them)
+    for (var j = 1; j <= this.gsize; j++) {
+        for (var i = 1; i <= this.gsize; i++) {
+            var score = this.evalMove(i, j, bestScore);
+            // Keep the best move
+            if (score > bestScore) {
+                secondBest = bestScore;
+                if (main.debug) {
+                    main.log.debug('=> ' + Grid.moveAsString(i, j) + ' becomes the best move with ' + score.toFixed(3));
+                    if (bestI > 0) main.log.debug(' (2nd best is ' + Grid.moveAsString(bestI, bestJ) + ' with ' + bestScore.toFixed(3) + ')');
+                }
+                bestScore = score;
+                bestI = i;
+                bestJ = j;
+                bestNumTwin = 1;
+            } else if (score === bestScore) {
+                bestNumTwin += 1;
+                if (~~(Math.random()*~~(bestNumTwin)) === 0) {
+                    if (main.debug) {
+                        main.log.debug('=> ' + Grid.moveAsString(i, j) + ' replaces equivalent best move with ' + score.toFixed(3) + ' (equivalent best was ' + Grid.moveAsString(bestI, bestJ) + ')');
+                    }
+                    bestScore = score;
+                    bestI = i;
+                    bestJ = j;
+                }
+            } else if (score >= secondBest) {
+                if (main.debug) {
+                    main.log.debug('=> ' + Grid.moveAsString(i, j) + ' is second best move with ' + score + ' (best is ' + Grid.moveAsString(bestI, bestJ) + ' with ' + bestScore + ')');
+                }
+                secondBest = score;
+            }
+        }
+    }
+    this.lastMoveScore = bestScore;
+    // @timer.stop(false) # false: no exception if it takes longer but an error in the log
+    if (bestScore > this.minimumScore) {
+        return Grid.moveAsString(bestI, bestJ);
+    }
+    if (main.debug) {
+        main.log.debug('AI is passing...');
+    }
+    return 'pass';
+};
+
+Ai1Player.prototype.prepareEval = function () {
+    this.inf.buildMap();
+    return this.ter.guessTerritories();
+};
+
+/** Can be called from the outside for tests, but prepareEval must be called first */
+Ai1Player.prototype.evalMove = function (i, j, bestScore) {
+    if (bestScore === undefined) bestScore = this.minimumScore;
+    if (!Stone.validMove(this.goban, i, j, this.color)) {
+        return 0.0;
+    }
+    var score = 0.0;
+    // run all positive heuristics
+    for (var h, h_array = this.heuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
+        score += h.evalMove(i, j);
+    }
+    // we run negative heuristics only if this move was a potential candidate
+    if (score >= bestScore) {
+        for (h, h_array = this.negativeHeuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
+            score += h.evalMove(i, j);
+            if (score < bestScore) {
+                break;
+            }
+        }
+    }
+    return score;
+};
+
+/** For tests */
+Ai1Player.prototype._testHeuristic = function (i, j, heuristicName) {
+    for (var n = this.heuristics.length -1; n >= 0; n--) {
+        var h = this.heuristics[n];
+        if (h.constructor.name === heuristicName) {
+            return h.evalMove(i, j);
+        }
+    }
+    throw new Error('Invalid heuristic name: ' + heuristicName);
+};
+
+},{"../Genes":7,"../Grid":9,"../InfluenceMap":12,"../Player":13,"../PotentialTerritory":14,"../Stone":16,"../main":30,"./AllHeuristics":20,"util":4}],20:[function(require,module,exports){
 //Translated from all_heuristics.rb using babyruby2js
 'use strict';
 
-var Heuristic = require('./Heuristic');
 // When creating a new heuristic, remember to add it here.
 var Spacer = require('./Spacer');
 var Executioner = require('./Executioner');
@@ -3493,21 +3419,23 @@ var Hunter = require('./Hunter');
 var Connector = require('./Connector');
 var Pusher = require('./Pusher');
 var NoEasyPrisoner = require('./NoEasyPrisoner');
-Heuristic.allHeuristics = function () {
+
+var allHeuristics = function () {
     return [Spacer, Executioner, Savior, Hunter, Connector, Pusher, NoEasyPrisoner];
 };
+module.exports = allHeuristics;
 
-},{"./Connector":22,"./Executioner":23,"./Heuristic":24,"./Hunter":25,"./NoEasyPrisoner":26,"./Pusher":27,"./Savior":28,"./Spacer":29}],22:[function(require,module,exports){
+},{"./Connector":21,"./Executioner":22,"./Hunter":24,"./NoEasyPrisoner":25,"./Pusher":26,"./Savior":27,"./Spacer":28}],21:[function(require,module,exports){
 //Translated from connector.rb using babyruby2js
 'use strict';
 
 var inherits = require('util').inherits;
 var main = require('../main');
-// Basic: a move that connects 2 of our groups is good.
-// TODO: this could threaten our potential for keeping eyes, review this.
 var Heuristic = require('./Heuristic');
 
-/** @class */
+/** @class A move that connects 2 of our groups is good.
+ *  TODO: this could threaten our potential for keeping eyes, review this.
+ */
 function Connector(player) {
     Heuristic.call(this, player);
     this.inflCoeff = this.getGene('infl', 0.07, 0.01, 0.5);
@@ -3521,63 +3449,54 @@ Connector.prototype.evalMove = function (i, j) {
     // we care a lot if the enemy is able to cut us,
     // and even more if by connecting we cut them...
     // TODO: the opposite heuristic - a cutter; and make both more clever.
+    // TODO: one other way to connect 2 groups is to "protect" the cutting point; handle this here
     var stone = this.goban.stoneAt(i, j);
-    var enemies = stone.uniqueEnemies(this.color);
-    var numEnemies = enemies.length;
     var allies = stone.uniqueAllies(this.color);
-    var numAllies = allies.length;
-    if (numAllies < 2) { // nothing to connect here
-        return 0;
-    }
-    if (numAllies === 3 && numEnemies === 0) { // in this case we never want to connect unless enemy comes by
-        return 0;
-    }
-    if (numAllies === 4) {
-        return 0;
-    }
-    if (numAllies === 2) {
-        var s1, s2;
-        s1 = s2 = null;
-        var nonUniqueCount = 0;
-        for (var s, s_array = stone.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
-            if (s.group === allies[0]) {
-                s1 = s;
-            }
-            if (s.group === allies[1]) {
-                s2 = s;
-            }
-            if (s.color === this.color) {
-                nonUniqueCount += 1;
-            }
+    var numGroups = allies.length;
+
+    if (numGroups < 2) return 0; // nothing to connect here
+
+    var s1, s2; // we will get stone 1 & 2 for cases with 2 groups connecting
+    var numStones = 0, numEnemies = 0;
+    for (var s, s_array = stone.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
+        switch (s.group) {
+        case null: continue;
+        case allies[0]: s1 = s; break;
+        case allies[1]: s2 = s;
         }
-        if (nonUniqueCount === 3 && numEnemies === 0) {
-            return 0;
-        }
-        // Case of diagonal (strong) stones (TODO: handle the case with a 3rd stone in same group than 1 or 2)
-        if (nonUniqueCount === 2 && s1.i !== s2.i && s1.j !== s2.j) {
-            // No need to connect if both connection points are free
-            if (this.goban.empty(s1.i, s2.j) && this.goban.empty(s2.i, s1.j)) {
-                return 0;
-            }
-        }
+        if (s.color === this.color) numStones++;
+        else numEnemies++;
     }
+    if (numStones === 4) return 0;
+    // 3 of our stones around: no need to connect unless enemy comes by
+    if (numGroups === 3 && numEnemies === 0) return 0;
+
+    // Case of diagonal (strong) stones (TODO: handle the case with a 3rd stone in same group than 1 or 2)
+    if (numStones === 2 && s1.i !== s2.i && s1.j !== s2.j) {
+        // No need to connect if both connection points are free (no cutting stone yet)
+        if (this.goban.empty(s1.i, s2.j) && this.goban.empty(s2.i, s1.j)) return 0;
+        // We count the cutting stone as enemy
+        numEnemies++;
+    }
+
     switch (numEnemies) {
     case 0:
         var _eval = this.inflCoeff / this.inf.map[j][i][this.color];
         break;
     case 1:
-        _eval = this.allyCoeff1 * numAllies;
+        _eval = this.allyCoeff1 * numGroups;
         break;
     default: 
-        _eval = this.allyCoeff2 * numAllies;
+        _eval = this.allyCoeff2 * numGroups;
     }
     if (main.debug) {
-        main.log.debug('Connector gives ' + '%.2f'.format(_eval) + ' to ' + i + ',' + j + ' (allies:' + numAllies + ' enemies: ' + numEnemies + ')');
+        main.log.debug('Connector gives ' + '%.2f'.format(_eval) + ' to ' + i + ',' + j +
+            ' (allies:' + numGroups + ' enemies: ' + numEnemies + ')');
     }
     return _eval;
 };
 
-},{"../main":31,"./Heuristic":24,"util":4}],23:[function(require,module,exports){
+},{"../main":30,"./Heuristic":23,"util":4}],22:[function(require,module,exports){
 //Translated from executioner.rb using babyruby2js
 'use strict';
 
@@ -3601,12 +3520,12 @@ Executioner.prototype.evalMove = function (i, j) {
         if (g.lives > 1) { // NB: more than 1 is a job for hunter
             continue;
         }
-        threat += g.stones.length;
+        threat += this.groupThreat(g);
         for (var ally, ally_array = g.allEnemies(), ally_ndx = 0; ally=ally_array[ally_ndx], ally_ndx < ally_array.length; ally_ndx++) {
             if (ally.lives > 1) {
                 continue;
             }
-            saving += ally.stones.length;
+            saving += this.groupThreat(ally);
         }
     }
     if (threat === 0) {
@@ -3621,7 +3540,7 @@ Executioner.prototype.evalMove = function (i, j) {
     return threat + saving;
 };
 
-},{"../main":31,"./Heuristic":24,"util":4}],24:[function(require,module,exports){
+},{"../main":30,"./Heuristic":23,"util":4}],23:[function(require,module,exports){
 //Translated from heuristic.rb using babyruby2js
 'use strict';
 
@@ -3639,6 +3558,8 @@ function Heuristic(player, consultant) {
     this.gsize = player.goban.gsize;
     this.inf = player.inf;
     this.ter = player.ter;
+
+    this.spaceInvasionCoeff = this.getGene('spaceInvasion', 2.0, 0.01, 4.0);
 }
 module.exports = Heuristic;
 
@@ -3666,7 +3587,18 @@ Heuristic.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
     return this.player.genes.get(this.constructor.name + '-' + name, defVal, lowLimit, highLimit);
 };
 
-},{}],25:[function(require,module,exports){
+// TODO: instead of below, evaluate the damage caused by an *invasion* by taking group g
+Heuristic.prototype.groupThreat = function (g) {
+    var lives = g.allLives();
+    var numEmpties = 0;
+    for (var i = lives.length - 1; i >= 0; i--) {
+        numEmpties += lives[i].numEmpties();
+    }
+    return g.stones.length * 2 + // 2 points are pretty much granted for the prisonners
+        this.spaceInvasionCoeff * numEmpties; //...and the "open gate" to territory will count a lot
+};
+
+},{}],24:[function(require,module,exports){
 //Translated from hunter.rb using babyruby2js
 'use strict';
 
@@ -3687,31 +3619,28 @@ module.exports = Hunter;
 
 Hunter.prototype.evalMove = function (i, j, level) {
     if (level === undefined) level = 1;
-    var eg1, eg2, eg3;
     var stone = this.goban.stoneAt(i, j);
     var empties = stone.empties();
     var allies = stone.uniqueAllies(this.color);
-    eg1 = eg2 = eg3 = null;
+    var egroups = null;
     var snapback = false;
     for (var eg, eg_array = stone.uniqueEnemies(this.color), eg_ndx = 0; eg=eg_array[eg_ndx], eg_ndx < eg_array.length; eg_ndx++) {
         if (eg.lives !== 2) { // NB if 1 this is a case for Executioner
             continue;
         }
         // if even a single of our groups around is in atari this will not work (enemy will kill our group and escape)
-        if (eg.allEnemies().find(function (ag) {
-            return ag.lives < 2;
-        })) {
-            continue;
+        var ourGroups = eg.allEnemies(), atari = false;
+        for (var n = ourGroups.length - 1; n >= 0; n--) {
+            if (ourGroups[n].lives < 2) { atari = true; break; }
         }
+        if (atari) continue;
+        
         if (empties.length === 1 && allies.length === 0) {
             // unless this is a snapback, this is a dumb move
-            var empty = stone.neighbors.find(function (n) {
-                return n.color === main.EMPTY;
-            });
             // it is a snapback if the last empty point (where the enemy will have to play) 
             // would not make the enemy group connect to another enemy group
             // (equivalent to: the empty point has no other enemy group as neighbor)
-            var enemiesAroundEmpty = empty.uniqueAllies(eg.color);
+            var enemiesAroundEmpty = empties[0].uniqueAllies(eg.color);
             if (enemiesAroundEmpty.length !== 1 || enemiesAroundEmpty[0] !== eg) {
                 continue;
             }
@@ -3724,18 +3653,11 @@ Hunter.prototype.evalMove = function (i, j, level) {
         if (main.debug) {
             main.log.debug('Hunter (level ' + level + ') looking at ' + i + ',' + j + ' threat on ' + eg);
         }
-        if (!eg1) {
-            eg1 = eg;
-        } else if (!eg2) {
-            eg2 = eg;
-        } else {
-            eg3 = eg;
-        }
+        if (!egroups) egroups = [eg];
+        else egroups.push(eg);
     }
-    // each eg
-    if (!eg1) {
-        return 0;
-    }
+    if (!egroups) return 0;
+
     // unless snapback, make sure our new stone's group is not in atari
     if (!snapback && empties.length < 2) {
         var lives = empties.length;
@@ -3747,21 +3669,23 @@ Hunter.prototype.evalMove = function (i, j, level) {
         }
     }
     Stone.playAt(this.goban, i, j, this.color); // our attack takes one of the 2 last lives (the one in i,j)
-    // keep the max of both attacks (if both are succeeding)
-    var taken = ( this.atariIsCaught(eg1, level) ? eg1.stones.length : 0 );
-    var taken2 = ( eg2 && this.atariIsCaught(eg2, level) ? eg2.stones.length : 0 );
-    var taken3 = ( eg3 && this.atariIsCaught(eg3, level) ? eg3.stones.length : 0 );
-    if (taken < taken2) {
-        taken = taken2;
+    // filter out the attacks that fail
+    for (var g = egroups.length - 1; g >= 0; g--) {
+        if (!this.atariIsCaught(egroups[g], level)) egroups.splice(g, 1);
     }
-    if (taken < taken3) {
-        taken = taken3;
+    Stone.undo(this.goban); // important to undo before, so we compute threat right
+    if (!egroups.length) return 0; // none is caught
+    
+    // find the bigger threat if more than 1 chase is possible
+    var threat = 0;
+    for (g = egroups.length - 1; g >= 0; g--) {
+        var t = this.groupThreat(egroups[g]);
+        if (t > threat) threat = t;
     }
-    Stone.undo(this.goban);
-    if (main.debug && taken > 0) {
-        main.log.debug('Hunter found a threat of ' + taken + ' at ' + i + ',' + j);
+    if (main.debug) {
+        main.log.debug('Hunter found a threat of ' + threat + ' at ' + i + ',' + j);
     }
-    return taken;
+    return threat;
 };
 
 Hunter.prototype.atariIsCaught = function (g, level) {
@@ -3819,7 +3743,7 @@ Hunter.prototype.escapingAtariIsCaught = function (stone, level) {
 };
 
 
-},{"../Stone":17,"../main":31,"./Heuristic":24,"util":4}],26:[function(require,module,exports){
+},{"../Stone":16,"../main":30,"./Heuristic":23,"util":4}],25:[function(require,module,exports){
 //Translated from no_easy_prisoner.rb using babyruby2js
 'use strict';
 
@@ -3851,7 +3775,7 @@ NoEasyPrisoner.prototype.evalMove = function (i, j) {
     var g = stone.group;
     var score = 0;
     if (g.lives === 1) {
-        score = -g.stones.length;
+        score = - this.groupThreat(g);
         if (main.debug) {
             main.log.debug('NoEasyPrisoner says ' + i + ',' + j + ' is plain foolish (' + score + ')');
         }
@@ -3860,7 +3784,7 @@ NoEasyPrisoner.prototype.evalMove = function (i, j) {
             main.log.debug('NoEasyPrisoner asking Hunter to look at ' + i + ',' + j);
         }
         if (this.enemyHunter.escapingAtariIsCaught(stone)) {
-            score = -g.stones.length;
+            score = - this.groupThreat(g);
             if (main.debug) {
                 main.log.debug('NoEasyPrisoner (backed by Hunter) says ' + i + ',' + j + ' is foolish  (' + score + ')');
             }
@@ -3870,7 +3794,7 @@ NoEasyPrisoner.prototype.evalMove = function (i, j) {
     return score;
 };
 
-},{"../Stone":17,"../main":31,"./Heuristic":24,"./Hunter":25,"util":4}],27:[function(require,module,exports){
+},{"../Stone":16,"../main":30,"./Heuristic":23,"./Hunter":24,"util":4}],26:[function(require,module,exports){
 //Translated from pusher.rb using babyruby2js
 'use strict';
 
@@ -3904,18 +3828,17 @@ Pusher.prototype.evalMove = function (i, j) {
     return score;
 };
 
-},{"../main":31,"./Heuristic":24,"util":4}],28:[function(require,module,exports){
+},{"../main":30,"./Heuristic":23,"util":4}],27:[function(require,module,exports){
 //Translated from savior.rb using babyruby2js
 'use strict';
 
 var inherits = require('util').inherits;
 var main = require('../main');
 var Stone = require('../Stone');
-// Saviors rescue ally groups in atari
 var Heuristic = require('./Heuristic');
 var Hunter = require('./Hunter');
 
-/** @class */
+/** @class Saviors rescue ally groups in atari */
 function Savior(player) {
     Heuristic.call(this, player);
     this.enemyHunter = new Hunter(player, true);
@@ -3945,7 +3868,7 @@ Savior.prototype.evalEscape = function (i, j, stone) {
         var newThreat = null;
         if (g.lives === 1) {
             // NB: if more than 1 group in atari, they merge if we play this "savior" stone
-            newThreat = g.stones.length;
+            newThreat = this.groupThreat(g);
         } else if (g.lives === 2) {
             if (main.debug) {
                 main.log.debug('Savior asking hunter to look at ' + i + ',' + j + ': pre-atari on ' + g);
@@ -3984,7 +3907,7 @@ Savior.prototype.evalEscape = function (i, j, stone) {
     return threat;
 };
 
-},{"../Stone":17,"../main":31,"./Heuristic":24,"./Hunter":25,"util":4}],29:[function(require,module,exports){
+},{"../Stone":16,"../main":30,"./Heuristic":23,"./Hunter":24,"util":4}],28:[function(require,module,exports){
 //Translated from spacer.rb using babyruby2js
 'use strict';
 
@@ -4049,7 +3972,7 @@ Spacer.prototype.distanceFromBorder = function (n) {
     }
 };
 
-},{"../main":31,"./Heuristic":24,"util":4}],30:[function(require,module,exports){
+},{"../main":30,"./Heuristic":23,"util":4}],29:[function(require,module,exports){
 'use strict';
 
 var main = require('./main');
@@ -4060,13 +3983,13 @@ require('./rb');
 
 main.GameLogic = require('./GameLogic');
 main.Grid = require('./Grid');
-main.Ai1Player = require('./Ai1Player');
+main.Ai1Player = require('./ai/Ai1Player');
 
 //main.Ui = require('./Ui');
 
 main.debug = false;
 
-},{"./Ai1Player":5,"./GameLogic":7,"./Grid":10,"./StoneConstants":18,"./main":31,"./rb":32}],31:[function(require,module,exports){
+},{"./GameLogic":6,"./Grid":9,"./StoneConstants":17,"./ai/Ai1Player":19,"./main":30,"./rb":31}],30:[function(require,module,exports){
 //main class for babyruby2js
 'use strict';
 
@@ -4135,39 +4058,43 @@ TestSeries.prototype.add = function (klass) {
   return klass;
 };
 
-TestSeries.prototype.run = function (logfunc) {
-  main.log.setLogFunc(logfunc);
-  main.log.level = Logger.INFO;
-
-  main.assertCount = 0;
-  var startTime = Date.now();
-  var classCount = 0, testCount = 0, failedCount = 0, errorCount = 0;
-  for (var t in this.testCases) {
-    classCount++;
-    var Klass = this.testCases[t];
-    for (var method in Klass.prototype) {
-      if (typeof Klass.prototype[method] !== 'function') continue;
-      if (method.substr(0,4) !== 'test') continue;
-      testCount++;
-      var obj = new Klass(Klass.name + '#' + method);
-      try {
-        obj[method].call(obj);
-      } catch(e) {
-        var header = 'Test failed';
-        if (e.message.startWith(FAILED_ASSERTION_MSG)) {
-          failedCount++;
-        } else {
-          header += ' with exception';
-          errorCount++;
-        }
-        main.log.error(header + ': ' + obj.testName + ': ' + e.message + '\n' + e.stack);
+TestSeries.prototype.testOneClass = function (Klass) {
+  for (var method in Klass.prototype) {
+    if (typeof Klass.prototype[method] !== 'function') continue;
+    if (method.substr(0,4) !== 'test') continue;
+    this.testCount++;
+    var obj = new Klass(Klass.name + '#' + method);
+    try {
+      obj[method].call(obj);
+    } catch(e) {
+      var header = 'Test failed';
+      if (e.message.startWith(FAILED_ASSERTION_MSG)) {
+        this.failedCount++;
+      } else {
+        header += ' with exception';
+        this.errorCount++;
       }
+      main.log.error(header + ': ' + obj.testName + ': ' + e.message + '\n' + e.stack);
     }
   }
+};
+
+TestSeries.prototype.run = function (logfunc, specificClass) {
+  main.log.setLogFunc(logfunc);
+  main.assertCount = 0;
+  var startTime = Date.now();
+  var classCount = 0;
+  this.testCount = this.failedCount = this.errorCount = 0;
+  for (var t in this.testCases) {
+    if (specificClass && t !== specificClass) continue;
+    classCount++;
+    var Klass = this.testCases[t];
+    this.testOneClass(Klass);
+  }
   var duration = ((Date.now() - startTime) / 1000).toFixed(2);
-  var report = 'Completed tests. (' + classCount + ' classes, ' + testCount + ' tests, ' +
+  var report = 'Completed tests. (' + classCount + ' classes, ' + this.testCount + ' tests, ' +
     main.assertCount + ' assertions in ' + duration + 's)' +
-    ', failed: ' + failedCount + ', exceptions: ' + errorCount;
+    ', failed: ' + this.failedCount + ', exceptions: ' + this.errorCount;
   main.log.info(report);
   return report;
 };
@@ -4188,7 +4115,7 @@ function _checkValue(expected, val, comment) {
     if (!val instanceof Array)
       _fail('expected Array but got ' + val, comment);
     if (val.length !== expected.length) {
-      console.warn('Expected:\n', expected, 'Value:\n', val)
+      console.warn('Expected:\n', expected, 'Value:\n', val);
       _fail('expected Array of size ' + expected.length + ' but got size ' + val.length, comment);
     }
 
@@ -4245,12 +4172,12 @@ Logger.prototype._newLogFn = function (lvl, consoleFn) {
     if (self.logfunc && !self.logfunc(lvl, msg)) return;
     consoleFn.call(console, msg);
   };
-}
+};
 
 main.log = new Logger();
 main.Logger = Logger;
 
-},{}],32:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 'use strict';
 
 
@@ -4418,4 +4345,4 @@ Array.prototype.range = function (begin, end) {
   return this.slice(begin, end + 1);
 };
 
-},{}]},{},[30]);
+},{}]},{},[29]);

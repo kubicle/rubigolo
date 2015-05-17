@@ -1,37 +1,18 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <link rel="stylesheet" type="text/css" href="./style.css" />
         <title>Rubigolo - Tests</title>
         <script src="./build_tests.js" type="text/JavaScript"></script>
     </head>
     <body>
         <h1>Rubigolo - Tests</h1>
-        <button id="startBtn">Start</button>
+        <div id="controls"></div>
         <h2>Result</h2>
-        <div id="output" style="margin-top:20px"></div>
+        <div id="output" class="logBox outputBox"></div>
         <h2>Errors</h2>
-        <div id="errors" style="margin-top:20px"></div>
-<script>
-  var main = window.main;
-  main.debug = true;
-  startBtn.addEventListener('click', function () {
-    var Logger = main.Logger;
-    output.textContent = 'Running unit tests...';
-    errors.textContent = '';
-    this.hidden = true;
-    window.setTimeout(function () {
-      output.textContent = '';
-      main.tests.run(function (lvl, msg) {
-        var firstLine = msg.indexOf('\n');
-        if (firstLine > 0) msg = msg.substr(0, firstLine);
-        msg += '<br>';
-        if (lvl >= Logger.WARN) errors.innerHTML += msg;
-        else if (lvl == Logger.INFO) output.innerHTML += msg;
-        return true; // also log in console
-      });
-      startBtn.hidden = false;
-    });
-  });
-</script>
+        <div id="errors" class="logBox errorBox"></div>
+
+        <script src="./test_ui.js"></script>
     </body>
 </html>

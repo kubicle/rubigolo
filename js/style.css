@@ -1,0 +1,51 @@
+body {
+  background-color: #ffe;
+}
+h1 {
+  margin-bottom: 10px;
+}
+h2 {
+  margin-top: 0.5em;
+  margin-bottom: 5px;
+  font-family: "Arial";
+}
+button {
+  margin-right: 10px;
+  border-radius: 10px;
+  width: 100px;
+  height: 40px;
+}
+.testButton {
+}
+.gameButton {
+}
+
+.logBox {
+  font-size: 14px;
+  font-family: "Arial";
+  background-color: white;
+  border: solid #cca 1px;
+  border-radius: 8px;
+  padding: 5px;
+  overflow-y: auto;  
+}
+.outputBox {
+  height: 350px;
+  font-size: 14px;
+}
+.errorBox {
+  height: 150px;
+  font-size: 14px;
+}
+
+.board {
+}
+.controls {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+.historyBox {
+  height: 100px;
+  width: 590px;
+  font-size: 20px;
+}

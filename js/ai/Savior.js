@@ -4,11 +4,10 @@
 var inherits = require('util').inherits;
 var main = require('../main');
 var Stone = require('../Stone');
-// Saviors rescue ally groups in atari
 var Heuristic = require('./Heuristic');
 var Hunter = require('./Hunter');
 
-/** @class */
+/** @class Saviors rescue ally groups in atari */
 function Savior(player) {
     Heuristic.call(this, player);
     this.enemyHunter = new Hunter(player, true);
@@ -38,7 +37,7 @@ Savior.prototype.evalEscape = function (i, j, stone) {
         var newThreat = null;
         if (g.lives === 1) {
             // NB: if more than 1 group in atari, they merge if we play this "savior" stone
-            newThreat = g.stones.length;
+            newThreat = this.groupThreat(g);
         } else if (g.lives === 2) {
             if (main.debug) {
                 main.log.debug('Savior asking hunter to look at ' + i + ',' + j + ': pre-atari on ' + g);

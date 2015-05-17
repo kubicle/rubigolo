@@ -2,24 +2,23 @@
 'use strict';
 
 var inherits = require('util').inherits;
-var Heuristic = require('./ai/Heuristic');
-var main = require('./main');
-var Grid = require('./Grid');
-var Stone = require('./Stone');
-// TODO: 
-// - do not fill my own territory (potential territory recognition will use analyser.enlarge method)
-// - identify all foolish moves (like NoEasyPrisoner but once for all) in a map that all heuristics can use
-// - foresee a poursuit = on attack/defense (and/or use a reverse-killer?)
-// - an eye shape constructor
-var Player = require('./Player');
-var Goban = require('./Goban');
-var InfluenceMap = require('./InfluenceMap');
-var PotentialTerritory = require('./PotentialTerritory');
-var AllHeuristics = require('./ai/AllHeuristics');
-var TimeKeeper = require('./TimeKeeper');
-var Genes = require('./Genes');
+var allHeuristics = require('./AllHeuristics');
+var main = require('../main');
+var Grid = require('../Grid');
+var Stone = require('../Stone');
+var Player = require('../Player');
+var InfluenceMap = require('../InfluenceMap');
+var PotentialTerritory = require('../PotentialTerritory');
+var Genes = require('../Genes');
 
-/** @class public read-only attribute: goban, inf, ter, enemyColor, genes, lastMoveScore
+
+/** @class
+ *  public read-only attribute: goban, inf, ter, enemyColor, genes, lastMoveScore
+ *  TODO: 
+ *  - do not fill my own territory (potential territory recognition will use analyser.enlarge method)
+ *  - identify all foolish moves (like NoEasyPrisoner but once for all) in a map that all heuristics can use
+ *  - foresee a poursuit = on attack/defense (and/or use a reverse-killer?)
+ *  - an eye shape constructor
  */
 function Ai1Player(goban, color, genes) {
     if (genes === undefined) genes = null;
@@ -29,10 +28,12 @@ function Ai1Player(goban, color, genes) {
     this.gsize = this.goban.gsize;
     this.genes = (( genes ? genes : new Genes() ));
     this.minimumScore = this.getGene('smaller-move', 0.033, 0.02, 0.066);
+
     this.heuristics = [];
     this.negativeHeuristics = [];
-    for (var cl, cl_array = Heuristic.allHeuristics(), cl_ndx = 0; cl=cl_array[cl_ndx], cl_ndx < cl_array.length; cl_ndx++) {
-        var h = new cl(this);
+    var heuristics = allHeuristics();
+    for (var i = 0; i < heuristics.length; i++) {
+        var h = new (heuristics[i])(this);
         if (!h.negative) {
             this.heuristics.push(h);
         } else {
@@ -42,7 +43,7 @@ function Ai1Player(goban, color, genes) {
     this.setColor(color);
     // genes need to exist before we create heuristics so passing genes below is done
     // to keep things coherent
-    return this.prepareGame(this.genes); // @timer = TimeKeeper.new // @timer.calibrate(0.7)
+    return this.prepareGame(this.genes);
 }
 inherits(Ai1Player, Player);
 module.exports = Ai1Player;
@@ -90,7 +91,8 @@ Ai1Player.prototype.getMove = function () {
             if (score > bestScore) {
                 secondBest = bestScore;
                 if (main.debug) {
-                    main.log.debug('=> ' + Grid.moveAsString(i, j) + ' becomes the best move with ' + score + ' (2nd best is ' + Grid.moveAsString(bestI, bestJ) + ' with ' + bestScore + ')');
+                    main.log.debug('=> ' + Grid.moveAsString(i, j) + ' becomes the best move with ' + score.toFixed(3));
+                    if (bestI > 0) main.log.debug(' (2nd best is ' + Grid.moveAsString(bestI, bestJ) + ' with ' + bestScore.toFixed(3) + ')');
                 }
                 bestScore = score;
                 bestI = i;
@@ -100,7 +102,7 @@ Ai1Player.prototype.getMove = function () {
                 bestNumTwin += 1;
                 if (~~(Math.random()*~~(bestNumTwin)) === 0) {
                     if (main.debug) {
-                        main.log.debug('=> ' + Grid.moveAsString(i, j) + ' replaces equivalent best move with ' + score + ' (equivalent best was ' + Grid.moveAsString(bestI, bestJ) + ')');
+                        main.log.debug('=> ' + Grid.moveAsString(i, j) + ' replaces equivalent best move with ' + score.toFixed(3) + ' (equivalent best was ' + Grid.moveAsString(bestI, bestJ) + ')');
                     }
                     bestScore = score;
                     bestI = i;
@@ -130,6 +132,7 @@ Ai1Player.prototype.prepareEval = function () {
     return this.ter.guessTerritories();
 };
 
+/** Can be called from the outside for tests, but prepareEval must be called first */
 Ai1Player.prototype.evalMove = function (i, j, bestScore) {
     if (bestScore === undefined) bestScore = this.minimumScore;
     if (!Stone.validMove(this.goban, i, j, this.color)) {
@@ -150,4 +153,15 @@ Ai1Player.prototype.evalMove = function (i, j, bestScore) {
         }
     }
     return score;
+};
+
+/** For tests */
+Ai1Player.prototype._testHeuristic = function (i, j, heuristicName) {
+    for (var n = this.heuristics.length -1; n >= 0; n--) {
+        var h = this.heuristics[n];
+        if (h.constructor.name === heuristicName) {
+            return h.evalMove(i, j);
+        }
+    }
+    throw new Error('Invalid heuristic name: ' + heuristicName);
 };
