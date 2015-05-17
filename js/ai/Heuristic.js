@@ -15,6 +15,8 @@ function Heuristic(player, consultant) {
     this.gsize = player.goban.gsize;
     this.inf = player.inf;
     this.ter = player.ter;
+
+    this.spaceInvasionCoeff = this.getGene('spaceInvasion', 2.0, 0.01, 4.0);
 }
 module.exports = Heuristic;
 
@@ -40,4 +42,15 @@ Heuristic.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
     if (lowLimit === undefined) lowLimit = null;
     if (highLimit === undefined) highLimit = null;
     return this.player.genes.get(this.constructor.name + '-' + name, defVal, lowLimit, highLimit);
+};
+
+// TODO: instead of below, evaluate the damage caused by an *invasion* by taking group g
+Heuristic.prototype.groupThreat = function (g) {
+    var lives = g.allLives();
+    var numEmpties = 0;
+    for (var i = lives.length - 1; i >= 0; i--) {
+        numEmpties += lives[i].numEmpties();
+    }
+    return g.stones.length * 2 + // 2 points are pretty much granted for the prisonners
+        this.spaceInvasionCoeff * numEmpties; //...and the "open gate" to territory will count a lot
 };

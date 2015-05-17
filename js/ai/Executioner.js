@@ -21,12 +21,12 @@ Executioner.prototype.evalMove = function (i, j) {
         if (g.lives > 1) { // NB: more than 1 is a job for hunter
             continue;
         }
-        threat += g.stones.length;
+        threat += this.groupThreat(g);
         for (var ally, ally_array = g.allEnemies(), ally_ndx = 0; ally=ally_array[ally_ndx], ally_ndx < ally_array.length; ally_ndx++) {
             if (ally.lives > 1) {
                 continue;
             }
-            saving += ally.stones.length;
+            saving += this.groupThreat(ally);
         }
     }
     if (threat === 0) {
