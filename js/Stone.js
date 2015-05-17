@@ -63,18 +63,19 @@ Stone.prototype.debugDump = function () {
 
 // Returns the empty points around this stone
 Stone.prototype.empties = function () {
-    return this.neighbors.select(function (s) {
-        return s.color === main.EMPTY;
-    });
+    var empties = [], neighbors = this.neighbors;
+    for (var i = neighbors.length - 1; i >= 0; i--) {
+        var s = neighbors[i];
+        if (s.color === main.EMPTY) empties.push(s);
+    }
+    return empties;
 };
 
 // Number of empty points around this stone
 Stone.prototype.numEmpties = function () {
-    var count = 0;
-    for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
-        if (s.color === main.EMPTY) {
-            count += 1;
-        }
+    var count = 0, neighbors = this.neighbors;
+    for (var i = neighbors.length - 1; i >= 0; i--) {
+        if (neighbors[i].color === main.EMPTY) count++;
     }
     return count;
 };
