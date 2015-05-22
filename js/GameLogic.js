@@ -145,14 +145,18 @@ GameLogic.prototype.passOneMove = function () {
 // Only after this call will the game be really finished.
 // If accept=false, this means a player refuses to end here
 // => the game should continue until the next time all players pass.
-GameLogic.prototype.acceptEnding = function (accept) {
-    if (!this.gameEnding) {
-        return this.errorMsg('The game is not ending yet');
-    }
-    if (!accept) {
-        this.gameEnding = false; // exit ending mode; we will play some more...
-    } else {
+GameLogic.prototype.acceptEnding = function (accept, whoRefused) {
+    if (!this.gameEnding) return this.errorMsg('The game is not ending yet');
+    this.gameEnding = false;
+    if (accept) {
         this.gameEnded = true; // ending accepted. Game is finished.
+        return true;
+    }
+    // Score refused (in dispute)
+    // if the player who refused just played, we give the turn back to him
+    if (whoRefused !== this.curColor) {
+        this.history.pop(); // remove last "pass" (half a move so "undo" cannot help)
+        this.nextPlayer();
     }
     return true;
 };
@@ -165,7 +169,9 @@ GameLogic.prototype.moveNumber = function () {
 
 // Returns a text representation of the list of moves played so far
 GameLogic.prototype.historyString = function () {
-    return (( this.handicap > 0 ? 'handicap:' + this.handicap + ',' : '' )) + this.history.join(',') + ' (' + this.history.length + ' moves)';
+    return (( this.handicap > 0 ? 'handicap:' + this.handicap + ',' : '' )) +
+        this.history.join(',') +
+        ' (' + this.history.length + ' moves)';
 };
 
 // Returns an array with the prisoner count per color
@@ -218,7 +224,7 @@ GameLogic.prototype.setLogLevel = function (cmd) {
 //private;
 // ===============================================================================
 GameLogic.prototype.nextPlayer = function () {
-    this.curColor = (this.curColor + 1) % 2;
+    this.curColor = 1 - this.curColor;
 };
 
 // Always returns false
