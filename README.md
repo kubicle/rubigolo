@@ -11,6 +11,20 @@ JavaScript:
 
 Ruby: check the [help page](http://htmlpreview.github.io/?https://github.com/kubicle/rubigolo/blob/master/help-index.html)
 
+Dependencies
+============
+
+- [WGo.js]() is included in the project
+- Browserify used for the build
+
+How to build
+============
+
+cd ...\rubigolo\js
+node ..\..\node_modules\browserify\bin\cmd.js app.js -o build.js
+# or for tests:
+node ..\..\node_modules\browserify\bin\cmd.js test\TestAll.js -o build_tests.js
+
 =======
 
 ## April 2015 News
