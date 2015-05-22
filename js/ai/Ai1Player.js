@@ -70,61 +70,63 @@ Ai1Player.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
     return this.genes.get(this.constructor.name + '-' + name, defVal, lowLimit, highLimit);
 };
 
+function score2str(i, j, score) {
+    return Grid.moveAsString(i, j) + ':' + score.toFixed(3);
+}
+
 // Returns the move chosen (e.g. c4 or pass)
 // One can check last_move_score to see the score of the move returned
 Ai1Player.prototype.getMove = function () {
-    var bestScore, secondBest, bestI, bestJ;
-    // @timer.start("AI move",0.5,3)
-    this.numMoves += 1;
+    this.numMoves++;
     if (this.numMoves >= this.gsize * this.gsize) { // force pass after too many moves
         main.log.error('Forcing AI pass since we already played ' + this.numMoves);
         return 'pass';
     }
     this.prepareEval();
-    bestScore = secondBest = this.minimumScore;
-    bestI = bestJ = -1;
-    var bestNumTwin = 0; // number of occurrence of the current best score (so we can randomly pick any of them)
+    var bestScore = this.minimumScore, secondBest = this.minimumScore;
+    var bestI = -1, bestJ;
+    var bestNumTwin = 0; // number of moves with same best score (so we can randomly pick any of them)
+    var bestSurvey;
+    this.survey = {};
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
-            var score = this.evalMove(i, j, bestScore);
-            // Keep the best move
-            if (score > bestScore) {
-                secondBest = bestScore;
+            var score = this.evalMove(i, j, secondBest);
+            if (score <= secondBest) continue;
+            // Keep the best move and the 2nd best move
+            if (score < bestScore) {
                 if (main.debug) {
-                    main.log.debug('=> ' + Grid.moveAsString(i, j) + ' becomes the best move with ' + score.toFixed(3));
-                    if (bestI > 0) main.log.debug(' (2nd best is ' + Grid.moveAsString(bestI, bestJ) + ' with ' + bestScore.toFixed(3) + ')');
-                }
-                bestScore = score;
-                bestI = i;
-                bestJ = j;
-                bestNumTwin = 1;
-            } else if (score === bestScore) {
-                bestNumTwin += 1;
-                if (~~(Math.random()*~~(bestNumTwin)) === 0) {
-                    if (main.debug) {
-                        main.log.debug('=> ' + Grid.moveAsString(i, j) + ' replaces equivalent best move with ' + score.toFixed(3) + ' (equivalent best was ' + Grid.moveAsString(bestI, bestJ) + ')');
-                    }
-                    bestScore = score;
-                    bestI = i;
-                    bestJ = j;
-                }
-            } else if (score >= secondBest) {
-                if (main.debug) {
-                    main.log.debug('=> ' + Grid.moveAsString(i, j) + ' is second best move with ' + score + ' (best is ' + Grid.moveAsString(bestI, bestJ) + ' with ' + bestScore + ')');
+                    main.log.debug('=> ' + score2str(i,j,score) + ' becomes 2nd best move (best is ' + score2str(bestI, bestJ, bestScore) + ')');
                 }
                 secondBest = score;
+            } else if (score > bestScore) {
+                secondBest = bestScore;
+                bestSurvey = this.survey;
+                this.survey = {};
+                if (main.debug) {
+                    main.log.debug('=> ' + score2str(i, j, score) + ' becomes the best move');
+                    if (bestI > 0) main.log.debug(' (2nd best is ' + score2str(bestI, bestJ, bestScore) + ')');
+                }
+                bestScore = score; bestNumTwin = 1;
+                bestI = i; bestJ = j;
+            } else { // score === bestScore
+                bestNumTwin++;
+                if (~~(Math.random()*~~(bestNumTwin)) === 0) {
+                    if (main.debug) {
+                        main.log.debug('=> ' + score2str(i, j, score) + ' replaces equivalent best move ' + score2str(bestI, bestJ, bestScore));
+                    }
+                    bestScore = score;
+                    bestI = i; bestJ = j;
+                }
             }
         }
     }
     this.lastMoveScore = bestScore;
-    // @timer.stop(false) # false: no exception if it takes longer but an error in the log
-    if (bestScore > this.minimumScore) {
-        return Grid.moveAsString(bestI, bestJ);
+    this.survey = bestSurvey;
+    if (bestScore <= this.minimumScore) {
+        if (main.debug) main.log.debug('AI is passing...');
+        return 'pass';
     }
-    if (main.debug) {
-        main.log.debug('AI is passing...');
-    }
-    return 'pass';
+    return Grid.moveAsString(bestI, bestJ);
 };
 
 Ai1Player.prototype.prepareEval = function () {
@@ -133,24 +135,24 @@ Ai1Player.prototype.prepareEval = function () {
 };
 
 /** Can be called from the outside for tests, but prepareEval must be called first */
-Ai1Player.prototype.evalMove = function (i, j, bestScore) {
-    if (bestScore === undefined) bestScore = this.minimumScore;
+Ai1Player.prototype.evalMove = function (i, j, minScore) {
     if (!Stone.validMove(this.goban, i, j, this.color)) {
         return 0.0;
     }
-    var score = 0.0;
+    var score = 0.0, s;
     // run all positive heuristics
     for (var h, h_array = this.heuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
-        score += h.evalMove(i, j);
+        s = h.evalMove(i, j);
+        if (this.survey) { this.survey[h.constructor.name] = s; }
+        score += s;
     }
     // we run negative heuristics only if this move was a potential candidate
-    if (score >= bestScore) {
-        for (h, h_array = this.negativeHeuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
-            score += h.evalMove(i, j);
-            if (score < bestScore) {
-                break;
-            }
-        }
+    if (minScore && score < minScore) return score;
+    for (h, h_array = this.negativeHeuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
+        s = h.evalMove(i, j);
+        if (this.survey) { this.survey[h.constructor.name] = s; }
+        score += s;
+        if (minScore && score < minScore) break;
     }
     return score;
 };
