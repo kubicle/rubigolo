@@ -1010,7 +1010,7 @@ BoardAnalyser.prototype.groupLiveliness = function (g) {
     });
 };
 
-},{"./Grid":9,"./Group":10,"./ZoneFiller":18,"./main":30}],6:[function(require,module,exports){
+},{"./Grid":9,"./Group":10,"./ZoneFiller":19,"./main":31}],6:[function(require,module,exports){
 //Translated from game_logic.rb using babyruby2js
 'use strict';
 
@@ -1158,14 +1158,18 @@ GameLogic.prototype.passOneMove = function () {
 // Only after this call will the game be really finished.
 // If accept=false, this means a player refuses to end here
 // => the game should continue until the next time all players pass.
-GameLogic.prototype.acceptEnding = function (accept) {
-    if (!this.gameEnding) {
-        return this.errorMsg('The game is not ending yet');
-    }
-    if (!accept) {
-        this.gameEnding = false; // exit ending mode; we will play some more...
-    } else {
+GameLogic.prototype.acceptEnding = function (accept, whoRefused) {
+    if (!this.gameEnding) return this.errorMsg('The game is not ending yet');
+    this.gameEnding = false;
+    if (accept) {
         this.gameEnded = true; // ending accepted. Game is finished.
+        return true;
+    }
+    // Score refused (in dispute)
+    // if the player who refused just played, we give the turn back to him
+    if (whoRefused !== this.curColor) {
+        this.history.pop(); // remove last "pass" (half a move so "undo" cannot help)
+        this.nextPlayer();
     }
     return true;
 };
@@ -1178,7 +1182,9 @@ GameLogic.prototype.moveNumber = function () {
 
 // Returns a text representation of the list of moves played so far
 GameLogic.prototype.historyString = function () {
-    return (( this.handicap > 0 ? 'handicap:' + this.handicap + ',' : '' )) + this.history.join(',') + ' (' + this.history.length + ' moves)';
+    return (( this.handicap > 0 ? 'handicap:' + this.handicap + ',' : '' )) +
+        this.history.join(',') +
+        ' (' + this.history.length + ' moves)';
 };
 
 // Returns an array with the prisoner count per color
@@ -1231,7 +1237,7 @@ GameLogic.prototype.setLogLevel = function (cmd) {
 //private;
 // ===============================================================================
 GameLogic.prototype.nextPlayer = function () {
-    this.curColor = (this.curColor + 1) % 2;
+    this.curColor = 1 - this.curColor;
 };
 
 // Always returns false
@@ -1276,7 +1282,7 @@ GameLogic.prototype.sgfToGame = function (game) {
     return reader.toMoveList();
 };
 
-},{"./Goban":8,"./Grid":9,"./Group":10,"./HandicapSetter":11,"./SgfReader":15,"./Stone":16,"./main":30}],7:[function(require,module,exports){
+},{"./Goban":8,"./Grid":9,"./Group":10,"./HandicapSetter":11,"./SgfReader":16,"./Stone":17,"./main":31}],7:[function(require,module,exports){
 //Translated from genes.rb using babyruby2js
 'use strict';
 
@@ -1443,7 +1449,7 @@ Genes.prototype.mutateAll = function () {
 // W02: unknown constant supposed to be attached to main: YAML
 // E02: unknown method: load(...)
 // W02: unknown constant supposed to be attached to main: YAML
-},{"./main":30}],8:[function(require,module,exports){
+},{"./main":31}],8:[function(require,module,exports){
 //Translated from goban.rb using babyruby2js
 'use strict';
 
@@ -1615,7 +1621,7 @@ Goban.prototype.previousStone = function () {
 };
 
 // E02: unknown method: concat(...)
-},{"./Grid":9,"./Group":10,"./Stone":16,"./main":30}],9:[function(require,module,exports){
+},{"./Grid":9,"./Group":10,"./Stone":17,"./main":31}],9:[function(require,module,exports){
 //Translated from grid.rb using babyruby2js
 'use strict';
 
@@ -1821,7 +1827,7 @@ Grid.xLabel = function (i) {
 
 // E02: unknown method: index(...)
 
-},{"./main":30}],10:[function(require,module,exports){
+},{"./main":31}],10:[function(require,module,exports){
 //Translated from group.rb using babyruby2js
 'use strict';
 
@@ -2169,7 +2175,7 @@ Group.prisoners = function (goban) {
 // E02: unknown method: merged_with=(...)
 // E02: unknown method: merged_by=(...)
 
-},{"./Grid":9,"./main":30}],11:[function(require,module,exports){
+},{"./Grid":9,"./main":31}],11:[function(require,module,exports){
 //Translated from handicap_setter.rb using babyruby2js
 'use strict';
 
@@ -2290,7 +2296,7 @@ HandicapSetter.setStandardHandicap = function (goban, count) {
 
 // E02: unknown method: index(...)
 
-},{"./Grid":9,"./HandicapSetter":11,"./Stone":16,"./main":30}],12:[function(require,module,exports){
+},{"./Grid":9,"./HandicapSetter":11,"./Stone":17,"./main":31}],12:[function(require,module,exports){
 //Translated from influence_map.rb using babyruby2js
 'use strict';
 
@@ -2374,7 +2380,7 @@ InfluenceMap.prototype.debugDump = function () {
     }
 };
 
-},{"./Grid":9,"./main":30}],13:[function(require,module,exports){
+},{"./Grid":9,"./main":31}],13:[function(require,module,exports){
 //Translated from player.rb using babyruby2js
 'use strict';
 
@@ -2623,7 +2629,137 @@ PotentialTerritory.prototype.connectToBorders = function (yx) {
     }
 };
 
-},{"./BoardAnalyser":5,"./Grid":9,"./Stone":16,"./main":30}],15:[function(require,module,exports){
+},{"./BoardAnalyser":5,"./Grid":9,"./Stone":17,"./main":31}],15:[function(require,module,exports){
+//Translated from score_analyser.rb using babyruby2js
+'use strict';
+
+var main = require('./main');
+var Grid = require('./Grid');
+var BoardAnalyser = require('./BoardAnalyser');
+
+/** @class */
+function ScoreAnalyser() {
+    this.goban = null;
+    this.analyser = new BoardAnalyser();
+}
+module.exports = ScoreAnalyser;
+
+// Compute simple score difference for a AI-AI game (score info not needed)
+ScoreAnalyser.prototype.computeScoreDiff = function (goban, komi) {
+    this.analyser.countScore(goban);
+    var scores = this.analyser.scores;
+    var prisoners = this.analyser.prisoners;
+    var b = scores[main.BLACK] + prisoners[main.WHITE];
+    var w = scores[main.WHITE] + prisoners[main.BLACK] + komi;
+    return b - w;
+};
+
+// Returns score info as an array of strings
+ScoreAnalyser.prototype.computeScore = function (goban, komi, whoResigned) {
+    this.startScoring(goban, komi, whoResigned);
+    var txt = this.scoreInfoToS(this.scoreInfo);
+    return txt;
+};
+
+// Initialize scoring phase
+ScoreAnalyser.prototype.startScoring = function (goban, komi, whoResigned) {
+    this.goban = goban;
+    if (whoResigned !== undefined && whoResigned !== null) {
+        var winner = Grid.COLOR_NAMES[1 - whoResigned];
+        var other = Grid.COLOR_NAMES[whoResigned];
+        this.scoreInfo = winner + ' won (since ' + other + ' resigned)';
+        return this.scoreInfo;
+    }
+    this.analyser.countScore(goban);
+    var scores = this.analyser.scores;
+    var prisoners = this.analyser.prisoners;
+    var totals = [];
+    var details = [];
+    var addPris = true;
+    for (var c = 0; c < 2; c++) {
+        var kom = (( c === main.WHITE ? komi : 0 ));
+        var pris = (( addPris ? prisoners[1 - c] : -prisoners[c] ));
+        totals[c] = scores[c] + pris + kom;
+        details[c] = [scores[c], pris, kom];
+    }
+    this.scoreInfo = [totals, details];
+    return this.scoreInfo;
+};
+
+ScoreAnalyser.prototype.getScore = function () {
+    return this.scoreInfoToS(this.scoreInfo);
+};
+
+ScoreAnalyser.prototype.scoreInfoToS = function (info) {
+    if (main.isA(String, info)) { // for games where all but 1 resigned
+        return [info];
+    }
+    if (!info || info.length !== 2) {
+        throw new Error('Invalid score info: ' + info);
+    }
+    var totals = info[0];
+    var details = info[1];
+    if (totals.length !== details.length) {
+        throw new Error('Invalid score info');
+    }
+    var s = [];
+    s.push(this.scoreWinnerToS(totals));
+    for (var c = 0; c < 2; c++) {
+        var detail = details[c];
+        if (detail === null) {
+            s.push(Grid.colorName(c) + ' resigned');
+            continue;
+        }
+        if (detail.length !== 3) {
+            throw new Error('Invalid score details');
+        }
+        var score = detail[0];
+        var pris = detail[1];
+        var komi = detail[2];
+        var komiStr = (( komi > 0 ? ' + ' + komi + ' komi' : '' ));
+        s.push(Grid.colorName(c) + ' (' + Grid.colorToChar(c) + '): ' + this.pts(totals[c]) + ' (' + score + ' ' + ( pris < 0 ? '-' : '+' ) + ' ' + Math.abs(pris) + ' prisoners' + komiStr + ')');
+    }
+    return s;
+};
+
+ScoreAnalyser.prototype.scoreDiffToS = function (diff) {
+    if (diff !== 0) {
+        var win = ( diff > 0 ? main.BLACK : main.WHITE );
+        return Grid.colorName(win) + ' wins by ' + this.pts(Math.abs(diff));
+    } else {
+        return 'Tie game';
+    }
+};
+
+ScoreAnalyser.prototype.scoreWinnerToS = function (totals) {
+    if (totals.length === 2) {
+        var diff = totals[0] - totals[1];
+        return this.scoreDiffToS(diff);
+    } else {
+        var max = Math.max.apply(Math, totals);
+        var winners = [];
+        for (var c = 0; c < totals.length; c++) {
+            if (totals[c] === max) {
+                winners.push(c);
+            }
+        }
+        if (winners.length === 1) {
+            return Grid.colorName(winners[0]) + ' wins with ' + this.pts(max);
+        } else {
+            return 'Tie between ' + winners.map(function (w) {
+                return '' + Grid.colorName(w);
+            }).join(' & ') + ', ' + ( winners.length === 2 ? 'both' : 'all' ) + ' with ' + this.pts(max);
+        }
+    }
+};
+
+//private;
+ScoreAnalyser.prototype.pts = function (n) {
+    return ( n !== 1 ? n + ' points' : '1 point' );
+};
+
+// E02: unknown method: map(...)
+},{"./BoardAnalyser":5,"./Grid":9,"./main":31}],16:[function(require,module,exports){
 //Translated from sgf_reader.rb using babyruby2js
 'use strict';
 
@@ -2816,7 +2952,7 @@ SgfReader.prototype.error = function (reason, t) {
 
 // E02: unknown method: info(...)
 // E02: unknown method: index(...)
-},{"./main":30}],16:[function(require,module,exports){
+},{"./main":31}],17:[function(require,module,exports){
 //Translated from stone.rb using babyruby2js
 'use strict';
 
@@ -3122,7 +3258,7 @@ Stone.prototype.setGroupOnMerge = function (newGroup) {
 // E02: unknown method: map(...)
 // E02: unknown method: find_index(...)
 
-},{"./Grid":9,"./Group":10,"./main":30}],17:[function(require,module,exports){
+},{"./Grid":9,"./Group":10,"./main":31}],18:[function(require,module,exports){
 //Translated from stone_constants.rb using babyruby2js
 'use strict';
 
@@ -3133,7 +3269,7 @@ main.BORDER = null;
 main.EMPTY = -1;
 main.BLACK = 0;
 main.WHITE = 1;
-},{"./main":30}],18:[function(require,module,exports){
+},{"./main":31}],19:[function(require,module,exports){
 //Translated from zone_filler.rb using babyruby2js
 'use strict';
 
@@ -3238,7 +3374,7 @@ ZoneFiller.prototype._check = function (i, j) {
 };
 
 // E02: unknown method: find_index(...)
-},{"./main":30}],19:[function(require,module,exports){
+},{"./main":31}],20:[function(require,module,exports){
 //Translated from ai1_player.rb using babyruby2js
 'use strict';
 
@@ -3311,61 +3447,63 @@ Ai1Player.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
     return this.genes.get(this.constructor.name + '-' + name, defVal, lowLimit, highLimit);
 };
 
+function score2str(i, j, score) {
+    return Grid.moveAsString(i, j) + ':' + score.toFixed(3);
+}
+
 // Returns the move chosen (e.g. c4 or pass)
 // One can check last_move_score to see the score of the move returned
 Ai1Player.prototype.getMove = function () {
-    var bestScore, secondBest, bestI, bestJ;
-    // @timer.start("AI move",0.5,3)
-    this.numMoves += 1;
+    this.numMoves++;
     if (this.numMoves >= this.gsize * this.gsize) { // force pass after too many moves
         main.log.error('Forcing AI pass since we already played ' + this.numMoves);
         return 'pass';
     }
     this.prepareEval();
-    bestScore = secondBest = this.minimumScore;
-    bestI = bestJ = -1;
-    var bestNumTwin = 0; // number of occurrence of the current best score (so we can randomly pick any of them)
+    var bestScore = this.minimumScore, secondBest = this.minimumScore;
+    var bestI = -1, bestJ;
+    var bestNumTwin = 0; // number of moves with same best score (so we can randomly pick any of them)
+    var bestSurvey;
+    this.survey = {};
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
-            var score = this.evalMove(i, j, bestScore);
-            // Keep the best move
-            if (score > bestScore) {
-                secondBest = bestScore;
+            var score = this.evalMove(i, j, secondBest);
+            if (score <= secondBest) continue;
+            // Keep the best move and the 2nd best move
+            if (score < bestScore) {
                 if (main.debug) {
-                    main.log.debug('=> ' + Grid.moveAsString(i, j) + ' becomes the best move with ' + score.toFixed(3));
-                    if (bestI > 0) main.log.debug(' (2nd best is ' + Grid.moveAsString(bestI, bestJ) + ' with ' + bestScore.toFixed(3) + ')');
-                }
-                bestScore = score;
-                bestI = i;
-                bestJ = j;
-                bestNumTwin = 1;
-            } else if (score === bestScore) {
-                bestNumTwin += 1;
-                if (~~(Math.random()*~~(bestNumTwin)) === 0) {
-                    if (main.debug) {
-                        main.log.debug('=> ' + Grid.moveAsString(i, j) + ' replaces equivalent best move with ' + score.toFixed(3) + ' (equivalent best was ' + Grid.moveAsString(bestI, bestJ) + ')');
-                    }
-                    bestScore = score;
-                    bestI = i;
-                    bestJ = j;
-                }
-            } else if (score >= secondBest) {
-                if (main.debug) {
-                    main.log.debug('=> ' + Grid.moveAsString(i, j) + ' is second best move with ' + score + ' (best is ' + Grid.moveAsString(bestI, bestJ) + ' with ' + bestScore + ')');
+                    main.log.debug('=> ' + score2str(i,j,score) + ' becomes 2nd best move (best is ' + score2str(bestI, bestJ, bestScore) + ')');
                 }
                 secondBest = score;
+            } else if (score > bestScore) {
+                secondBest = bestScore;
+                bestSurvey = this.survey;
+                this.survey = {};
+                if (main.debug) {
+                    main.log.debug('=> ' + score2str(i, j, score) + ' becomes the best move');
+                    if (bestI > 0) main.log.debug(' (2nd best is ' + score2str(bestI, bestJ, bestScore) + ')');
+                }
+                bestScore = score; bestNumTwin = 1;
+                bestI = i; bestJ = j;
+            } else { // score === bestScore
+                bestNumTwin++;
+                if (~~(Math.random()*~~(bestNumTwin)) === 0) {
+                    if (main.debug) {
+                        main.log.debug('=> ' + score2str(i, j, score) + ' replaces equivalent best move ' + score2str(bestI, bestJ, bestScore));
+                    }
+                    bestScore = score;
+                    bestI = i; bestJ = j;
+                }
             }
         }
     }
     this.lastMoveScore = bestScore;
-    // @timer.stop(false) # false: no exception if it takes longer but an error in the log
-    if (bestScore > this.minimumScore) {
-        return Grid.moveAsString(bestI, bestJ);
+    this.survey = bestSurvey;
+    if (bestScore <= this.minimumScore) {
+        if (main.debug) main.log.debug('AI is passing...');
+        return 'pass';
     }
-    if (main.debug) {
-        main.log.debug('AI is passing...');
-    }
-    return 'pass';
+    return Grid.moveAsString(bestI, bestJ);
 };
 
 Ai1Player.prototype.prepareEval = function () {
@@ -3374,24 +3512,24 @@ Ai1Player.prototype.prepareEval = function () {
 };
 
 /** Can be called from the outside for tests, but prepareEval must be called first */
-Ai1Player.prototype.evalMove = function (i, j, bestScore) {
-    if (bestScore === undefined) bestScore = this.minimumScore;
+Ai1Player.prototype.evalMove = function (i, j, minScore) {
     if (!Stone.validMove(this.goban, i, j, this.color)) {
         return 0.0;
     }
-    var score = 0.0;
+    var score = 0.0, s;
     // run all positive heuristics
     for (var h, h_array = this.heuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
-        score += h.evalMove(i, j);
+        s = h.evalMove(i, j);
+        if (this.survey) { this.survey[h.constructor.name] = s; }
+        score += s;
     }
     // we run negative heuristics only if this move was a potential candidate
-    if (score >= bestScore) {
-        for (h, h_array = this.negativeHeuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
-            score += h.evalMove(i, j);
-            if (score < bestScore) {
-                break;
-            }
-        }
+    if (minScore && score < minScore) return score;
+    for (h, h_array = this.negativeHeuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
+        s = h.evalMove(i, j);
+        if (this.survey) { this.survey[h.constructor.name] = s; }
+        score += s;
+        if (minScore && score < minScore) break;
     }
     return score;
 };
@@ -3407,7 +3545,7 @@ Ai1Player.prototype._testHeuristic = function (i, j, heuristicName) {
     throw new Error('Invalid heuristic name: ' + heuristicName);
 };
 
-},{"../Genes":7,"../Grid":9,"../InfluenceMap":12,"../Player":13,"../PotentialTerritory":14,"../Stone":16,"../main":30,"./AllHeuristics":20,"util":4}],20:[function(require,module,exports){
+},{"../Genes":7,"../Grid":9,"../InfluenceMap":12,"../Player":13,"../PotentialTerritory":14,"../Stone":17,"../main":31,"./AllHeuristics":21,"util":4}],21:[function(require,module,exports){
 //Translated from all_heuristics.rb using babyruby2js
 'use strict';
 
@@ -3425,7 +3563,7 @@ var allHeuristics = function () {
 };
 module.exports = allHeuristics;
 
-},{"./Connector":21,"./Executioner":22,"./Hunter":24,"./NoEasyPrisoner":25,"./Pusher":26,"./Savior":27,"./Spacer":28}],21:[function(require,module,exports){
+},{"./Connector":22,"./Executioner":23,"./Hunter":25,"./NoEasyPrisoner":26,"./Pusher":27,"./Savior":28,"./Spacer":29}],22:[function(require,module,exports){
 //Translated from connector.rb using babyruby2js
 'use strict';
 
@@ -3496,7 +3634,7 @@ Connector.prototype.evalMove = function (i, j) {
     return _eval;
 };
 
-},{"../main":30,"./Heuristic":23,"util":4}],22:[function(require,module,exports){
+},{"../main":31,"./Heuristic":24,"util":4}],23:[function(require,module,exports){
 //Translated from executioner.rb using babyruby2js
 'use strict';
 
@@ -3540,7 +3678,7 @@ Executioner.prototype.evalMove = function (i, j) {
     return threat + saving;
 };
 
-},{"../main":30,"./Heuristic":23,"util":4}],23:[function(require,module,exports){
+},{"../main":31,"./Heuristic":24,"util":4}],24:[function(require,module,exports){
 //Translated from heuristic.rb using babyruby2js
 'use strict';
 
@@ -3598,7 +3736,7 @@ Heuristic.prototype.groupThreat = function (g) {
         this.spaceInvasionCoeff * numEmpties; //...and the "open gate" to territory will count a lot
 };
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 //Translated from hunter.rb using babyruby2js
 'use strict';
 
@@ -3743,7 +3881,7 @@ Hunter.prototype.escapingAtariIsCaught = function (stone, level) {
 };
 
 
-},{"../Stone":16,"../main":30,"./Heuristic":23,"util":4}],25:[function(require,module,exports){
+},{"../Stone":17,"../main":31,"./Heuristic":24,"util":4}],26:[function(require,module,exports){
 //Translated from no_easy_prisoner.rb using babyruby2js
 'use strict';
 
@@ -3794,7 +3932,7 @@ NoEasyPrisoner.prototype.evalMove = function (i, j) {
     return score;
 };
 
-},{"../Stone":16,"../main":30,"./Heuristic":23,"./Hunter":24,"util":4}],26:[function(require,module,exports){
+},{"../Stone":17,"../main":31,"./Heuristic":24,"./Hunter":25,"util":4}],27:[function(require,module,exports){
 //Translated from pusher.rb using babyruby2js
 'use strict';
 
@@ -3828,7 +3966,7 @@ Pusher.prototype.evalMove = function (i, j) {
     return score;
 };
 
-},{"../main":30,"./Heuristic":23,"util":4}],27:[function(require,module,exports){
+},{"../main":31,"./Heuristic":24,"util":4}],28:[function(require,module,exports){
 //Translated from savior.rb using babyruby2js
 'use strict';
 
@@ -3907,7 +4045,7 @@ Savior.prototype.evalEscape = function (i, j, stone) {
     return threat;
 };
 
-},{"../Stone":16,"../main":30,"./Heuristic":23,"./Hunter":24,"util":4}],28:[function(require,module,exports){
+},{"../Stone":17,"../main":31,"./Heuristic":24,"./Hunter":25,"util":4}],29:[function(require,module,exports){
 //Translated from spacer.rb using babyruby2js
 'use strict';
 
@@ -3972,7 +4110,7 @@ Spacer.prototype.distanceFromBorder = function (n) {
     }
 };
 
-},{"../main":30,"./Heuristic":23,"util":4}],29:[function(require,module,exports){
+},{"../main":31,"./Heuristic":24,"util":4}],30:[function(require,module,exports){
 'use strict';
 
 var main = require('./main');
@@ -3984,12 +4122,13 @@ require('./rb');
 main.GameLogic = require('./GameLogic');
 main.Grid = require('./Grid');
 main.Ai1Player = require('./ai/Ai1Player');
+main.ScoreAnalyser = require('./ScoreAnalyser');
 
 //main.Ui = require('./Ui');
 
 main.debug = false;
 
-},{"./GameLogic":6,"./Grid":9,"./StoneConstants":17,"./ai/Ai1Player":19,"./main":30,"./rb":31}],30:[function(require,module,exports){
+},{"./GameLogic":6,"./Grid":9,"./ScoreAnalyser":15,"./StoneConstants":18,"./ai/Ai1Player":20,"./main":31,"./rb":32}],31:[function(require,module,exports){
 //main class for babyruby2js
 'use strict';
 
@@ -4177,7 +4316,7 @@ Logger.prototype._newLogFn = function (lvl, consoleFn) {
 main.log = new Logger();
 main.Logger = Logger;
 
-},{}],31:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 'use strict';
 
 
@@ -4345,4 +4484,4 @@ Array.prototype.range = function (begin, end) {
   return this.slice(begin, end + 1);
 };
 
-},{}]},{},[29]);
+},{}]},{},[30]);
