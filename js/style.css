@@ -44,8 +44,18 @@ button {
   margin-top: 10px;
   margin-bottom: 10px;
 }
-.historyBox {
+.outputBox {
   height: 100px;
   width: 590px;
   font-size: 20px;
+}
+.historyBox {
+  height: 590px;
+  width: 100px;
+  position: absolute;
+  top: 68px;
+  left: 620px;
+  font-size: 12px;
+  font-family: "Courier";
+  font-weight: bold;
 }
