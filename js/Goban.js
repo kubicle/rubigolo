@@ -111,10 +111,10 @@ Goban.prototype.debugDisplay = function () {
 };
 
 // This display is for debugging and text-only game
-Goban.prototype.consoleDisplay = function () {
-    console.log(this.grid.toText(function (s) {
+Goban.prototype.toString = function () {
+    return this.grid.toText(function (s) {
         return Grid.colorToChar(s.color);
-    }));
+    });
 };
 
 // Basic validation only: coordinates and checks the intersection is empty
