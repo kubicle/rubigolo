@@ -42,20 +42,23 @@ Void.prototype.eyeCheck = function () {
     }
     this.eyeColor = oneColor;
     // Now tell the groups about this void
+    var color, groups, i;
     if (oneColor !== null) {
         this.setOwner(oneColor);
-        for (var n, n_array = this.groups, n_ndx = 0; n=n_array[n_ndx], n_ndx < n_array.length; n_ndx++) {
-            for (var g, g_array = n, g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
-                g.addVoid(this, true);
+        for (color = this.groups.length - 1; color >= 0; color--) {
+            groups = this.groups[color];
+            for (i = groups.length - 1; i >= 0; i--) {
+                groups[i].addVoid(this, true);
             }
         }
         if (main.debug) {
             return main.log.debug('Color ' + oneColor + ' surrounds ' + this + ' (eye)');
         }
     } else {
-        for (n, n_array = this.groups, n_ndx = 0; n=n_array[n_ndx], n_ndx < n_array.length; n_ndx++) {
-            for (g, g_array = n, g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
-                g.addVoid(this);
+        for (color = this.groups.length - 1; color >= 0; color--) {
+            groups = this.groups[color];
+            for (i = groups.length - 1; i >= 0; i--) {
+                groups[i].addVoid(this);
             }
         }
         if (main.debug) {
@@ -76,15 +79,14 @@ Void.prototype.toString = function () {
     return s;
 };
 
+function grpNdx(g) { return '#' + g.ndx; }
+
 Void.prototype.debugDump = function () {
     console.log(this.toString());
     for (var color = 0; color < this.groups.length; color++) {
-        console.log('    Color ' + color + ' (' + Grid.colorToChar(color) + '):');
-        for (var neighbor, neighbor_array = this.groups[color], neighbor_ndx = 0; neighbor=neighbor_array[neighbor_ndx], neighbor_ndx < neighbor_array.length; neighbor_ndx++) {
-            console.log(' #' + neighbor.ndx);
-        }
+        console.log('    Color ' + color + ' (' + Grid.colorToChar(color) + '): ' +
+            this.groups[color].map(grpNdx));
     }
-    console.log('\n');
 };
 
 
@@ -135,28 +137,16 @@ BoardAnalyser.prototype.debugDump = function () {
         v.debugDump();
     }
     if (this.scores) {
-        console.log('\nGroups with 2 eyes or more: ');
+        var eyes = [[], [], []];
         this.allGroups.forEach(function (g) {
-            if (g.eyes.length >= 2) {
-                console.log(g.ndx + ',');
-            }
+            eyes[g.eyes.length > 1 ? 2 : g.eyes.length].push(g);
         });
-        console.log('\nGroups with 1 eye: ');
-        this.allGroups.forEach(function (g) {
-            if (g.eyes.length === 1) {
-                console.log(g.ndx + ',');
-            }
-        });
-        console.log('\nGroups with no eye: ');
-        this.allGroups.forEach(function (g) {
-            if (g.eyes.length === 0) {
-                console.log(g.ndx + ',');
-            }
-        });
-        console.log('\nScore:\n');
-        for (var i = 0; i < this.scores.length; i++) {
-            console.log('Player ' + i + ': ' + this.scores[i] + ' points');
-        }
+        console.log('\nGroups with 2 eyes or more: ' + eyes[2].map(grpNdx));
+        console.log('Groups with 1 eye: ' + eyes[1].map(grpNdx));
+        console.log('Groups with no eye: ' + eyes[0].map(grpNdx));
+        console.log('Score:' + this.scores.map(function (s, i) {
+            return ' player ' + i + ': ' + s + ' points';
+        }));
     }
 };
 
@@ -166,9 +156,7 @@ BoardAnalyser.prototype.findVoids = function () {
         main.log.debug('Find voids...');
     }
     var voidCode = Grid.ZONE_CODE;
-    this.allGroups.forEach(function (g) {
-        g.resetAnalysis();
-    });
+    this.allGroups.forEach(function (g) { g.resetAnalysis(); });
     this.allGroups.clear();
     this.voids.clear();
     var neighbors = [[], []];
