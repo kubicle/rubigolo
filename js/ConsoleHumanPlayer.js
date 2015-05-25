@@ -17,7 +17,7 @@ module.exports = ConsoleHumanPlayer;
 
 ConsoleHumanPlayer.prototype.getMove = function (color) {
     if (color === undefined) color = this.color;
-    this.goban.consoleDisplay();
+    console.log(this.goban.toString());
     console.log('What is ' + Grid.COLOR_NAMES[color] + '/' + Grid.COLOR_CHARS[color] + ' move? (or \'help\')');
     return this.getAnswer();
 };
