@@ -55,9 +55,5 @@ Spacer.prototype.evalMove = function (i, j) {
 };
 
 Spacer.prototype.distanceFromBorder = function (n) {
-    if (n - 1 < this.gsize - n) {
-        return n - 1;
-    } else {
-        return this.gsize - n;
-    }
+    return Math.min(n - 1, this.gsize - n);
 };
