@@ -27,6 +27,7 @@ module.exports = Stone;
 
 Stone.XY_AROUND = [[0, 1], [1, 0], [0, -1], [-1, 0]]; // top, right, bottom, left
 Stone.XY_DIAGONAL = [[1, 1], [1, -1], [-1, -1], [-1, 1]]; // top-right, bottom-right, bottom-left, top-left
+
 Stone.prototype.clear = function () {
     this.color = main.EMPTY;
     this.group = null;
@@ -59,6 +60,45 @@ Stone.prototype.asMove = function () {
 
 Stone.prototype.debugDump = function () {
     return this.toString(); // we could add more info
+};
+
+Stone.prototype.distanceFromBorder = function () {
+    var gsize = this.goban.gsize;
+    var i = this.i, j = this.j;
+    return Math.min(Math.min(i - 1, gsize - i), Math.min(j - 1, gsize - j));
+};
+
+Stone.prototype.diagonalStones = function (s) {
+    return [this.goban.stoneAt(this.i, s.j), this.goban.stoneAt(this.j, s.i)];
+};
+
+Stone.prototype.distance = function (s) {
+    var dx = Math.abs(s.i - this.i), dy = Math.abs(s.j - this.j);
+    if (dx + dy === 1) return 0; // already connected
+    var color = this.color, enemy = 1 - color;
+    var numEnemies = 0;
+    if (dx === 1 && dy === 1) { // hane
+        var diags = this.diagonalStones(s);
+        if (diags[0].color === color || diags[1].color === color) return 0;
+        if (diags[0].color === enemy) numEnemies++;
+        if (diags[1].color === enemy) numEnemies++;
+        if (numEnemies === 0) return 0; // safe hane
+        if (numEnemies === 1) return 1; // needs 1 move to connect
+        return 9; // cut!
+    }
+    if (dx + dy === 2) {
+        var between = this.goban.stoneAt((this.i + s.i) / 2, (this.j + s.j) /2);
+        if (between.color === color) return 0; // already connected
+        if (between.color === enemy) return between.group.lives;
+        for (var i = between.neighbors.length - 1; i >= 0; i--) {
+            if (between.neighbors[i].color === enemy) numEnemies++;
+        }
+        if (numEnemies === 0) return 0.5;
+        if (numEnemies === 1) return 1; // needs 1 move to connect
+        return 9; // cut!
+    }
+    //TODO: handle close-to-border special cases
+    return dx + dy;
 };
 
 // Returns the empty points around this stone
@@ -180,14 +220,13 @@ Stone.playAt = function (goban, i, j, color) {
 };
 
 Stone.prototype.die = function () {
-    // update_around_before_die
     this.color = main.EMPTY;
     this.group = null;
 };
 
 Stone.prototype.resuscitateIn = function (group) {
     this.group = group;
-    this.color = group.color; // update_around_on_new
+    this.color = group.color;
 };
 
 // Called to undo a single stone (the main undo feature relies on this)  
@@ -271,7 +310,7 @@ Stone.prototype.putDown = function (color) {
     }
     for (var a = 1; a <= allies.length - 1; a++) {
         this.group.merge(allies[a], this);
-    } // update_around_on_new
+    }
 };
 
 Stone.prototype.takeBack = function () {
@@ -283,10 +322,9 @@ Stone.prototype.takeBack = function () {
     for (var g, g_array = this.uniqueEnemies(this.color), g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
         g.notAttackedAnymore(this);
     }
-    // update_around_before_die
-    if (main.debugGroup) {
-        var logGroup = this.group;
-    }
+    var logGroup;
+    if (main.debugGroup) logGroup = this.group;
+
     this.group = null;
     this.color = main.EMPTY;
     Group.resuscitateFrom(this, this.goban);
@@ -298,7 +336,3 @@ Stone.prototype.takeBack = function () {
 Stone.prototype.setGroupOnMerge = function (newGroup) {
     this.group = newGroup;
 };
- // Not used anymore but could become handy again later // def update_around_on_new //   $log.debug("update_around_on_new #{self.debug_dump}") if $debug // end // Not used anymore but could become handy again later // def update_around_before_die //   $log.debug("update_around_before_die #{self.debug_dump}") if $debug // end
-// E02: unknown method: select(...)
-// E02: unknown method: map(...)
-// E02: unknown method: find_index(...)
