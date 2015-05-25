@@ -17,7 +17,6 @@ function Ui() {
   this.withCoords = true;
 
   this.scorer = new ScoreAnalyser();
-  this.createBoard();
   this.createControls();
   this.history = document.getElementById('history');
   this.output = document.getElementById('output');
@@ -25,11 +24,18 @@ function Ui() {
 //TMP module.exports = Ui;
 
 Ui.prototype.createBoard = function () {
+  if (this.boardSize === this.gsize) return; // already have the right board
+  this.boardSize = this.gsize;
+  var parentElt = document.getElementById('board');
+  parentElt.innerHTML = '';
   var config = { size: this.gsize, width: 600, section: { top: -0.5, left: -0.5, right: -0.5, bottom: -0.5 } };
-  this.board = new WGo.Board(document.getElementById('board'), config);
+  this.board = new WGo.Board(parentElt, config);
   if (this.withCoords) this.board.addCustomObject(WGo.Board.coordinates);
   var self = this;
-  this.board.addEventListener('click', function (x,y) { self.onClick(x,y); });
+  this.board.addEventListener('click', function (x,y) {
+    if (x < 0 || y < 0 || x >= self.gsize || y >= self.gsize) return;
+    self.onClick(x + 1, self.gsize - y);
+  });
 };
 
 // Color codes conversions WGo->Rubigolo
@@ -42,14 +48,17 @@ toWgoColor[main.EMPTY] = null;
 toWgoColor[main.BLACK] = WGo.B;
 toWgoColor[main.WHITE] = WGo.W;
 
-Ui.prototype.refreshBoard = function () {
+Ui.prototype.refreshBoard = function (force) {
   this.refreshHistory();
 
   for (var j = 0; j < this.gsize; j++) {
     for (var i = 0; i < this.gsize; i++) {
       var color = this.game.goban.color(i + 1, this.gsize - j);
       var wgoColor = toWgoColor[color];
+      
       var obj = this.board.obj_arr[i][j][0];
+      if (force) { obj = null; this.board.removeObjectsAt(i,j); }
+
       if (wgoColor === null) {
         if (obj) this.board.removeObjectsAt(i,j);
       } else if (!obj || obj.c !== wgoColor) {
@@ -73,11 +82,11 @@ Ui.prototype.showScoringBoard = function () {
         this.board.addObject({ x: i, y: j, type: 'mini', c: WGo.W });
         break;
       case Grid.DAME_COLOR:
-        this.board.addObject({ x: i, y: j, type: 'SL' });
+        this.board.addObject({ x: i, y: j, type: 'SL', c: 'grey' });
         break;
       case main.BLACK: case main.WHITE: break;
       case Grid.EMPTY_COLOR: break;
-      default: console.error(i,j,color)
+      default: console.error(i,j,color);
       }
     }
   }
@@ -96,26 +105,82 @@ Ui.prototype.refreshHistory = function () {
   this.history.innerHTML = txt;
 };
 
-Ui.prototype.newButton = function (name, label) {
-  var self = this;
-  var btn = this.ctrl[name] = document.createElement('button');
-  btn.className = 'gameButton';
+function newElement(type, className) {
+  var elt = document.createElement(type);
+  if (className) elt.className = className;
+  return elt;
+}
+
+function newButton(name, label, action) {
+  var btn = document.createElement('button');
+  btn.className = 'gameButton ' + name + 'Button';
   btn.innerText = label;
-  btn.addEventListener('click', function () {
-    self.onButton(name);
-  });
-  this.controls.appendChild(btn);
+  btn.addEventListener('click', action);
+  return btn;
+}
+
+function newInput(parent, name, label, init) {
+  var labelElt = parent.appendChild(newElement('span', 'inputLabel'));
+  labelElt.textContent = label + ':';
+  var inp = parent.appendChild(newElement('input', name + 'Input'));
+  if (init !== undefined) inp.value = init;
+  return inp;
+}
+
+Ui.prototype.newGameDialog = function () {
+  this.ctrl.newg.disabled = true;
+  var dialog = document.body.appendChild(newElement('div', 'newGameDialog'));
+  var form = dialog.appendChild(newElement('form'));
+  form.setAttribute('action',' ');
+  var options = form.appendChild(newElement('div'));
+  var size = newInput(options, 'size', 'Size', this.gsize);
+  var handicap = newInput(options, 'handicap', 'Handicap', this.handicap);
+  var aiColor = newInput(options, 'aiColor', 'AI plays', this.aiColor);
+  var moves = newInput(form, 'moves', 'Moves to load');
+  var self = this;
+  var okBtn = form.appendChild(newButton('start', 'OK', function (ev) {
+    ev.preventDefault();
+    self.gsize = parseInt(size.value) || 9;
+    self.handicap = parseInt(handicap.value) || 0;
+    self.aiColor = parseInt(aiColor.value) ? main.WHITE : main.BLACK;
+
+    self.startGame(moves.value);
+    document.body.removeChild(dialog);
+    self.ctrl.newg.disabled = false;
+  }));
+  okBtn.setAttribute('type','submit'); //style="display:none"
+};
+
+Ui.prototype.newButton = function (name, label, action) {
+  this.ctrl[name] = this.controls.appendChild(newButton(name, label, action));
 };
 
 Ui.prototype.createControls = function () {
   this.ctrl = {};
   this.controls = document.getElementById('controls');
-  this.newButton('pass', 'Pass');
-  this.newButton('undo', 'Undo');
-  this.newButton('resi', 'Resign');
-  this.newButton('accept', 'Accept');
-  this.newButton('refuse', 'Refuse');
-  this.newButton('newg', 'New game');
+  var self = this;
+  this.newButton('pass', 'Pass', function () {
+    self.game.playOneMove('pass');
+    self.letAiPlay();
+  });
+  this.newButton('undo', 'Undo', function () {
+    self.message('Undone AI move and your previous move');
+    self.playerMove('undo');
+  });
+  this.newButton('resi', 'Resign', function () {
+    self.game.playOneMove('resi');
+    self.computeScore();
+    self.checkEnd();
+  });
+  this.newButton('accept', 'Accept', function () {
+    self.acceptScore(true);
+  });
+  this.newButton('refuse', 'Refuse', function () {
+    self.acceptScore(false);
+  });
+  this.newButton('newg', 'New game', function () {
+    self.newGameDialog();
+  });
 };
 
 Ui.prototype.toggleControls = function () {
@@ -138,13 +203,19 @@ Ui.prototype.message = function (html, append) {
   this.output.innerHTML += html;
 };
 
-Ui.prototype.startGame = function () {
+Ui.prototype.startGame = function (firstMoves) {
+  this.createBoard();
   var game = this.game = new GameLogic();
   game.newGame(this.gsize, this.handicap);
   this.aiPlayer = new Ai1Player(game.goban, this.aiColor);
   this.toggleControls();
-  this.message('Game started. Your turn...');
-  this.refreshBoard();
+  this.message('Game started. Your turn...'); // player will not see this if AI plays below
+  this.refreshBoard(); // needed here to clean-up previous score counting if any
+  if (firstMoves) {
+    game.loadMoves(firstMoves);
+    this.refreshBoard();
+  }
+  if (this.aiColor === game.curColor) this.letAiPlay();
 };
 
 /** @return false if game goes on normally; true if special ending action was done */
@@ -160,49 +231,33 @@ Ui.prototype.checkEnd = function () {
   return false;
 };
 
+Ui.prototype.computeScore = function () {
+  this.scoreMsg = this.scorer.computeScore(this.game.goban, this.game.komi, this.game.whoResigned).join('<br>');
+};
+
 Ui.prototype.proposeScore = function () {
-  this.scorer.startScoring(this.game.goban, this.game.komi, this.game.whoResigned);
-  this.scoreMsg = this.scorer.getScore().join('<br>');
+  this.computeScore();
   this.message(this.scoreMsg);
   this.message('<br>Do you accept this score?', true);
   this.toggleControls();
+  this.refreshHistory();
   this.showScoringBoard();
 };
 
 Ui.prototype.acceptScore = function (acceptEnd) {
-  this.game.acceptEnding(acceptEnd);
+  var humanColor = 1 - this.aiColor; // if dispute, this is always human since AI did the counting
+  this.game.acceptEnding(acceptEnd, humanColor);
   if (acceptEnd) return this.showEnd();
 
   this.message('Score in dispute. Continue playing...');
   this.toggleControls();
-  this.refreshBoard();
+  this.refreshBoard(/*force=*/true);
 };
 
 Ui.prototype.showEnd = function () {
   this.message('Game ended.<br>' + this.scoreMsg + '<br>' + this.game.historyString());
   this.refreshHistory();
   this.toggleControls();
-};
-
-Ui.prototype.onButton = function (btnName) {
-  switch (btnName) {
-  case 'pass':
-    this.game.playOneMove(btnName);
-    return this.letAiPlay();
-  case 'resi':
-    this.game.playOneMove(btnName);
-    return this.checkEnd();
-  case 'undo':
-    return this.playerMove(btnName);
-  case 'accept':
-    return this.acceptScore(true);
-  case 'refuse':
-    return this.acceptScore(false, /*whoRefused=*/ 1 - this.aiColor);
-  case 'newg':
-    return this.startGame();
-  default:
-    throw new Error('Button not handled: ' + btnName);
-  }
 };
 
 Ui.prototype.playerMove = function (move) {
@@ -214,15 +269,17 @@ Ui.prototype.playerMove = function (move) {
   return true;
 };
 
+Ui.prototype.onClick = function (i, j) {
+  var move = Grid.moveAsString(i, j);
+  if (!this.playerMove(move)) return;
+
+  this.letAiPlay();
+};
+
 Ui.prototype.showAiMoveData = function (move) {
   var txt = 'AI: ' + move + '<br>';
-  var ev = this.aiPlayer.survey;
-  if (!ev) return this.message(txt);
-
-  for (var h in ev) {
-    if (ev[h] === 0) continue;
-    txt += h + ': ' + ev[h].toFixed(3) + '<br>';
-  }
+  txt += this.aiPlayer.getMoveSurveyText(1).replace(/\n/g, '<br>');
+  txt += this.aiPlayer.getMoveSurveyText(2).replace(/\n/g, '<br>');
   this.message(txt);
 };
 
@@ -241,14 +298,6 @@ Ui.prototype.letAiPlay = function () {
   // refresh what should be
   if (move === 'pass') return this.refreshHistory();
   this.refreshBoard();
-};
-
-Ui.prototype.onClick = function (x, y) {
-  if (x < 0 || y < 0 || x >= this.gsize || y >= this.gsize) return;
-  var move = Grid.moveAsString(x + 1, this.gsize - y);
-  if (!this.playerMove(move)) return;
-
-  this.letAiPlay();
 };
 
 var ui = new Ui();

@@ -9,16 +9,6 @@ h2 {
   margin-bottom: 5px;
   font-family: "Arial";
 }
-button {
-  margin-right: 10px;
-  border-radius: 10px;
-  width: 100px;
-  height: 40px;
-}
-.testButton {
-}
-.gameButton {
-}
 
 .logBox {
   font-size: 14px;
@@ -29,25 +19,29 @@ button {
   padding: 5px;
   overflow-y: auto;  
 }
-.outputBox {
-  height: 350px;
-  font-size: 14px;
+.controls {
+  width: 600px;
+  margin-top: 10px;
+  margin-bottom: 10px;
 }
-.errorBox {
-  height: 150px;
-  font-size: 14px;
-}
+
 
 .board {
 }
-.controls {
-  margin-top: 10px;
-  margin-bottom: 10px;
+.gameButton {
+  margin-right: 10px;
+  border-radius: 10px;
+  width: 100px;
+  height: 40px;
+}
+.resiButton {
+  margin-right: auto;
+  float: right;
 }
 .outputBox {
   height: 100px;
   width: 590px;
-  font-size: 20px;
+  font-size: 14px;
 }
 .historyBox {
   height: 590px;
@@ -58,4 +52,64 @@ button {
   font-size: 12px;
   font-family: "Courier";
   font-weight: bold;
+}
+
+.newGameDialog {
+  z-index: 1000;
+  position: absolute;
+  left: 25px;
+  top: 267px;
+  height: 120px;
+  width: 545px;
+  padding: 10px;
+  background-color: #ffe;
+  border: solid #cca 1px;
+  border-radius: 10px;
+}
+.newGameDialog .startButton {
+  position: absolute;
+  right: 0px;
+  bottom: 10px;
+}
+.newGameDialog .inputLabel {
+  font-family: Arial;
+}
+.newGameDialog .movesInput {
+  width: 50%;
+  margin: 10px;
+}
+.newGameDialog .inputLabel {
+  margin-left: 10px;
+}
+.newGameDialog .sizeInput {
+  margin-left: 5px;
+  width: 20px;
+  text-align: center;
+}
+.newGameDialog .handicapInput {
+  margin-left: 5px;
+  width: 20px;
+  text-align: center;
+}
+.newGameDialog .aiColorInput {
+  margin-left: 5px;
+  width: 20px;
+  text-align: center;
+}
+
+.testButton {
+  margin-right: 10px;
+  border-radius: 10px;
+  width: 100px;
+  height: 40px;
+}
+.testOutputBox {
+  height: 350px;
+  font-size: 14px;
+  word-wrap: break-word;
+}
+.testErrorBox {
+  height: 250px;
+  font-size: 14px;
+  font-family: 'Courier';
 }
