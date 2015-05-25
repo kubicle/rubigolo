@@ -13,7 +13,7 @@ var Genes = require('../Genes');
 
 
 /** @class
- *  public read-only attribute: goban, inf, ter, enemyColor, genes, lastMoveScore
+ *  public read-only attribute: goban, inf, ter, enemyColor, genes
  *  TODO: 
  *  - do not fill my own territory (potential territory recognition will use analyser.enlarge method)
  *  - identify all foolish moves (like NoEasyPrisoner but once for all) in a map that all heuristics can use
@@ -74,8 +74,60 @@ function score2str(i, j, score) {
     return Grid.moveAsString(i, j) + ':' + score.toFixed(3);
 }
 
+Ai1Player.prototype._foundSecondBestMove = function(i, j, score, survey) {
+    if (main.debug) {
+        main.log.debug('=> ' + score2str(i,j,score) + ' becomes 2nd best move');
+        if (this.secondBestI > 0) main.log.debug(' (replaces ' + score2str(this.secondBestI, this.secondBestJ, this.secondBestScore) + ')');
+    }
+    this.secondBestScore = score;
+    this.secondBestI = i; this.secondBestJ = j;
+    this.secondBestSurvey = survey;
+};
+
+Ai1Player.prototype._foundBestMove = function(i, j, score, survey) {
+    if (main.debug) {
+        if (this.numBestTwins > 1) {
+            main.log.debug('=> TWIN ' + score2str(i, j, score) + ' replaces equivalent best move ' + score2str(this.bestI, this.bestJ, this.bestScore));
+        } else {
+            main.log.debug('=> ' + score2str(i, j, score) + ' becomes the best move');
+        }
+    }
+    if (this.numBestTwins === 1) {
+        this._foundSecondBestMove(this.bestI, this.bestJ, this.bestScore, this.bestSurvey);
+    }
+    this.bestScore = score;
+    this.bestI = i; this.bestJ = j;
+    this.bestSurvey = survey;
+};
+
+Ai1Player.prototype._keepBestMoves = function(i, j, score) {
+    // Keep the best move and the 2nd best move
+    if (score < this.bestScore) {
+        this._foundSecondBestMove(i, j, score, this._takeSurvey());
+    } else if (score > this.bestScore) {
+        this.numBestTwins = 1; // number of moves with same best score (we randomly pick one of them)
+        this._foundBestMove(i, j, score, this._takeSurvey());
+    } else { // score === this.bestScore
+        this.numBestTwins++;
+        if (Math.random() * this.numBestTwins >= 1) return; // keep current twin if it does not win
+        this._foundBestMove(i, j, score, this._takeSurvey());
+    }
+};
+
+// "Use" the current survey (so we start another one)
+// We do this simply to avoid creating tons of temporary maps
+Ai1Player.prototype._takeSurvey = function () {
+    var survey = this.survey;
+    this.survey = {};
+    return survey;
+};
+
 // Returns the move chosen (e.g. c4 or pass)
-// One can check last_move_score to see the score of the move returned
+// You can also check:
+//   player.bestScore to see the score of the move returned
+//   player.bestSurvey to see details about this score
+//   player.secondBestScore
+//   player.secondBestSurvey
 Ai1Player.prototype.getMove = function () {
     this.numMoves++;
     if (this.numMoves >= this.gsize * this.gsize) { // force pass after too many moves
@@ -83,63 +135,41 @@ Ai1Player.prototype.getMove = function () {
         return 'pass';
     }
     this.prepareEval();
-    var bestScore = this.minimumScore, secondBest = this.minimumScore;
-    var bestI = -1, bestJ;
-    var bestNumTwin = 0; // number of moves with same best score (so we can randomly pick any of them)
-    var bestSurvey;
-    this.survey = {};
+
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
-            var score = this.evalMove(i, j, secondBest);
-            if (score <= secondBest) continue;
-            // Keep the best move and the 2nd best move
-            if (score < bestScore) {
-                if (main.debug) {
-                    main.log.debug('=> ' + score2str(i,j,score) + ' becomes 2nd best move (best is ' + score2str(bestI, bestJ, bestScore) + ')');
-                }
-                secondBest = score;
-            } else if (score > bestScore) {
-                secondBest = bestScore;
-                bestSurvey = this.survey;
-                this.survey = {};
-                if (main.debug) {
-                    main.log.debug('=> ' + score2str(i, j, score) + ' becomes the best move');
-                    if (bestI > 0) main.log.debug(' (2nd best is ' + score2str(bestI, bestJ, bestScore) + ')');
-                }
-                bestScore = score; bestNumTwin = 1;
-                bestI = i; bestJ = j;
-            } else { // score === bestScore
-                bestNumTwin++;
-                if (~~(Math.random()*~~(bestNumTwin)) === 0) {
-                    if (main.debug) {
-                        main.log.debug('=> ' + score2str(i, j, score) + ' replaces equivalent best move ' + score2str(bestI, bestJ, bestScore));
-                    }
-                    bestScore = score;
-                    bestI = i; bestJ = j;
-                }
-            }
+            var score = this._evalMove(i, j, this.secondBestScore);
+            if (score > this.secondBestScore) this._keepBestMoves(i, j, score);
         }
     }
-    this.lastMoveScore = bestScore;
-    this.survey = bestSurvey;
-    if (bestScore <= this.minimumScore) {
+    if (this.bestScore <= this.minimumScore) {
         if (main.debug) main.log.debug('AI is passing...');
         return 'pass';
     }
-    return Grid.moveAsString(bestI, bestJ);
+    return Grid.moveAsString(this.bestI, this.bestJ);
 };
 
 Ai1Player.prototype.prepareEval = function () {
+    this.bestScore = this.secondBestScore = this.minimumScore;
+    this.bestI = this.bestJ = -1;
+    this.survey = {};
+
     this.inf.buildMap();
-    return this.ter.guessTerritories();
+    this.ter.guessTerritories();
 };
 
 /** Can be called from the outside for tests, but prepareEval must be called first */
-Ai1Player.prototype.evalMove = function (i, j, minScore) {
+Ai1Player.prototype.evalMove = function (i, j) {
+    var score = this._evalMove(i, j, 0);
+    this._foundBestMove(i, j, score, this._takeSurvey());
+    return score;
+};
+
+Ai1Player.prototype._evalMove = function (i, j, minScore) {
     if (!Stone.validMove(this.goban, i, j, this.color)) {
-        return 0.0;
+        return 0;
     }
-    var score = 0.0, s;
+    var score = 0, s;
     // run all positive heuristics
     for (var h, h_array = this.heuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
         s = h.evalMove(i, j);
@@ -147,12 +177,12 @@ Ai1Player.prototype.evalMove = function (i, j, minScore) {
         score += s;
     }
     // we run negative heuristics only if this move was a potential candidate
-    if (minScore && score < minScore) return score;
+    if (score < minScore) return score;
     for (h, h_array = this.negativeHeuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
         s = h.evalMove(i, j);
         if (this.survey) { this.survey[h.constructor.name] = s; }
         score += s;
-        if (minScore && score < minScore) break;
+        if (score < minScore) break;
     }
     return score;
 };
@@ -167,3 +197,25 @@ Ai1Player.prototype._testHeuristic = function (i, j, heuristicName) {
     }
     throw new Error('Invalid heuristic name: ' + heuristicName);
 };
+
+Ai1Player.prototype.getMoveSurveyText = function (rank) {
+    var survey, score, move;
+    switch (rank) {
+    case 1:
+        survey = this.bestSurvey; score = this.bestScore;
+        move = Grid.moveAsString(this.bestI, this.bestJ);
+        break;
+    case 2:
+        survey = this.secondBestSurvey; score = this.secondBestScore;
+        move = Grid.moveAsString(this.secondBestI, this.secondBestJ);
+        break;
+    }
+    if (!survey) return '';
+    var txt = 'Stats of ' + move + ' (' + score.toFixed(3) + '):\n';
+    for (var h in survey) {
+        if (survey[h] === 0) continue;
+        txt += '- ' + h + ': ' + survey[h].toFixed(3) + '\n';
+    }
+    return txt;
+};
+
