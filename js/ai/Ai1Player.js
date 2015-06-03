@@ -11,6 +11,8 @@ var InfluenceMap = require('../InfluenceMap');
 var PotentialTerritory = require('../PotentialTerritory');
 var Genes = require('../Genes');
 
+var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
+
 
 /** @class
  *  public read-only attribute: goban, inf, ter, enemyColor, genes
@@ -77,7 +79,7 @@ function score2str(i, j, score) {
 Ai1Player.prototype._foundSecondBestMove = function(i, j, score, survey) {
     if (main.debug) {
         main.log.debug('=> ' + score2str(i,j,score) + ' becomes 2nd best move');
-        if (this.secondBestI > 0) main.log.debug(' (replaces ' + score2str(this.secondBestI, this.secondBestJ, this.secondBestScore) + ')');
+        if (this.secondBestI !== NO_MOVE) main.log.debug(' (replaces ' + score2str(this.secondBestI, this.secondBestJ, this.secondBestScore) + ')');
     }
     this.secondBestScore = score;
     this.secondBestI = i; this.secondBestJ = j;
@@ -88,7 +90,7 @@ Ai1Player.prototype._foundBestMove = function(i, j, score, survey) {
     if (main.debug) {
         if (this.numBestTwins > 1) {
             main.log.debug('=> TWIN ' + score2str(i, j, score) + ' replaces equivalent best move ' + score2str(this.bestI, this.bestJ, this.bestScore));
-        } else {
+        } else if (this.bestI !== NO_MOVE) {
             main.log.debug('=> ' + score2str(i, j, score) + ' becomes the best move');
         }
     }
@@ -134,7 +136,7 @@ Ai1Player.prototype.getMove = function () {
         main.log.error('Forcing AI pass since we already played ' + this.numMoves);
         return 'pass';
     }
-    this.prepareEval();
+    this._prepareEval();
 
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
@@ -149,20 +151,18 @@ Ai1Player.prototype.getMove = function () {
     return Grid.moveAsString(this.bestI, this.bestJ);
 };
 
-Ai1Player.prototype.prepareEval = function () {
+Ai1Player.prototype._prepareEval = function () {
     this.bestScore = this.secondBestScore = this.minimumScore;
-    this.bestI = this.bestJ = -1;
+    this.bestI = this.secondBestI = NO_MOVE;
     this.survey = {};
 
     this.inf.buildMap();
     this.ter.guessTerritories();
 };
 
-/** Can be called from the outside for tests, but prepareEval must be called first */
-Ai1Player.prototype.evalMove = function (i, j) {
-    var score = this._evalMove(i, j, 0);
-    this._foundBestMove(i, j, score, this._takeSurvey());
-    return score;
+/** Called by heuristics if they decide to stop looking further (rare cases) */
+Ai1Player.prototype.markMoveAsBlunder = function (reason) {
+    this.blunderMove = reason;
 };
 
 Ai1Player.prototype._evalMove = function (i, j, minScore) {
@@ -170,10 +170,15 @@ Ai1Player.prototype._evalMove = function (i, j, minScore) {
         return 0;
     }
     var score = 0, s;
+    this.blunderMove = null;
     // run all positive heuristics
     for (var h, h_array = this.heuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
         s = h.evalMove(i, j);
         if (this.survey) { this.survey[h.constructor.name] = s; }
+        if (this.blunderMove) {
+            main.log.debug(Grid.moveAsString(i, j) + ' seen as blunder: ' + this.blunderMove);
+            return 0;
+        }
         score += s;
     }
     // we run negative heuristics only if this move was a potential candidate
@@ -188,8 +193,17 @@ Ai1Player.prototype._evalMove = function (i, j, minScore) {
 };
 
 /** For tests */
+Ai1Player.prototype._testMoveEval = function (i, j) {
+    this._prepareEval();
+    var score = this._evalMove(i, j, 0);
+    this._foundBestMove(i, j, score, this._takeSurvey());
+    return score;
+};
+
+/** For tests */
 Ai1Player.prototype._testHeuristic = function (i, j, heuristicName) {
-    for (var n = this.heuristics.length -1; n >= 0; n--) {
+    this._prepareEval();
+    for (var n = this.heuristics.length - 1; n >= 0; n--) {
         var h = this.heuristics[n];
         if (h.constructor.name === heuristicName) {
             return h.evalMove(i, j);
@@ -202,10 +216,12 @@ Ai1Player.prototype.getMoveSurveyText = function (rank) {
     var survey, score, move;
     switch (rank) {
     case 1:
+        if (this.bestI === NO_MOVE) break;
         survey = this.bestSurvey; score = this.bestScore;
         move = Grid.moveAsString(this.bestI, this.bestJ);
         break;
     case 2:
+        if (this.secondBestI === NO_MOVE) break;
         survey = this.secondBestSurvey; score = this.secondBestScore;
         move = Grid.moveAsString(this.secondBestI, this.secondBestJ);
         break;
