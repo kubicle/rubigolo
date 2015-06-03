@@ -84,8 +84,8 @@ TestGroup.prototype.testGroupKill = function () {
     assertEqual(5, bg.lives); // black group has now 5 lives
     assertEqual(0, g.lives); // dead
     assertEqual(s, g.killedBy);
-    assertEqual(true, this.goban.stoneAt(1, 5).empty());
-    return assertEqual(true, this.goban.stoneAt(1, 4).empty());
+    assertEqual(true, this.goban.stoneAt(1, 5).isEmpty());
+    return assertEqual(true, this.goban.stoneAt(1, 4).isEmpty());
 };
 
 // Shape like  O <- the new stone brings only 2 lives
