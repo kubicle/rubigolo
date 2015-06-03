@@ -71,9 +71,9 @@ TestSeries.prototype.testOneClass = function (Klass) {
     if (typeof Klass.prototype[method] !== 'function') continue;
     if (method.substr(0,4) !== 'test') continue;
     this.testCount++;
-    var obj = new Klass(Klass.name + '#' + method);
+    var test = new Klass(Klass.name + '#' + method);
     try {
-      obj[method].call(obj);
+      test[method].call(test);
     } catch(e) {
       var header = 'Test failed';
       if (e.message.startWith(FAILED_ASSERTION_MSG)) {
@@ -82,7 +82,7 @@ TestSeries.prototype.testOneClass = function (Klass) {
         header += ' with exception';
         this.errorCount++;
       }
-      main.log.error(header + ': ' + obj.testName + ': ' + e.message + '\n' + e.stack);
+      main.log.error(header + ': ' + test.name + ': ' + e.message + '\n' + e.stack);
     }
   }
 };
@@ -109,8 +109,8 @@ TestSeries.prototype.run = function (logfunc, specificClass) {
 
 
 /** @class */
-function TestCase(testName) {
-  this.testName = testName;
+function TestCase(name) {
+  this.name = name;
 }
 
 function _fail(msg, comment) {
