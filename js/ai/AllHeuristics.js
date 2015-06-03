@@ -11,6 +11,6 @@ var Pusher = require('./Pusher');
 var NoEasyPrisoner = require('./NoEasyPrisoner');
 
 var allHeuristics = function () {
-    return [Spacer, Executioner, Savior, Hunter, Connector, Pusher, NoEasyPrisoner];
+    return [Executioner, Savior, Hunter, Connector, Spacer, Pusher, NoEasyPrisoner];
 };
 module.exports = allHeuristics;
