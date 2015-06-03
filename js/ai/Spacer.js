@@ -3,10 +3,10 @@
 
 var inherits = require('util').inherits;
 var main = require('../main');
-// Vague idea that playing where we already have influence is moot.
+var Grid = require('../Grid');
 var Heuristic = require('./Heuristic');
 
-/** @class */
+/** @class Tries to occupy empty space + counts when filling up territory */
 function Spacer(player) {
     Heuristic.call(this, player);
     this.inflCoeff = this.getGene('infl', 2.0, 0.0, 8.0);
@@ -44,14 +44,11 @@ Spacer.prototype.evalMove = function (i, j) {
     // TESTME
     // remove points only if we fill up our own territory
     var ter = this.ter.potential().yx;
-    var fillOwnTer = ( this.color === main.BLACK ? ter[j][i] : -ter[j][i] );
-    if (fillOwnTer > 0) { // filling up enemy's space is not looked at here
-        fillOwnTer = 0;
+    var fillTer = ter[j][i] * ( this.color === main.BLACK ? 1 : -1);
+    if (main.debug && fillTer !== 0) {
+        main.log.debug('Spacer sees potential territory score ' + fillTer + ' in ' + Grid.moveAsString(i, j));
     }
-    if (main.debug && fillOwnTer !== 0) {
-        main.log.debug('Spacer sees potential territory score ' + fillOwnTer + ' in ' + i + ',' + j);
-    }
-    return fillOwnTer + 1.33 / (totalInf * this.inflCoeff + dc * this.cornerCoeff + 1);
+    return fillTer + 1.33 / (totalInf * this.inflCoeff + dc * this.cornerCoeff + 1);
 };
 
 Spacer.prototype.distanceFromBorder = function (n) {
