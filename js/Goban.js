@@ -123,7 +123,7 @@ Goban.prototype.validMove = function (i, j) {
     if (i < 1 || i > this.gsize || j < 1 || j > this.gsize) {
         return false;
     }
-    return this.ban[j][i].empty();
+    return this.ban[j][i].isEmpty();
 };
 
 Goban.prototype.stoneAt = function (i, j) {
@@ -139,8 +139,8 @@ Goban.prototype.color = function (i, j) {
 };
 
 // No validity test here
-Goban.prototype.empty = function (i, j) {
-    return this.ban[j][i].empty();
+Goban.prototype.isEmpty = function (i, j) {
+    return this.ban[j][i].isEmpty();
 };
 
 Goban.prototype.moveNumber = function () {
