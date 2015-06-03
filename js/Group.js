@@ -9,12 +9,11 @@ var main = require('./main');
  *  and whatever status information we need to decide what happens to a group (e.g. when a
  *  group is killed or merged with another group, etc.).
  *  Note that most of the work here is to keep this status information up to date.
- *  public read-only attribute: goban, stones, lives, color
- *  public read-only attribute: mergedWith, mergedBy, killedBy, ndx
- *  public write attribute: mergedWith, mergedBy, extraLives  *  only used in this file
- *  public read-only attribute: eyes, voids, extraLives  *  for analyser
+ *    public read-only attribute: goban, stones, lives, color
+ *    public read-only attribute: mergedWith, mergedBy, killedBy, ndx
+ *    public write attribute: mergedWith, mergedBy, extraLives  *  only used in this file
  *  Create a new group. Always with a single stone.
- *  Do not call this using Group.new but Goban#new_group instead.
+ *  Do not call this using Group.new but Goban#newGroup instead.
  */
 function Group(goban, stone, lives, ndx) {
     this.goban = goban;
@@ -25,11 +24,8 @@ function Group(goban, stone, lives, ndx) {
     this.mergedBy = null; // a stone
     this.killedBy = null; // a stone
     this.ndx = ndx; // unique index
-    this.voids = []; // for analyser: empty zones next to a group
-    this.eyes = []; // for analyser: eyes (i.e. void surrounded by a group)
-    this.extraLives = 0; // for analyser: lives granted by dying enemy nearby
     this._allEnemies = [];
-    this._allLives = []; // $log.debug("New group created #{self}") if $debug_group
+    this._allLives = [];
 }
 module.exports = Group;
 
@@ -39,11 +35,8 @@ Group.prototype.recycle = function (stone, lives) {
     this.lives = lives;
     this.color = stone.color;
     this.mergedWith = this.mergedBy = this.killedBy = null;
-    this.voids.clear();
-    this.eyes.clear();
     this._allEnemies.clear();
     this._allLives.clear();
-    // $log.debug("Use (new) recycled group #{self}") if $debug_group
     return this;
 };
 
@@ -81,32 +74,6 @@ Group.prototype.stonesDump = function () {
     return this.stones.map(function (s) {
         return s.asMove();
     }).sort().join(',');
-};
-
-// This also resets the eyes
-Group.prototype.resetAnalysis = function () {
-    this.extraLives = 0;
-    this.voids.clear();
-    return this.eyes.clear();
-};
-
-// Adds a void or an eye
-Group.prototype.addVoid = function (v, isEye) {
-    if (isEye === undefined) isEye = false;
-    if (isEye) {
-        return this.eyes.push(v);
-    } else {
-        return this.voids.push(v);
-    }
-};
-
-// For analyser  
-Group.prototype.countAsDead = function () {
-    for (var stone, stone_array = this.stones, stone_ndx = 0; stone=stone_array[stone_ndx], stone_ndx < stone_array.length; stone_ndx++) {
-        for (var enemy, enemy_array = stone.uniqueEnemies(this.color), enemy_ndx = 0; enemy=enemy_array[enemy_ndx], enemy_ndx < enemy_array.length; enemy_ndx++) {
-            enemy.extraLives += 1;
-        }
-    }
 };
 
 // Builds a list of all lives of the group
@@ -256,8 +223,8 @@ Group.prototype.merge = function (subgroup, byStone) {
         s.setGroupOnMerge(this);
         this.connectStone(s, true);
     }
-    subgroup.mergedWith=(this);
-    subgroup.mergedBy=(byStone);
+    subgroup.mergedWith = this;
+    subgroup.mergedBy = byStone;
     this.goban.mergedGroups.push(subgroup);
     if (main.debugGroup) {
         return main.log.debug('After merge: subgroup:' + subgroup + ' main:' + this);
@@ -273,7 +240,7 @@ Group.prototype.unmerge = function (subgroup) {
         this.disconnectStone(s, true);
         s.setGroupOnMerge(subgroup);
     }
-    subgroup.mergedBy=(subgroup.mergedWith=(null));
+    subgroup.mergedBy = subgroup.mergedWith = null;
     if (main.debugGroup) {
         return main.log.debug('After unmerge: subgroup:' + subgroup + ' main:' + this);
     }
@@ -339,8 +306,3 @@ Group.prisoners = function (goban) {
     }
     return prisoners;
 };
-
-// E02: unknown method: map(...)
-// E02: unknown method: find_index(...)
-// E02: unknown method: merged_with=(...)
-// E02: unknown method: merged_by=(...)
