@@ -62,64 +62,6 @@ Stone.prototype.debugDump = function () {
     return this.toString(); // we could add more info
 };
 
-Stone.prototype.distanceFromBorder = function () {
-    var gsize = this.goban.gsize;
-    var i = this.i, j = this.j;
-    return Math.min(Math.min(i - 1, gsize - i), Math.min(j - 1, gsize - j));
-};
-
-Stone.prototype.diagonalStones = function (s) {
-    return [this.goban.stoneAt(this.i, s.j), this.goban.stoneAt(this.j, s.i)];
-};
-
-Stone.prototype.distance = function (s) {
-    var dx = Math.abs(s.i - this.i), dy = Math.abs(s.j - this.j);
-    if (dx + dy === 1) return 0; // already connected
-    var color = this.color, enemy = 1 - color;
-    var numEnemies = 0;
-    if (dx === 1 && dy === 1) { // hane
-        var diags = this.diagonalStones(s);
-        if (diags[0].color === color || diags[1].color === color) return 0;
-        if (diags[0].color === enemy) numEnemies++;
-        if (diags[1].color === enemy) numEnemies++;
-        if (numEnemies === 0) return 0; // safe hane
-        if (numEnemies === 1) return 1; // needs 1 move to connect
-        return 9; // cut!
-    }
-    if (dx + dy === 2) {
-        var between = this.goban.stoneAt((this.i + s.i) / 2, (this.j + s.j) /2);
-        if (between.color === color) return 0; // already connected
-        if (between.color === enemy) return between.group.lives;
-        for (var i = between.neighbors.length - 1; i >= 0; i--) {
-            if (between.neighbors[i].color === enemy) numEnemies++;
-        }
-        if (numEnemies === 0) return 0.5;
-        if (numEnemies === 1) return 1; // needs 1 move to connect
-        return 9; // cut!
-    }
-    //TODO: handle close-to-border special cases
-    return dx + dy;
-};
-
-// Returns the empty points around this stone
-Stone.prototype.empties = function () {
-    var empties = [], neighbors = this.neighbors;
-    for (var i = neighbors.length - 1; i >= 0; i--) {
-        var s = neighbors[i];
-        if (s.color === main.EMPTY) empties.push(s);
-    }
-    return empties;
-};
-
-// Number of empty points around this stone
-Stone.prototype.numEmpties = function () {
-    var count = 0, neighbors = this.neighbors;
-    for (var i = neighbors.length - 1; i >= 0; i--) {
-        if (neighbors[i].color === main.EMPTY) count++;
-    }
-    return count;
-};
-
 // Returns a string with the list of empty points, sorted (debug only)
 Stone.prototype.emptiesDump = function () {
     return this.empties().map(function (s) {
@@ -127,7 +69,7 @@ Stone.prototype.emptiesDump = function () {
     }).sort().join(',');
 };
 
-Stone.prototype.empty = function () {
+Stone.prototype.isEmpty = function () {
     return this.color === main.EMPTY;
 };
 
@@ -151,16 +93,14 @@ Stone.validMove = function (goban, i, j, color) {
 // or if one enemy group will be killed
 // or if the result of the merge of ally groups will have more than 0 life
 Stone.prototype.moveIsSuicide = function (color) {
-    for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
+    for (var i = this.neighbors.length - 1; i >= 0; i--) {
+        var s = this.neighbors[i];
         if (s.color === main.EMPTY) {
             return false;
-        }
-        if (s.color !== color) {
-            if (s.group.lives === 1) {
-                return false;
-            }
-        } else if (s.group.lives > 1) {
-            return false;
+        } else if (s.color !== color) {
+            if (s.group.lives === 1) return false; // we kill 1 group
+        } else {
+            if (s.group.lives > 1) return false; // our neighbor group will still have lives left
         }
     }
     // $log.debug("move #{@i}, #{@j}, color:#{color} would be a suicide") if $debug
@@ -175,7 +115,7 @@ Stone.prototype.moveIsKo = function (color) {
     // Must kill a single group
     var groupA = null;
     var res = true;
-    this.eachEnemy(color, function (enemy) {
+    this.eachAlly(1 - color, function (enemy) {
         if (enemy.lives !== 1) {
             return;
         }
@@ -241,50 +181,6 @@ Stone.undo = function (goban) {
     return stone.takeBack();
 };
 
-// Iterate through enemy groups and calls the given block
-// (same group appears more than once if it faces the stone 2 times or more)
-// Example: +@@+
-//          +@O+ <- for stone O, the @ group will be selected 2 times
-//          ++++
-Stone.prototype.eachEnemy = function (allyColor, cb) {
-    for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
-        if (s.color !== main.EMPTY && s.color !== allyColor) {
-            cb(s.group);
-        }
-    }
-};
-
-Stone.prototype.uniqueEnemies = function (allyColor) {
-    this.enemies.clear();
-    for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
-        if (s.color !== main.EMPTY && s.color !== allyColor && !this.enemies.contains(s.group)) {
-            this.enemies.push(s.group);
-        }
-    }
-    return this.enemies;
-};
-
-// Iterate through our groups and calls the given block
-// (same group appears more than once if it faces the stone 2 times or more)
-// See also each_enemy
-Stone.prototype.eachAlly = function (allyColor, cb) {
-    for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
-        if (s.color === allyColor) {
-            cb(s.group);
-        }
-    }
-};
-
-Stone.prototype.uniqueAllies = function (color) {
-    this.allies.clear();
-    for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
-        if (s.color === color && !this.allies.contains(s.group)) {
-            this.allies.push(s.group);
-        }
-    }
-    return this.allies;
-};
-
 // Called for each new stone played
 Stone.prototype.putDown = function (color) {
     this.color = color;
@@ -335,4 +231,68 @@ Stone.prototype.takeBack = function () {
 
 Stone.prototype.setGroupOnMerge = function (newGroup) {
     this.group = newGroup;
+};
+
+// Returns the empty points around this stone
+Stone.prototype.empties = function () {
+    var empties = [], neighbors = this.neighbors;
+    for (var i = neighbors.length - 1; i >= 0; i--) {
+        var s = neighbors[i];
+        if (s.color === main.EMPTY) empties.push(s);
+    }
+    return empties;
+};
+
+// Number of empty points around this stone
+Stone.prototype.numEmpties = function () {
+    var count = 0, neighbors = this.neighbors;
+    for (var i = neighbors.length - 1; i >= 0; i--) {
+        if (neighbors[i].color === main.EMPTY) count++;
+    }
+    return count;
+};
+
+Stone.prototype.uniqueEnemies = function (allyColor) {
+    this.enemies.clear();
+    for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
+        if (s.color !== main.EMPTY && s.color !== allyColor && !this.enemies.contains(s.group)) {
+            this.enemies.push(s.group);
+        }
+    }
+    return this.enemies;
+};
+
+// Iterate through our groups and calls the given block
+// (same group appears more than once if it faces the stone 2 times or more)
+// Example: +@@+
+//          +@x+ <- for stone in x, the @ group will be selected 2 times
+//          ++++
+Stone.prototype.eachAlly = function (allyColor, cb) {
+    for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
+        if (s.color === allyColor) {
+            cb(s.group);
+        }
+    }
+};
+
+/** non unique groups! */
+Stone.prototype.allyStones = function (color, array) {
+    var count = 0, neighbors = this.neighbors;
+    for (var i = neighbors.length - 1; i >= 0; i--) {
+        if (neighbors[i].color === color) {
+            if (array) array.push(neighbors[i]);
+            count++;
+        }
+    }
+    return count;
+};
+
+Stone.prototype.uniqueAllies = function (color) {
+    this.allies.clear();
+    for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
+        if (s.color === color && !this.allies.contains(s.group)) {
+            this.allies.push(s.group);
+        }
+    }
+    return this.allies;
 };
