@@ -298,7 +298,7 @@ Group.resuscitateFrom = function (killerStone, goban) {
 };
 
 // Returns prisoners grouped by color of dead stones  
-Group.prisoners = function (goban) {
+Group.countPrisoners = function (goban) {
     var prisoners = [0, 0];
     for (var i = 1; i <= goban.killedGroups.length - 1; i++) {
         var g = goban.killedGroups[i];
