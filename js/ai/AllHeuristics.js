@@ -9,8 +9,10 @@ var Hunter = require('./Hunter');
 var Connector = require('./Connector');
 var Pusher = require('./Pusher');
 var NoEasyPrisoner = require('./NoEasyPrisoner');
+var Shaper = require('./Shaper');
+
 
 var allHeuristics = function () {
-    return [Executioner, Savior, Hunter, Connector, Spacer, Pusher, NoEasyPrisoner];
+    return [Executioner, Savior, Hunter, Connector, Spacer, Pusher, NoEasyPrisoner, Shaper];
 };
 module.exports = allHeuristics;
