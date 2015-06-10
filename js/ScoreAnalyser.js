@@ -71,7 +71,9 @@ ScoreAnalyser.prototype.scoreInfoToS = function (info) {
         throw new Error('Invalid score info');
     }
     var s = [];
-    s.push(this.scoreWinnerToS(totals));
+    var diff = totals[0] - totals[1];
+    s.push(this.scoreDiffToS(diff));
+
     for (var c = 0; c < 2; c++) {
         var detail = details[c];
         if (detail === null) {
@@ -85,45 +87,22 @@ ScoreAnalyser.prototype.scoreInfoToS = function (info) {
         var pris = detail[1];
         var komi = detail[2];
         var komiStr = (( komi > 0 ? ' + ' + komi + ' komi' : '' ));
-        s.push(Grid.colorName(c) + ' (' + Grid.colorToChar(c) + '): ' + this.pts(totals[c]) + ' (' + score + ' ' + ( pris < 0 ? '-' : '+' ) + ' ' + Math.abs(pris) + ' prisoners' + komiStr + ')');
+        s.push(Grid.colorName(c) + ' (' + Grid.colorToChar(c) + '): ' +
+            this.pts(totals[c]) + ' (' + score + ' ' +
+                ( pris < 0 ? '-' : '+' ) + ' ' + Math.abs(pris) + ' prisoners' +
+                komiStr + ')');
     }
     return s;
 };
 
 ScoreAnalyser.prototype.scoreDiffToS = function (diff) {
-    if (diff !== 0) {
-        var win = ( diff > 0 ? main.BLACK : main.WHITE );
-        return Grid.colorName(win) + ' wins by ' + this.pts(Math.abs(diff));
-    } else {
-        return 'Tie game';
-    }
+    if (diff === 0) return 'Tie game';
+    var win = ( diff > 0 ? main.BLACK : main.WHITE );
+    return Grid.colorName(win) + ' wins by ' + this.pts(Math.abs(diff));
 };
 
-ScoreAnalyser.prototype.scoreWinnerToS = function (totals) {
-    if (totals.length === 2) {
-        var diff = totals[0] - totals[1];
-        return this.scoreDiffToS(diff);
-    } else {
-        var max = Math.max.apply(Math, totals);
-        var winners = [];
-        for (var c = 0; c < totals.length; c++) {
-            if (totals[c] === max) {
-                winners.push(c);
-            }
-        }
-        if (winners.length === 1) {
-            return Grid.colorName(winners[0]) + ' wins with ' + this.pts(max);
-        } else {
-            return 'Tie between ' + winners.map(function (w) {
-                return '' + Grid.colorName(w);
-            }).join(' & ') + ', ' + ( winners.length === 2 ? 'both' : 'all' ) + ' with ' + this.pts(max);
-        }
-    }
-};
+//private
 
-//private;
 ScoreAnalyser.prototype.pts = function (n) {
     return ( n !== 1 ? n + ' points' : '1 point' );
 };
-
-// E02: unknown method: map(...)
