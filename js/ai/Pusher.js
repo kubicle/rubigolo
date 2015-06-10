@@ -28,7 +28,10 @@ Pusher.prototype.evalMove = function (i, j) {
     }
     if (!this.canConnect(i, j, this.color)) return 0;
 
-    var score = 0.33 * (this.enemyCoeff * enemyInf - this.allyCoeff * allyInf);
+    var fillTer = this.territoryScore(i, j, this.color);
+    if (fillTer < 0) fillTer = 0; // Spacer will count <0 scores
+
+    var score = fillTer + 0.33 * (this.enemyCoeff * enemyInf - this.allyCoeff * allyInf);
     if (main.debug) {
         main.log.debug('Pusher heuristic sees influences ' + allyInf + ' - ' + enemyInf + ' at ' + i + ',' + j + ' -> ' + '%.03f'.format(score));
     }

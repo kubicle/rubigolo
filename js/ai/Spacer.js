@@ -9,46 +9,42 @@ var Heuristic = require('./Heuristic');
 /** @class Tries to occupy empty space + counts when filling up territory */
 function Spacer(player) {
     Heuristic.call(this, player);
-    this.inflCoeff = this.getGene('infl', 2.0, 0.0, 8.0);
-    this.cornerCoeff = this.getGene('corner', 2.0, 0.0, 8.0);
+    this.inflCoeff = this.getGene('infl', 2, 1, 4);
+    this.borderCoeff = this.getGene('border', 1, 0, 2);
 }
 inherits(Spacer, Heuristic);
 module.exports = Spacer;
 
 Spacer.prototype.evalMove = function (i, j) {
-    var enemyInf, allyInf;
-    enemyInf = allyInf = 0;
+    var enemyInf = 0, allyInf = 0;
     var stone = this.goban.stoneAt(i, j);
     var inf = this.inf.map[j][i];
     enemyInf += inf[this.enemyColor];
     allyInf += inf[this.color];
-    for (var s, s_array = stone.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
+    for (var n = stone.neighbors.length - 1; n >= 0; n--) {
+        var s = stone.neighbors[n];
         inf = this.inf.map[s.j][s.i];
         enemyInf += inf[this.enemyColor];
         allyInf += inf[this.color];
     }
-    var totalInf = enemyInf + allyInf;
-    var corner = 3;
+    var totalInf = enemyInf + allyInf - 3;
+    if (totalInf < 0) totalInf = 0;
+
     var dbX = this.distanceFromBorder(i);
     var dbY = this.distanceFromBorder(j);
-    var dcX = 1 + Math.abs((dbX - corner));
-    var dcY = 1 + Math.abs((dbY - corner));
-    var dc = dcX + dcY;
-    // hacky: why play on border if no one is around?
-    if (dbX < 2) {
-        totalInf += (20 * (2 - dbX)) / (totalInf + 1);
-    }
-    if (dbY < 2) {
-        totalInf += (20 * (2 - dbY)) / (totalInf + 1);
-    }
-    // TESTME
+    var rowCoeff = [0, 0.1, 0.8, 1, 0.95, 0.8];
+    var border = rowCoeff.length - 1;
+    if (dbX > border) dbX = border;
+    if (dbY > border) dbY = border;
+    var db = rowCoeff[dbX] * rowCoeff[dbY];
+    
     // remove points only if we fill up our own territory
-    var ter = this.ter.potential().yx;
-    var fillTer = ter[j][i] * ( this.color === main.BLACK ? 1 : -1);
-    if (main.debug && fillTer !== 0) {
-        main.log.debug('Spacer sees potential territory score ' + fillTer + ' in ' + Grid.moveAsString(i, j));
+    var fillTer = this.territoryScore(i, j, this.color);
+    if (fillTer > 0) fillTer = 0; // Pusher will count >0 scores
+    if (main.debug && fillTer < 0) {
+        main.log.debug('Spacer sees a territory loss of ' + fillTer + ' in ' + Grid.moveAsString(i, j));
     }
-    return fillTer + 1.33 / (totalInf * this.inflCoeff + dc * this.cornerCoeff + 1);
+    return fillTer + 10 * db * this.borderCoeff / (1 + totalInf * this.inflCoeff);
 };
 
 Spacer.prototype.distanceFromBorder = function (n) {
