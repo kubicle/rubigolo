@@ -687,76 +687,82 @@ var main = require('./main');
 var Grid = require('./Grid');
 var Group = require('./Group');
 var ZoneFiller = require('./ZoneFiller');
+var Shaper = require('./ai/Shaper');
+
+
+var BLACK = main.BLACK, WHITE = main.WHITE;
+var ALIVE = 1000;
 
 
 /** @class Class used by BoardAnalyser class.
  *  A void in an empty zone surrounded by (and including) various groups.
  *  NB: when a void has a single color around; we call this an eye. Can be discussed...
- *  public read-only attribute: code, i, j, vcount, groups, eyeColor, owner
+ *  public read-only attribute: code, i, j, vcount, groups, owner
  *  code is the void code (like a color but higher index)
  *  neighbors is an array of n arrays, with n == number of colors
  */
 function Void(analyser, code, i, j, vcount, neighbors) {
-    this.analyzer = analyser;
-    this.goban = analyser.goban;
+    this.analyzer = analyser; //TODO remove this if not used
+    this.goban = analyser.goban; //TODO remove this if not used
     this.code = code;
     this.i = i;
     this.j = j;
     this.vcount = vcount;
     this.groups = neighbors; // neighboring groups (array of arrays; 1st index is color)
-    this.eyeColor = null; // stays nil if not an eye
-    this.owner = null;
+    this.vtype = undefined; // see vXXX contants below
+    this.owner = undefined; // BLACK or WHITE, or undefined if no clear owner
 }
 module.exports = Void;
 
-// Call it once. Populates @eye_color
-// @eye_color stays nil if there is more than 1 color around (not an eye) or full board empty
-Void.prototype.eyeCheck = function () {
-    var hasBlack = this.groups[main.BLACK].length > 0;
-    var hasWhite = this.groups[main.WHITE].length > 0;
-    var oneColor = null;
-    if (hasBlack) {
-        if (!hasWhite) {
-            oneColor = main.BLACK;
-        }
-    } else if (hasWhite) {
-        oneColor = main.WHITE;
+var vEYE = 4, vFAKE_EYE = 3, vBATTLED = 2, vDAME = 1;
+
+Void.prototype.changeType = function (vtype) {
+    var oldType = this.vtype;
+    this.vtype = vtype;
+
+    if (this.owner === undefined) return; // did not have owner, nothing more to do
+    var groups = this.groups[this.owner];
+    if (this.vtype === vDAME) {
+        if (main.debug) main.log.debug(this + ' is now considered neutral ("dame")');
+        this.owner = undefined;
     }
-    this.eyeColor = oneColor;
+
+    for (var i = groups.length - 1; i >= 0; i--) {
+        groups[i]._info.onVoidTypeChange(this, oldType);
+    }
+};
+
+Void.prototype.setOwner = function (vtype, color) {
+    this.vtype = vtype;
+    this.owner = color;
+
     // Now tell the groups about this void
-    var color, groups, i;
-    if (oneColor !== null) {
-        this.setOwner(oneColor);
-        for (color = this.groups.length - 1; color >= 0; color--) {
-            groups = this.groups[color];
-            for (i = groups.length - 1; i >= 0; i--) {
-                groups[i].addVoid(this, true);
-            }
-        }
-        if (main.debug) {
-            return main.log.debug('Color ' + oneColor + ' surrounds ' + this + ' (eye)');
-        }
-    } else {
-        for (color = this.groups.length - 1; color >= 0; color--) {
-            groups = this.groups[color];
-            for (i = groups.length - 1; i >= 0; i--) {
-                groups[i].addVoid(this);
-            }
-        }
-        if (main.debug) {
-            return main.log.debug(this + ' has to be sorted out...');
+    var groups = this.groups[color];
+    for (var i = groups.length - 1; i >= 0; i--) {
+        groups[i]._info.addVoid(this);
+    }
+    if (main.debug) {
+        switch (vtype) {
+        case vEYE: main.log.debug('Color ' + Grid.colorName(color) + ' surrounds ' + this + ' (=> eye)'); break;
+        case vFAKE_EYE: main.log.debug(this + ' identified as fake eye'); break;
+        case vBATTLED: main.log.debug(this + ' seems to be owned by ' + Grid.colorName(color)); break;
+        default: throw new Error('Void#setOwner: invalid void type: ' + vtype);
         }
     }
 };
 
-Void.prototype.setOwner = function (color) {
-    this.owner = color;
+Void.prototype.getSingleOwner = function () {
+    var owner = this.owner;
+    if (owner === undefined) return null;
+    var groups = this.groups[owner];
+    if (groups.length > 1) return null;
+    return groups[0];
 };
 
 Void.prototype.toString = function () {
-    var s = 'void ' + this.code + ' (' + Grid.colorToChar(this.code) + '/' + this.i + ',' + this.j + '), vcount ' + this.vcount;
+    var s = 'void ' + this.code + '-' + Grid.colorToChar(this.code) + ' (' + Grid.moveAsString(this.i, this.j) + '), vcount ' + this.vcount;
     for (var color = 0; color < this.groups.length; color++) {
-        s += ', ' + this.groups[color].length + ' ' + Grid.COLOR_NAMES[color] + ' neighbors';
+        s += ', ' + this.groups[color].length + ' ' + Grid.colorName(color) + ' neighbors';
     }
     return s;
 };
@@ -771,40 +777,186 @@ Void.prototype.debugDump = function () {
     }
 };
 
+//---
+
+/** @class Contains the analyse results that are attached to each group */
+function GroupInfo(group) {
+    this.group = group;
+    this.eyeCount = 0;
+    this.voids = []; // empty zones next to a group
+    this.dependsOn = [];
+    this.brothers = []; // groups with which this group shares eyes
+//    this.extraLives = 0; // lives granted by dying enemy nearby
+}
+
+GroupInfo.prototype.toString = function () {
+    return this.group.toString();
+};
+
+// This also resets the eyes
+GroupInfo.prototype.resetAnalysis = function (group) {
+    this.group = group;
+    this.eyeCount = 0;
+    this.voids.clear();
+    this.dependsOn.clear();
+    this.brothers.clear();
+    this.isAlive = false;
+    this.isDead = false;
+//    this.extraLives = 0;
+};
+
+// Adds a void or an eye to an owner-group
+GroupInfo.prototype.addVoid = function (v) {
+    this.voids.push(v);
+    if (v.vtype === vEYE) {
+        this.eyeCount++;
+    }
+};
+
+GroupInfo.prototype.onVoidTypeChange = function (v, oldType) {
+    if (oldType === vEYE) {
+        this.eyeCount--;
+    }
+    if (v.vtype === vDAME) {
+        this._removeVoid(v);
+    }
+};
+
+GroupInfo.prototype._removeVoid = function (v) {
+    this.voids.splice(this.voids.indexOf(v), 1);
+};
+
+GroupInfo.prototype.addParentGroup = function (gi) {
+    if (main.debug) main.log.debug(this + ' depends on ' + gi);
+    this.dependsOn.push(gi);
+};
+
+GroupInfo.prototype.addBrotherGroup = function (gi) {
+    if (main.debug) main.log.debug(this + ' is brother of ' + gi);
+    this.brothers.push(gi);
+    gi.brothers.push(this);
+};
+
+/** Returns the (first) single eye (fully owned) of a group */
+GroupInfo.prototype.getSingleEye = function () {
+    for (var i = this.voids.length - 1; i >= 0; i--) {
+        var eye = this.voids[i];
+        if (eye.vtype === vEYE && eye.getSingleOwner()) return eye;
+    }
+    return null;
+};
+
+/** Returns a number telling how "alive" a group is. TODO: review this
+ *  Really basic logic for now.
+ *  - eyes and owned voids count for 1 point each
+ *  - non-owned voids (undetermined owner or enemy-owned void) count for 0
+ *  NB: for end-game counting, this logic is enough because undetermined situations
+ *  have usually all been resolved (or this means both players cannot see it...) */
+GroupInfo.prototype.liveliness = function () {
+    if (this.isAlive) return ALIVE;
+    if (this.isDead) return 0;
+
+    if (this.eyeCount >= 2) {
+        this.isAlive = true;
+        return ALIVE;
+    }
+    if (this.voids.length === 0) {
+        this.isDead = true;
+        return 0;
+    }
+
+    //TODO see fake eyes etc
+    // var count = 0;
+    // for (var i = this.voids.length - 1; i >= 0; i--) {
+    //     if (this.voids[i].xxx) count++;
+    // }
+    return this.voids.length;
+};
+
+GroupInfo.prototype.checkDoubleEye = function () {
+    return false; //TODO
+};
+
+GroupInfo.prototype.checkSingleEye = function () {
+    if (this.eyeCount !== 1) return false;
+    var eye = this.getSingleEye();
+    if (!eye) return false;
+    var coords = [];
+    if (Shaper.getEyeMakerMove(this.group.goban, eye.i, eye.j, eye.vcount, coords) === 0) return false;
+    this.isAlive = true;
+    return true;
+};
+
+GroupInfo.prototype.checkParents = function () {
+    if (!this.dependsOn.length) return false;
+    var allAreDead = true;
+    for (var n = this.dependsOn.length - 1; n >= 0; n--) {
+        var neighbor = this.dependsOn[n];
+        if (neighbor.isAlive) {
+            this.isAlive = true;
+            return true;
+        }
+        if (!neighbor.isDead) allAreDead = false;
+    }
+    if (!allAreDead) return false;
+    this.isDead = true;
+    return true;
+};
+
+GroupInfo.prototype.checkBrothers = function () {
+    if (!this.brothers.length) return false;
+    var numEyes = 1, oneIsAlive = false;
+    for (var n = this.brothers.length - 1; n >= 0; n--) {
+        var neighbor = this.brothers[n];
+        if (oneIsAlive || neighbor.isAlive) {
+            oneIsAlive = neighbor.isAlive = true;
+        } else {
+            numEyes += neighbor.eyeCount - 1;
+            if (numEyes >= 2) {
+                oneIsAlive = neighbor.isAlive = true;
+            }
+        }
+    }
+    if (!oneIsAlive) return false;
+    this.isAlive = true;
+    return true;
+};
+
+
+//---
 
 /** @class public read-only attribute: goban, scores, prisoners
  */
 function BoardAnalyser() {
     this.goban = null;
-    this.voids = [];
-    this.allGroups = new Set();
+    this.allVoids = [];
 }
 module.exports = BoardAnalyser;
 
-// Calling this method updates the goban to show the detected result.
+/** Calling this method updates the goban to show the detected result.
+ *  If grid is not given a new one will be created from goban */
 BoardAnalyser.prototype.countScore = function (goban, grid) {
-    if (grid === undefined) grid = null;
-    if (main.debug) {
-        main.log.debug('Counting score...');
-    }
+    if (main.debug) main.log.debug('Counting score...');
     this.goban = goban;
     this.scores = [0, 0];
-    this.prisoners = Group.prisoners(this.goban);
+    this.prisoners = Group.countPrisoners(this.goban);
     this.filler = new ZoneFiller(this.goban, grid);
+
     this.findVoids();
     this.findEyes();
+    this.findFakeEyes();
     this.findStrongerOwners();
     this.findDyingGroups();
     this.findDameVoids();
     this.colorVoids();
-    for (var v, v_array = this.voids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
-        if (v.owner !== null) {
+
+    for (var i = this.allVoids.length - 1; i >= 0; i--) {
+        var v = this.allVoids[i];
+        if (v.owner !== undefined) {
             this.scores[v.owner] += v.vcount;
         }
     }
-    if (main.debug) {
-        return this.debugDump();
-    }
+    if (main.debug) this.debugDump();
 };
 
 BoardAnalyser.prototype.image = function () {
@@ -815,14 +967,16 @@ BoardAnalyser.prototype.debugDump = function () {
     console.log(this.filler.grid.toText(function (c) {
         return Grid.colorToChar(c);
     }));
-    for (var v, v_array = this.voids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
+    for (var v, v_array = this.allVoids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
         v.debugDump();
     }
     if (this.scores) {
         var eyes = [[], [], []];
-        this.allGroups.forEach(function (g) {
-            eyes[g.eyes.length > 1 ? 2 : g.eyes.length].push(g);
-        });
+        for (var ndx in this.allGroups) {
+            var g = this.allGroups[ndx];
+            var numEyes = g._info.eyeCount;
+            eyes[numEyes >= 2 ? 2 : numEyes].push(g);
+        }
         console.log('\nGroups with 2 eyes or more: ' + eyes[2].map(grpNdx));
         console.log('Groups with 1 eye: ' + eyes[1].map(grpNdx));
         console.log('Groups with no eye: ' + eyes[0].map(grpNdx));
@@ -832,26 +986,33 @@ BoardAnalyser.prototype.debugDump = function () {
     }
 };
 
-//private;
-BoardAnalyser.prototype.findVoids = function () {
-    if (main.debug) {
-        main.log.debug('Find voids...');
+//---private
+
+BoardAnalyser.prototype.addGroup = function (g) {
+    if (!g._info) {
+        g._info = new GroupInfo(g);
+    } else {
+        g._info.resetAnalysis(g);
     }
+    this.allGroups[g.ndx] = g;
+};
+
+BoardAnalyser.prototype.findVoids = function () {
+    if (main.debug) main.log.debug('Find voids...');
     var voidCode = Grid.ZONE_CODE;
-    this.allGroups.forEach(function (g) { g.resetAnalysis(); });
-    this.allGroups.clear();
-    this.voids.clear();
+    this.allGroups = {};
+    this.allVoids.clear();
     var neighbors = [[], []];
     for (var j = 1; j <= this.goban.gsize; j++) {
         for (var i = 1; i <= this.goban.gsize; i++) {
             var vcount;
             if ((vcount = this.filler.fillWithColor(i, j, main.EMPTY, voidCode, neighbors)) > 0) {
-                this.voids.push(new Void(this, voidCode, i, j, vcount, neighbors));
+                this.allVoids.push(new Void(this, voidCode, i, j, vcount, neighbors));
                 voidCode += 1;
                 // keep all the groups
                 for (var n, n_array = neighbors, n_ndx = 0; n=n_array[n_ndx], n_ndx < n_array.length; n_ndx++) {
                     for (var g, g_array = n, g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
-                        this.allGroups.add(g);
+                        this.addGroup(g);
                     }
                 }
                 neighbors = [[], []];
@@ -862,143 +1023,180 @@ BoardAnalyser.prototype.findVoids = function () {
 
 // Find voids surrounded by a single color -> eyes
 BoardAnalyser.prototype.findEyes = function () {
-    for (var v, v_array = this.voids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
-        v.eyeCheck();
+    for (var n = this.allVoids.length - 1; n >= 0; n--) {
+        var v = this.allVoids[n];
+
+        var hasBlack = v.groups[BLACK].length > 0;
+        var hasWhite = v.groups[WHITE].length > 0;
+
+        if (hasBlack) {
+            if (!hasWhite) v.setOwner(vEYE, BLACK);
+        } else if (hasWhite) {
+            v.setOwner(vEYE, WHITE);
+        }
+    }
+};
+
+BoardAnalyser.prototype.findFakeEyes = function () {
+    var foundSomeFakeEyes = true;
+    while (foundSomeFakeEyes) {
+        foundSomeFakeEyes = false;
+        for (var ndx in this.allGroups) {
+            var g = this.allGroups[ndx], gi = g._info;
+            if (gi.voids.length !== 1) continue;
+            var eye = gi.voids[0];
+            var sharedWithGroups = eye.groups[g.color];
+            if (sharedWithGroups.length === 1) continue; // not shared
+            var isFake = (eye.vtype === vEYE && eye.vcount === 1); // REVIEW: always OK for vcount >= 2 ?
+            if (isFake) {
+                foundSomeFakeEyes = true;
+                eye.changeType(vFAKE_EYE);
+            }
+            if (main.debug) main.log.debug(eye + ' is a ' + (isFake? 'fake' : 'shared') + ' eye');
+            for (var i = sharedWithGroups.length - 1; i >= 0; i--) {
+                var neighbor = sharedWithGroups[i]._info;
+                if (neighbor === gi) continue;
+                if (isFake) {
+                    gi.addParentGroup(neighbor);
+                } else {
+                    gi.addBrotherGroup(neighbor);
+                }
+            }
+        }
     }
 };
 
 // Decides who owns a void by comparing the "liveness" of each side
 BoardAnalyser.prototype.findStrongerOwners = function () {
-    for (var v, v_array = this.voids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
-        if (v.eyeColor !== null) {
-            continue;
-        }
-        var lives = [0, 0];
-        for (var c = 0; c < 2; c++) {
+    var lives = [0, 0];
+    for (var v, v_array = this.allVoids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
+        if (v.owner !== undefined) continue;
+
+        lives[BLACK] = lives[WHITE] = 0;
+        for (var c = BLACK; c <= WHITE; c++) {
             for (var g, g_array = v.groups[c], g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
-                lives[c] += g.lives;
+                lives[c] += (g._info.isAlive ? ALIVE : g.lives);
             }
         }
-        var moreLives = Math.max.apply(Math, lives);
-        if (lives.count(function (l) {
-            return l === moreLives;
-        }) === 1) { // make sure we have a winner, not a tie
-            c = lives.indexOf(moreLives);
-            v.setOwner(c);
-            if (main.debug) {
-                main.log.debug('It looks like color ' + c + ', with ' + moreLives + ' lives, owns ' + v + ' (this might change once we identify dead groups)');
-            }
-        }
+        // make sure we have a winner, not a tie
+        if (lives[BLACK] === lives[WHITE]) continue;
+        if (lives[BLACK] >= ALIVE && lives[WHITE] >= ALIVE) continue;
+        var winner = lives[BLACK] > lives[WHITE] ? BLACK : WHITE;
+        v.setOwner(vBATTLED, winner);
+        if (main.debug) main.log.debug('It looks like color ' + Grid.colorName(winner) + ', with ' +
+            Math.max(lives[BLACK], lives[WHITE]) + ' lives, owns ' + v +
+            ' (this might change once we identify dead groups)');
     }
 };
 
-// Reviews the groups and declare "dead" the ones who do not own any void
+BoardAnalyser.prototype.countGroupAsDead = function (g) {
+    var gi = g._info;
+    gi.isDead = true;
+
+    var color = g.color;
+    var stones = g.stones;
+    var stone = stones[0];
+    var taken = this.filler.fillWithColor(stone.i, stone.j, color, Grid.DEAD_COLOR + color);
+    this.prisoners[color] += taken;
+    this.scores[1 - color] += taken;
+
+    // for (var n = stones.length - 1; n >= 0; n--) {
+    //     var enemies = stones[n].uniqueEnemies(color);
+    //     for (var m = enemies.length - 1; m >= 0; m--) {
+    //         enemies[m]._info.extraLives++; // TODO: decide if we keep extraLives
+    //     }
+    // }
+    if (main.debug) main.log.debug('Hence ' + g + ' is considered dead (' +
+        taken + ' prisoners; 1st stone ' + stone + ' eyes:' + gi.eyeCount + ')');
+};
+
+// Reviews the groups and declare "dead" the ones who do not own enough eyes or voids
 BoardAnalyser.prototype.findDyingGroups = function () {
-    var self = this;
-    this.allGroups.forEach(function (g) {
-        var ownedVoids, vcount;
-        if (g.eyes.length >= 2) {
-            return;
-        }
-        if (g.eyes.length === 1 && g.eyes[0].vcount + g.extraLives >= 3) { // actually not enough if gote but well...
-            return;
-        }
-        var color = g.color;
-        if (g.eyes.length === 1 && g.eyes[0].groups[color].length > 1) { // connected by eye
-            return;
-        }
-        // we need to look at voids around (fake eyes, etc.)
-        ownedVoids = vcount = 0;
-        var myVoid = null;
-        var oneOwner = false;
-        for (var v, v_array = g.voids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
-            if (v.owner !== null) {
-                oneOwner = true;
-                if (v.owner === color) {
-                    myVoid = v;
-                    ownedVoids += 1;
-                    vcount += v.vcount;
-                }
+    var foundDeathOrLife = true;
+    while (foundDeathOrLife) {
+        foundDeathOrLife = false;
+        for (var ndx in this.allGroups) {
+            var g = this.allGroups[ndx], gi = g._info;
+            if (gi.isAlive || gi.isDead) continue;
+
+            gi.checkDoubleEye() ||
+            gi.checkSingleEye() ||
+            gi.checkParents() ||
+            gi.checkBrothers() ||
+            gi.liveliness();
+
+            if (gi.isDead) {
+                this.countGroupAsDead(g);
+                foundDeathOrLife = true;
+            } else if (gi.isDead) {
+                foundDeathOrLife = true;
             }
-        }
-        if (g.eyes.length === 1 && ownedVoids >= 1) { // TODO: this is too lenient
-            return;
-        }
-        if (ownedVoids >= 2) { // TODO later: here is the horror we read about on the web
-            return;
-        }
-        if (ownedVoids === 1 && vcount + g.extraLives >= 3) {
-            return;
-        }
-        if (ownedVoids === 1 && myVoid.groups[color].length > 1) { // TODO: check also lives of ally
-            return;
-        }
-        // find if the only void around is owned (e.g. lost stones inside big territory)
-        // if we don't know who owns the voids around g, leave g as alive (unfinished game)
-        if (g.voids.length !== 0 && !oneOwner) {
-            return;
-        }
-        // g is dead!
-        var stone = g.stones[0];
-        var taken = self.filler.fillWithColor(stone.i, stone.j, color, Grid.DEAD_COLOR + color);
-        self.prisoners[color] += taken;
-        self.scores[1 - color] += taken;
-        g.countAsDead();
-        if (main.debug) {
-            main.log.debug('Hence ' + g + ' is considered dead (' + taken + ' prisoners; 1st stone ' + stone + ')');
-        }
-        if (main.debug) {
-            main.log.debug('eyes:' + g.eyes.length + ' owned_voids:' + ownedVoids + ' vcount-voids:' + vcount);
-        }
-    });
+        }            
+    }
 };
 
 // Looks for "dame" = neutral voids (if alive groups from more than one color are around)
 BoardAnalyser.prototype.findDameVoids = function () {
-    for (var v, v_array = this.voids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
-        if (v.eyeColor !== null) {
-            continue;
-        }
-        var aliveColors = [];
-        for (var c = 0; c < 2; c++) {
+    var aliveColors = [];
+    for (var v, v_array = this.allVoids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
+        if (v.vtype >= vFAKE_EYE) continue;
+
+        aliveColors[BLACK] = aliveColors[WHITE] = false;
+        for (var c = BLACK; c <= WHITE; c++) {
             for (var g, g_array = v.groups[c], g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
-                if (this.groupLiveliness(g) >= 1) {
-                    aliveColors.push(c);
+                if (g._info.liveliness() >= 1) {
+                    aliveColors[c] = true;
                     break;
                 }
             }
         }
-        if (aliveColors.length >= 2) {
-            v.setOwner(null);
-            if (main.debug) {
-                main.log.debug('Void ' + v + ' is considered neutral ("dame")');
-            }
+        if (aliveColors[BLACK] && aliveColors[WHITE]) {
+            v.changeType(vDAME);
         }
     }
 };
 
 // Colors the voids with owner's color
 BoardAnalyser.prototype.colorVoids = function () {
-    for (var v, v_array = this.voids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
-        var c = (( v.owner !== null ? Grid.TERRITORY_COLOR + v.owner : Grid.DAME_COLOR ));
+    for (var v, v_array = this.allVoids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
+        var c = v.owner !== undefined ? Grid.TERRITORY_COLOR + v.owner : Grid.DAME_COLOR;
         this.filler.fillWithColor(v.i, v.j, v.code, c);
     }
 };
 
-// Returns a number telling how "alive" a group is. TODO: review this
-// Really basic logic for now.
-// (instead we should determine if the shape of a single eye is right to make 2 eyes)
-// - eyes and owned voids count for 1 point each
-// - non-owned voids (undetermined owner or enemy-owned void) count for 0
-// NB: for end-game counting, this logic is enough because undetermined situations
-// have usually all been resolved (or this means both players cannot see it...)
-BoardAnalyser.prototype.groupLiveliness = function (g) {
-    return g.eyes.length + g.voids.count(function (z) {
-        return z.owner === g.color;
-    });
-};
+// if (gi.eyeCount === 1 && gi.eyes[0].vcount + gi.extraLives >= 3) { // actually not enough if gote but well...
+//     continue;
+// }
+// var color = g.color;
+// we need to look at voids around (fake eyes, etc.)
+// var ownedVoids = 0, vcount = 0;
+// var myVoid = null;
+// var oneOwner = false;
+// for (var v, v_array = gi.voids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
+//     if (v.owner !== null) {
+//         oneOwner = true;
+//         if (v.owner === color) {
+//             myVoid = v;
+//             ownedVoids += 1;
+//             vcount += v.vcount;
+//         }
+//     }
+// }
+// if (ownedVoids >= 2) { // TODO later: here is the horror we read about on the web
+//     continue;
+// }
+// if (ownedVoids === 1 && myVoid.groups[color].length > 1) { // TODO: check also lives of ally
+//     continue;
+// }
+// find if the only void around is owned (e.g. lost stones inside big territory)
+// if we don't know who owns the voids around g, leave g as alive (unfinished game)
+// if (gi.voids.length !== 0 && !oneOwner) {
+//     continue;
+// }
+// g is dead!
+// this.countGroupAsDead(g);
 
-},{"./Grid":10,"./Group":11,"./ZoneFiller":21,"./main":32}],6:[function(require,module,exports){
+},{"./Grid":10,"./Group":11,"./ZoneFiller":21,"./ai/Shaper":31,"./main":33}],6:[function(require,module,exports){
 //Translated from breeder.rb using babyruby2js
 'use strict';
 
@@ -1213,7 +1411,7 @@ Breeder.prototype.bwBalanceCheck = function (numGames /*, gsize*/) {
     return numWins;
 };
 
-},{"./GameLogic":7,"./Genes":8,"./ScoreAnalyser":16,"./TimeKeeper":20,"./ai/Ai1Player":22,"./main":32}],7:[function(require,module,exports){
+},{"./GameLogic":7,"./Genes":8,"./ScoreAnalyser":16,"./TimeKeeper":20,"./ai/Ai1Player":22,"./main":33}],7:[function(require,module,exports){
 //Translated from game_logic.rb using babyruby2js
 'use strict';
 
@@ -1393,7 +1591,7 @@ GameLogic.prototype.historyString = function () {
 // Returns an array with the prisoner count per color
 // e.g. [3,5] means 3 black stones are prisoners, 5 white stones
 GameLogic.prototype.prisoners = function () {
-    return Group.prisoners(this.goban);
+    return Group.countPrisoners(this.goban);
 };
 
 // If called with on=true, error messages will be directly displayed on the console.
@@ -1485,7 +1683,7 @@ GameLogic.prototype.sgfToGame = function (game) {
     return reader.toMoveList();
 };
 
-},{"./Goban":9,"./Grid":10,"./Group":11,"./HandicapSetter":12,"./SgfReader":17,"./Stone":18,"./main":32}],8:[function(require,module,exports){
+},{"./Goban":9,"./Grid":10,"./Group":11,"./HandicapSetter":12,"./SgfReader":17,"./Stone":18,"./main":33}],8:[function(require,module,exports){
 //Translated from genes.rb using babyruby2js
 'use strict';
 
@@ -1652,7 +1850,7 @@ Genes.prototype.mutateAll = function () {
 // W02: unknown constant supposed to be attached to main: YAML
 // E02: unknown method: load(...)
 // W02: unknown constant supposed to be attached to main: YAML
-},{"./main":32}],9:[function(require,module,exports){
+},{"./main":33}],9:[function(require,module,exports){
 //Translated from goban.rb using babyruby2js
 'use strict';
 
@@ -1778,7 +1976,7 @@ Goban.prototype.validMove = function (i, j) {
     if (i < 1 || i > this.gsize || j < 1 || j > this.gsize) {
         return false;
     }
-    return this.ban[j][i].empty();
+    return this.ban[j][i].isEmpty();
 };
 
 Goban.prototype.stoneAt = function (i, j) {
@@ -1794,8 +1992,8 @@ Goban.prototype.color = function (i, j) {
 };
 
 // No validity test here
-Goban.prototype.empty = function (i, j) {
-    return this.ban[j][i].empty();
+Goban.prototype.isEmpty = function (i, j) {
+    return this.ban[j][i].isEmpty();
 };
 
 Goban.prototype.moveNumber = function () {
@@ -1824,7 +2022,7 @@ Goban.prototype.previousStone = function () {
 };
 
 // E02: unknown method: concat(...)
-},{"./Grid":10,"./Group":11,"./Stone":18,"./main":32}],10:[function(require,module,exports){
+},{"./Grid":10,"./Group":11,"./Stone":18,"./main":33}],10:[function(require,module,exports){
 //Translated from grid.rb using babyruby2js
 'use strict';
 
@@ -2030,7 +2228,7 @@ Grid.xLabel = function (i) {
 
 // E02: unknown method: index(...)
 
-},{"./main":32}],11:[function(require,module,exports){
+},{"./main":33}],11:[function(require,module,exports){
 //Translated from group.rb using babyruby2js
 'use strict';
 
@@ -2042,12 +2240,11 @@ var main = require('./main');
  *  and whatever status information we need to decide what happens to a group (e.g. when a
  *  group is killed or merged with another group, etc.).
  *  Note that most of the work here is to keep this status information up to date.
- *  public read-only attribute: goban, stones, lives, color
- *  public read-only attribute: mergedWith, mergedBy, killedBy, ndx
- *  public write attribute: mergedWith, mergedBy, extraLives  *  only used in this file
- *  public read-only attribute: eyes, voids, extraLives  *  for analyser
+ *    public read-only attribute: goban, stones, lives, color
+ *    public read-only attribute: mergedWith, mergedBy, killedBy, ndx
+ *    public write attribute: mergedWith, mergedBy, extraLives  *  only used in this file
  *  Create a new group. Always with a single stone.
- *  Do not call this using Group.new but Goban#new_group instead.
+ *  Do not call this using Group.new but Goban#newGroup instead.
  */
 function Group(goban, stone, lives, ndx) {
     this.goban = goban;
@@ -2058,11 +2255,8 @@ function Group(goban, stone, lives, ndx) {
     this.mergedBy = null; // a stone
     this.killedBy = null; // a stone
     this.ndx = ndx; // unique index
-    this.voids = []; // for analyser: empty zones next to a group
-    this.eyes = []; // for analyser: eyes (i.e. void surrounded by a group)
-    this.extraLives = 0; // for analyser: lives granted by dying enemy nearby
     this._allEnemies = [];
-    this._allLives = []; // $log.debug("New group created #{self}") if $debug_group
+    this._allLives = [];
 }
 module.exports = Group;
 
@@ -2072,11 +2266,8 @@ Group.prototype.recycle = function (stone, lives) {
     this.lives = lives;
     this.color = stone.color;
     this.mergedWith = this.mergedBy = this.killedBy = null;
-    this.voids.clear();
-    this.eyes.clear();
     this._allEnemies.clear();
     this._allLives.clear();
-    // $log.debug("Use (new) recycled group #{self}") if $debug_group
     return this;
 };
 
@@ -2114,32 +2305,6 @@ Group.prototype.stonesDump = function () {
     return this.stones.map(function (s) {
         return s.asMove();
     }).sort().join(',');
-};
-
-// This also resets the eyes
-Group.prototype.resetAnalysis = function () {
-    this.extraLives = 0;
-    this.voids.clear();
-    return this.eyes.clear();
-};
-
-// Adds a void or an eye
-Group.prototype.addVoid = function (v, isEye) {
-    if (isEye === undefined) isEye = false;
-    if (isEye) {
-        return this.eyes.push(v);
-    } else {
-        return this.voids.push(v);
-    }
-};
-
-// For analyser  
-Group.prototype.countAsDead = function () {
-    for (var stone, stone_array = this.stones, stone_ndx = 0; stone=stone_array[stone_ndx], stone_ndx < stone_array.length; stone_ndx++) {
-        for (var enemy, enemy_array = stone.uniqueEnemies(this.color), enemy_ndx = 0; enemy=enemy_array[enemy_ndx], enemy_ndx < enemy_array.length; enemy_ndx++) {
-            enemy.extraLives += 1;
-        }
-    }
 };
 
 // Builds a list of all lives of the group
@@ -2289,8 +2454,8 @@ Group.prototype.merge = function (subgroup, byStone) {
         s.setGroupOnMerge(this);
         this.connectStone(s, true);
     }
-    subgroup.mergedWith=(this);
-    subgroup.mergedBy=(byStone);
+    subgroup.mergedWith = this;
+    subgroup.mergedBy = byStone;
     this.goban.mergedGroups.push(subgroup);
     if (main.debugGroup) {
         return main.log.debug('After merge: subgroup:' + subgroup + ' main:' + this);
@@ -2306,7 +2471,7 @@ Group.prototype.unmerge = function (subgroup) {
         this.disconnectStone(s, true);
         s.setGroupOnMerge(subgroup);
     }
-    subgroup.mergedBy=(subgroup.mergedWith=(null));
+    subgroup.mergedBy = subgroup.mergedWith = null;
     if (main.debugGroup) {
         return main.log.debug('After unmerge: subgroup:' + subgroup + ' main:' + this);
     }
@@ -2364,7 +2529,7 @@ Group.resuscitateFrom = function (killerStone, goban) {
 };
 
 // Returns prisoners grouped by color of dead stones  
-Group.prisoners = function (goban) {
+Group.countPrisoners = function (goban) {
     var prisoners = [0, 0];
     for (var i = 1; i <= goban.killedGroups.length - 1; i++) {
         var g = goban.killedGroups[i];
@@ -2373,12 +2538,7 @@ Group.prisoners = function (goban) {
     return prisoners;
 };
 
-// E02: unknown method: map(...)
-// E02: unknown method: find_index(...)
-// E02: unknown method: merged_with=(...)
-// E02: unknown method: merged_by=(...)
-
-},{"./Grid":10,"./main":32}],12:[function(require,module,exports){
+},{"./Grid":10,"./main":33}],12:[function(require,module,exports){
 //Translated from handicap_setter.rb using babyruby2js
 'use strict';
 
@@ -2499,7 +2659,7 @@ HandicapSetter.setStandardHandicap = function (goban, count) {
 
 // E02: unknown method: index(...)
 
-},{"./Grid":10,"./HandicapSetter":12,"./Stone":18,"./main":32}],13:[function(require,module,exports){
+},{"./Grid":10,"./HandicapSetter":12,"./Stone":18,"./main":33}],13:[function(require,module,exports){
 //Translated from influence_map.rb using babyruby2js
 'use strict';
 
@@ -2581,7 +2741,7 @@ InfluenceMap.prototype.debugDump = function () {
     }
 };
 
-},{"./Grid":10,"./main":32}],14:[function(require,module,exports){
+},{"./Grid":10,"./main":33}],14:[function(require,module,exports){
 //Translated from player.rb using babyruby2js
 'use strict';
 
@@ -2830,7 +2990,7 @@ PotentialTerritory.prototype.connectToBorders = function (yx) {
     }
 };
 
-},{"./BoardAnalyser":5,"./Grid":10,"./Stone":18,"./main":32}],16:[function(require,module,exports){
+},{"./BoardAnalyser":5,"./Grid":10,"./Stone":18,"./main":33}],16:[function(require,module,exports){
 //Translated from score_analyser.rb using babyruby2js
 'use strict';
 
@@ -2904,7 +3064,9 @@ ScoreAnalyser.prototype.scoreInfoToS = function (info) {
         throw new Error('Invalid score info');
     }
     var s = [];
-    s.push(this.scoreWinnerToS(totals));
+    var diff = totals[0] - totals[1];
+    s.push(this.scoreDiffToS(diff));
+
     for (var c = 0; c < 2; c++) {
         var detail = details[c];
         if (detail === null) {
@@ -2918,49 +3080,27 @@ ScoreAnalyser.prototype.scoreInfoToS = function (info) {
         var pris = detail[1];
         var komi = detail[2];
         var komiStr = (( komi > 0 ? ' + ' + komi + ' komi' : '' ));
-        s.push(Grid.colorName(c) + ' (' + Grid.colorToChar(c) + '): ' + this.pts(totals[c]) + ' (' + score + ' ' + ( pris < 0 ? '-' : '+' ) + ' ' + Math.abs(pris) + ' prisoners' + komiStr + ')');
+        s.push(Grid.colorName(c) + ' (' + Grid.colorToChar(c) + '): ' +
+            this.pts(totals[c]) + ' (' + score + ' ' +
+                ( pris < 0 ? '-' : '+' ) + ' ' + Math.abs(pris) + ' prisoners' +
+                komiStr + ')');
     }
     return s;
 };
 
 ScoreAnalyser.prototype.scoreDiffToS = function (diff) {
-    if (diff !== 0) {
-        var win = ( diff > 0 ? main.BLACK : main.WHITE );
-        return Grid.colorName(win) + ' wins by ' + this.pts(Math.abs(diff));
-    } else {
-        return 'Tie game';
-    }
+    if (diff === 0) return 'Tie game';
+    var win = ( diff > 0 ? main.BLACK : main.WHITE );
+    return Grid.colorName(win) + ' wins by ' + this.pts(Math.abs(diff));
 };
 
-ScoreAnalyser.prototype.scoreWinnerToS = function (totals) {
-    if (totals.length === 2) {
-        var diff = totals[0] - totals[1];
-        return this.scoreDiffToS(diff);
-    } else {
-        var max = Math.max.apply(Math, totals);
-        var winners = [];
-        for (var c = 0; c < totals.length; c++) {
-            if (totals[c] === max) {
-                winners.push(c);
-            }
-        }
-        if (winners.length === 1) {
-            return Grid.colorName(winners[0]) + ' wins with ' + this.pts(max);
-        } else {
-            return 'Tie between ' + winners.map(function (w) {
-                return '' + Grid.colorName(w);
-            }).join(' & ') + ', ' + ( winners.length === 2 ? 'both' : 'all' ) + ' with ' + this.pts(max);
-        }
-    }
-};
+//private
 
-//private;
 ScoreAnalyser.prototype.pts = function (n) {
     return ( n !== 1 ? n + ' points' : '1 point' );
 };
 
-// E02: unknown method: map(...)
-},{"./BoardAnalyser":5,"./Grid":10,"./main":32}],17:[function(require,module,exports){
+},{"./BoardAnalyser":5,"./Grid":10,"./main":33}],17:[function(require,module,exports){
 //Translated from sgf_reader.rb using babyruby2js
 'use strict';
 
@@ -3153,7 +3293,7 @@ SgfReader.prototype.error = function (reason, t) {
 
 // E02: unknown method: info(...)
 // E02: unknown method: index(...)
-},{"./main":32}],18:[function(require,module,exports){
+},{"./main":33}],18:[function(require,module,exports){
 //Translated from stone.rb using babyruby2js
 'use strict';
 
@@ -3218,64 +3358,6 @@ Stone.prototype.debugDump = function () {
     return this.toString(); // we could add more info
 };
 
-Stone.prototype.distanceFromBorder = function () {
-    var gsize = this.goban.gsize;
-    var i = this.i, j = this.j;
-    return Math.min(Math.min(i - 1, gsize - i), Math.min(j - 1, gsize - j));
-};
-
-Stone.prototype.diagonalStones = function (s) {
-    return [this.goban.stoneAt(this.i, s.j), this.goban.stoneAt(this.j, s.i)];
-};
-
-Stone.prototype.distance = function (s) {
-    var dx = Math.abs(s.i - this.i), dy = Math.abs(s.j - this.j);
-    if (dx + dy === 1) return 0; // already connected
-    var color = this.color, enemy = 1 - color;
-    var numEnemies = 0;
-    if (dx === 1 && dy === 1) { // hane
-        var diags = this.diagonalStones(s);
-        if (diags[0].color === color || diags[1].color === color) return 0;
-        if (diags[0].color === enemy) numEnemies++;
-        if (diags[1].color === enemy) numEnemies++;
-        if (numEnemies === 0) return 0; // safe hane
-        if (numEnemies === 1) return 1; // needs 1 move to connect
-        return 9; // cut!
-    }
-    if (dx + dy === 2) {
-        var between = this.goban.stoneAt((this.i + s.i) / 2, (this.j + s.j) /2);
-        if (between.color === color) return 0; // already connected
-        if (between.color === enemy) return between.group.lives;
-        for (var i = between.neighbors.length - 1; i >= 0; i--) {
-            if (between.neighbors[i].color === enemy) numEnemies++;
-        }
-        if (numEnemies === 0) return 0.5;
-        if (numEnemies === 1) return 1; // needs 1 move to connect
-        return 9; // cut!
-    }
-    //TODO: handle close-to-border special cases
-    return dx + dy;
-};
-
-// Returns the empty points around this stone
-Stone.prototype.empties = function () {
-    var empties = [], neighbors = this.neighbors;
-    for (var i = neighbors.length - 1; i >= 0; i--) {
-        var s = neighbors[i];
-        if (s.color === main.EMPTY) empties.push(s);
-    }
-    return empties;
-};
-
-// Number of empty points around this stone
-Stone.prototype.numEmpties = function () {
-    var count = 0, neighbors = this.neighbors;
-    for (var i = neighbors.length - 1; i >= 0; i--) {
-        if (neighbors[i].color === main.EMPTY) count++;
-    }
-    return count;
-};
-
 // Returns a string with the list of empty points, sorted (debug only)
 Stone.prototype.emptiesDump = function () {
     return this.empties().map(function (s) {
@@ -3283,7 +3365,7 @@ Stone.prototype.emptiesDump = function () {
     }).sort().join(',');
 };
 
-Stone.prototype.empty = function () {
+Stone.prototype.isEmpty = function () {
     return this.color === main.EMPTY;
 };
 
@@ -3307,16 +3389,14 @@ Stone.validMove = function (goban, i, j, color) {
 // or if one enemy group will be killed
 // or if the result of the merge of ally groups will have more than 0 life
 Stone.prototype.moveIsSuicide = function (color) {
-    for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
+    for (var i = this.neighbors.length - 1; i >= 0; i--) {
+        var s = this.neighbors[i];
         if (s.color === main.EMPTY) {
             return false;
-        }
-        if (s.color !== color) {
-            if (s.group.lives === 1) {
-                return false;
-            }
-        } else if (s.group.lives > 1) {
-            return false;
+        } else if (s.color !== color) {
+            if (s.group.lives === 1) return false; // we kill 1 group
+        } else {
+            if (s.group.lives > 1) return false; // our neighbor group will still have lives left
         }
     }
     // $log.debug("move #{@i}, #{@j}, color:#{color} would be a suicide") if $debug
@@ -3331,7 +3411,7 @@ Stone.prototype.moveIsKo = function (color) {
     // Must kill a single group
     var groupA = null;
     var res = true;
-    this.eachEnemy(color, function (enemy) {
+    this.eachAlly(1 - color, function (enemy) {
         if (enemy.lives !== 1) {
             return;
         }
@@ -3397,50 +3477,6 @@ Stone.undo = function (goban) {
     return stone.takeBack();
 };
 
-// Iterate through enemy groups and calls the given block
-// (same group appears more than once if it faces the stone 2 times or more)
-// Example: +@@+
-//          +@O+ <- for stone O, the @ group will be selected 2 times
-//          ++++
-Stone.prototype.eachEnemy = function (allyColor, cb) {
-    for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
-        if (s.color !== main.EMPTY && s.color !== allyColor) {
-            cb(s.group);
-        }
-    }
-};
-
-Stone.prototype.uniqueEnemies = function (allyColor) {
-    this.enemies.clear();
-    for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
-        if (s.color !== main.EMPTY && s.color !== allyColor && !this.enemies.contains(s.group)) {
-            this.enemies.push(s.group);
-        }
-    }
-    return this.enemies;
-};
-
-// Iterate through our groups and calls the given block
-// (same group appears more than once if it faces the stone 2 times or more)
-// See also each_enemy
-Stone.prototype.eachAlly = function (allyColor, cb) {
-    for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
-        if (s.color === allyColor) {
-            cb(s.group);
-        }
-    }
-};
-
-Stone.prototype.uniqueAllies = function (color) {
-    this.allies.clear();
-    for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
-        if (s.color === color && !this.allies.contains(s.group)) {
-            this.allies.push(s.group);
-        }
-    }
-    return this.allies;
-};
-
 // Called for each new stone played
 Stone.prototype.putDown = function (color) {
     this.color = color;
@@ -3493,7 +3529,71 @@ Stone.prototype.setGroupOnMerge = function (newGroup) {
     this.group = newGroup;
 };
 
-},{"./Grid":10,"./Group":11,"./main":32}],19:[function(require,module,exports){
+// Returns the empty points around this stone
+Stone.prototype.empties = function () {
+    var empties = [], neighbors = this.neighbors;
+    for (var i = neighbors.length - 1; i >= 0; i--) {
+        var s = neighbors[i];
+        if (s.color === main.EMPTY) empties.push(s);
+    }
+    return empties;
+};
+
+// Number of empty points around this stone
+Stone.prototype.numEmpties = function () {
+    var count = 0, neighbors = this.neighbors;
+    for (var i = neighbors.length - 1; i >= 0; i--) {
+        if (neighbors[i].color === main.EMPTY) count++;
+    }
+    return count;
+};
+
+Stone.prototype.uniqueEnemies = function (allyColor) {
+    this.enemies.clear();
+    for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
+        if (s.color !== main.EMPTY && s.color !== allyColor && !this.enemies.contains(s.group)) {
+            this.enemies.push(s.group);
+        }
+    }
+    return this.enemies;
+};
+
+// Iterate through our groups and calls the given block
+// (same group appears more than once if it faces the stone 2 times or more)
+// Example: +@@+
+//          +@x+ <- for stone in x, the @ group will be selected 2 times
+//          ++++
+Stone.prototype.eachAlly = function (allyColor, cb) {
+    for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
+        if (s.color === allyColor) {
+            cb(s.group);
+        }
+    }
+};
+
+/** non unique groups! */
+Stone.prototype.allyStones = function (color, array) {
+    var count = 0, neighbors = this.neighbors;
+    for (var i = neighbors.length - 1; i >= 0; i--) {
+        if (neighbors[i].color === color) {
+            if (array) array.push(neighbors[i]);
+            count++;
+        }
+    }
+    return count;
+};
+
+Stone.prototype.uniqueAllies = function (color) {
+    this.allies.clear();
+    for (var s, s_array = this.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
+        if (s.color === color && !this.allies.contains(s.group)) {
+            this.allies.push(s.group);
+        }
+    }
+    return this.allies;
+};
+
+},{"./Grid":10,"./Group":11,"./main":33}],19:[function(require,module,exports){
 //Translated from stone_constants.rb using babyruby2js
 'use strict';
 
@@ -3504,7 +3604,7 @@ main.BORDER = null;
 main.EMPTY = -1;
 main.BLACK = 0;
 main.WHITE = 1;
-},{"./main":32}],20:[function(require,module,exports){
+},{"./main":33}],20:[function(require,module,exports){
 //Translated from time_keeper.rb using babyruby2js
 'use strict';
 
@@ -3586,7 +3686,7 @@ TimeKeeper.prototype.checkLimits = function (raiseIfOverlimit) {
     return '';
 };
 
-},{"./main":32}],21:[function(require,module,exports){
+},{"./main":33}],21:[function(require,module,exports){
 //Translated from zone_filler.rb using babyruby2js
 'use strict';
 
@@ -3597,7 +3697,6 @@ var main = require('./main');
  *  otherwise, the goban scoring_grid is used.
  */
 function ZoneFiller(goban, grid) {
-    if (grid === undefined) grid = null;
     if (!grid) {
         grid = goban.scoringGrid.convert(goban.grid);
     }
@@ -3613,41 +3712,29 @@ module.exports = ZoneFiller;
 // neighbors, if given should be an array of n arrays, with n == number of colors
 // if neighbors are not given, we do simple "coloring"
 ZoneFiller.prototype.fillWithColor = function (startI, startJ, toReplace, color, neighbors) {
-    if (neighbors === undefined) neighbors = null;
     // $log.debug("fill #{start_i} #{start_j}; replace #{to_replace} with #{color}") if $debug
-    if (this.yx[startJ][startI] !== toReplace) {
-        return 0;
-    }
+    if (this.yx[startJ][startI] !== toReplace) return 0;
     var vcount = 0;
     this.toReplace = toReplace;
     this.groups = neighbors;
-    var gaps = [[startI, startJ, startJ]];
-    var gap, i, j0, j1;
+    var gap, gaps = [[startI, startJ, startJ]];
+
     while ((gap = gaps.pop())) {
         // $log.debug("About to do gap: #{gap} (left #{gaps.size})") if $debug
-        var _m = gap;
-        i = _m[0];
-        j0 = _m[1];
-        j1 = _m[2];
+        var i = gap[0], j0 = gap[1], j1 = gap[2];
         
-        if (this.yx[j0][i] !== toReplace) { // gap already done by another path
-            continue;
-        }
-        while (this._check(i, j0 - 1)) {
-            j0 -= 1;
-        }
-        while (this._check(i, j1 + 1)) {
-            j1 += 1;
-        }
+        if (this.yx[j0][i] !== toReplace) continue; // gap already done by another path
+
+        while (this._check(i, j0 - 1)) j0--;
+        while (this._check(i, j1 + 1)) j1++;
+
         vcount += j1 - j0 + 1;
         // $log.debug("Doing column #{i} from #{j0}-#{j1}") if $debug
-        for (var ix = (i - 1); ix <= i + 1; ix += 2) {
+        for (var ix = i - 1; ix <= i + 1; ix += 2) {
             var curgap = null;
             for (var j = j0; j <= j1; j++) {
                 // $log.debug("=>coloring #{i},#{j}") if $debug and ix<i
-                if (ix < i) {
-                    this.yx[j][i] = color;
-                }
+                if (ix < i) this.yx[j][i] = color;
                 // $log.debug("checking neighbor #{ix},#{j}") if $debug
                 if (this._check(ix, j)) {
                     if (!curgap) {
@@ -3659,28 +3746,22 @@ ZoneFiller.prototype.fillWithColor = function (startI, startJ, toReplace, color,
                     gaps.push([ix, curgap, j - 1]);
                     curgap = null;
                 }
-            }
-            // upto j
+            } // for j
             // $log.debug("--- pushing gap [#{ix},#{curgap},#{j1}]") if $debug and curgap
-            if (curgap) { // last gap
-                gaps.push([ix, curgap, j1]);
-            }
-        } // each ix
-    }
-    // while gap
+            if (curgap) gaps.push([ix, curgap, j1]); // last gap
+        } // for ix
+    } // while gap
     return vcount;
 };
 
-//private;
+//private
+
 // Returns true if the replacement is needed (=> i,j has a color equal to the replaced one)
 ZoneFiller.prototype._check = function (i, j) {
     var color = this.yx[j][i];
-    if (color === main.BORDER) {
-        return false;
-    }
-    if (color === this.toReplace) {
-        return true;
-    }
+    if (color === main.BORDER) return false;
+    if (color === this.toReplace) return true;
+
     if (this.groups && color < 2) {
         var group = this.goban.stoneAt(i, j).group;
         if (group && this.groups[color].indexOf(group) < 0) {
@@ -3690,8 +3771,7 @@ ZoneFiller.prototype._check = function (i, j) {
     return false;
 };
 
-// E02: unknown method: find_index(...)
-},{"./main":32}],22:[function(require,module,exports){
+},{"./main":33}],22:[function(require,module,exports){
 //Translated from ai1_player.rb using babyruby2js
 'use strict';
 
@@ -3704,6 +3784,8 @@ var Player = require('../Player');
 var InfluenceMap = require('../InfluenceMap');
 var PotentialTerritory = require('../PotentialTerritory');
 var Genes = require('../Genes');
+
+var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
 
 
 /** @class
@@ -3771,7 +3853,7 @@ function score2str(i, j, score) {
 Ai1Player.prototype._foundSecondBestMove = function(i, j, score, survey) {
     if (main.debug) {
         main.log.debug('=> ' + score2str(i,j,score) + ' becomes 2nd best move');
-        if (this.secondBestI > 0) main.log.debug(' (replaces ' + score2str(this.secondBestI, this.secondBestJ, this.secondBestScore) + ')');
+        if (this.secondBestI !== NO_MOVE) main.log.debug(' (replaces ' + score2str(this.secondBestI, this.secondBestJ, this.secondBestScore) + ')');
     }
     this.secondBestScore = score;
     this.secondBestI = i; this.secondBestJ = j;
@@ -3782,7 +3864,7 @@ Ai1Player.prototype._foundBestMove = function(i, j, score, survey) {
     if (main.debug) {
         if (this.numBestTwins > 1) {
             main.log.debug('=> TWIN ' + score2str(i, j, score) + ' replaces equivalent best move ' + score2str(this.bestI, this.bestJ, this.bestScore));
-        } else {
+        } else if (this.bestI !== NO_MOVE) {
             main.log.debug('=> ' + score2str(i, j, score) + ' becomes the best move');
         }
     }
@@ -3828,7 +3910,7 @@ Ai1Player.prototype.getMove = function () {
         main.log.error('Forcing AI pass since we already played ' + this.numMoves);
         return 'pass';
     }
-    this.prepareEval();
+    this._prepareEval();
 
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
@@ -3843,20 +3925,18 @@ Ai1Player.prototype.getMove = function () {
     return Grid.moveAsString(this.bestI, this.bestJ);
 };
 
-Ai1Player.prototype.prepareEval = function () {
+Ai1Player.prototype._prepareEval = function () {
     this.bestScore = this.secondBestScore = this.minimumScore;
-    this.bestI = this.bestJ = -1;
+    this.bestI = this.secondBestI = NO_MOVE;
     this.survey = {};
 
     this.inf.buildMap();
     this.ter.guessTerritories();
 };
 
-/** Can be called from the outside for tests, but prepareEval must be called first */
-Ai1Player.prototype.evalMove = function (i, j) {
-    var score = this._evalMove(i, j, 0);
-    this._foundBestMove(i, j, score, this._takeSurvey());
-    return score;
+/** Called by heuristics if they decide to stop looking further (rare cases) */
+Ai1Player.prototype.markMoveAsBlunder = function (reason) {
+    this.blunderMove = reason;
 };
 
 Ai1Player.prototype._evalMove = function (i, j, minScore) {
@@ -3864,10 +3944,15 @@ Ai1Player.prototype._evalMove = function (i, j, minScore) {
         return 0;
     }
     var score = 0, s;
+    this.blunderMove = null;
     // run all positive heuristics
     for (var h, h_array = this.heuristics, h_ndx = 0; h=h_array[h_ndx], h_ndx < h_array.length; h_ndx++) {
         s = h.evalMove(i, j);
         if (this.survey) { this.survey[h.constructor.name] = s; }
+        if (this.blunderMove) {
+            main.log.debug(Grid.moveAsString(i, j) + ' seen as blunder: ' + this.blunderMove);
+            return 0;
+        }
         score += s;
     }
     // we run negative heuristics only if this move was a potential candidate
@@ -3882,8 +3967,17 @@ Ai1Player.prototype._evalMove = function (i, j, minScore) {
 };
 
 /** For tests */
+Ai1Player.prototype._testMoveEval = function (i, j) {
+    this._prepareEval();
+    var score = this._evalMove(i, j, 0);
+    this._foundBestMove(i, j, score, this._takeSurvey());
+    return score;
+};
+
+/** For tests */
 Ai1Player.prototype._testHeuristic = function (i, j, heuristicName) {
-    for (var n = this.heuristics.length -1; n >= 0; n--) {
+    this._prepareEval();
+    for (var n = this.heuristics.length - 1; n >= 0; n--) {
         var h = this.heuristics[n];
         if (h.constructor.name === heuristicName) {
             return h.evalMove(i, j);
@@ -3896,10 +3990,12 @@ Ai1Player.prototype.getMoveSurveyText = function (rank) {
     var survey, score, move;
     switch (rank) {
     case 1:
+        if (this.bestI === NO_MOVE) break;
         survey = this.bestSurvey; score = this.bestScore;
         move = Grid.moveAsString(this.bestI, this.bestJ);
         break;
     case 2:
+        if (this.secondBestI === NO_MOVE) break;
         survey = this.secondBestSurvey; score = this.secondBestScore;
         move = Grid.moveAsString(this.secondBestI, this.secondBestJ);
         break;
@@ -3914,7 +4010,7 @@ Ai1Player.prototype.getMoveSurveyText = function (rank) {
 };
 
 
-},{"../Genes":8,"../Grid":10,"../InfluenceMap":13,"../Player":14,"../PotentialTerritory":15,"../Stone":18,"../main":32,"./AllHeuristics":23,"util":4}],23:[function(require,module,exports){
+},{"../Genes":8,"../Grid":10,"../InfluenceMap":13,"../Player":14,"../PotentialTerritory":15,"../Stone":18,"../main":33,"./AllHeuristics":23,"util":4}],23:[function(require,module,exports){
 //Translated from all_heuristics.rb using babyruby2js
 'use strict';
 
@@ -3926,22 +4022,25 @@ var Hunter = require('./Hunter');
 var Connector = require('./Connector');
 var Pusher = require('./Pusher');
 var NoEasyPrisoner = require('./NoEasyPrisoner');
+var Shaper = require('./Shaper');
+
 
 var allHeuristics = function () {
-    return [Spacer, Executioner, Savior, Hunter, Connector, Pusher, NoEasyPrisoner];
+    return [Executioner, Savior, Hunter, Connector, Spacer, Pusher, NoEasyPrisoner, Shaper];
 };
 module.exports = allHeuristics;
 
-},{"./Connector":24,"./Executioner":25,"./Hunter":27,"./NoEasyPrisoner":28,"./Pusher":29,"./Savior":30,"./Spacer":31}],24:[function(require,module,exports){
+},{"./Connector":24,"./Executioner":25,"./Hunter":27,"./NoEasyPrisoner":28,"./Pusher":29,"./Savior":30,"./Shaper":31,"./Spacer":32}],24:[function(require,module,exports){
 //Translated from connector.rb using babyruby2js
 'use strict';
 
 var inherits = require('util').inherits;
 var main = require('../main');
 var Heuristic = require('./Heuristic');
+var Grid = require('../Grid');
+
 
 /** @class A move that connects 2 of our groups is good.
- *  TODO: this could threaten our potential for keeping eyes, review this.
  */
 function Connector(player) {
     Heuristic.call(this, player);
@@ -3953,57 +4052,64 @@ inherits(Connector, Heuristic);
 module.exports = Connector;
 
 Connector.prototype.evalMove = function (i, j) {
-    // we care a lot if the enemy is able to cut us,
-    // and even more if by connecting we cut them...
-    // TODO: the opposite heuristic - a cutter; and make both more clever.
-    // TODO: one other way to connect 2 groups is to "protect" the cutting point; handle this here
-    var stone = this.goban.stoneAt(i, j);
-    var allies = stone.uniqueAllies(this.color);
-    var numGroups = allies.length;
-
-    if (numGroups < 2) return 0; // nothing to connect here
-
-    var s1, s2; // we will get stone 1 & 2 for cases with 2 groups connecting
-    var numStones = 0, numEnemies = 0;
-    for (var s, s_array = stone.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
-        switch (s.group) {
-        case null: continue;
-        case allies[0]: s1 = s; break;
-        case allies[1]: s2 = s;
-        }
-        if (s.color === this.color) numStones++;
-        else numEnemies++;
-    }
-    if (numStones === 4) return 0;
-    // 3 of our stones around: no need to connect unless enemy comes by
-    if (numGroups === 3 && numEnemies === 0) return 0;
-
-    // Case of diagonal (strong) stones (TODO: handle the case with a 3rd stone in same group than 1 or 2)
-    if (numStones === 2 && s1.i !== s2.i && s1.j !== s2.j) {
-        // No need to connect if both connection points are free (no cutting stone yet)
-        if (this.goban.empty(s1.i, s2.j) && this.goban.empty(s2.i, s1.j)) return 0;
-        // We count the cutting stone as enemy
-        numEnemies++;
-    }
-
-    switch (numEnemies) {
-    case 0:
-        var _eval = this.inflCoeff / this.inf.map[j][i][this.color];
-        break;
-    case 1:
-        _eval = this.allyCoeff1 * numGroups;
-        break;
-    default: 
-        _eval = this.allyCoeff2 * numGroups;
-    }
-    if (main.debug) {
-        main.log.debug('Connector gives ' + '%.2f'.format(_eval) + ' to ' + i + ',' + j +
-            ' (allies:' + numGroups + ' enemies: ' + numEnemies + ')');
-    }
-    return _eval;
+    return this.connectsMyGroups(i, j, this.color) +
+           this.connectsMyGroups(i, j, 1 - this.color);
 };
 
-},{"../main":32,"./Heuristic":26,"util":4}],25:[function(require,module,exports){
+Connector.prototype.connectsMyGroups = function (i, j, color) {
+    // TODO: one other way to connect 2 groups is to "protect" the cutting point; handle this here
+    var stone = this.goban.stoneAt(i, j);
+    var s1, s1b, s2, s2b, s3;
+    var numStones = 0, numEnemies = 0;
+    for (var n = stone.neighbors.length - 1; n >= 0; n--) {
+        var s = stone.neighbors[n];
+        switch (s.color) {
+        case main.EMPTY: continue;
+        case color:
+            numStones++;
+            if (!s1) {
+                s1 = s;
+            } else if (!s2) {
+                if (s.group !== s1.group) s2 = s; else s1b = s;
+            } else {
+                if (s.group !== s2.group) s3 = s; else s2b = s;
+            }
+            break;
+        default: numEnemies++;
+        }
+    }
+    if (!s2) return 0; // nothing to connect here
+    if (numStones === 4) return 0; // 1 empty between 4 stones; never connect unless forced to
+    // 3 of our stones around: no need to connect unless enemy comes by
+    if (numStones === 3 && numEnemies === 0) return 0;
+
+    var numGroups = s3 ? 3 : 2;
+    // if 3rd stone in same group than 1 or 2; we keep the diagonal ones
+    if (numGroups === 2 && numStones === 3) {
+        if (s2b) { s1b = s2b; var swap = s1; s1 = s2; s2 = swap; }
+        if (s1.i === s2.i || s1.j === s2.j) s1 = s1b;
+    }
+    // Case of diagonal (strong) stones
+    if (s1.i !== s2.i && s1.j !== s2.j) {
+        // No need to connect if both connection points are free (no cutting stone yet)
+        if (this.goban.isEmpty(s1.i, s2.j) && this.goban.isEmpty(s2.i, s1.j)) return 0;
+        // We count the cutting stone as enemy (we did not "see" it above because it's diagonal)
+        numEnemies++;
+    }
+    var score;
+    if (numEnemies === 0) {
+        score = this.inflCoeff / this.inf.map[j][i][color];
+    } else {
+        score = this.allyCoeff1 * numGroups;
+    }
+    if (main.debug) {
+        main.log.debug('Connector for ' + Grid.colorName(color) + ' gives ' + score.toFixed(3) + ' to ' + i + ',' + j +
+            ' (allies:' + numGroups + ' enemies: ' + numEnemies + ')');
+    }
+    return score;
+};
+
+},{"../Grid":10,"../main":33,"./Heuristic":26,"util":4}],25:[function(require,module,exports){
 //Translated from executioner.rb using babyruby2js
 'use strict';
 
@@ -4019,10 +4125,40 @@ function Executioner(player) {
 inherits(Executioner, Heuristic);
 module.exports = Executioner;
 
+
+// In this board, c5 is a "sure death" move
+// 5 O@+OO
+// 4 O@O@+
+// 3 OO@@+
+// 2 ++@++
+// 1 ++@++
+//   abcde
+Executioner.prototype.isSureDeath = function (empty, color) {
+    var numKill = 0;
+    for (var i = empty.neighbors.length - 1; i >= 0; i--) {
+        var n = empty.neighbors[i];
+        switch (n.color) {
+        case main.EMPTY:
+            return false;
+        case color:
+            if (n.group.lives > 1) return false; // TODO: where do we worry about life of group?
+            break;
+        default:
+            if (n.group.lives > 1) break; // not a kill
+            if (n.group.stones.length > 1) return false; // kill more than 1 stone
+            if (numKill) return false; // kill at least 2 groups (hence more than 1 stone)
+            numKill++;
+        }
+    }
+    return true;
+};
+
 Executioner.prototype.evalMove = function (i, j) {
-    var threat, saving;
     var stone = this.goban.stoneAt(i, j);
-    threat = saving = 0;
+    if (this.isSureDeath(stone, this.color)) {
+        return this.markMoveAsBlunder('sure death');
+    }
+    var threat = 0, saving = 0;
     for (var g, g_array = stone.uniqueEnemies(this.color), g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
         if (g.lives > 1) { // NB: more than 1 is a job for hunter
             continue;
@@ -4047,9 +4183,12 @@ Executioner.prototype.evalMove = function (i, j) {
     return threat + saving;
 };
 
-},{"../main":32,"./Heuristic":26,"util":4}],26:[function(require,module,exports){
+},{"../main":33,"./Heuristic":26,"util":4}],26:[function(require,module,exports){
 //Translated from heuristic.rb using babyruby2js
 'use strict';
+
+var main = require('../main');
+var Grid = require('../Grid');
 
 
 /** @class Base class for all heuristics.
@@ -4057,9 +4196,8 @@ Executioner.prototype.evalMove = function (i, j) {
  *  public read-only attribute: negative
  */
 function Heuristic(player, consultant) {
-    if (consultant === undefined) consultant = false;
     this.player = player;
-    this.consultant = consultant;
+    this.consultant = !!consultant;
     this.negative = false;
     this.goban = player.goban;
     this.gsize = player.goban.gsize;
@@ -4089,9 +4227,12 @@ Heuristic.prototype.setAsNegative = function () {
 };
 
 Heuristic.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
-    if (lowLimit === undefined) lowLimit = null;
-    if (highLimit === undefined) highLimit = null;
     return this.player.genes.get(this.constructor.name + '-' + name, defVal, lowLimit, highLimit);
+};
+
+Heuristic.prototype.territoryScore = function (i, j, color) {
+    var ter = this.ter.potential().yx;
+    return ter[j][i] * ( color === main.BLACK ? 1 : -1);
 };
 
 // TODO: instead of below, evaluate the damage caused by an *invasion* by taking group g
@@ -4105,7 +4246,103 @@ Heuristic.prototype.groupThreat = function (g) {
         this.spaceInvasionCoeff * numEmpties; //...and the "open gate" to territory will count a lot
 };
 
-},{}],27:[function(require,module,exports){
+Heuristic.prototype.markMoveAsBlunder = function (reason) {
+    this.player.markMoveAsBlunder(this.constructor.name + ':' + reason);
+};
+
+Heuristic.prototype.distanceFromStoneToBorder = function (stone) {
+    var gsize = this.goban.gsize;
+    var i = stone.i, j = stone.j;
+    return Math.min(Math.min(i - 1, gsize - i), Math.min(j - 1, gsize - j));
+};
+
+Heuristic.prototype.diagonalStones = function (s1, s2) {
+    return [this.goban.stoneAt(s1.i, s2.j), this.goban.stoneAt(s2.i, s1.j)];
+};
+
+Heuristic.prototype.distanceBetweenStones = function (s1, s2, color) {
+    var dx = Math.abs(s2.i - s1.i), dy = Math.abs(s2.j - s1.j);
+    if (dx + dy === 1) return 0; // already connected
+    var enemy = 1 - color;
+    var numEnemies = 0, between;
+    if (dx === 1 && dy === 1) { // hane
+        var diags = this.diagonalStones(s1, s2);
+        if (diags[0].color === color || diags[1].color === color) return 0;
+        if (diags[0].color === enemy) numEnemies++;
+        if (diags[1].color === enemy) numEnemies++;
+        if (numEnemies === 0) return 0; // safe hane
+        if (numEnemies === 2) return 9; // cut!
+        if (this.distanceFromStoneToBorder(s1) === 0 || this.distanceFromStoneToBorder(s2) === 0) {
+            // hane close to border works even if 1 enemy unless another enemy is waiting on the border
+            var empty = diags[0].color === enemy ? diags[1] : diags[0];
+            if (empty.allyStones(enemy) !== 0) return 1;
+            return 0;
+        }
+        return 1;
+    }
+    if (dx + dy === 2) {
+        between = this.goban.stoneAt((s1.i + s2.i) / 2, (s1.j + s2.j) /2);
+        if (between.color === color) return 0; // already connected
+        if (between.color === enemy) return between.group.lives; // REVIEW ME
+        for (var i = between.neighbors.length - 1; i >= 0; i--) {
+            if (between.neighbors[i].color === enemy) numEnemies++;
+        }
+        if (numEnemies >= 1) return 1; // needs 1 move to connect (1 or 2 enemies is same)
+        if (this.distanceFromStoneToBorder(s1) + this.distanceFromStoneToBorder(s2) === 0) {
+            return 0; // along border with 0 enemy around is safe
+        }
+        return 0.5; // REVIEW ME
+    }
+    var d1 = this.distanceFromStoneToBorder(s1), d2 = this.distanceFromStoneToBorder(s2);
+    if (dx + dy === 3 && d1 === 0 && d2 === 0) {
+        // TODO code betweenStones and test it
+        var betweens = this.betweenStones(s1, s2);
+        var dist = 0;
+        for (var b = betweens.length - 1; b >= 0; b--) {
+            between = betweens[b];
+            if (between.color === enemy) dist += between.group.lives;
+            if (between.allyStones(enemy) !== 0) dist += 1;
+        }
+        return dist;
+    }
+    //TODO: add other cases like monkey-jump
+    return dx + dy;
+};
+
+/** Evaluates if a new stone at i,j will be able to connect with a "color" group around.
+ *  Basically this is to make sure i,j is not alone (and not to see if i,j is a connector!) */
+// +@+
+// O+O
+// @*@ <-- TODO review this case; looks like white here cannot connect
+Heuristic.prototype.canConnect = function (i, j, color) {
+    var stone = this.goban.stoneAt(i,j);
+
+    // first look around for empties and allies (a single ally means we connect!)
+    var empties = [];
+    for (var nNdx = stone.neighbors.length - 1; nNdx >= 0; nNdx--) {
+        var n = stone.neighbors[nNdx];
+        if (n.color === color && n.group.lives > 1) return n;
+        if (n.color === main.EMPTY) empties.push(n);
+    }
+    // look around each empty for allies
+    var moveNeeded = 2;
+    for(var eNdx = empties.length - 1; eNdx >= 0; eNdx--) {
+        var empty = empties[eNdx];
+        for (var n2Ndx = empty.neighbors.length - 1; n2Ndx >= 0; n2Ndx--) {
+            var en = empty.neighbors[n2Ndx];
+            if (en === stone) continue; // same stone
+            if (en.color !== color) continue; // empty or enemy
+            if (en.group.lives === 1) continue; // TODO: look better at group's health
+            var dist = this.distanceBetweenStones(stone, en, color);
+            if (dist >= 2) continue;
+            moveNeeded -= (2 - dist);
+            if (moveNeeded <= 0.5) return en; // REVIEW ME
+        }
+    }
+    return null;
+};
+
+},{"../Grid":10,"../main":33}],27:[function(require,module,exports){
 //Translated from hunter.rb using babyruby2js
 'use strict';
 
@@ -4250,7 +4487,7 @@ Hunter.prototype.escapingAtariIsCaught = function (stone, level) {
 };
 
 
-},{"../Stone":18,"../main":32,"./Heuristic":26,"util":4}],28:[function(require,module,exports){
+},{"../Stone":18,"../main":33,"./Heuristic":26,"util":4}],28:[function(require,module,exports){
 //Translated from no_easy_prisoner.rb using babyruby2js
 'use strict';
 
@@ -4301,7 +4538,7 @@ NoEasyPrisoner.prototype.evalMove = function (i, j) {
     return score;
 };
 
-},{"../Stone":18,"../main":32,"./Heuristic":26,"./Hunter":27,"util":4}],29:[function(require,module,exports){
+},{"../Stone":18,"../main":33,"./Heuristic":26,"./Hunter":27,"util":4}],29:[function(require,module,exports){
 //Translated from pusher.rb using babyruby2js
 'use strict';
 
@@ -4332,48 +4569,17 @@ Pusher.prototype.evalMove = function (i, j) {
     }
     if (!this.canConnect(i, j, this.color)) return 0;
 
-    var score = 0.33 * (this.enemyCoeff * enemyInf - this.allyCoeff * allyInf);
+    var fillTer = this.territoryScore(i, j, this.color);
+    if (fillTer < 0) fillTer = 0; // Spacer will count <0 scores
+
+    var score = fillTer + 0.33 * (this.enemyCoeff * enemyInf - this.allyCoeff * allyInf);
     if (main.debug) {
         main.log.debug('Pusher heuristic sees influences ' + allyInf + ' - ' + enemyInf + ' at ' + i + ',' + j + ' -> ' + '%.03f'.format(score));
     }
     return score;
 };
 
-/** @return a group if a new stone at i,j will be able to connect with a "color" group around.
- *  Basically this is to make sure i,j is not alone (and not to see if i,j is a connector!) */
-// +@+
-// O+O
-// @*@ <-- TODO review this case; looks like white here cannot connect
-Pusher.prototype.canConnect = function (i, j, color) {
-    var stone = this.goban.stoneAt(i,j);
-
-    // first look around for empties and allies (a single ally means we connect!)
-    var empties = [];
-    for (var nNdx = stone.neighbors.length - 1; nNdx >= 0; nNdx--) {
-        var n = stone.neighbors[nNdx];
-        if (n.color === color && n.group.lives > 1) return n.group;
-        if (n.color === main.EMPTY) empties.push(n);
-    }
-
-    // look around each empty for allies
-    var candidate = null;
-    for(var eNdx = empties.length - 1; eNdx >= 0; eNdx--) {
-        var empty = empties[eNdx];
-        for (var n2Ndx = empty.neighbors.length - 1; n2Ndx >= 0; n2Ndx--) {
-            var en = empty.neighbors[n2Ndx];
-            if (en === stone || en.color !== color || en.group.lives < 2) continue;
-            if (stone.distance(en) > 1) continue;
-            if (candidate) {
-                return candidate; // or en? TODO test me
-            }
-            candidate = en;
-        }
-    }
-    return false;
-};
-
-
-},{"../main":32,"./Heuristic":26,"util":4}],30:[function(require,module,exports){
+},{"../main":33,"./Heuristic":26,"util":4}],30:[function(require,module,exports){
 //Translated from savior.rb using babyruby2js
 'use strict';
 
@@ -4452,68 +4658,134 @@ Savior.prototype.evalEscape = function (i, j, stone) {
     return threat;
 };
 
-},{"../Stone":18,"../main":32,"./Heuristic":26,"./Hunter":27,"util":4}],31:[function(require,module,exports){
+},{"../Stone":18,"../main":33,"./Heuristic":26,"./Hunter":27,"util":4}],31:[function(require,module,exports){
+'use strict';
+
+var inherits = require('util').inherits;
+//var main = require('../main');
+var Heuristic = require('./Heuristic');
+
+
+/** @class Cares about good shapes
+ */
+function Shaper(player) {
+    Heuristic.call(this, player);
+    //this.allyCoeff = this.getGene('ally-infl', 0.1, 0.01, 4.0);
+}
+inherits(Shaper, Heuristic);
+module.exports = Shaper;
+
+Shaper.prototype.evalMove = function (/*i, j*/) {
+    return 0;
+};
+
+// Decides if a "void" is good to make 2 eyes.
+//   i,j is one free vertex of the void
+//   vcount is the number of empties in the void
+// Returns:
+//   0 => cannot make 2 eyes
+//   1 => can make 2 eyes if we play now (coords will receive [i,j])
+//   2 => can make 2 eyes even if opponent plays first
+Shaper.getEyeMakerMove = function (goban, i, j, vcount, coords) {
+    if (vcount <= 2) return 0;
+    if (vcount >= 7) return 2;
+
+    var s1 = goban.stoneAt(i, j);
+    var empties = s1.empties();
+    if (vcount === 3) {
+        var center = empties.length === 1 ? empties[0] : s1;
+        coords[0] = center.i; coords[1] = center.j;
+        return 1;
+    }
+    if (vcount === 4) {
+        // verify the 4 empties are not a "square" shape (anything else works)
+        if (empties.length === 3) { // "T" shape - s1 is at center
+            coords[0] = s1.i; coords[1] = s1.j;
+            return 1;
+        }
+        if (empties.length === 1) {
+            if (empties[0].numEmpties() === 3) { // "T" shape - s1 is one extremity
+                coords[0] = empties[0].i; coords[1] = empties[0].j;
+                return 1;
+            }
+            return 2; // "Z" shape - s1 is one extremity
+        }
+        // s1 has 2 empty neighbors
+        if (empties[0].numEmpties() === 2 && empties[1].numEmpties() === 2) {
+            return 0; // square shape - each empty has 2 neighbors
+        }
+        return 2; // "Z" shape - s1 is one of the 2 at "center"
+    }
+    if (vcount === 5) {
+        // FIXME: use a new method to get all empties and sort them by # neighbors
+        // 4-1-1-1-1 if one has 4 neighbors this is a "+" shape and center is must-play now (1)
+        // 2-2-2-1-1 if none has 3 this is a "line" = (2)
+        // 3-2-2-2-1 if one has 3 and only 1 has 1, then 3 is must-play (1)
+        // pick the only one with 3 neighbors
+        return 2;
+    }
+    // vcount === 6
+    // FIXME
+    // 3-3-2-2-2-2 (1) aim at one of the 3
+    // anything else is (2)
+    return 2;
+};
+
+},{"./Heuristic":26,"util":4}],32:[function(require,module,exports){
 //Translated from spacer.rb using babyruby2js
 'use strict';
 
 var inherits = require('util').inherits;
 var main = require('../main');
-// Vague idea that playing where we already have influence is moot.
+var Grid = require('../Grid');
 var Heuristic = require('./Heuristic');
 
-/** @class */
+/** @class Tries to occupy empty space + counts when filling up territory */
 function Spacer(player) {
     Heuristic.call(this, player);
-    this.inflCoeff = this.getGene('infl', 2.0, 0.0, 8.0);
-    this.cornerCoeff = this.getGene('corner', 2.0, 0.0, 8.0);
+    this.inflCoeff = this.getGene('infl', 2, 1, 4);
+    this.borderCoeff = this.getGene('border', 1, 0, 2);
 }
 inherits(Spacer, Heuristic);
 module.exports = Spacer;
 
 Spacer.prototype.evalMove = function (i, j) {
-    var enemyInf, allyInf;
-    enemyInf = allyInf = 0;
+    var enemyInf = 0, allyInf = 0;
     var stone = this.goban.stoneAt(i, j);
     var inf = this.inf.map[j][i];
     enemyInf += inf[this.enemyColor];
     allyInf += inf[this.color];
-    for (var s, s_array = stone.neighbors, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
+    for (var n = stone.neighbors.length - 1; n >= 0; n--) {
+        var s = stone.neighbors[n];
         inf = this.inf.map[s.j][s.i];
         enemyInf += inf[this.enemyColor];
         allyInf += inf[this.color];
     }
-    var totalInf = enemyInf + allyInf;
-    var corner = 3;
+    var totalInf = enemyInf + allyInf - 3;
+    if (totalInf < 0) totalInf = 0;
+
     var dbX = this.distanceFromBorder(i);
     var dbY = this.distanceFromBorder(j);
-    var dcX = 1 + Math.abs((dbX - corner));
-    var dcY = 1 + Math.abs((dbY - corner));
-    var dc = dcX + dcY;
-    // hacky: why play on border if no one is around?
-    if (dbX < 2) {
-        totalInf += (20 * (2 - dbX)) / (totalInf + 1);
-    }
-    if (dbY < 2) {
-        totalInf += (20 * (2 - dbY)) / (totalInf + 1);
-    }
-    // TESTME
+    var rowCoeff = [0, 0.1, 0.8, 1, 0.95, 0.8];
+    var border = rowCoeff.length - 1;
+    if (dbX > border) dbX = border;
+    if (dbY > border) dbY = border;
+    var db = rowCoeff[dbX] * rowCoeff[dbY];
+    
     // remove points only if we fill up our own territory
-    var ter = this.ter.potential().yx;
-    var fillOwnTer = ( this.color === main.BLACK ? ter[j][i] : -ter[j][i] );
-    if (fillOwnTer > 0) { // filling up enemy's space is not looked at here
-        fillOwnTer = 0;
+    var fillTer = this.territoryScore(i, j, this.color);
+    if (fillTer > 0) fillTer = 0; // Pusher will count >0 scores
+    if (main.debug && fillTer < 0) {
+        main.log.debug('Spacer sees a territory loss of ' + fillTer + ' in ' + Grid.moveAsString(i, j));
     }
-    if (main.debug && fillOwnTer !== 0) {
-        main.log.debug('Spacer sees potential territory score ' + fillOwnTer + ' in ' + i + ',' + j);
-    }
-    return fillOwnTer + 1.33 / (totalInf * this.inflCoeff + dc * this.cornerCoeff + 1);
+    return fillTer + 10 * db * this.borderCoeff / (1 + totalInf * this.inflCoeff);
 };
 
 Spacer.prototype.distanceFromBorder = function (n) {
     return Math.min(n - 1, this.gsize - n);
 };
 
-},{"../main":32,"./Heuristic":26,"util":4}],32:[function(require,module,exports){
+},{"../Grid":10,"../main":33,"./Heuristic":26,"util":4}],33:[function(require,module,exports){
 //main class for babyruby2js
 'use strict';
 
@@ -4587,9 +4859,9 @@ TestSeries.prototype.testOneClass = function (Klass) {
     if (typeof Klass.prototype[method] !== 'function') continue;
     if (method.substr(0,4) !== 'test') continue;
     this.testCount++;
-    var obj = new Klass(Klass.name + '#' + method);
+    var test = new Klass(Klass.name + '#' + method);
     try {
-      obj[method].call(obj);
+      test[method].call(test);
     } catch(e) {
       var header = 'Test failed';
       if (e.message.startWith(FAILED_ASSERTION_MSG)) {
@@ -4598,7 +4870,7 @@ TestSeries.prototype.testOneClass = function (Klass) {
         header += ' with exception';
         this.errorCount++;
       }
-      main.log.error(header + ': ' + obj.testName + ': ' + e.message + '\n' + e.stack);
+      main.log.error(header + ': ' + test.name + ': ' + e.message + '\n' + e.stack);
     }
   }
 };
@@ -4625,8 +4897,8 @@ TestSeries.prototype.run = function (logfunc, specificClass) {
 
 
 /** @class */
-function TestCase(testName) {
-  this.testName = testName;
+function TestCase(name) {
+  this.name = name;
 }
 
 function _fail(msg, comment) {
@@ -4701,7 +4973,7 @@ Logger.prototype._newLogFn = function (lvl, consoleFn) {
 main.log = new Logger();
 main.Logger = Logger;
 
-},{}],33:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 'use strict';
 
 
@@ -4869,7 +5141,7 @@ Array.prototype.range = function (begin, end) {
   return this.slice(begin, end + 1);
 };
 
-},{}],34:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 //Translated from test_ai.rb using babyruby2js
 'use strict';
 
@@ -4879,6 +5151,8 @@ var Grid = require('../Grid');
 var assertEqual = main.assertEqual;
 var GameLogic = require('../GameLogic');
 var Ai1Player = require('../ai/Ai1Player');
+
+var BLACK = main.BLACK, WHITE = main.WHITE;
 
 
 /** @class NB: for debugging think of using @goban.debug_display
@@ -4896,7 +5170,7 @@ TestAi.prototype.initBoard = function (size, handicap) {
     this.game = new GameLogic();
     this.game.newGame(size, handicap);
     this.goban = this.game.goban;
-    this.players = [new Ai1Player(this.goban, main.BLACK), new Ai1Player(this.goban, main.WHITE)];
+    this.players = [new Ai1Player(this.goban, BLACK), new Ai1Player(this.goban, WHITE)];
 };
 
 TestAi.prototype.playMoves = function (moves) {
@@ -4908,18 +5182,18 @@ TestAi.prototype.checkTurn = function (expColor) {
 };
 
 TestAi.prototype.logErrorContext = function (player) {
-    main.log.error(player.getMoveSurveyText(2));
-    main.log.error(player.getMoveSurveyText(1));
     main.log.error(this.goban.toString());
+    main.log.error(player.getMoveSurveyText(1));
+    main.log.error(player.getMoveSurveyText(2));
 };
 
 TestAi.prototype.checkScore = function(player, color, move, score, expScore, heuristic) {
-    var range = expScore > 2 ? 0.5 : expScore/5 + 0.1;
-    if (score > 0 && Math.abs(score - expScore) > range) {
-        this.logErrorContext(player);
-        main.log.error(Grid.colorName(color) + ' ' + move +
+    var range = Math.abs(expScore) > 2 ? 0.5 : Math.abs(expScore) / 5 + 0.1;
+    if (Math.abs(score - expScore) > range) {
+        main.log.error('Discrepancy in ' + this.name + ': ' + Grid.colorName(color) + ' ' + move +
             ' got ' + score.toFixed(3) + ' instead of ' + expScore +
             (heuristic ? ' for ' + heuristic : ''));
+        this.logErrorContext(player);
     }
 };
 
@@ -4929,9 +5203,16 @@ TestAi.prototype.checkEval = function (move, expEval, heuristic) {
     
     var color = this.game.curColor;
     var player = this.players[color];
-    player.prepareEval();
-    var score = heuristic ? player._testHeuristic(i, j, heuristic) : player.evalMove(i, j);
-    this.checkScore(player, color, move, score, expEval, heuristic);
+    var score;
+    if (heuristic) {
+        score = player._testHeuristic(i, j, heuristic);
+    } else {
+        score = player._testMoveEval(i, j);
+    }
+    if (expEval !== null && expEval !== undefined) {
+        this.checkScore(player, color, move, score, expEval, heuristic);
+    }
+    return score;
 };
 
 TestAi.prototype.playAndCheck = function (expMove, expEval) {
@@ -4943,8 +5224,14 @@ TestAi.prototype.playAndCheck = function (expMove, expEval) {
     var player = this.players[color];
 
     var move = player.getMove();
+    var score = player.bestScore;
     if (move !== expMove) {
         this.logErrorContext(player);
+        var expMoveScore = this.checkEval(expMove, expEval); // see how much the expMove got
+        if (Math.abs(expMoveScore - score) < 0.001) {
+            main.log.error('CAUTION: ' + expMove + ' and ' + move + 
+                ' are twins or very close => consider modifying the test scenario');
+        }
         assertEqual(expMove, move, Grid.colorName(color));
     } else if (expEval) {
         this.checkScore(player, color, move, player.bestScore, expEval);
@@ -4958,11 +5245,11 @@ TestAi.prototype.testCornering = function () {
     // 7 +++@+++++
     // 6 +++++++++
     // 5 ++O++++++
-    // 4 +++++++++
+    // 4 +++++@+++
     //   abcdefghj
-    this.playMoves('j8,j9,d7,c5');
-    this.checkTurn(main.BLACK);
-    this.playAndCheck('h9', 6); // FIXME: h8 is better than killing in h9 (non trivial)
+    this.playMoves('j8,j9,d7,c5,f4,pass,g6,pass');
+    this.checkTurn(BLACK);
+    this.playAndCheck('h9'); // FIXME: h8 is better than killing in h9 (non trivial)
 };
 
 TestAi.prototype.testPreAtari = function () {
@@ -4975,8 +5262,8 @@ TestAi.prototype.testPreAtari = function () {
     // f3-f2 can be saved in g2
     // Hunter should not attack in c1 since c1 would be in atari
     this.playMoves('d4,e2,d2,c3,d3,c2,b4,d1,c4,f4,f3,e3,e4,g3,f2,e1');
-    this.checkTurn(main.BLACK);
-    this.checkEval('c1', -6);
+    this.checkTurn(BLACK);
+    this.checkEval('c1', -4.3);
     this.playAndCheck('g2', 10);
 };
 
@@ -4990,7 +5277,7 @@ TestAi.prototype.testHunter1 = function () {
     // 4 +++@++++@
     //   abcdefghj
     this.playMoves('d4,j7,j8,j6,j5,j9,j4,pass,h8,pass');
-    this.checkTurn(main.BLACK);
+    this.checkTurn(BLACK);
     this.checkEval('h7', 14);
     this.playAndCheck('h6', 14);
     // h7 ladder was OK too here but capturing same 2 stones in a ladder
@@ -5008,7 +5295,7 @@ TestAi.prototype.testLadder = function () {
     // 4 ++++++++@
     //   abcdefghj
     this.playMoves('j9,j7,j8,j6,j5,a9,j4,pass');
-    this.checkTurn(main.BLACK);
+    this.checkTurn(BLACK);
     this.playAndCheck('h7', 16);
     this.playMoves('h6');
     this.playAndCheck('g6', 16);
@@ -5029,9 +5316,9 @@ TestAi.prototype.testLadderBreaker1 = function () {
     //   abcdefghj
     // Ladder breaker a7 does not work since the whole group dies
     this.playMoves('a4,a9,a5,a8,b4,a7,c4,e7,d4,b5,d5,c5');
-    this.checkTurn(main.BLACK);
-    this.checkEval('b6', 0.02);
-    this.playAndCheck('c6', 16);
+    this.checkTurn(BLACK);
+    this.checkEval('b6', 0.5); // from spacer
+    this.playAndCheck('c6', 16.5);
 };
 
 TestAi.prototype.testLadderBreaker2 = function () {
@@ -5045,10 +5332,10 @@ TestAi.prototype.testLadderBreaker2 = function () {
     // Ladder breaker are a7 and e7
     // What is sure is that neither b6 nor c6 works
     this.playMoves('a4,a9,a5,a8,b4,a7,c4,e7,d4,b5,d5,c5,pass,b8,pass,c8');
-    this.checkTurn(main.BLACK);
-    this.checkEval('c6', 0.02);
-    this.checkEval('b6', 0.02);
-    this.playAndCheck('d6', 0.35);
+    this.checkTurn(BLACK);
+    this.checkEval('c6', 0.5);
+    this.checkEval('b6', 0.5);
+    this.checkEval('g4', 1.15); // g4 and g3 are twins, but do we care?
 };
 
 TestAi.prototype.testSeeDeadGroup = function () {
@@ -5064,13 +5351,13 @@ TestAi.prototype.testSeeDeadGroup = function () {
     //   abcdefghj
     // Interesting here: SW corner group O (white) is dead. Both sides should see it and play accordingly.
     this.playMoves('d6,f4,e5,f6,g5,f5,g7,h6,g6,e7,f7,e6,g3,h4,g4,h5,d8,c7,d7,f8,e8,d4,d5,e4,f9,g9,e9,c9,g8,c8,h9,d9,e3,f2,f3,h7,c4,c5,d3,c6,b5,h8,b7,a6,b6,a4,b9,a5,b8,b3,b4,c3,c2,e2,a7,d2,a3,b2,g1,c1,g2,h2,j3,h3,f1,j2,e1,j4,d1,a2,a4,h1,c8,j8,f8,j9,g9');
-    this.checkTurn(main.WHITE);
+    this.checkTurn(WHITE);
     this.playAndCheck('pass');
-    this.playAndCheck('c2', 2); // TODO: optim here would be @ realizing O group is dead
-    this.playAndCheck('d2', 4);
+    this.playAndCheck('c2', 3); // FIXME: BoardAnalyser should see O group is dead
+    this.playAndCheck('d2', 5); // same here, d2 is wasted
     this.playAndCheck('e2', 4);
     this.playAndCheck('pass');
-    this.playAndCheck('pass'); // @goban.debug_display
+    this.playAndCheck('pass');
 };
 
 TestAi.prototype.testBorderDefense = function () {
@@ -5085,9 +5372,9 @@ TestAi.prototype.testBorderDefense = function () {
     //   abcdefg
     // Issue: after W:a3 we expect B:b5 or b6 but AI does not see attack in b5; 
     this.playMoves('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3');
-    this.checkTurn(main.BLACK);
-    this.checkEval('g5', 0.2); // no stone to kill for black in g5
-    this.checkEval('b6', 0, 'Savior'); // FIXME should be >0: black to see he can save a5 in b6 too
+    this.checkTurn(BLACK);
+    this.checkEval('g5', 0.2, 'Pusher'); // no stone to kill for black in g5
+    this.checkEval('b6', 10); // FIXME should be close to b5 score: black can save a5 in b6
     this.playAndCheck('b5', 10);
 };
 
@@ -5103,8 +5390,8 @@ TestAi.prototype.testBorderAttackAndInvasion = function () {
     //   abcdefg
     // AI should see attack in b5 with territory invasion
     this.playMoves('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,g6,d1,g5,g4,pass');
-    this.checkTurn(main.WHITE);
-    this.playAndCheck('b5', 10);
+    this.checkTurn(WHITE);
+    this.playAndCheck('b5', 11.7);
 };
 
 TestAi.prototype.testBorderAttackAndInvasion2 = function () {
@@ -5121,8 +5408,8 @@ TestAi.prototype.testBorderAttackAndInvasion2 = function () {
     // Actually O in g4 is chosen because pusher gives it 0.33 pts.
     // NB: g4 is actually a valid move for black
     this.playMoves('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,g6');
-    this.checkTurn(main.WHITE);
-    this.playAndCheck('b5', 10);
+    this.checkTurn(WHITE);
+    this.playAndCheck('b5', 11.7);
 };
 
 TestAi.prototype.testBorderClosing = function () {
@@ -5137,7 +5424,7 @@ TestAi.prototype.testBorderClosing = function () {
     //   abcdefg
     // AI should see f4 is dead inside white territory if g5 is played (non trivial)
     this.playMoves('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,b6,d1,g6');
-    this.checkTurn(main.WHITE);
+    this.checkTurn(WHITE);
     this.checkEval('g5', 0.3);
     this.playAndCheck('g4', 6); // FIXME white (O) move should be g5 here
 };
@@ -5154,8 +5441,8 @@ TestAi.prototype.testSaviorHunter = function () {
     //   abcdefg
     // g4 is actually a valid move for black
     this.playMoves('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b5,b3,c4,a4,a5,a3,g6,pass');
-    this.checkTurn(main.BLACK);
-    this.playAndCheck('g4', 6); // NB: d2 is already dead
+    this.checkTurn(BLACK);
+    this.playAndCheck('g4', 6.5); // NB: d2 is already dead
     this.checkEval('g3', 0.3);
 };
 
@@ -5170,12 +5457,11 @@ TestAi.prototype.testKillingSavesNearbyGroupInAtari = function () {
     // 1 +++O+++
     //   abcdefg
     this.playMoves('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,b6,d1,g5');
-    this.checkTurn(main.WHITE);
+    this.checkTurn(WHITE);
     this.checkEval('e3', 5);
-    this.playAndCheck('g4', 10.5);
+    this.playAndCheck('g4', 11.2);
     this.playAndCheck('g6', 3.6);
-    this.playAndCheck('pass');
-    this.playAndCheck('pass');
+    this.checkEval('c7', 1); // spacer...
 };
 
 TestAi.prototype.testSnapback = function () {
@@ -5188,10 +5474,10 @@ TestAi.prototype.testSnapback = function () {
     //   abcde
     // c4 expected for white, then if c5, c4 again (snapback)
     this.playMoves('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,e4');
-    this.checkTurn(main.WHITE);
-    this.playAndCheck('c4', 6);
+    this.checkTurn(WHITE);
+    this.playAndCheck('c4', 7);
     this.game.playOneMove('c5');
-    this.playAndCheck('c4', 8); // 3 taken & 1 saved = 4
+    this.playAndCheck('c4', 9); // 3 taken & 1 saved = 4
 };
 
 TestAi.prototype.testSnapback2 = function () {
@@ -5204,7 +5490,7 @@ TestAi.prototype.testSnapback2 = function () {
     //   abcdefg
     // Snapback is bad idea since a2 can kill white group
     this.playMoves('b7,a7,b6,a6,c5,b5,c4,a5,d6,d7,d5,e7,b4,e3,e6');
-    this.checkTurn(main.WHITE);
+    this.checkTurn(WHITE);
     this.playAndCheck('f7', 10); // FIXME white should see d7-e7 are dead (territory detection)
     this.playAndCheck('a4', 10);
 };
@@ -5219,7 +5505,7 @@ TestAi.prototype.testSnapback3 = function () {
     //   abcde
     // 
     this.playMoves('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,d3,e5,c1,c4');
-    this.checkTurn(main.BLACK);
+    this.checkTurn(BLACK);
     this.checkEval('c5', 0.02);
     this.playAndCheck('b2', 0.3);
 };
@@ -5234,16 +5520,25 @@ TestAi.prototype.testSeesAttackNoGood = function () {
     //   abcde
     // NB: we could use this game to check when AI can see dead groups
     this.playMoves('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,d3,e5,c1,c4,c5');
-    this.checkTurn(main.WHITE);
-    this.playAndCheck('c4', 12); // kills 3 and saves 2
-    this.checkEval('c5', -4); // silly move
+    this.checkTurn(WHITE);
+    this.playAndCheck('c4', 13); // kills 3 and saves 2 + 1 (disputable) space in black territory
+    this.checkEval('c5', -2.3); // silly move
 };
 
 TestAi.prototype.testPusher1 = function () {
+    // 7 ++O++++
+    // 6 ++O@+++
+    // 5 ++O++++
+    // 4 +@@@+++
+    // 3 +++++++
+    // 2 +++++++
+    // 1 +++++++
+    //   abcdefg
     this.initBoard(7);
     this.playMoves('d4,c5,d6,c7,c4,c6,b4');
-    this.checkEval('e5', 0);
-    this.playAndCheck('d5', 0.5);
+    this.checkEval('e7', 1); // spacer only; cannot connect if e7
+    this.checkEval('e5', 1); // spacer
+    this.playAndCheck('d5', 1.15);
  };
 
 TestAi.prototype.testPusher2 = function () {
@@ -5257,9 +5552,10 @@ TestAi.prototype.testPusher2 = function () {
     //   abcdefghj
     this.initBoard(9);
     this.playMoves('e5,g3,c3,e3,g6,d4,d5,c5,c4,d6,e6,c6,d2,e4,d3');
-    this.checkTurn(main.WHITE);
+    this.checkTurn(WHITE);
     this.checkEval('f5', 0.02);
-    this.playAndCheck('e2', 0.2);
+    this.checkEval('e2', 0.22); // FIXME: should be bigger (invasion gate)
+    this.playAndCheck('g5', 0.39); // bigger too
 };
 
 TestAi.prototype.testSemiAndEndGame = function () {
@@ -5275,17 +5571,24 @@ TestAi.prototype.testSemiAndEndGame = function () {
     //   abcdefghj
     this.initBoard(9);
     this.playMoves('d4,f6,f3,f4,e4,e5,d6,c5,c7,d5,g3,c6,c4,d7,b4,e6,g4,f5,h6,h5,g5,h4,h3,g6,j5,c8,j4,b7,h7,g8,g7,j8,h8,f8,f7,a5,b5,a6,b6,a3,a4,b3,a7,d3,e3,c3,e7,e2,f2,d2,c1,f1,g1,e1,b1,c2,a1,a2,a8,h9,j7,b9,j9,g9,j8,e8');
-    this.checkTurn(main.BLACK);
-    this.playAndCheck('b8', 0.7); // huge threat only if white does not answer it
-    this.playAndCheck('pass');
-    // this.playAndCheck('c7', 99); // big cost if not c7 FIXME: AI passes here now
+    this.checkTurn(BLACK);
+    this.checkEval('b8', 0.75); // huge threat but only if white does not answer it
+    this.checkEval('d9', 1); // spacer does that since it is right in enemy territory...
+    this.playMoves('b8'); 
+    this.checkEval('c7', 99); // big cost if not c7 FIXME
     // this.playAndCheck('a9', 99);
     // this.playAndCheck('c9', 99);
     // this.playAndCheck('pass');
     // this.playAndCheck('pass');
 };
 
-},{"../GameLogic":7,"../Grid":10,"../ai/Ai1Player":22,"../main":32,"util":4}],35:[function(require,module,exports){
+TestAi.prototype.testConnector_connectionNotNeeded = function () {
+    this.initBoard(7);
+    this.playMoves('d4,f6,f3,c7,g4,e4,e3,e5,g5,f4,g6,b4,c3');
+    this.checkTurn(WHITE);
+    this.checkEval('f5', 0);
+};
+},{"../GameLogic":7,"../Grid":10,"../ai/Ai1Player":22,"../main":33,"util":4}],36:[function(require,module,exports){
 //Translated from test_all.rb using babyruby2js
 'use strict';
 
@@ -5309,7 +5612,7 @@ var TestSpeed = require('./TestSpeed');
 var TestStone = require('./TestStone');
 var TestZoneFiller = require('./TestZoneFiller');
 
-},{"../StoneConstants":19,"../main":32,"../rb":33,"./TestAi":34,"./TestBoardAnalyser":36,"./TestBreeder":37,"./TestGameLogic":38,"./TestGroup":39,"./TestPotentialTerritory":40,"./TestScoreAnalyser":41,"./TestSgfReader":42,"./TestSpeed":43,"./TestStone":44,"./TestZoneFiller":45}],36:[function(require,module,exports){
+},{"../StoneConstants":19,"../main":33,"../rb":34,"./TestAi":35,"./TestBoardAnalyser":37,"./TestBreeder":38,"./TestGameLogic":39,"./TestGroup":40,"./TestPotentialTerritory":41,"./TestScoreAnalyser":42,"./TestSgfReader":43,"./TestSpeed":44,"./TestStone":45,"./TestZoneFiller":46}],37:[function(require,module,exports){
 //Translated from test_board_analyser.rb using babyruby2js
 'use strict';
 
@@ -5360,7 +5663,7 @@ TestBoardAnalyser.prototype.testSmallGame = function () {
     var finalZones = '::O@@----,:&OO@--@-,OOOO@@@--,::OOOOO@@,OO@@O@@@@,@@@?OOOO@,#@@@@@O:O,---@OOO::,---@@O:::';
     // @boan.debug_dump if $debug
     assertEqual(finalZones, this.goban.scoringGrid.image());
-    var prisoners = Group.prisoners(this.goban);
+    var prisoners = Group.countPrisoners(this.goban);
     assertEqual([4, 5], prisoners);
     assertEqual([4 + 1, 5 + 1], this.boan.prisoners);
     assertEqual([16, 12], this.boan.scores);
@@ -5377,7 +5680,7 @@ TestBoardAnalyser.prototype.testBigGame1 = function () {
     var finalZones = '::::O@@#-----------,:::O:O@@@------@@--,::O::OO@-@@@@-@-##-,O:O&:O@@@-@O@--@@#@,@OO::O@@@#@O@#@@-@-,@@O:O:OO@@OO@@O@@-@,-@@O:O::O@@OOOOO@@@,--@@O:OOOO@@@@OOO@O,--@OOO@@@@--@OO@OOO,-@-@OO@-@-@-@O@@@@O,@#@@@O@@@@-@-@---@O,-#@O@O@O@O@-@---@@O,@#@OO@@OOOO@@@@@@OO,O@@@OOOO@OOOOOOO@O:,OOO@@OOO@O&::O&OO:O,O:O@@@?@@@OO:::&&O:,::OO@-@@--@O:O::O::,::OOO@--@@@O:::O:::,:O:O@@--@OOOO::::::';
     // @boan.debug_dump if $debug
     assertEqual(finalZones, this.goban.scoringGrid.image());
-    var prisoners = Group.prisoners(this.goban);
+    var prisoners = Group.countPrisoners(this.goban);
     assertEqual([7, 11], prisoners);
     assertEqual([7 + 5, 11 + 9], this.boan.prisoners);
     return assertEqual([67, 59], this.boan.scores);
@@ -5394,13 +5697,13 @@ TestBoardAnalyser.prototype.testBigGame2 = function () {
     var finalZones = '--@OO:::O@@?O@@@---,' + '-@@@O::O:O@??O@-@--,' + '-@@OO:O::O@@OOO@@@@,' + '--@@@O::OO@OO??@-@O,' + '--@OOO:O@@@@O@@@@OO,' + '---@@OO@@-@OOOOO@@O,' + '-@@@-@@#@-@O:O@@@OO,' + '@--@---##@@O::O@@OO,' + 'O@@@@@@@@OOOO:OOOOO,' + 'OO@O@O@O@O:::OO@@@O,' + ':OOOOOOOO@OOO:O@OO:,' + '::&O::::O@@?OOO@@OO,' + ':::OO::&O@-@O@@-@OO,' + '::OO&:OO@@@@@@-@@@?,' + ':O@@OOO:O@O?@O@@O@@,' + ':OO@@OOOO@OOOO@OOO@,' + 'OO@@-@@OO@@O:OO:O:O,' + '@@---@-@OO@@O::::::,' + '------@@O@@@@O:::::';
     // @boan.debug_dump if $debug
     assertEqual(finalZones, this.goban.scoringGrid.image());
-    var prisoners = Group.prisoners(this.goban);
+    var prisoners = Group.countPrisoners(this.goban);
     assertEqual([11, 6], prisoners);
     assertEqual([11 + 3, 6 + 3], this.boan.prisoners);
     return assertEqual([44, 56], this.boan.scores);
 };
 
-},{"../BoardAnalyser":5,"../GameLogic":7,"../Group":11,"../main":32,"util":4}],37:[function(require,module,exports){
+},{"../BoardAnalyser":5,"../GameLogic":7,"../Group":11,"../main":33,"util":4}],38:[function(require,module,exports){
 //Translated from test_breeder.rb using babyruby2js
 'use strict';
 
@@ -5425,7 +5728,7 @@ TestBreeder.prototype.testBwBalance = function () {
     return main.assertInDelta(Math.abs(numWins / (numGames / 2)), 1, tolerance);
 };
 
-},{"../Breeder":6,"../main":32,"util":4}],38:[function(require,module,exports){
+},{"../Breeder":6,"../main":33,"util":4}],39:[function(require,module,exports){
 //Translated from test_game_logic.rb using babyruby2js
 'use strict';
 
@@ -5465,7 +5768,7 @@ TestGameLogic.prototype.testHandicap = function () {
     return assertEqual(img, this.goban.image());
 };
 
-},{"../GameLogic":7,"../main":32,"util":4}],39:[function(require,module,exports){
+},{"../GameLogic":7,"../main":33,"util":4}],40:[function(require,module,exports){
 //Translated from test_group.rb using babyruby2js
 'use strict';
 
@@ -5552,8 +5855,8 @@ TestGroup.prototype.testGroupKill = function () {
     assertEqual(5, bg.lives); // black group has now 5 lives
     assertEqual(0, g.lives); // dead
     assertEqual(s, g.killedBy);
-    assertEqual(true, this.goban.stoneAt(1, 5).empty());
-    return assertEqual(true, this.goban.stoneAt(1, 4).empty());
+    assertEqual(true, this.goban.stoneAt(1, 5).isEmpty());
+    return assertEqual(true, this.goban.stoneAt(1, 4).isEmpty());
 };
 
 // Shape like  O <- the new stone brings only 2 lives
@@ -5776,7 +6079,7 @@ TestGroup.prototype.testUndo3 = function () {
     return assertEqual(5, b2.lives);
 };
 
-},{"../GameLogic":7,"../Stone":18,"../main":32,"util":4}],40:[function(require,module,exports){
+},{"../GameLogic":7,"../Stone":18,"../main":33,"util":4}],41:[function(require,module,exports){
 //Translated from test_potential_territory.rb using babyruby2js
 'use strict';
 
@@ -5869,7 +6172,7 @@ TestPotentialTerritory.prototype.testNoSuicideWhileEvaluating = function () {
     return this.ter.guessTerritories();
 };
 
-},{"../GameLogic":7,"../PotentialTerritory":15,"../main":32,"util":4}],41:[function(require,module,exports){
+},{"../GameLogic":7,"../PotentialTerritory":15,"../main":33,"util":4}],42:[function(require,module,exports){
 //Translated from test_score_analyser.rb using babyruby2js
 'use strict';
 
@@ -5961,7 +6264,7 @@ TestScoreAnalyser.prototype.testScoreDiffToS = function () {
     return assertEqual('Tie game', this.sa.scoreDiffToS(0));
 };
 
-},{"../GameLogic":7,"../Grid":10,"../ScoreAnalyser":16,"../main":32,"util":4}],42:[function(require,module,exports){
+},{"../GameLogic":7,"../Grid":10,"../ScoreAnalyser":16,"../main":33,"util":4}],43:[function(require,module,exports){
 //Translated from test_sgf_reader.rb using babyruby2js
 'use strict';
 
@@ -6001,7 +6304,7 @@ TestSgfReader.prototype.test2 = function () {
     return assertEqual(expMoves, moves);
 };
 
-},{"../SgfReader":17,"../main":32,"util":4}],43:[function(require,module,exports){
+},{"../SgfReader":17,"../main":33,"util":4}],44:[function(require,module,exports){
 //Translated from test_speed.rb using babyruby2js
 'use strict';
 
@@ -6188,7 +6491,7 @@ TestSpeed.prototype.play10Stones = function () {
 
 // E02: unknown method: level=(...)
 
-},{"../Goban":9,"../Grid":10,"../Stone":18,"../TimeKeeper":20,"../main":32,"util":4}],44:[function(require,module,exports){
+},{"../Goban":9,"../Grid":10,"../Stone":18,"../TimeKeeper":20,"../main":33,"util":4}],45:[function(require,module,exports){
 //Translated from test_stone.rb using babyruby2js
 'use strict';
 
@@ -6287,7 +6590,7 @@ TestStone.prototype.testKo = function () {
     return assertEqual(false, Stone.validMove(this.goban, 1, 2, main.BLACK)); // and black cannot take it now
 };
 
-},{"../Goban":9,"../Stone":18,"../main":32,"util":4}],45:[function(require,module,exports){
+},{"../Goban":9,"../Stone":18,"../main":33,"util":4}],46:[function(require,module,exports){
 //Translated from test_zone_filler.rb using babyruby2js
 'use strict';
 
@@ -6373,4 +6676,4 @@ TestZoneFiller.prototype.testFill3 = function () {
     return assertEqual('+++OX,+++OO,+O+++,++OO+,+O+O+', this.grid.image());
 };
 
-},{"../GameLogic":7,"../Grid":10,"../ZoneFiller":21,"../main":32,"util":4}]},{},[35]);
+},{"../GameLogic":7,"../Grid":10,"../ZoneFiller":21,"../main":33,"util":4}]},{},[36]);

@@ -44,6 +44,11 @@ Heuristic.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
     return this.player.genes.get(this.constructor.name + '-' + name, defVal, lowLimit, highLimit);
 };
 
+Heuristic.prototype.territoryScore = function (i, j, color) {
+    var ter = this.ter.potential().yx;
+    return ter[j][i] * ( color === main.BLACK ? 1 : -1);
+};
+
 // TODO: instead of below, evaluate the damage caused by an *invasion* by taking group g
 Heuristic.prototype.groupThreat = function (g) {
     var lives = g.allLives();

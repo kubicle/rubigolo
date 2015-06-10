@@ -8,7 +8,7 @@ var assertEqual = main.assertEqual;
 var GameLogic = require('../GameLogic');
 var BoardAnalyser = require('../BoardAnalyser');
 
-/** @class NB: for debugging think of using analyser.debug_dump
+/** @class Set main.debug to true for details
  */
 function TestBoardAnalyser(testName) {
     main.TestCase.call(this, testName);
@@ -42,13 +42,9 @@ TestBoardAnalyser.prototype.testSmallGame = function () {
     assertEqual(finalPos, this.goban.image());
     this.boan = new BoardAnalyser();
     this.boan.countScore(this.goban);
-    // we do not test private method anymore
-    // tmp_zones = "FFO@@EEEE,F@OO@EE@E,OOOO@@@EE,DDOOOOO@@,OO@@O@@@@,@@@COOOO@,O@@@@@OBO,AAA@OOOBB,AAA@@OBBB"
-    // assert_equal(tmp_zones, @boan.image?)
     var finalZones = '::O@@----,:&OO@--@-,OOOO@@@--,::OOOOO@@,OO@@O@@@@,@@@?OOOO@,#@@@@@O:O,---@OOO::,---@@O:::';
-    // @boan.debug_dump if $debug
     assertEqual(finalZones, this.goban.scoringGrid.image());
-    var prisoners = Group.prisoners(this.goban);
+    var prisoners = Group.countPrisoners(this.goban);
     assertEqual([4, 5], prisoners);
     assertEqual([4 + 1, 5 + 1], this.boan.prisoners);
     assertEqual([16, 12], this.boan.scores);
@@ -63,9 +59,8 @@ TestBoardAnalyser.prototype.testBigGame1 = function () {
     this.boan = new BoardAnalyser();
     this.boan.countScore(this.goban);
     var finalZones = '::::O@@#-----------,:::O:O@@@------@@--,::O::OO@-@@@@-@-##-,O:O&:O@@@-@O@--@@#@,@OO::O@@@#@O@#@@-@-,@@O:O:OO@@OO@@O@@-@,-@@O:O::O@@OOOOO@@@,--@@O:OOOO@@@@OOO@O,--@OOO@@@@--@OO@OOO,-@-@OO@-@-@-@O@@@@O,@#@@@O@@@@-@-@---@O,-#@O@O@O@O@-@---@@O,@#@OO@@OOOO@@@@@@OO,O@@@OOOO@OOOOOOO@O:,OOO@@OOO@O&::O&OO:O,O:O@@@?@@@OO:::&&O:,::OO@-@@--@O:O::O::,::OOO@--@@@O:::O:::,:O:O@@--@OOOO::::::';
-    // @boan.debug_dump if $debug
     assertEqual(finalZones, this.goban.scoringGrid.image());
-    var prisoners = Group.prisoners(this.goban);
+    var prisoners = Group.countPrisoners(this.goban);
     assertEqual([7, 11], prisoners);
     assertEqual([7 + 5, 11 + 9], this.boan.prisoners);
     return assertEqual([67, 59], this.boan.scores);
@@ -80,9 +75,8 @@ TestBoardAnalyser.prototype.testBigGame2 = function () {
     this.boan = new BoardAnalyser();
     this.boan.countScore(this.goban);
     var finalZones = '--@OO:::O@@?O@@@---,' + '-@@@O::O:O@??O@-@--,' + '-@@OO:O::O@@OOO@@@@,' + '--@@@O::OO@OO??@-@O,' + '--@OOO:O@@@@O@@@@OO,' + '---@@OO@@-@OOOOO@@O,' + '-@@@-@@#@-@O:O@@@OO,' + '@--@---##@@O::O@@OO,' + 'O@@@@@@@@OOOO:OOOOO,' + 'OO@O@O@O@O:::OO@@@O,' + ':OOOOOOOO@OOO:O@OO:,' + '::&O::::O@@?OOO@@OO,' + ':::OO::&O@-@O@@-@OO,' + '::OO&:OO@@@@@@-@@@?,' + ':O@@OOO:O@O?@O@@O@@,' + ':OO@@OOOO@OOOO@OOO@,' + 'OO@@-@@OO@@O:OO:O:O,' + '@@---@-@OO@@O::::::,' + '------@@O@@@@O:::::';
-    // @boan.debug_dump if $debug
     assertEqual(finalZones, this.goban.scoringGrid.image());
-    var prisoners = Group.prisoners(this.goban);
+    var prisoners = Group.countPrisoners(this.goban);
     assertEqual([11, 6], prisoners);
     assertEqual([11 + 3, 6 + 3], this.boan.prisoners);
     return assertEqual([44, 56], this.boan.scores);

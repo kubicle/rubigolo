@@ -101,11 +101,11 @@ TestAi.prototype.testCornering = function () {
     // 7 +++@+++++
     // 6 +++++++++
     // 5 ++O++++++
-    // 4 +++++++++
+    // 4 +++++@+++
     //   abcdefghj
-    this.playMoves('j8,j9,d7,c5');
+    this.playMoves('j8,j9,d7,c5,f4,pass,g6,pass');
     this.checkTurn(BLACK);
-    this.playAndCheck('h9', 6); // FIXME: h8 is better than killing in h9 (non trivial)
+    this.playAndCheck('h9'); // FIXME: h8 is better than killing in h9 (non trivial)
 };
 
 TestAi.prototype.testPreAtari = function () {
