@@ -20,17 +20,20 @@ Savior.prototype.initColor = function () {
     return this.enemyHunter.initColor();
 };
 
-Savior.prototype.evalMove = function (i, j) {
-    var stone = this.goban.stoneAt(i, j);
-    var threat = this.evalEscape(i, j, stone);
-    if (main.debug && threat > 0) {
-        main.log.debug('=> Savior thinks we can save a threat of ' + threat + ' in ' + i + ',' + j);
-    }
-    return threat;
+//TMP
+Savior.prototype.evalBoard = function (stateYx, scoreYx) {
+    var self = this;
+    this.player.boardIterator(function (i, j) {
+        var stone = self.goban.stoneAt(i, j);
+        var threat = self._evalEscape(i, j, stone);
+        if (main.debug && threat > 0) {
+            main.log.debug('=> Savior thinks we can save a threat of ' + threat + ' in ' + i + ',' + j);
+        }
+        return threat;
+    });
 };
 
-//private;
-Savior.prototype.evalEscape = function (i, j, stone) {
+Savior.prototype._evalEscape = function (i, j, stone) {
     var threat, livesAdded;
     threat = livesAdded = 0;
     for (var g, g_array = stone.uniqueAllies(this.color), g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
@@ -67,9 +70,7 @@ Savior.prototype.evalEscape = function (i, j, stone) {
         var isCaught = this.enemyHunter.escapingAtariIsCaught(stone);
         Stone.undo(this.goban);
         if (isCaught) {
-            if (main.debug) {
-                main.log.debug('Savior giving up on threat of ' + threat + ' in ' + i + ',' + j);
-            }
+            if (main.debug) main.log.debug('Savior giving up on threat of ' + threat + ' in ' + i + ',' + j);
             return 0;
         }
     }
