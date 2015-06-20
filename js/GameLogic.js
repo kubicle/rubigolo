@@ -85,6 +85,8 @@ GameLogic.prototype.playOneMove = function (move) {
         return this.playAStone(move);
     } else if (move === 'undo') {
         return this.requestUndo();
+    } else if (move === 'half_undo') {
+        return this.requestUndo(true);
     } else if (move.startWith('resi')) {
         return this.resign();
     } else if (move === 'pass') {
@@ -242,16 +244,18 @@ GameLogic.prototype.storeMoveInHistory = function (move) {
 };
 
 // undo one full game turn (e.g. one black move and one white)
-GameLogic.prototype.requestUndo = function () {
-    if (this.history.length < 2) {
+GameLogic.prototype.requestUndo = function (halfMove) {
+    var count = halfMove ? 1 : 2;
+    if (this.history.length < count) {
         return this.errorMsg('Nothing to undo');
     }
-    for (var _i = 0; _i < 2; _i++) {
+    for (var i = count; i >= 1; i--) {
         if (!this.history[this.history.length-1].endWith('pass')) { // no stone to remove for a pass
             Stone.undo(this.goban);
         }
         this.history.pop();
     }
+    if (halfMove) this.nextPlayer();
     this.numPass = 0;
     return true;
 };
