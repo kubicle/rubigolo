@@ -9,7 +9,7 @@ var main = require('./main');
  */
 function ZoneFiller(goban, grid) {
     if (!grid) {
-        grid = goban.scoringGrid.convert(goban.grid);
+        grid = goban.scoringGrid.initFromGoban(goban);
     }
     this.goban = goban;
     this.grid = grid;
