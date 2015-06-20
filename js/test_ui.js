@@ -52,6 +52,7 @@ function logfn(lvl, msg) {
 }
 
 newButton('TestAll', 'Test All');
-newButton('TestSpeed', 'Test Speed');
-newButton('TestBoardAnalyser', 'Test Scoring');
-newButton('TestAi', 'Test AI');
+newButton('TestSpeed', 'Speed');
+newButton('TestBoardAnalyser', 'Scoring');
+newButton('TestPotentialTerritory', 'Territory');
+newButton('TestAi', 'AI');

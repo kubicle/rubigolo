@@ -23,7 +23,6 @@ h2 {
 .controls {
   width: 600px;
   margin-top: 10px;
-  margin-bottom: 10px;
 }
 
 
@@ -31,10 +30,19 @@ h2 {
 }
 .gameButton {
   margin-right: 10px;
+  margin-bottom: 10px;
   border-radius: 10px;
   width: 100px;
   height: 40px;
 }
+.testControls .gameButton {
+  margin-right: 10px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  width: 100px;
+  height: 30px;
+}
+
 .resiButton {
   margin-right: auto;
   float: right;
@@ -66,24 +74,14 @@ h2 {
   background-color: #ffe;
   border: solid #cca 1px;
   border-radius: 10px;
-}
-.newGameDialog .startButton {
-  position: absolute;
-  right: 0px;
-  bottom: 10px;
-}
-.newGameDialog .inputLabel {
   font-family: Arial;
-}
-.newGameDialog .movesInput {
-  width: 50%;
-  margin: 10px;
 }
 .newGameDialog .inputLabel {
   margin-left: 10px;
 }
 .newGameDialog .sizeInput {
   margin-left: 5px;
+  margin-bottom: 10px;
   width: 20px;
   text-align: center;
 }
@@ -92,14 +90,24 @@ h2 {
   width: 20px;
   text-align: center;
 }
-.newGameDialog .aiColorInput {
-  margin-left: 5px;
-  width: 40px;
-  text-align: center;
+.newGameDialog .radioLabel {
+  margin-right: 10px;
+}
+.newGameDialog .aiColorRadio {
+}
+.newGameDialog .movesInput {
+  width: 50%;
+  margin: 10px;
+}
+.newGameDialog .startButton {
+  position: absolute;
+  right: 0px;
+  bottom: 10px;
 }
 
 .testButton {
   margin-right: 10px;
+  margin-bottom: 10px;
   border-radius: 10px;
   width: 100px;
   height: 40px;
