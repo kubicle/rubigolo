@@ -82,14 +82,14 @@ TestSeries.prototype.testOneClass = function (Klass) {
         header += ' with exception';
         this.errorCount++;
       }
-      main.log.error(header + ': ' + test.name + ': ' + e.message + '\n' + e.stack);
+      main.log.error(header + ': ' + test.name + ':\n' + e.stack + '\n');
     }
   }
 };
 
 TestSeries.prototype.run = function (logfunc, specificClass) {
   main.log.setLogFunc(logfunc);
-  main.assertCount = 0;
+  main.assertCount = main.count = 0;
   var startTime = Date.now();
   var classCount = 0;
   this.testCount = this.failedCount = this.errorCount = 0;
@@ -103,6 +103,7 @@ TestSeries.prototype.run = function (logfunc, specificClass) {
   var report = 'Completed tests. (' + classCount + ' classes, ' + this.testCount + ' tests, ' +
     main.assertCount + ' assertions in ' + duration + 's)' +
     ', failed: ' + this.failedCount + ', exceptions: ' + this.errorCount;
+  if (main.count) report += ', generic count: ' + main.count;
   main.log.info(report);
   return report;
 };
@@ -119,21 +120,20 @@ function _fail(msg, comment) {
 }
 
 function _checkValue(expected, val, comment) {
-  if (expected instanceof Array) {
-    if (!val instanceof Array)
-      _fail('expected Array but got ' + val, comment);
+  if (main.isA(Array, expected)) {
+    if (!main.isA(Array, val)) _fail('expected Array but got ' + val, comment);
     if (val.length !== expected.length) {
-      console.warn('Expected:\n', expected, 'Value:\n', val);
-      _fail('expected Array of size ' + expected.length + ' but got size ' + val.length, comment);
+      console.warn('Expected:\n', expected, '\nbut got:\n', val);
+      _fail('Expected Array of size ' + expected.length + ' but got size ' + val.length, comment);
     }
-
     for (var i = 0; i < expected.length; i++) {
       _checkValue(expected[i], val[i], comment);
     }
     return;
   }
   if (val === expected) return;
-  _fail('expected [' + expected + '] but got [' + val + ']', comment);
+  console.warn('Expected:\n', expected, '\nbut got:\n', val);
+  _fail('Expected:\n' + expected + '\nbut got:\n' + val + '\n', comment);
 }
 
 main.assertEqual = function (expected, val, comment) {
