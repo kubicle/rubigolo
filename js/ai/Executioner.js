@@ -44,7 +44,7 @@ Executioner.prototype.isSureDeath = function (empty, color) {
 Executioner.prototype.evalMove = function (i, j) {
     var stone = this.goban.stoneAt(i, j);
     if (this.isSureDeath(stone, this.color)) {
-        return this.markMoveAsBlunder('sure death');
+        return this.markMoveAsBlunder(i, j, 'sure death');
     }
     var threat = 0, saving = 0;
     for (var g, g_array = stone.uniqueEnemies(this.color), g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {

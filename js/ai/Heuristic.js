@@ -2,17 +2,14 @@
 'use strict';
 
 var main = require('../main');
-var Grid = require('../Grid');
 
 
 /** @class Base class for all heuristics.
  *  Anything useful for all of them should be stored as data member here.
- *  public read-only attribute: negative
  */
 function Heuristic(player, consultant) {
     this.player = player;
     this.consultant = !!consultant;
-    this.negative = false;
     this.goban = player.goban;
     this.gsize = player.goban.gsize;
     this.inf = player.inf;
@@ -33,11 +30,12 @@ Heuristic.prototype.initColor = function () {
     }
 };
 
-// A "negative" heuristic is one that can only give a negative score (or 0.0) to a move.
-// We use this difference to spare some CPU work when a move is not good enough 
-// (after running the "positive" heuristics) to beat the current candidate.
-Heuristic.prototype.setAsNegative = function () {
-    this.negative = true;
+//TMP For heuristics which do not handle evalBoard yet
+Heuristic.prototype.evalBoard = function (/*stateYx, scoreYx*/) {
+    var self = this;
+    this.player.boardIterator(function (i, j) {
+        return self.evalMove(i, j);
+    });
 };
 
 Heuristic.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
@@ -60,8 +58,8 @@ Heuristic.prototype.groupThreat = function (g) {
         this.spaceInvasionCoeff * numEmpties; //...and the "open gate" to territory will count a lot
 };
 
-Heuristic.prototype.markMoveAsBlunder = function (reason) {
-    this.player.markMoveAsBlunder(this.constructor.name + ':' + reason);
+Heuristic.prototype.markMoveAsBlunder = function (i, j, reason) {
+    this.player.markMoveAsBlunder(i, j, this.constructor.name + ':' + reason);
 };
 
 Heuristic.prototype.distanceFromStoneToBorder = function (stone) {
