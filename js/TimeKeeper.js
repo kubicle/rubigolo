@@ -15,7 +15,6 @@ function TimeKeeper(tolerance, ratio) {
 }
 module.exports = TimeKeeper;
 
-TimeKeeper.prototype.setGcTolerance = function () {};
 
 // Call this before start() if you want to compute the ratio automatically
 // NB: measures will always vary a bit unless we find the perfect calibration code (utopia)
@@ -37,7 +36,8 @@ TimeKeeper.prototype.calibrate = function (expected) {
     // than Ruby used to be (on same machine). But the speed tests we have are not always that 
     // much faster, hence if we accept the ratio we computed here we would fail many of them.
 
-    this.log.info('TimeKeeper calibrated at ratio=' + '%.02f'.format(this.ratio) + ' ' + '(ran calibration in ' + '%.03f'.format(duration) + ' instead of ' + expected + ')');
+    this.log.info('TimeKeeper calibrated at ratio=' + this.ratio.toFixed(2) +
+        ' (ran calibration in ' + duration.toFixed(2) + ' instead of ' + expected + ')');
 };
 
 // Starts timing
@@ -45,7 +45,7 @@ TimeKeeper.prototype.calibrate = function (expected) {
 TimeKeeper.prototype.start = function (taskName, expectedInSec) {
     this.taskName = taskName;
     this.expectedTime = expectedInSec * this.ratio;
-    this.log.info('Started "' + taskName + '"...'); // (expected time #{'%.02f' % @expected_time}s)..."
+    this.log.info('Started "' + taskName + '"...');
     this.t0 = Date.now();
 };
 
@@ -61,16 +61,16 @@ TimeKeeper.prototype.stop = function (raiseIfOverlimit) {
 TimeKeeper.prototype.resultReport = function () {
     var s = '';
     s += 'Measuring "' + this.taskName + '":';
-    s += ' time: ' + '%.02f'.format(this.duration) + 's (expected ' +
-        '%.02f'.format(this.expectedTime) + ' hence ' +
-        '%.02f'.format((this.duration / this.expectedTime * 100)) + '%)';
+    s += ' time: ' + this.duration.toFixed(2) + 's (expected ' +
+        this.expectedTime.toFixed(2) + ' hence ' +
+        (this.duration / this.expectedTime * 100).toFixed(2) + '%)';
     return s;
 };
 
 //private;
 TimeKeeper.prototype.checkLimits = function (raiseIfOverlimit) {
     if (this.duration > this.expectedTime * this.tolerance) {
-        var msg1 = 'Duration over limit: ' + this.duration;
+        var msg1 = 'Duration over limit: ' + this.duration.toFixed(2);
         if (raiseIfOverlimit) {
             throw new Error(msg1);
         }
