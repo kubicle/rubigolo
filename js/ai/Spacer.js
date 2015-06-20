@@ -23,6 +23,7 @@ Spacer.prototype.evalMove = function (i, j) {
     allyInf += inf[this.color];
     for (var n = stone.neighbors.length - 1; n >= 0; n--) {
         var s = stone.neighbors[n];
+        if (s.color !== main.EMPTY) return 0;
         inf = this.inf.map[s.j][s.i];
         enemyInf += inf[this.enemyColor];
         allyInf += inf[this.color];
