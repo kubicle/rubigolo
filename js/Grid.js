@@ -9,10 +9,9 @@ var main = require('./main');
 function Grid(gsize) {
     if (gsize === undefined) gsize = 19;
     this.gsize = gsize;
-    // TODO: use only 1 extra "nil" cell (0..gsize instead of 0..gsize+1)
+    // We keep extra "border" cells around the real board.
     // Idea is to avoid to have to check i,j against gsize in many places.
-    // In case of bug, e.g. for @yx[5][-1], Ruby returns you @yx[5][@yx.size] (looping back)
-    // so having a real item (BORDER) on the way helps to detect a bug.
+    // Having a real item (BORDER) on the way helps to detect bugs.
     this.yx = Array.new(gsize + 2, function () {
         return Array.new(gsize + 2, main.BORDER);
     });
@@ -33,6 +32,12 @@ Grid.DEAD_COLOR = 2;
 Grid.TERRITORY_COLOR = 4;
 Grid.CIRCULAR_COLOR_CHARS = Grid.DAME_CHAR + Grid.EMPTY_CHAR + Grid.COLOR_CHARS;
 Grid.ZONE_CODE = 100; // used for zones (100, 101, etc.); must be > COLOR_CHARS.size
+
+// Converts a "territory" character into an owner score (-1= black, +1= white)
+// dame, empty, live*2, dead*2, terr*2
+Grid.territory2owner = [0,0, 0,0, +1,-1, -1,+1];
+
+
 Grid.prototype.copy = function (sourceGrid) {
     if (sourceGrid.gsize !== this.gsize) {
         throw new Error('Cannot copy between different sized grids');
@@ -46,8 +51,12 @@ Grid.prototype.copy = function (sourceGrid) {
     return this;
 };
 
-// Converts from goban grid (stones) to simple grid (colors) REVIEWME
-Grid.prototype.convert = function (sourceGrid) {
+/** Converts from goban grid (stones) to simple grid (colors)
+ *  @param {Goban} goban - not modified
+ *  @return {Grid} the grid (this)
+ */
+Grid.prototype.initFromGoban = function (goban) {
+    var sourceGrid = goban.grid;
     if (sourceGrid.gsize !== this.gsize) {
         throw new Error('Cannot copy between different sized grids');
     }
@@ -94,10 +103,10 @@ Grid.prototype.toLine = function (block) {
 // This method returns the concatenated string showing the grid.
 Grid.prototype.toTextExt = function (withLabels, endOfRow, block) {
     var yx = new Grid(this.gsize).yx;
-    var maxlen = 1;
-    for (var j = this.gsize; j >= 1; j--) {
-        for (var i = 1; i <= this.gsize; i++) {
-            var val = block(this.yx[j][i]);
+    var maxlen = 1, i, j, val;
+    for (j = this.gsize; j >= 1; j--) {
+        for (i = 1; i <= this.gsize; i++) {
+            val = block(this.yx[j][i]);
             if (val === null) {
                 val = '';
             }
@@ -186,7 +195,9 @@ var SKIPPED_I = 9;
 Grid.parseMove = function (move) {
     var i = move[0].charCodeAt() - Grid.NOTATION_A + 1;
     if (i > SKIPPED_I) i--;
-    return [i, parseInt(move.substr(1, 2))];
+    var j = parseInt(move.substr(1, 2));
+    if (isNaN(j)) throw new Error('Illegal move parsed: ' + move);
+    return [i, j];
 };
 
 // Builds a string representation of a move (3,12->"c12")  
