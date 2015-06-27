@@ -119,6 +119,17 @@ function _fail(msg, comment) {
   throw new Error(FAILED_ASSERTION_MSG + comment + msg);
 }
 
+function _valueCompareHint(expected, val) {
+  if (typeof expected !== 'string' || typeof val !== 'string') return '';
+  for (var i = 0; i < expected.length; i++) {
+    if (expected[i] !== val[i]) {
+      return '(first discrepancy at position ' + i + ': "...' +
+        expected.substr(i, 10) + '..." / "...' + val.substr(i, 10) + '...")';
+    }
+  }
+  return '';
+}
+
 function _checkValue(expected, val, comment) {
   if (main.isA(Array, expected)) {
     if (!main.isA(Array, val)) _fail('expected Array but got ' + val, comment);
@@ -133,7 +144,8 @@ function _checkValue(expected, val, comment) {
   }
   if (val === expected) return;
   console.warn('Expected:\n', expected, '\nbut got:\n', val);
-  _fail('Expected:\n' + expected + '\nbut got:\n' + val + '\n', comment);
+  _fail('Expected:\n' + expected + '\nbut got:\n' + val + '\n' +
+    _valueCompareHint(expected, val) + '\n', comment);
 }
 
 main.assertEqual = function (expected, val, comment) {
