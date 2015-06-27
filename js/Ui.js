@@ -151,7 +151,7 @@ function newRadio(parent, name, labels, values, init) {
         inp.name = name;
         inp.value = values[i];
         if (values[i] === init) inp.checked = true;
-        newLabel(parent, name + 'RadioLabel', labels[i]);
+        newLabel(parent, name + 'Radio', labels[i]);
     }
     return opts;
 }
@@ -296,18 +296,19 @@ Ui.prototype.createPlayers = function () {
 };
 
 Ui.prototype.startGame = function (firstMoves) {
-  this.createBoard();
-  var game = this.game = new GameLogic();
-  game.newGame(this.gsize, this.handicap);
-  this.createPlayers();
-  this.toggleControls();
-  this.refreshBoard(); // needed here to clean-up previous score counting if any
-  if (firstMoves) {
-    game.loadMoves(firstMoves);
+    var game = this.game = new GameLogic();
+    game.newGame(this.gsize, this.handicap);
+    if (firstMoves) {
+        game.loadMoves(firstMoves);
+        this.gsize = game.goban.gsize;
+        this.handicap = game.handicap;
+    }
+    this.createPlayers();
+    this.toggleControls();
+    this.createBoard();
     this.refreshBoard();
-    if (this.checkEnd()) return;
-  }
-  this.letNextPlayerPlay();
+    if (firstMoves && this.checkEnd()) return;
+    this.letNextPlayerPlay();
 };
 
 /** @return false if game goes on normally; true if special ending action was done */
