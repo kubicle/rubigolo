@@ -42,9 +42,6 @@ Spacer.prototype.evalMove = function (i, j) {
     // remove points only if we fill up our own territory
     var fillTer = this.territoryScore(i, j, this.color);
     if (fillTer > 0) fillTer = 0; // Pusher will count >0 scores
-    if (main.debug && fillTer < 0) {
-        main.log.debug('Spacer sees a territory loss of ' + fillTer + ' in ' + Grid.moveAsString(i, j));
-    }
     return fillTer + 10 * db * this.borderCoeff / (1 + totalInf * this.inflCoeff);
 };
 
