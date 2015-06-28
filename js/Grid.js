@@ -35,7 +35,9 @@ Grid.ZONE_CODE = 100; // used for zones (100, 101, etc.); must be > COLOR_CHARS.
 
 // Converts a "territory" character into an owner score (-1= black, +1= white)
 // dame, empty, live*2, dead*2, terr*2
-Grid.territory2owner = [0,0, 0,0, +1,-1, -1,+1];
+Grid.territory2owner = [0,0, -1,+1, +1,-1, -1,+1];
+// Converts potential territory number to a char (-1, -0.5, 0, +0.5, +1) -> char
+Grid.territory2char = '-\'?.:';
 
 
 Grid.prototype.copy = function (sourceGrid) {
