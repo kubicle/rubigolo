@@ -300,9 +300,11 @@ Ui.prototype.startGame = function (firstMoves) {
     game.newGame(this.gsize, this.handicap);
     if (firstMoves) {
         game.loadMoves(firstMoves);
-        this.gsize = game.goban.gsize;
-        this.handicap = game.handicap;
     }
+    // reread values from game to make sure they are valid and match loaded game
+    this.gsize = game.goban.gsize;
+    this.handicap = game.handicap;
+
     this.createPlayers();
     this.toggleControls();
     this.createBoard();
