@@ -123,7 +123,7 @@ h2 {
   font-size: 14px;
 }
 .testErrorBox {
-  word-wrap: normal;
+  word-wrap: break-word;
   height: 250px;
   font-size: 14px;
   font-family: 'Courier';
