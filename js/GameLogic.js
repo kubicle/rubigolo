@@ -23,16 +23,15 @@ function GameLogic() {
 module.exports = GameLogic;
 
 GameLogic.prototype.newGame = function (gsize, handicap, komi) {
-    if (gsize === undefined) gsize = null;
     if (handicap === undefined) handicap = 0;
-    if (komi === undefined) komi = null;
     this.history.clear();
     this.errors.clear();
     this.numPass = 0;
     this.curColor = main.BLACK;
     this.gameEnded = this.gameEnding = false;
     this.whoResigned = null;
-    if (!this.goban || (gsize && gsize !== this.goban.gsize)) {
+    if (!this.goban || gsize !== this.goban.gsize) {
+        if (gsize < 5) gsize = 5;
         this.goban = new Goban(gsize);
     } else {
         this.goban.clear();
