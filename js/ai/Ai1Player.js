@@ -9,6 +9,7 @@ var Stone = require('../Stone');
 var Player = require('../Player');
 var InfluenceMap = require('../InfluenceMap');
 var PotentialTerritory = require('../PotentialTerritory');
+var BoardAnalyser = require('../BoardAnalyser');
 var Genes = require('../Genes');
 
 var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
@@ -27,6 +28,7 @@ function Ai1Player(goban, color, genes) {
     Player.call(this, false, goban);
     this.inf = new InfluenceMap(this.goban);
     this.ter = new PotentialTerritory(this.goban);
+    this.boan = new BoardAnalyser();
     this.gsize = this.goban.gsize;
     this.stateGrid = new Grid(this.gsize);
     this.scoreGrid = new Grid(this.gsize);
@@ -184,6 +186,7 @@ Ai1Player.prototype._prepareEval = function () {
 
     this.inf.buildMap();
     this.ter.guessTerritories();
+    this.boan.countScore(this.goban);
 };
 
 /** Called by heuristics if they decide to stop looking further (rare cases) */

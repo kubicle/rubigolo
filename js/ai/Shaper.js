@@ -14,8 +14,17 @@ function Shaper(player) {
 inherits(Shaper, Heuristic);
 module.exports = Shaper;
 
-Shaper.prototype.evalMove = function (/*i, j*/) {
-    return 0;
+Shaper.prototype.evalBoard = function (stateYx, scoreYx) {
+    var allGroups = this.boan.allGroups;
+    for (var ndx in allGroups) {
+        var g = allGroups[ndx], gi = g._info;
+        if (gi.isDead || gi.eyeCount !== 1 || gi.band || gi.deadEnemies.length) continue;
+        var eye = gi.getSingleEye();
+        var coords = [];
+        var alive = Shaper.getEyeMakerMove(this.goban, eye.i, eye.j, eye.vcount, coords);
+        if (alive !== 1) continue;
+        scoreYx[coords[1]][coords[0]] += this.groupThreat(g);
+    }
 };
 
 // Decides if a "void" is good to make 2 eyes.

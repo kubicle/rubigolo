@@ -14,6 +14,7 @@ function Heuristic(player, consultant) {
     this.gsize = player.goban.gsize;
     this.inf = player.inf;
     this.ter = player.ter;
+    this.boan = player.boan;
 
     this.spaceInvasionCoeff = this.getGene('spaceInvasion', 2.0, 0.01, 4.0);
 }
