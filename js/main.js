@@ -121,36 +121,40 @@ function _fail(msg, comment) {
 
 function _valueCompareHint(expected, val) {
   if (typeof expected !== 'string' || typeof val !== 'string') return '';
+  // for short strings or strings that start differently, no need for this hint
+  if (expected.length <= 15 || expected[0] !== val[0]) return '';
+
   for (var i = 0; i < expected.length; i++) {
     if (expected[i] !== val[i]) {
-      return '(first discrepancy at position ' + i + ': "...' +
-        expected.substr(i, 10) + '..." / "...' + val.substr(i, 10) + '...")';
+      return '(first discrepancy at position ' + i + ': "' +
+        expected.substr(i, 10) + '..." / "' + val.substr(i, 10) + '...")';
     }
   }
   return '';
 }
 
-function _checkValue(expected, val, comment) {
+main.compareValue = function (expected, val) {
   if (main.isA(Array, expected)) {
-    if (!main.isA(Array, val)) _fail('expected Array but got ' + val, comment);
+    if (!main.isA(Array, val)) return 'Expected Array but got ' + val;
     if (val.length !== expected.length) {
-      console.warn('Expected:\n', expected, '\nbut got:\n', val);
-      _fail('Expected Array of size ' + expected.length + ' but got size ' + val.length, comment);
+      return 'Expected Array of size ' + expected.length + ' but got size ' + val.length;
     }
     for (var i = 0; i < expected.length; i++) {
-      _checkValue(expected[i], val[i], comment);
+      var msg = main.compareValue(expected[i], val[i]);
+      if (msg) return msg;
     }
-    return;
+    return ''; // equal
   }
-  if (val === expected) return;
-  console.warn('Expected:\n', expected, '\nbut got:\n', val);
-  _fail('Expected:\n' + expected + '\nbut got:\n' + val + '\n' +
-    _valueCompareHint(expected, val) + '\n', comment);
-}
+  if (val === expected) return '';
+  return 'Expected:\n' + expected + '\nbut got:\n' + val + '\n' + _valueCompareHint(expected, val) + '\n';
+};
 
 main.assertEqual = function (expected, val, comment) {
   main.assertCount++;
-  _checkValue(expected, val, comment);
+  var msg = main.compareValue(expected, val);
+  if (msg === '') return;
+  console.warn(msg);
+  _fail(msg, comment);
 };
 
 main.assertInDelta = function (val, expected, delta, comment) {
