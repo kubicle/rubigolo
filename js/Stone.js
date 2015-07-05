@@ -20,8 +20,6 @@ function Stone(goban, i, j, color) {
     this.color = color;
     this.group = null;
     this.neighbors = []; // neighboring stones (empty or not)
-    this._uniqueAlliesId = [];
-    this._uniqueAllies = [];
 }
 module.exports = Stone;
 
@@ -31,8 +29,6 @@ Stone.XY_DIAGONAL = [[1, 1], [1, -1], [-1, -1], [-1, 1]]; // top-right, bottom-r
 Stone.prototype.clear = function () {
     this.color = EMPTY;
     this.group = null;
-    this._uniqueAlliesId.clear();
-    this._uniqueAllies.clear();
 };
 
 // Computes each stone's neighbors (called for each stone after init)
@@ -182,9 +178,6 @@ Stone.prototype._putDown = function (color) {
     if (main.debug) main.log.debug('put_down: ' + this.toString());
 
     var allies = this.uniqueAllies(color); // note we would not need unique if group#merge ignores dupes
-
-    this.goban.moveId = undefined; // we can do better later; easier for now...
-
     if (allies.length === 0) {
         this.group = this.goban.newGroup(this, this.numEmpties());
     } else {
@@ -199,13 +192,10 @@ Stone.prototype._putDown = function (color) {
     for (var a = 1; a < allies.length; a++) {
         this.group.merge(allies[a], this);
     }
-    this.goban.updateMoveId(+1);
 };
 
 Stone.prototype._takeBack = function () {
     if (main.debugGroup) main.log.debug('_takeBack: ' + this.toString() + ' from group ' + this.group);
-
-    this.goban.moveId = undefined; // we can do better later; easier for now...
 
     this.group.unmergeFrom(this);
     this.group.disconnectStone(this);
@@ -220,8 +210,6 @@ Stone.prototype._takeBack = function () {
     this.color = EMPTY;
     Group.resuscitateFrom(this, this.goban);
     if (main.debugGroup) main.log.debug('_takeBack: end; main group: ' + logGroup.debugDump());
-
-    this.goban.updateMoveId(-1);
 };
 
 Stone.prototype.setGroupOnMerge = function (newGroup) {
@@ -229,11 +217,6 @@ Stone.prototype.setGroupOnMerge = function (newGroup) {
 };
 
 Stone.prototype.uniqueAllies = function (color) {
-    var isCached;
-    if (this.goban.moveId && this._uniqueAlliesId[color] === this.goban.moveId) {
-    //    return this._uniqueAllies[color];
-         isCached = true;
-    }
     var allies = [];
     var neighbors = this.neighbors;
     for (var i = neighbors.length - 1; i >= 0; i--) {
@@ -241,15 +224,6 @@ Stone.prototype.uniqueAllies = function (color) {
         if (s.color === color && !allies.contains(s.group)) {
             allies.push(s.group);
         }
-    }
-    if (isCached) {
-        var msg = main.compareValue(allies, this._uniqueAllies[color]);
-        if (msg)
-            console.warn('uniqueAllies cache is wrong:', msg);
-        main.count++;
-    } else {
-        this._uniqueAlliesId[color] = this.goban.moveId;
-        this._uniqueAllies[color] = allies;
     }
     return allies;
 };
@@ -260,7 +234,6 @@ Stone.prototype.uniqueEnemies = function (allyColor) {
 
 // Returns the empty points around this stone
 Stone.prototype.empties = function () {
-//main.count++;
     var empties = [], neighbors = this.neighbors;
     for (var i = neighbors.length - 1; i >= 0; i--) {
         var s = neighbors[i];
@@ -271,7 +244,6 @@ Stone.prototype.empties = function () {
 
 // Number of empty points around this stone
 Stone.prototype.numEmpties = function () {
-//main.count++;
     var count = 0, neighbors = this.neighbors;
     for (var i = neighbors.length - 1; i >= 0; i--) {
         if (neighbors[i].color === EMPTY) count++;
