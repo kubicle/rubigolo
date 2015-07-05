@@ -56,9 +56,9 @@ Goban.prototype.clear = function () {
             }
         }
     }
-    // Collect all the groups and put them into @garbage_groups
-    this.killedGroups.shift(); // removes @@sentinel
-    this.mergedGroups.shift(); // removes @@sentinel
+    // Collect all the groups and put them into garbageGroups
+    this.killedGroups.shift(); // removes sentinel
+    this.mergedGroups.shift(); // removes sentinel
     this.garbageGroups.concat(this.killedGroups);
     this.garbageGroups.concat(this.mergedGroups);
     this.killedGroups.clear();
@@ -75,11 +75,11 @@ Goban.prototype.clear = function () {
 // Allocate a new group or recycles one from garbage list.
 // For efficiency, call this one, do not call the regular Group.new method.
 Goban.prototype.newGroup = function (stone, lives) {
+    this.numGroups++;
     var group = this.garbageGroups.pop();
     if (group) {
-        return group.recycle(stone, lives);
+        return group.recycle(stone, lives, this.numGroups);
     } else {
-        this.numGroups += 1;
         return new Group(this, stone, lives, this.numGroups);
     }
 };

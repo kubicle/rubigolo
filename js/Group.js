@@ -6,7 +6,7 @@ var main = require('./main');
 
 var EMPTY = main.EMPTY;
 
-/** @class Always require goban instead of stone
+/** @class
  *  A group keeps the list of its stones, the updated number of "lives" (empty intersections around),
  *  and whatever status information we need to decide what happens to a group (e.g. when a
  *  group is killed or merged with another group, etc.).
@@ -29,20 +29,21 @@ function Group(goban, stone, lives, ndx) {
 }
 module.exports = Group;
 
-Group.prototype.recycle = function (stone, lives) {
+Group.prototype.recycle = function (stone, lives, ndx) {
     this.stones.clear();
     this.stones.push(stone);
     this.lives = lives;
     this.color = stone.color;
     this.mergedWith = this.mergedBy = this.killedBy = null;
+    this.ndx = ndx;
     return this;
 };
 
 Group.prototype.clear = function () {
-    for (var s, s_array = this.stones, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
-        s.clear();
+    for (var i = this.stones.length - 1; i >= 0; i--) {
+        this.stones[i].clear();
     }
-    return this.goban.garbageGroups.push(this);
+    this.goban.garbageGroups.push(this);
 };
 
 Group.prototype.toString = function () {
@@ -160,9 +161,7 @@ Group.prototype.disconnectStone = function (stone, onMerge) {
         }
     } else {
         this.goban.garbageGroups.push(this);
-        if (main.debugGroup) {
-            main.log.debug('Group going to recycle bin: ' + this);
-        }
+        if (main.debugGroup) main.log.debug('Group going to recycle bin: ' + this);
     }
     // we always remove them in the reverse order they came
     if (this.stones.pop() !== stone) {
