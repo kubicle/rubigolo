@@ -5,6 +5,9 @@ var main = require('./main');
 var Grid = require('./Grid');
 var BoardAnalyser = require('./BoardAnalyser');
 
+var BLACK = main.BLACK, WHITE = main.WHITE;
+
+
 /** @class */
 function ScoreAnalyser() {
     this.goban = null;
@@ -17,8 +20,8 @@ ScoreAnalyser.prototype.computeScoreDiff = function (goban, komi) {
     this.analyser.countScore(goban);
     var scores = this.analyser.scores;
     var prisoners = this.analyser.prisoners;
-    var b = scores[main.BLACK] + prisoners[main.WHITE];
-    var w = scores[main.WHITE] + prisoners[main.BLACK] + komi;
+    var b = scores[BLACK] + prisoners[WHITE];
+    var w = scores[WHITE] + prisoners[BLACK] + komi;
     return b - w;
 };
 
@@ -44,8 +47,8 @@ ScoreAnalyser.prototype.startScoring = function (goban, komi, whoResigned) {
     var totals = [];
     var details = [];
     var addPris = true;
-    for (var c = 0; c < 2; c++) {
-        var kom = (( c === main.WHITE ? komi : 0 ));
+    for (var c = BLACK; c <= WHITE; c++) {
+        var kom = (( c === WHITE ? komi : 0 ));
         var pris = (( addPris ? prisoners[1 - c] : -prisoners[c] ));
         totals[c] = scores[c] + pris + kom;
         details[c] = [scores[c], pris, kom];
@@ -57,6 +60,10 @@ ScoreAnalyser.prototype.startScoring = function (goban, komi, whoResigned) {
 ScoreAnalyser.prototype.getScore = function () {
     return this.scoreInfoToS(this.scoreInfo);
 };
+
+function pointsToString(n) {
+    return ( n !== 1 ? n + ' points' : '1 point' );
+}
 
 ScoreAnalyser.prototype.scoreInfoToS = function (info) {
     if (main.isA(String, info)) { // for games where all but 1 resigned
@@ -71,7 +78,9 @@ ScoreAnalyser.prototype.scoreInfoToS = function (info) {
         throw new Error('Invalid score info');
     }
     var s = [];
-    s.push(this.scoreWinnerToS(totals));
+    var diff = totals[0] - totals[1];
+    s.push(this.scoreDiffToS(diff));
+
     for (var c = 0; c < 2; c++) {
         var detail = details[c];
         if (detail === null) {
@@ -85,45 +94,16 @@ ScoreAnalyser.prototype.scoreInfoToS = function (info) {
         var pris = detail[1];
         var komi = detail[2];
         var komiStr = (( komi > 0 ? ' + ' + komi + ' komi' : '' ));
-        s.push(Grid.colorName(c) + ' (' + Grid.colorToChar(c) + '): ' + this.pts(totals[c]) + ' (' + score + ' ' + ( pris < 0 ? '-' : '+' ) + ' ' + Math.abs(pris) + ' prisoners' + komiStr + ')');
+        s.push(Grid.colorName(c) + ' (' + Grid.colorToChar(c) + '): ' +
+            pointsToString(totals[c]) + ' (' + score + ' ' +
+            ( pris < 0 ? '-' : '+' ) + ' ' + Math.abs(pris) + ' prisoners' +
+            komiStr + ')');
     }
     return s;
 };
 
 ScoreAnalyser.prototype.scoreDiffToS = function (diff) {
-    if (diff !== 0) {
-        var win = ( diff > 0 ? main.BLACK : main.WHITE );
-        return Grid.colorName(win) + ' wins by ' + this.pts(Math.abs(diff));
-    } else {
-        return 'Tie game';
-    }
+    if (diff === 0) return 'Tie game';
+    var win = ( diff > 0 ? BLACK : WHITE );
+    return Grid.colorName(win) + ' wins by ' + pointsToString(Math.abs(diff));
 };
-
-ScoreAnalyser.prototype.scoreWinnerToS = function (totals) {
-    if (totals.length === 2) {
-        var diff = totals[0] - totals[1];
-        return this.scoreDiffToS(diff);
-    } else {
-        var max = Math.max.apply(Math, totals);
-        var winners = [];
-        for (var c = 0; c < totals.length; c++) {
-            if (totals[c] === max) {
-                winners.push(c);
-            }
-        }
-        if (winners.length === 1) {
-            return Grid.colorName(winners[0]) + ' wins with ' + this.pts(max);
-        } else {
-            return 'Tie between ' + winners.map(function (w) {
-                return '' + Grid.colorName(w);
-            }).join(' & ') + ', ' + ( winners.length === 2 ? 'both' : 'all' ) + ' with ' + this.pts(max);
-        }
-    }
-};
-
-//private;
-ScoreAnalyser.prototype.pts = function (n) {
-    return ( n !== 1 ? n + ' points' : '1 point' );
-};
-
-// E02: unknown method: map(...)

@@ -3,12 +3,13 @@
 
 var main = require('./main');
 var Genes = require('./Genes');
-//require 'trollop';
 var TimeKeeper = require('./TimeKeeper');
 var GameLogic = require('./GameLogic');
 var ScoreAnalyser = require('./ScoreAnalyser');
 var Ai1Player = require('./ai/Ai1Player');
+
 main.debugBreed = false; // TODO move me somewhere else?
+
 
 /** @class */
 function Breeder(gameSize) {
@@ -50,9 +51,9 @@ Breeder.prototype.playUntilGameEnds = function () {
         try {
             this.game.playOneMove(move);
         } catch (err) {
-            console.log('' + err);
-            console.log('Exception occurred during a breeding game.\n' + curPlayer + ' with genes: ' + curPlayer.genes);
-            console.log(this.game.historyString());
+            main.log.error('' + err);
+            main.log.error('Exception occurred during a breeding game.\n' + curPlayer + ' with genes: ' + curPlayer.genes);
+            main.log.error(this.game.historyString());
             throw err;
         }
     }
@@ -69,18 +70,10 @@ Breeder.prototype.playGame = function (name1, name2, p1, p2) {
     // @timer.stop(false) # no exception if it takes longer but an error in the log
     if (main.debugBreed) {
         main.log.debug('\n#' + name1 + ':' + p1 + '\nagainst\n#' + name2 + ':' + p2);
-    }
-    if (main.debugBreed) {
         main.log.debug('Distance: ' + '%.02f'.format(p1.distance(p2)));
-    }
-    if (main.debugBreed) {
         main.log.debug('Score: ' + scoreDiff);
-    }
-    if (main.debugBreed) {
         main.log.debug('Moves: ' + this.game.historyString());
-    }
-    if (main.debugBreed) {
-        this.goban.consoleDisplay();
+        main.log.debug(this.goban.toString());
     }
     return scoreDiff;
 };
@@ -198,7 +191,7 @@ Breeder.prototype.control = function () {
 };
 
 // Play many games AI VS AI to verify black/white balance
-Breeder.prototype.bwBalanceCheck = function (numGames, gsize) {
+Breeder.prototype.bwBalanceCheck = function (numGames /*, gsize*/) {
     var totalScore, numWins;
     this.timer.start('bw_balance_check', numGames / 1000.0 * 50, numGames / 1000.0 * 512);
     main.log.debug('Checking black/white balance by playing ' + numGames + ' games (komi=' + Breeder.KOMI + ')...');
@@ -218,17 +211,3 @@ Breeder.prototype.bwBalanceCheck = function (numGames, gsize) {
     main.log.debug('Out of ' + numGames + ' games, black won ' + numWins + ' times');
     return numWins;
 };
-
-if (!main.testAll && !main.test) {
-    var opts = main.Trollop.options(function () {
-        opt('size', 'Goban size', {'default':9});
-        opt('num_tour', 'Number of tournaments', {'default':2});
-        return opt('match_per_ai', 'Number of matches per AI per tournament', {'default':3});
-    });
-    var breeder = new Breeder(opts['size']);
-    breeder.run(opts['num_tour'], opts['match_per_ai']);
-}
-// E02: unknown method: find_index(...)
-// E02: unknown method: opt(...)
-// E02: unknown method: options(...)
-// W02: unknown class supposed to be attached to main: Trollop

@@ -8,9 +8,8 @@ var main = require('./main');
  *  otherwise, the goban scoring_grid is used.
  */
 function ZoneFiller(goban, grid) {
-    if (grid === undefined) grid = null;
     if (!grid) {
-        grid = goban.scoringGrid.convert(goban.grid);
+        grid = goban.scoringGrid.initFromGoban(goban);
     }
     this.goban = goban;
     this.grid = grid;
@@ -24,41 +23,29 @@ module.exports = ZoneFiller;
 // neighbors, if given should be an array of n arrays, with n == number of colors
 // if neighbors are not given, we do simple "coloring"
 ZoneFiller.prototype.fillWithColor = function (startI, startJ, toReplace, color, neighbors) {
-    if (neighbors === undefined) neighbors = null;
     // $log.debug("fill #{start_i} #{start_j}; replace #{to_replace} with #{color}") if $debug
-    if (this.yx[startJ][startI] !== toReplace) {
-        return 0;
-    }
+    if (this.yx[startJ][startI] !== toReplace) return 0;
     var vcount = 0;
     this.toReplace = toReplace;
     this.groups = neighbors;
-    var gaps = [[startI, startJ, startJ]];
-    var gap, i, j0, j1;
+    var gap, gaps = [[startI, startJ, startJ]];
+
     while ((gap = gaps.pop())) {
         // $log.debug("About to do gap: #{gap} (left #{gaps.size})") if $debug
-        var _m = gap;
-        i = _m[0];
-        j0 = _m[1];
-        j1 = _m[2];
+        var i = gap[0], j0 = gap[1], j1 = gap[2];
         
-        if (this.yx[j0][i] !== toReplace) { // gap already done by another path
-            continue;
-        }
-        while (this._check(i, j0 - 1)) {
-            j0 -= 1;
-        }
-        while (this._check(i, j1 + 1)) {
-            j1 += 1;
-        }
+        if (this.yx[j0][i] !== toReplace) continue; // gap already done by another path
+
+        while (this._check(i, j0 - 1)) j0--;
+        while (this._check(i, j1 + 1)) j1++;
+
         vcount += j1 - j0 + 1;
         // $log.debug("Doing column #{i} from #{j0}-#{j1}") if $debug
-        for (var ix = (i - 1); ix <= i + 1; ix += 2) {
+        for (var ix = i - 1; ix <= i + 1; ix += 2) {
             var curgap = null;
             for (var j = j0; j <= j1; j++) {
                 // $log.debug("=>coloring #{i},#{j}") if $debug and ix<i
-                if (ix < i) {
-                    this.yx[j][i] = color;
-                }
+                if (ix < i) this.yx[j][i] = color;
                 // $log.debug("checking neighbor #{ix},#{j}") if $debug
                 if (this._check(ix, j)) {
                     if (!curgap) {
@@ -70,28 +57,22 @@ ZoneFiller.prototype.fillWithColor = function (startI, startJ, toReplace, color,
                     gaps.push([ix, curgap, j - 1]);
                     curgap = null;
                 }
-            }
-            // upto j
+            } // for j
             // $log.debug("--- pushing gap [#{ix},#{curgap},#{j1}]") if $debug and curgap
-            if (curgap) { // last gap
-                gaps.push([ix, curgap, j1]);
-            }
-        } // each ix
-    }
-    // while gap
+            if (curgap) gaps.push([ix, curgap, j1]); // last gap
+        } // for ix
+    } // while gap
     return vcount;
 };
 
-//private;
+//private
+
 // Returns true if the replacement is needed (=> i,j has a color equal to the replaced one)
 ZoneFiller.prototype._check = function (i, j) {
     var color = this.yx[j][i];
-    if (color === main.BORDER) {
-        return false;
-    }
-    if (color === this.toReplace) {
-        return true;
-    }
+    if (color === main.BORDER) return false;
+    if (color === this.toReplace) return true;
+
     if (this.groups && color < 2) {
         var group = this.goban.stoneAt(i, j).group;
         if (group && this.groups[color].indexOf(group) < 0) {
@@ -100,5 +81,3 @@ ZoneFiller.prototype._check = function (i, j) {
     }
     return false;
 };
-
-// E02: unknown method: find_index(...)

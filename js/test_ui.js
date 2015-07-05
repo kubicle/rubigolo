@@ -45,14 +45,14 @@ function newButton(name, label) {
 }
 
 function logfn(lvl, msg) {
-  var firstLine = msg.indexOf('\n');
-  if (firstLine > 0) msg = msg.substr(0, firstLine);
-  msg += '<br>';
+  msg = msg.replace(/\n/g, '<br>').replace(/ /g, '&nbsp;') + '<br>';
   if (lvl >= Logger.WARN) errors.innerHTML += msg;
   else if (lvl > Logger.DEBUG) output.innerHTML += msg;
   return true; // also log in console
 }
 
 newButton('TestAll', 'Test All');
-newButton('TestSpeed', 'Test Speed');
-newButton('TestAi', 'Test AI');
+newButton('TestSpeed', 'Speed');
+newButton('TestBoardAnalyser', 'Scoring');
+newButton('TestPotentialTerritory', 'Territory');
+newButton('TestAi', 'AI');

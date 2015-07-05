@@ -3,12 +3,14 @@
 
 var inherits = require('util').inherits;
 var main = require('../main');
-// Quite a dumb way of "pushing" our influence further...
-// For that reason the coeff are rather low.
-// This should eventually disappear.
 var Heuristic = require('./Heuristic');
 
-/** @class */
+
+/** @class
+ *  Quite a dumb way of "pushing" our influence further...
+ *  For that reason the coeff are rather low.
+ *  This should eventually disappear.
+ */
 function Pusher(player) {
     Heuristic.call(this, player);
     this.allyCoeff = this.getGene('ally-infl', 0.1, 0.01, 4.0);
@@ -24,7 +26,12 @@ Pusher.prototype.evalMove = function (i, j) {
     if (enemyInf === 0 || allyInf === 0) {
         return 0;
     }
-    var score = 0.33 * (this.enemyCoeff * enemyInf - this.allyCoeff * allyInf);
+    if (!this.canConnect(i, j, this.color)) return 0;
+
+    var fillTer = this.territoryScore(i, j, this.color);
+    if (fillTer < 0) fillTer = 0; // Spacer will count <0 scores
+
+    var score = fillTer + 0.33 * (this.enemyCoeff * enemyInf - this.allyCoeff * allyInf);
     if (main.debug) {
         main.log.debug('Pusher heuristic sees influences ' + allyInf + ' - ' + enemyInf + ' at ' + i + ',' + j + ' -> ' + '%.03f'.format(score));
     }

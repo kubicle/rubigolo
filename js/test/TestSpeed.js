@@ -8,9 +8,10 @@ var Stone = require('../Stone');
 var assertEqual = main.assertEqual;
 var Goban = require('../Goban');
 var TimeKeeper = require('../TimeKeeper');
+
 main.debug = false; // if true it takes forever...
-main.log.level=(main.Logger.ERROR);
-main.count = 0;
+main.log.level = main.Logger.ERROR;
+
 
 /** @class */
 function TestSpeed(testName) {
@@ -20,19 +21,13 @@ function TestSpeed(testName) {
 inherits(TestSpeed, main.TestCase);
 module.exports = main.tests.add(TestSpeed);
 
-TestSpeed.CM_UNDO = [0, TestSpeed.CM_CLEAR = 1, TestSpeed.CM_NEW = 2];
+TestSpeed.CM_UNDO = 0;
+TestSpeed.CM_CLEAR = 1;
+TestSpeed.CM_NEW = 2;
+
 TestSpeed.prototype.initBoard = function (size) {
     if (size === undefined) size = 9;
     this.goban = new Goban(size);
-};
-
-// Not very fancy: add the line $count += 1 wherever you want to count.
-// Need some time to try a good profiler soon...
-TestSpeed.prototype.showCount = function () {
-    if (main.count !== 0) {
-        console.log('Code called ' + main.count + ' times');
-        main.count = 0;
-    }
 };
 
 TestSpeed.prototype.testSpeed1 = function () {
@@ -45,7 +40,6 @@ TestSpeed.prototype.testSpeed1 = function () {
         this.play10Stones();
     }
     t.stop();
-    this.showCount();
     // prepare games so we isolate the GC caused by that 
     // (in real AI thinking there will be many other things but...)
     // 35 moves, final position:
@@ -66,7 +60,6 @@ TestSpeed.prototype.testSpeed1 = function () {
         this.playGameAndClean(game1MovesIj, TestSpeed.CM_UNDO);
     }
     t.stop();
-    this.showCount();
     // The idea here is to verify that undoing things is cheaper than throwing it all to GC
     // In a tree exploration strategy the undo should be the only way (otherwise we quickly hog all memory)
     t.start('35 move game, 2000 times new board each time', 4.87, 15);
@@ -74,7 +67,6 @@ TestSpeed.prototype.testSpeed1 = function () {
         this.playGameAndClean(game1MovesIj, TestSpeed.CM_NEW);
     }
     t.stop();
-    this.showCount();
     // And here we see that the "clear" is the faster way to restart a game 
     // (and that it does not "leak" anything to GC)
     t.start('35 move game, 2000 times, clear board each time', 2.5, 1);
@@ -82,7 +74,6 @@ TestSpeed.prototype.testSpeed1 = function () {
         this.playGameAndClean(game1MovesIj, TestSpeed.CM_CLEAR);
     }
     t.stop();
-    return this.showCount();
 };
 
 TestSpeed.prototype.testSpeed2 = function () {
@@ -111,7 +102,6 @@ TestSpeed.prototype.testSpeed2 = function () {
         this.playGameAndClean(game2MovesIj, TestSpeed.CM_UNDO);
     }
     t.stop();
-    return this.showCount();
 };
 
 // Converts "a1,b2" in [1,1,2,2]

@@ -23,16 +23,15 @@ function GameLogic() {
 module.exports = GameLogic;
 
 GameLogic.prototype.newGame = function (gsize, handicap, komi) {
-    if (gsize === undefined) gsize = null;
     if (handicap === undefined) handicap = 0;
-    if (komi === undefined) komi = null;
     this.history.clear();
     this.errors.clear();
     this.numPass = 0;
     this.curColor = main.BLACK;
     this.gameEnded = this.gameEnding = false;
     this.whoResigned = null;
-    if (!this.goban || (gsize && gsize !== this.goban.gsize)) {
+    if (!this.goban || gsize !== this.goban.gsize) {
+        if (gsize < 5) gsize = 5;
         this.goban = new Goban(gsize);
     } else {
         this.goban.clear();
@@ -85,6 +84,8 @@ GameLogic.prototype.playOneMove = function (move) {
         return this.playAStone(move);
     } else if (move === 'undo') {
         return this.requestUndo();
+    } else if (move === 'half_undo') {
+        return this.requestUndo(true);
     } else if (move.startWith('resi')) {
         return this.resign();
     } else if (move === 'pass') {
@@ -145,14 +146,18 @@ GameLogic.prototype.passOneMove = function () {
 // Only after this call will the game be really finished.
 // If accept=false, this means a player refuses to end here
 // => the game should continue until the next time all players pass.
-GameLogic.prototype.acceptEnding = function (accept) {
-    if (!this.gameEnding) {
-        return this.errorMsg('The game is not ending yet');
-    }
-    if (!accept) {
-        this.gameEnding = false; // exit ending mode; we will play some more...
-    } else {
+GameLogic.prototype.acceptEnding = function (accept, whoRefused) {
+    if (!this.gameEnding) return this.errorMsg('The game is not ending yet');
+    this.gameEnding = false;
+    if (accept) {
         this.gameEnded = true; // ending accepted. Game is finished.
+        return true;
+    }
+    // Score refused (in dispute)
+    // if the player who refused just played, we give the turn back to him
+    if (whoRefused !== this.curColor) {
+        this.history.pop(); // remove last "pass" (half a move so "undo" cannot help)
+        this.nextPlayer();
     }
     return true;
 };
@@ -165,13 +170,15 @@ GameLogic.prototype.moveNumber = function () {
 
 // Returns a text representation of the list of moves played so far
 GameLogic.prototype.historyString = function () {
-    return (( this.handicap > 0 ? 'handicap:' + this.handicap + ',' : '' )) + this.history.join(',') + ' (' + this.history.length + ' moves)';
+    return (( this.handicap > 0 ? 'handicap:' + this.handicap + ',' : '' )) +
+        this.history.join(',') +
+        ' (' + this.history.length + ' moves)';
 };
 
 // Returns an array with the prisoner count per color
 // e.g. [3,5] means 3 black stones are prisoners, 5 white stones
 GameLogic.prototype.prisoners = function () {
-    return Group.prisoners(this.goban);
+    return Group.countPrisoners(this.goban);
 };
 
 // If called with on=true, error messages will be directly displayed on the console.
@@ -218,7 +225,7 @@ GameLogic.prototype.setLogLevel = function (cmd) {
 //private;
 // ===============================================================================
 GameLogic.prototype.nextPlayer = function () {
-    this.curColor = (this.curColor + 1) % 2;
+    this.curColor = 1 - this.curColor;
 };
 
 // Always returns false
@@ -236,16 +243,18 @@ GameLogic.prototype.storeMoveInHistory = function (move) {
 };
 
 // undo one full game turn (e.g. one black move and one white)
-GameLogic.prototype.requestUndo = function () {
-    if (this.history.length < 2) {
+GameLogic.prototype.requestUndo = function (halfMove) {
+    var count = halfMove ? 1 : 2;
+    if (this.history.length < count) {
         return this.errorMsg('Nothing to undo');
     }
-    for (var _i = 0; _i < 2; _i++) {
+    for (var i = count; i >= 1; i--) {
         if (!this.history[this.history.length-1].endWith('pass')) { // no stone to remove for a pass
             Stone.undo(this.goban);
         }
         this.history.pop();
     }
+    if (halfMove) this.nextPlayer();
     this.numPass = 0;
     return true;
 };

@@ -9,16 +9,6 @@ h2 {
   margin-bottom: 5px;
   font-family: "Arial";
 }
-button {
-  margin-right: 10px;
-  border-radius: 10px;
-  width: 100px;
-  height: 40px;
-}
-.testButton {
-}
-.gameButton {
-}
 
 .logBox {
   font-size: 14px;
@@ -28,24 +18,113 @@ button {
   border-radius: 8px;
   padding: 5px;
   overflow-y: auto;  
+  word-wrap: break-word;
 }
-.outputBox {
-  height: 350px;
-  font-size: 14px;
+.controls {
+  width: 600px;
+  margin-top: 10px;
 }
-.errorBox {
-  height: 150px;
-  font-size: 14px;
-}
+
 
 .board {
 }
-.controls {
-  margin-top: 10px;
+.gameButton {
+  margin-right: 10px;
   margin-bottom: 10px;
+  border-radius: 10px;
+  width: 100px;
+  height: 40px;
 }
-.historyBox {
+.testControls .gameButton {
+  margin-right: 10px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  width: 100px;
+  height: 30px;
+}
+
+.resiButton {
+  margin-right: auto;
+  float: right;
+}
+.outputBox {
   height: 100px;
   width: 590px;
-  font-size: 20px;
+  font-size: 14px;
+}
+.historyBox {
+  height: 590px;
+  width: 100px;
+  position: absolute;
+  top: 68px;
+  left: 620px;
+  font-size: 12px;
+  font-family: "Courier";
+  font-weight: bold;
+}
+
+.newGameDialog {
+  z-index: 1000;
+  position: absolute;
+  left: 25px;
+  top: 267px;
+  height: 120px;
+  width: 545px;
+  padding: 10px;
+  background-color: #ffe;
+  border: solid #cca 1px;
+  border-radius: 10px;
+  font-family: Arial;
+  font-size: 16pt;
+}
+.newGameDialog .inputLabel {
+  margin-left: 10px;
+}
+.newGameDialog .sizeInput {
+  margin-left: 5px;
+  margin-right: 15px;
+  margin-bottom: 10px;
+  width: 25px;
+  text-align: center;
+  font-size: 16pt;
+}
+.newGameDialog .handicapInput {
+  margin-left: 5px;
+  width: 20px;
+  text-align: center;
+  font-size: 16pt;
+}
+.newGameDialog .radioLabel {
+  margin-right: 10px;
+}
+.newGameDialog .aiColorRadioBtn {
+  margin-left: 23px;
+}
+.newGameDialog .movesInput {
+  width: 50%;
+  margin: 10px;
+  font-size: 16pt;
+}
+.newGameDialog .startButton {
+  position: absolute;
+  right: 0px;
+  bottom: 10px;
+}
+
+.testButton {
+  margin-right: 10px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  width: 100px;
+  height: 40px;
+}
+.testOutputBox {
+  height: 200px;
+  font-size: 14px;
+}
+.testErrorBox {
+  word-wrap: break-word;
+  height: 250px;
+  font-size: 14px;
+  font-family: 'Courier';
 }

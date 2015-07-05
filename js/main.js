@@ -71,9 +71,9 @@ TestSeries.prototype.testOneClass = function (Klass) {
     if (typeof Klass.prototype[method] !== 'function') continue;
     if (method.substr(0,4) !== 'test') continue;
     this.testCount++;
-    var obj = new Klass(Klass.name + '#' + method);
+    var test = new Klass(Klass.name + '#' + method);
     try {
-      obj[method].call(obj);
+      test[method].call(test);
     } catch(e) {
       var header = 'Test failed';
       if (e.message.startWith(FAILED_ASSERTION_MSG)) {
@@ -82,14 +82,14 @@ TestSeries.prototype.testOneClass = function (Klass) {
         header += ' with exception';
         this.errorCount++;
       }
-      main.log.error(header + ': ' + obj.testName + ': ' + e.message + '\n' + e.stack);
+      main.log.error(header + ': ' + test.name + ':\n' + e.stack + '\n');
     }
   }
 };
 
 TestSeries.prototype.run = function (logfunc, specificClass) {
   main.log.setLogFunc(logfunc);
-  main.assertCount = 0;
+  main.assertCount = main.count = 0;
   var startTime = Date.now();
   var classCount = 0;
   this.testCount = this.failedCount = this.errorCount = 0;
@@ -103,14 +103,15 @@ TestSeries.prototype.run = function (logfunc, specificClass) {
   var report = 'Completed tests. (' + classCount + ' classes, ' + this.testCount + ' tests, ' +
     main.assertCount + ' assertions in ' + duration + 's)' +
     ', failed: ' + this.failedCount + ', exceptions: ' + this.errorCount;
+  if (main.count) report += ', generic count: ' + main.count;
   main.log.info(report);
   return report;
 };
 
 
 /** @class */
-function TestCase(testName) {
-  this.testName = testName;
+function TestCase(name) {
+  this.name = name;
 }
 
 function _fail(msg, comment) {
@@ -118,27 +119,42 @@ function _fail(msg, comment) {
   throw new Error(FAILED_ASSERTION_MSG + comment + msg);
 }
 
-function _checkValue(expected, val, comment) {
-  if (expected instanceof Array) {
-    if (!val instanceof Array)
-      _fail('expected Array but got ' + val, comment);
-    if (val.length !== expected.length) {
-      console.warn('Expected:\n', expected, 'Value:\n', val);
-      _fail('expected Array of size ' + expected.length + ' but got size ' + val.length, comment);
-    }
+function _valueCompareHint(expected, val) {
+  if (typeof expected !== 'string' || typeof val !== 'string') return '';
+  // for short strings or strings that start differently, no need for this hint
+  if (expected.length <= 15 || expected[0] !== val[0]) return '';
 
-    for (var i = 0; i < expected.length; i++) {
-      _checkValue(expected[i], val[i], comment);
+  for (var i = 0; i < expected.length; i++) {
+    if (expected[i] !== val[i]) {
+      return '(first discrepancy at position ' + i + ': "' +
+        expected.substr(i, 10) + '..." / "' + val.substr(i, 10) + '...")';
     }
-    return;
   }
-  if (val === expected) return;
-  _fail('expected [' + expected + '] but got [' + val + ']', comment);
+  return '';
 }
+
+main.compareValue = function (expected, val) {
+  if (main.isA(Array, expected)) {
+    if (!main.isA(Array, val)) return 'Expected Array but got ' + val;
+    if (val.length !== expected.length) {
+      return 'Expected Array of size ' + expected.length + ' but got size ' + val.length;
+    }
+    for (var i = 0; i < expected.length; i++) {
+      var msg = main.compareValue(expected[i], val[i]);
+      if (msg) return msg;
+    }
+    return ''; // equal
+  }
+  if (val === expected) return '';
+  return 'Expected:\n' + expected + '\nbut got:\n' + val + '\n' + _valueCompareHint(expected, val) + '\n';
+};
 
 main.assertEqual = function (expected, val, comment) {
   main.assertCount++;
-  _checkValue(expected, val, comment);
+  var msg = main.compareValue(expected, val);
+  if (msg === '') return;
+  console.warn(msg);
+  _fail(msg, comment);
 };
 
 main.assertInDelta = function (val, expected, delta, comment) {

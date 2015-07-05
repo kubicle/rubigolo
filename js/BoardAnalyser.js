@@ -5,73 +5,151 @@ var main = require('./main');
 var Grid = require('./Grid');
 var Group = require('./Group');
 var ZoneFiller = require('./ZoneFiller');
+var Shaper = require('./ai/Shaper');
+
+
+var EMPTY = main.EMPTY, BLACK = main.BLACK, WHITE = main.WHITE;
+var ALIVE = 1000;
+var SHARED_EYE = 1; // between brothers
+
+function grpNdx(g) { return '#' + g.ndx; }
+function giNdx(gi) { return '#' + gi.group.ndx; }
 
 
 /** @class Class used by BoardAnalyser class.
  *  A void in an empty zone surrounded by (and including) various groups.
  *  NB: when a void has a single color around; we call this an eye. Can be discussed...
- *  public read-only attribute: code, i, j, vcount, groups, eyeColor, owner
+ *  public read-only attribute: code, i, j, vcount, groups, owner
  *  code is the void code (like a color but higher index)
  *  neighbors is an array of n arrays, with n == number of colors
  */
-function Void(analyser, code, i, j, vcount, neighbors) {
-    this.analyzer = analyser;
-    this.goban = analyser.goban;
+function Void(code, i, j, vcount, neighbors) {
     this.code = code;
     this.i = i;
     this.j = j;
     this.vcount = vcount;
     this.groups = neighbors; // neighboring groups (array of arrays; 1st index is color)
-    this.eyeColor = null; // stays nil if not an eye
-    this.owner = null;
+    this.vtype = undefined; // see vXXX contants below
+    this.owner = undefined; // BLACK or WHITE, or undefined if no clear owner
+    this.stolen = false;
 }
 module.exports = Void;
 
-// Call it once. Populates @eye_color
-// @eye_color stays nil if there is more than 1 color around (not an eye) or full board empty
-Void.prototype.eyeCheck = function () {
-    var hasBlack = this.groups[main.BLACK].length > 0;
-    var hasWhite = this.groups[main.WHITE].length > 0;
-    var oneColor = null;
-    if (hasBlack) {
-        if (!hasWhite) {
-            oneColor = main.BLACK;
-        }
-    } else if (hasWhite) {
-        oneColor = main.WHITE;
+var vEYE = 1, vFAKE_EYE = 2, vDAME = 3;
+var vtypes = ['void', 'eye', 'fake-eye', 'dame'];
+
+function vtype2str(vtype) {
+    return vtype ? vtypes[vtype] : vtypes[0];
+}
+
+function isOneNotDead(groups) {
+    for (var i = groups.length - 1; i >= 0; i--) {
+        if (!groups[i]._info.isDead) return true;
     }
-    this.eyeColor = oneColor;
+    return false;
+}
+
+Void.prototype.findOwner = function () {
+    // see which color has yet-alive groups around this void
+    var hasBlack = isOneNotDead(this.groups[BLACK]);
+    var hasWhite = isOneNotDead(this.groups[WHITE]);
+
+    // every group around now dead = eye stolen by who killed them
+    if (!hasBlack && !hasWhite) {
+        if (this.vtype && !this.stolen) this.wasJustStolen();
+        return;
+    }
+
+    if (hasBlack && hasWhite) return; // still undefined owner
+    var color = hasBlack ? BLACK : WHITE;
+    if (this.isFakeEye(color)) return;
+    return this.setEyeOwner(color);
+};
+
+Void.prototype.isFakeEye = function (color) {
+    // Potential fake eyes are identified only once (when still "undefined")
+    // after which they can only lose this property
+    if (this.vtype && this.vtype !== vFAKE_EYE) return false;
+
+    if (this.vcount > 1) return false;
+    var groups = this.groups[color];
+    if (groups.length < 2) return false; // not shared
+
+    var isFake = false;
+    for (var i = groups.length - 1; i >= 0; i--) {
+        var gi = groups[i]._info;
+        if (gi.numContactPoints === 1 && !gi.deadEnemies.length) {
+            isFake = true;
+            gi.addParentGroups(groups, 'FAKE_EYE');
+        }
+    }
+    if (!isFake) return false;
+    if (this.vtype === vFAKE_EYE) return true;
+    this.vtype = vFAKE_EYE;
+    this.owner = color;
+    if (main.debug) main.log.debug('FAKE EYE: ' + this);
+    return true;
+};
+
+Void.prototype.setEyeOwner = function (color) {
+    if (this.vtype === vEYE && color === this.owner) return;
+    if (main.debug) main.log.debug('EYE: ' + Grid.colorName(color) + ' owns ' + this);
+    this.vtype = vEYE;
+    this.owner = color;
+
     // Now tell the groups about this void
-    if (oneColor !== null) {
-        this.setOwner(oneColor);
-        for (var n, n_array = this.groups, n_ndx = 0; n=n_array[n_ndx], n_ndx < n_array.length; n_ndx++) {
-            for (var g, g_array = n, g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
-                g.addVoid(this, true);
-            }
+    var groups = this.groups[color];
+    for (var i = groups.length - 1; i >= 0; i--) {
+        groups[i]._info.addVoid(this);
+    }
+    // If more than 1 group and they were not brothers yet, they become brothers
+    if (groups.length > 1) Band.gather(groups);
+};
+
+Void.prototype.setAsDame = function () {
+    if (main.debug) main.log.debug('DAME: ' + this);
+    if (this.owner !== undefined) {
+        var groups = this.groups[this.owner];
+        for (var i = groups.length - 1; i >= 0; i--) {
+            groups[i]._info.removeVoid(this);
         }
-        if (main.debug) {
-            return main.log.debug('Color ' + oneColor + ' surrounds ' + this + ' (eye)');
-        }
-    } else {
-        for (n, n_array = this.groups, n_ndx = 0; n=n_array[n_ndx], n_ndx < n_array.length; n_ndx++) {
-            for (g, g_array = n, g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
-                g.addVoid(this);
-            }
-        }
-        if (main.debug) {
-            return main.log.debug(this + ' has to be sorted out...');
-        }
+        this.owner = undefined;
+    }
+    this.vtype = vDAME;
+};
+
+// Called for eyes or fake eyes when their owner group is captured
+Void.prototype.wasJustStolen = function () {
+    if (this.owner === undefined) throw new Error('stolen eye of undefined owner');
+    if (main.debug) main.log.debug('STOLEN EYE: ' + this);
+    // remove eye from previous owners and build the list of killers
+    var groups = this.groups[this.owner];
+    var killers = [];
+    for (var i = groups.length - 1; i >= 0; i--) {
+        var gi = groups[i]._info;
+        gi.removeVoid(this);
+        killers.pushUnique(gi.killers);
+    }
+    // we "add" the eye to each killer
+    this.stolen = true;
+    this.vtype = vEYE; // it could have been a fake eye but now it is an eye
+    this.owner = 1 - this.owner;
+    for (var k = killers.length - 1; k >= 0; k--) {
+        killers[k]._info.addVoid(this);
     }
 };
 
-Void.prototype.setOwner = function (color) {
-    this.owner = color;
+Void.prototype.getSingleOwner = function () {
+    if (this.owner === undefined) return null;
+    var groups = this.groups[this.owner];
+    if (groups.length > 1) return null;
+    return groups[0];
 };
 
 Void.prototype.toString = function () {
-    var s = 'void ' + this.code + ' (' + Grid.colorToChar(this.code) + '/' + this.i + ',' + this.j + '), vcount ' + this.vcount;
+    var s = vtype2str(this.vtype) + ' ' + this.code + '-' + Grid.colorToChar(this.code) + ' (' + Grid.moveAsString(this.i, this.j) + '), vcount ' + this.vcount;
     for (var color = 0; color < this.groups.length; color++) {
-        s += ', ' + this.groups[color].length + ' ' + Grid.COLOR_NAMES[color] + ' neighbors';
+        s += ', ' + this.groups[color].length + ' ' + Grid.colorName(color) + ' neighbors';
     }
     return s;
 };
@@ -79,48 +157,328 @@ Void.prototype.toString = function () {
 Void.prototype.debugDump = function () {
     console.log(this.toString());
     for (var color = 0; color < this.groups.length; color++) {
-        console.log('    Color ' + color + ' (' + Grid.colorToChar(color) + '):');
-        for (var neighbor, neighbor_array = this.groups[color], neighbor_ndx = 0; neighbor=neighbor_array[neighbor_ndx], neighbor_ndx < neighbor_array.length; neighbor_ndx++) {
-            console.log(' #' + neighbor.ndx);
-        }
+        console.log('    Color ' + color + ' (' + Grid.colorToChar(color) + '): ' +
+            this.groups[color].map(grpNdx));
     }
-    console.log('\n');
 };
 
+//---
+
+/** @class One list of "brother" groups = groups which share eyes.
+ *  @param {GroupInfo} gi0 - first group in band */
+function Band(gi0) {
+    this.bandId = gi0.group.ndx; // unique enough
+    this.brothers = [gi0]; // array of GroupInfo
+    gi0.band = this;
+    gi0.dependsOn.clear(); // does not depend on parents anymore
+}
+
+Band.prototype.toString = function () {
+    return this.brothers.map(giNdx);
+};
+
+Band.prototype._add1 = function (gi) {
+    gi.dependsOn.clear(); // does not depend on parents anymore
+
+    if (!gi.band) {
+        this.brothers.push(gi);
+        gi.band = this;
+        return;
+    }
+    if (gi.band.bandId === this.bandId) return; // gi uses same band
+
+    var brothers = gi.band.brothers;
+    for (var n = brothers.length - 1; n >= 0; n--) {
+        this.brothers.push(brothers[n]);
+        brothers[n].band = this;
+    }
+};
+
+Band.prototype.remove = function (gi) {
+    var ndx = this.brothers.indexOf(gi);
+    if (ndx < 0) throw new Error('Band.remove on wrong Band');
+    this.brothers.splice(ndx, 1);
+    gi.band = null;
+};
+
+// groups contains the groups in the band
+Band.gather = function (groups) {
+    if (main.debug) main.log.debug('BROTHERS: ' + groups.length + ' groups: ' + groups);
+    if (groups.length === 1) throw new Error('add Band of 1');
+
+    // look if one of the group is already in a band
+    var band = null;
+    for (var n = 0; n < groups.length; n++) {
+        if (groups[n]._info.band) { band = groups[n]._info.band; break; }
+    }
+    // if not, create a new band with 1st group in it
+    var first = 0;
+    if (!band) band = new Band(groups[first++]._info);
+    // add all groups to band
+    for (n = first; n < groups.length; n++) {
+        band._add1(groups[n]._info);
+    }
+};
+
+
+//---
+
+/** @class Contains the analyse results that are attached to each group */
+function GroupInfo(group) {
+    this.voids = []; // empty zones next to a group
+    this.dependsOn = [];
+    this.deadEnemies = [];
+    this.killers = [];
+
+    this.resetAnalysis(group);
+}
+
+// This also resets the eyes
+GroupInfo.prototype.resetAnalysis = function (group) {
+    this.group = group;
+    this.eyeCount = 0;
+    this.voids.clear();
+    this.dependsOn.clear();
+    this.band = null;
+    this.isAlive = false;
+    this.isDead = false;
+    this.deadEnemies.clear();
+    this.killers.clear();
+    this.numContactPoints = 0;
+};
+
+GroupInfo.prototype.toString = function () {
+    var brothers = this.band ? this.band.toString() : '';
+    return this.group.toString() +
+        ' (isAlive:' + this.isAlive + ' isDead:' + this.isDead + ', ' +
+        this.eyeCount + ' eyes, ' + this.voids.length + ' voids  brothers:[' +
+        brothers + '] parents:[' + this.dependsOn.map(giNdx) +
+        '] deadEnemies:[' + this.deadEnemies.map(giNdx) + '])';
+};
+
+// Adds a void or an eye to an owner-group
+GroupInfo.prototype.addVoid = function (v) {
+    if (main.debug) main.log.debug('OWNED EYE: ' + v + ' owned by ' + this);
+    this.voids.push(v);
+    if (v.vtype === vEYE) this.eyeCount++;
+};
+
+// Removes given void from the group (if not owned, does nothing)
+GroupInfo.prototype.removeVoid = function (v) {
+    var ndx = this.voids.indexOf(v);
+    if (ndx === -1) return;
+    if (main.debug) main.log.debug('LOST EYE: ' + v + ' lost by ' + this);
+    this.voids.splice(ndx, 1);
+    if (v.vtype === vEYE) this.eyeCount--;
+};
+
+GroupInfo.prototype.addParentGroups = function (groups, reason) {
+    if (this.band) {
+        this.band.remove(this);
+    }
+    for (var n = groups.length - 1; n >= 0; n--) {
+        var gi = groups[n]._info;
+        if (gi === this) continue; // this group itself
+        if(this.dependsOn.indexOf(gi) < 0) {
+            if (main.debug) main.log.debug('DEPENDS-' + reason + ': ' + this + ' depends on ' + gi);
+            this.dependsOn.push(gi);
+        }
+    }
+};
+
+// NB: if we had another way to get the numContactPoints info, we could do this
+// much more efficiently by looking once at each empty point on the board
+GroupInfo.prototype.findBrothers = function () {
+    var g = this.group;
+    // find allies 1 stone away
+    var empties = g.allLives();
+    var allAllies = [];
+    var numContactPoints = 0;
+    for (var e = empties.length - 1; e >= 0; e--) {
+        var allies = empties[e].uniqueAllies(g.color);
+        if (allies.length === 1) continue;
+        numContactPoints++;
+        allAllies.pushUnique(allies);
+    }
+    if (!numContactPoints) return;
+    this.numContactPoints = numContactPoints;
+    Band.gather(allAllies);
+};
+
+/** Returns the (first) single eye of a group */
+GroupInfo.prototype.getSingleEye = function () {
+    for (var i = this.voids.length - 1; i >= 0; i--) {
+        var eye = this.voids[i];
+        if (eye.vtype === vEYE) return eye;
+    }
+    return null;
+};
+
+GroupInfo.prototype.considerDead = function (reason) {
+    this.isDead = true;
+
+    var enemies = this.killers = this.group.allEnemies();
+    for (var i = enemies.length - 1; i >= 0; i--) {
+        enemies[i]._info.deadEnemies.push(this);
+    }
+    if (main.debug) main.log.debug('DEAD-' + reason + ': ' + this);
+};
+
+/** Returns a number telling how "alive" a group is.
+ *  NB: for end-game counting, this logic is enough because undetermined situations
+ *  have usually all been resolved - otherwise it means both players cannot see it ;) */
+GroupInfo.prototype.liveliness = function (shallow) {
+    if (this.isAlive || this.eyeCount >= 2) {
+        return ALIVE;
+    }
+    var racePoints = this.group.lives / 100;
+    if (this.isDead) {
+        return 0 + racePoints;
+    }
+    var familyPoints = 0;
+    if (!shallow) {
+        for (var n = this.dependsOn.length - 1; n >= 0; n--) {
+            familyPoints += this.dependsOn[n].liveliness(true);
+        }
+        if (this.band) {
+            var brothers = this.band.brothers;
+            for (n = brothers.length - 1; n >= 0; n--) {
+                if (brothers[n] === this) continue;
+                familyPoints += brothers[n].liveliness(true) - SHARED_EYE;
+            }
+        }
+    }
+    return this.voids.length + this.deadEnemies.length + familyPoints + racePoints;
+};
+
+GroupInfo.prototype.checkDoubleEye = function () {
+    if (this.voids.length + this.deadEnemies.length >= 2) {
+        if (main.debug) main.log.debug('ALIVE-doubleEye: ' + this);
+        this.isAlive = true;
+        return true;
+    }
+    return false;
+};
+
+GroupInfo.prototype.checkParents = function () {
+    if (!this.dependsOn.length) return false;
+    var allAreDead = true;
+    for (var n = this.dependsOn.length - 1; n >= 0; n--) {
+        var parent = this.dependsOn[n];
+        if (parent.isAlive) {
+            if (main.debug) main.log.debug('ALIVE-parents: ' + this);
+            this.isAlive = true;
+            return true;
+        }
+        if (!parent.isDead) allAreDead = false;
+    }
+    if (!allAreDead) return false;
+    this.considerDead('parentsDead');
+    return true;
+};
+
+GroupInfo.prototype.checkBrothers = function () {
+    if (!this.band) return false;
+    var brothers = this.band.brothers;
+    var numEyes = 1, oneIsAlive = false;
+    for (var n = brothers.length - 1; n >= 0; n--) {
+        if (brothers[n] === this) continue;
+        var neighbor = brothers[n];
+        if (oneIsAlive || neighbor.isAlive) {
+            oneIsAlive = neighbor.isAlive = true;
+        } else {
+            numEyes += neighbor.eyeCount - SHARED_EYE;
+            if (numEyes >= 2) { // checkLiveliness does that too; TODO: remove if useless
+                oneIsAlive = neighbor.isAlive = true;
+            }
+        }
+    }
+    if (!oneIsAlive) return false;
+    if (main.debug) main.log.debug('ALIVE-brothers: ' + this);
+    this.isAlive = true;
+    return true;
+};
+
+GroupInfo.prototype.checkSingleEye = function () {
+    if (this.eyeCount !== 1) return false;
+    var eye = this.getSingleEye();
+    var coords = [];
+    var alive = Shaper.getEyeMakerMove(this.group.goban, eye.i, eye.j, eye.vcount, coords);
+    if (alive === 0) {
+        // yet we cannot say it is dead if there are brothers or dead enemies around
+        if (this.band || this.deadEnemies.length) return false;
+        this.considerDead('singleEyeShape');
+        return true;
+    }
+    // if it depends which player plays first, we have to pretend it is alive
+    if (main.debug) main.log.debug('ALIVE-singleEye' + (alive === 1 ? 'TEMP' : '') + ': ' + this);
+
+    this.isAlive = true;
+    return true;
+};
+
+GroupInfo.prototype.checkLiveliness = function (minLife) {
+    var life = this.liveliness();
+    if (life >= ALIVE) {
+        this.isAlive = true;
+        if (main.debug) main.log.debug('ALIVE-liveliness ' + life + ': ' + this);
+        return true;
+    }
+    if (life < minLife) {
+        this.considerDead('liveliness=' + life.toFixed(2));
+        return true;
+    }
+    return false;
+};
+
+GroupInfo.prototype.checkLiveliness1 = function () {
+    return this.checkLiveliness(1);
+};
+
+GroupInfo.prototype.checkLiveliness2 = function () {
+    return this.checkLiveliness(2);
+};
+
+// These checks will be run in _lifeOrDeathLoop
+GroupInfo.lifeOrDeathChecks = [
+    GroupInfo.prototype.checkDoubleEye,
+    GroupInfo.prototype.checkParents,
+    GroupInfo.prototype.checkBrothers,
+    GroupInfo.prototype.checkLiveliness1,
+    GroupInfo.prototype.checkSingleEye,
+    GroupInfo.prototype.checkLiveliness2
+];
+
+
+//---
 
 /** @class public read-only attribute: goban, scores, prisoners
  */
 function BoardAnalyser() {
     this.goban = null;
-    this.voids = [];
-    this.allGroups = new Set();
+    this.allVoids = [];
 }
 module.exports = BoardAnalyser;
 
-// Calling this method updates the goban to show the detected result.
+/** Calling this method updates the goban to show the detected result.
+ *  If grid is not given a new one will be created from goban */
 BoardAnalyser.prototype.countScore = function (goban, grid) {
-    if (grid === undefined) grid = null;
-    if (main.debug) {
-        main.log.debug('Counting score...');
-    }
+    if (main.debug) main.log.debug('Counting score...');
     this.goban = goban;
     this.scores = [0, 0];
-    this.prisoners = Group.prisoners(this.goban);
-    this.filler = new ZoneFiller(this.goban, grid);
-    this.findVoids();
-    this.findEyes();
-    this.findStrongerOwners();
-    this.findDyingGroups();
-    this.findDameVoids();
-    this.colorVoids();
-    for (var v, v_array = this.voids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
-        if (v.owner !== null) {
-            this.scores[v.owner] += v.vcount;
-        }
-    }
-    if (main.debug) {
-        return this.debugDump();
-    }
+    this.prisoners = Group.countPrisoners(goban);
+    this.filler = new ZoneFiller(goban, grid);
+    if (goban.moveNumber() === 0) return;
+
+    this._initVoidsAndGroups();
+    this._findBrothers();
+    this._findEyeOwners();
+    this._findBattleWinners();
+
+    this._lifeOrDeathLoop();
+
+    this.finalCounting();
+    if (main.debug) main.log.debug(this.filler.grid.toText(function (c) { return Grid.colorToChar(c); }));
 };
 
 BoardAnalyser.prototype.image = function () {
@@ -131,199 +489,183 @@ BoardAnalyser.prototype.debugDump = function () {
     console.log(this.filler.grid.toText(function (c) {
         return Grid.colorToChar(c);
     }));
-    for (var v, v_array = this.voids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
+    for (var v, v_array = this.allVoids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
         v.debugDump();
     }
     if (this.scores) {
-        console.log('\nGroups with 2 eyes or more: ');
-        this.allGroups.forEach(function (g) {
-            if (g.eyes.length >= 2) {
-                console.log(g.ndx + ',');
+        var eyes = [[], [], []];
+        for (var ndx in this.allGroups) {
+            var g = this.allGroups[ndx];
+            var numEyes = g._info.eyeCount;
+            eyes[numEyes >= 2 ? 2 : numEyes].push(g);
+        }
+        console.log('\nGroups with 2 eyes or more: ' + eyes[2].map(grpNdx));
+        console.log('Groups with 1 eye: ' + eyes[1].map(grpNdx));
+        console.log('Groups with no eye: ' + eyes[0].map(grpNdx));
+        console.log('Score:' + this.scores.map(function (s, i) {
+            return ' player ' + i + ': ' + s + ' points';
+        }));
+    }
+};
+
+BoardAnalyser.prototype._addGroup = function (g) {
+    if (this.allGroups[g.ndx]) return;
+    this.allGroups[g.ndx] = g;
+    if (!g._info) {
+        g._info = new GroupInfo(g);
+    } else {
+        g._info.resetAnalysis(g);
+    }
+};
+
+BoardAnalyser.prototype._initVoidsAndGroups = function () {
+    if (main.debug) main.log.debug('---Initialising voids & groups...');
+    var voidCode = Grid.ZONE_CODE;
+    this.allGroups = {};
+    this.allVoids.clear();
+    var neighbors = [[], []];
+    for (var j = 1; j <= this.goban.gsize; j++) {
+        for (var i = 1; i <= this.goban.gsize; i++) {
+            var vcount = this.filler.fillWithColor(i, j, EMPTY, voidCode, neighbors);
+            if (vcount === 0) continue;
+            this.allVoids.push(new Void(voidCode, i, j, vcount, neighbors));
+            voidCode++;
+            // keep all the groups
+            for (var color = BLACK; color <= WHITE; color++) {
+                var groups = neighbors[color];
+                for (var n = groups.length - 1; n >= 0; n--) {
+                    this._addGroup(groups[n]);
+                }
             }
-        });
-        console.log('\nGroups with 1 eye: ');
-        this.allGroups.forEach(function (g) {
-            if (g.eyes.length === 1) {
-                console.log(g.ndx + ',');
-            }
-        });
-        console.log('\nGroups with no eye: ');
-        this.allGroups.forEach(function (g) {
-            if (g.eyes.length === 0) {
-                console.log(g.ndx + ',');
-            }
-        });
-        console.log('\nScore:\n');
-        for (var i = 0; i < this.scores.length; i++) {
-            console.log('Player ' + i + ': ' + this.scores[i] + ' points');
+            neighbors = [[], []];
         }
     }
 };
 
-//private;
-BoardAnalyser.prototype.findVoids = function () {
-    if (main.debug) {
-        main.log.debug('Find voids...');
-    }
-    var voidCode = Grid.ZONE_CODE;
-    this.allGroups.forEach(function (g) {
-        g.resetAnalysis();
-    });
-    this.allGroups.clear();
-    this.voids.clear();
-    var neighbors = [[], []];
-    for (var j = 1; j <= this.goban.gsize; j++) {
-        for (var i = 1; i <= this.goban.gsize; i++) {
-            var vcount;
-            if ((vcount = this.filler.fillWithColor(i, j, main.EMPTY, voidCode, neighbors)) > 0) {
-                this.voids.push(new Void(this, voidCode, i, j, vcount, neighbors));
-                voidCode += 1;
-                // keep all the groups
-                for (var n, n_array = neighbors, n_ndx = 0; n=n_array[n_ndx], n_ndx < n_array.length; n_ndx++) {
-                    for (var g, g_array = n, g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
-                        this.allGroups.add(g);
-                    }
-                }
-                neighbors = [[], []];
-            }
-        }
+BoardAnalyser.prototype._findBrothers = function () {
+    for (var ndx in this.allGroups) {
+        this.allGroups[ndx]._info.findBrothers();
     }
 };
 
 // Find voids surrounded by a single color -> eyes
-BoardAnalyser.prototype.findEyes = function () {
-    for (var v, v_array = this.voids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
-        v.eyeCheck();
+BoardAnalyser.prototype._findEyeOwners = function () {
+    if (main.debug) main.log.debug('---Finding eye owners...');
+    for (var n = this.allVoids.length - 1; n >= 0; n--) {
+        this.allVoids[n].findOwner();
     }
 };
 
-// Decides who owns a void by comparing the "liveness" of each side
-BoardAnalyser.prototype.findStrongerOwners = function () {
-    for (var v, v_array = this.voids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
-        if (v.eyeColor !== null) {
-            continue;
-        }
-        var lives = [0, 0];
-        for (var c = 0; c < 2; c++) {
-            for (var g, g_array = v.groups[c], g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
-                lives[c] += g.lives;
-            }
-        }
-        var moreLives = Math.max.apply(Math, lives);
-        if (lives.count(function (l) {
-            return l === moreLives;
-        }) === 1) { // make sure we have a winner, not a tie
-            c = lives.indexOf(moreLives);
-            v.setOwner(c);
-            if (main.debug) {
-                main.log.debug('It looks like color ' + c + ', with ' + moreLives + ' lives, owns ' + v + ' (this might change once we identify dead groups)');
-            }
-        }
-    }
-};
-
-// Reviews the groups and declare "dead" the ones who do not own any void
-BoardAnalyser.prototype.findDyingGroups = function () {
-    var self = this;
-    this.allGroups.forEach(function (g) {
-        var ownedVoids, vcount;
-        if (g.eyes.length >= 2) {
-            return;
-        }
-        if (g.eyes.length === 1 && g.eyes[0].vcount + g.extraLives >= 3) { // actually not enough if gote but well...
-            return;
-        }
-        var color = g.color;
-        if (g.eyes.length === 1 && g.eyes[0].groups[color].length > 1) { // connected by eye
-            return;
-        }
-        // we need to look at voids around (fake eyes, etc.)
-        ownedVoids = vcount = 0;
-        var myVoid = null;
-        var oneOwner = false;
-        for (var v, v_array = g.voids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
-            if (v.owner !== null) {
-                oneOwner = true;
-                if (v.owner === color) {
-                    myVoid = v;
-                    ownedVoids += 1;
-                    vcount += v.vcount;
+BoardAnalyser.prototype._findBattleWinners = function () {
+    var life = [0, 0];
+    for (;;) {
+        var foundOne = false;
+        for (var i = this.allVoids.length - 1; i >= 0; i--) {
+            var v = this.allVoids[i];
+            if (v.owner !== undefined) continue;
+            life[BLACK] = life[WHITE] = 0;
+            for (var color = BLACK; color <= WHITE; color++) {
+                for (var n = v.groups[color].length - 1; n >= 0; n--) {
+                    var gi = v.groups[color][n]._info;
+                    life[color] += gi.liveliness();
                 }
             }
+            // make sure we have a winner, not a tie
+            if (life[BLACK] === life[WHITE] || (life[BLACK] >= ALIVE && life[WHITE] >= ALIVE)) {
+                if (main.debug) main.log.debug('BATTLED EYE in dispute: ' + v);
+                continue;
+            }
+            var winner = life[BLACK] > life[WHITE] ? BLACK : WHITE;
+            if (main.debug) main.log.debug('BATTLED EYE: ' + Grid.colorName(winner) +
+                ' wins with ' + life[winner] + ' VS ' + life[1 - winner]);
+            v.setEyeOwner(winner);
+            foundOne = true;
         }
-        if (g.eyes.length === 1 && ownedVoids >= 1) { // TODO: this is too lenient
-            return;
+        if (!foundOne) break;
+    }
+};
+
+BoardAnalyser.prototype._reviewGroups = function (fn, stepNum) {
+    var count = 0, reviewedCount = 0;
+    for (var ndx in this.allGroups) {
+        var g = this.allGroups[ndx], gi = g._info;
+        if (gi.isAlive || gi.isDead) continue;
+        reviewedCount++;
+        if (fn.call(gi)) count++;
+    }
+    if (main.debug) {
+        var msg = 'REVIEWED ' + reviewedCount + ' groups for step ' + stepNum;
+        if (count) msg += ' => found ' + count + ' alive/dead groups';
+        main.log.debug(msg);
+    }
+    if (count === reviewedCount) return -1; // really finished
+    return count;
+};
+
+// Reviews the groups and declare "dead" the ones who do not own enough eyes or voids
+BoardAnalyser.prototype._lifeOrDeathLoop = function () {
+    var checks = GroupInfo.lifeOrDeathChecks;
+    var stepNum = 0;
+    while (stepNum < checks.length) {
+        var count = this._reviewGroups(checks[stepNum], stepNum);
+        if (count === 0) {
+            stepNum++;
+            continue;
         }
-        if (ownedVoids >= 2) { // TODO later: here is the horror we read about on the web
-            return;
-        }
-        if (ownedVoids === 1 && vcount + g.extraLives >= 3) {
-            return;
-        }
-        if (ownedVoids === 1 && myVoid.groups[color].length > 1) { // TODO: check also lives of ally
-            return;
-        }
-        // find if the only void around is owned (e.g. lost stones inside big territory)
-        // if we don't know who owns the voids around g, leave g as alive (unfinished game)
-        if (g.voids.length !== 0 && !oneOwner) {
-            return;
-        }
-        // g is dead!
-        var stone = g.stones[0];
-        var taken = self.filler.fillWithColor(stone.i, stone.j, color, Grid.DEAD_COLOR + color);
-        self.prisoners[color] += taken;
-        self.scores[1 - color] += taken;
-        g.countAsDead();
-        if (main.debug) {
-            main.log.debug('Hence ' + g + ' is considered dead (' + taken + ' prisoners; 1st stone ' + stone + ')');
-        }
-        if (main.debug) {
-            main.log.debug('eyes:' + g.eyes.length + ' owned_voids:' + ownedVoids + ' vcount-voids:' + vcount);
-        }
-    });
+        // we found dead/alive groups => rerun all the checks from start
+        stepNum = 0;
+        this._findEyeOwners();
+        if (count < 0) return;
+    }
 };
 
 // Looks for "dame" = neutral voids (if alive groups from more than one color are around)
-BoardAnalyser.prototype.findDameVoids = function () {
-    for (var v, v_array = this.voids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
-        if (v.eyeColor !== null) {
-            continue;
-        }
-        var aliveColors = [];
-        for (var c = 0; c < 2; c++) {
+BoardAnalyser.prototype._findDameVoids = function () {
+    var aliveColors = [];
+    for (var i = this.allVoids.length - 1; i >= 0; i--) {
+        var v = this.allVoids[i];
+        aliveColors[BLACK] = aliveColors[WHITE] = false;
+        for (var c = BLACK; c <= WHITE; c++) {
             for (var g, g_array = v.groups[c], g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
-                if (this.groupLiveliness(g) >= 1) {
-                    aliveColors.push(c);
+                if (g._info.liveliness() >= 1) {
+                    aliveColors[c] = true;
                     break;
                 }
             }
         }
-        if (aliveColors.length >= 2) {
-            v.setOwner(null);
-            if (main.debug) {
-                main.log.debug('Void ' + v + ' is considered neutral ("dame")');
-            }
+        if (aliveColors[BLACK] && aliveColors[WHITE]) {
+            v.setAsDame();
         }
     }
 };
 
 // Colors the voids with owner's color
-BoardAnalyser.prototype.colorVoids = function () {
-    for (var v, v_array = this.voids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
-        var c = (( v.owner !== null ? Grid.TERRITORY_COLOR + v.owner : Grid.DAME_COLOR ));
-        this.filler.fillWithColor(v.i, v.j, v.code, c);
+BoardAnalyser.prototype._colorVoids = function () {
+    var color;
+    for (var i = this.allVoids.length - 1; i >= 0; i--) {
+        var v = this.allVoids[i];
+        if (v.owner !== undefined && v.vtype !== vFAKE_EYE) {
+            this.scores[v.owner] += v.vcount;
+            color = Grid.TERRITORY_COLOR + v.owner;
+        } else {
+            color = Grid.DAME_COLOR;
+        }
+        this.filler.fillWithColor(v.i, v.j, v.code, color);
     }
 };
 
-// Returns a number telling how "alive" a group is. TODO: review this
-// Really basic logic for now.
-// (instead we should determine if the shape of a single eye is right to make 2 eyes)
-// - eyes and owned voids count for 1 point each
-// - non-owned voids (undetermined owner or enemy-owned void) count for 0
-// NB: for end-game counting, this logic is enough because undetermined situations
-// have usually all been resolved (or this means both players cannot see it...)
-BoardAnalyser.prototype.groupLiveliness = function (g) {
-    return g.eyes.length + g.voids.count(function (z) {
-        return z.owner === g.color;
-    });
+BoardAnalyser.prototype.finalCounting = function () {
+    this._findDameVoids();
+    this._colorVoids();
+
+    // color all dead groups
+    for (var ndx in this.allGroups) {
+        var g = this.allGroups[ndx], gi = g._info;
+        if (!gi.isDead) continue;
+        var color = g.color;
+        var stone = g.stones[0];
+        var taken = this.filler.fillWithColor(stone.i, stone.j, color, Grid.DEAD_COLOR + color);
+        this.prisoners[color] += taken;
+        this.scores[1 - color] += taken;
+    }
 };

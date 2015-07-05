@@ -118,6 +118,17 @@ Array.prototype.contains = function (e) {
   return this.indexOf(e) !== -1;
 };
 
+/** Push onto this array the items from array2 that are not yet in it.
+ *  Returns the count of items added. */
+Array.prototype.pushUnique = function (array2) {
+  var len0 = this.length;
+  for (var i = 0; i < array2.length; i++) {
+    var e = array2[i];
+    if (this.indexOf(e) === -1) this.push(e);
+  }
+  return this.length - len0;
+};
+
 Array.prototype.find = function (e) {
   if (typeof e !== 'function') {
     var ndx = this.indexOf(e);
