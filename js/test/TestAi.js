@@ -165,7 +165,7 @@ TestAi.prototype.testHunter1 = function () {
     // h7 ladder was OK too here but capturing same 2 stones in a ladder
     // the choice between h6 and h7 is decided by smaller differences
     this.playMoves('h6,h7'); // WHITE moves in h7
-    this.playAndCheck('g7', 13);
+    this.playAndCheck('g7', 12.2);
 };
 
 TestAi.prototype.testLadder = function () {
