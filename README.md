@@ -1,12 +1,12 @@
 rubigolo
 ========
 
-Game of Go (weiqi, igo, baduk, etc.), implemented in Ruby, then translated to Javascript... (to be continued)
+Game of Go (weiqi, igo, baduk, etc.), originally started in Ruby (hence the name), then translated to Javascript...
 
 Still in development.
 
 JavaScript:
-- [run it](http://rawgit.com/kubicle/rubigolo/master/js/index.html) in your browser.
+- [run it](http://rawgit.com/kubicle/rubigolo/master/index.html) in your browser.
 - [unit tests](http://rawgit.com/kubicle/rubigolo/master/js/tests.html)
 
 Ruby: check the [help page](http://htmlpreview.github.io/?https://github.com/kubicle/rubigolo/blob/master/help-index.html)
@@ -14,18 +14,21 @@ Ruby: check the [help page](http://htmlpreview.github.io/?https://github.com/kub
 Dependencies
 ============
 
-- [WGo.js]() is included in the project
+- [WGo.js](http://github.com/waltheri/wgo.js) is included in the project
 - Browserify used for the build
 
 How to build
 ============
 
 cd ...\rubigolo\js
-node ..\..\node_modules\browserify\bin\cmd.js app.js -o build.js
-# or for tests:
-node ..\..\node_modules\browserify\bin\cmd.js test\TestAll.js -o build_tests.js
+browserify app.js -o build.js
 
 =======
+
+## July 2015 News
+* Brand new UI using [WGo.js](http://github.com/waltheri/wgo.js). I think around 30% of the UI work is done at this point.
+* Re-started the interesting work on AI. Most of the new code and changes so far are about identifying groups, dead groups, "brother" groups, etc. for score counting and position evaluation.
+* Worked on the unit tests: we have more of them, they are clearer to read, and it is easier to add new ones. More work is needed: the goal is to have easier ways to interpret the result of failing tests. Until now, failures gave only a text log, very tiring to analyze. I plan to use the UI to show errors.
 
 ## April 2015 News
 This project is still moving, on and off, depending how much time I can spend on it.

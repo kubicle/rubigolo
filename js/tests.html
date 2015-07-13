@@ -3,16 +3,10 @@
     <head>
         <link rel="stylesheet" type="text/css" href="./style.css" />
         <title>Rubigolo - Tests</title>
-        <script src="./build_tests.js" type="text/JavaScript"></script>
     </head>
     <body>
-        <h1>Rubigolo - Tests</h1>
-        <div id="controls"></div>
-        <h2>Result</h2>
-        <div id="output" class="logBox testOutputBox"></div>
-        <h2>Errors</h2>
-        <div id="errors" class="logBox testErrorBox"></div>
-
-        <script src="./test_ui.js"></script>
+        <script src="../lib/wgo.js" type="text/JavaScript"></script>
+        <script>window.unitTest = true;</script>
+        <script src="./build.js" type="text/JavaScript"></script>
     </body>
 </html>

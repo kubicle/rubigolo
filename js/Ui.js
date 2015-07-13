@@ -1,8 +1,7 @@
 'use strict';
 
-//var main = require('./main');
-//var WGo = require('../lib/wgo.js');
-var main = window.main, WGo = window.WGo; //TMP
+var main = require('./main');
+var WGo = window.WGo;
 
 var GameLogic = main.GameLogic;
 var Grid = main.Grid;
@@ -19,19 +18,16 @@ function Ui() {
     this.withCoords = true;
 
     this.scorer = new ScoreAnalyser();
-    this.createControls();
-    this.history = document.getElementById('history');
-    this.output = document.getElementById('output');
 }
-//TMP module.exports = Ui;
+module.exports = Ui;
+
 
 Ui.prototype.createBoard = function () {
     if (this.boardSize === this.gsize) return; // already have the right board
     this.boardSize = this.gsize;
-    var parentElt = document.getElementById('board');
-    parentElt.innerHTML = '';
-    var config = { size: this.gsize, width: 600, section: { top: -0.5, left: -0.5, right: -0.5, bottom: -0.5 } };
-    this.board = new WGo.Board(parentElt, config);
+    this.boardElt.innerHTML = '';
+    var config = { size: this.gsize, width: this.boardWidth, section: { top: -0.5, left: -0.5, right: -0.5, bottom: -0.5 } };
+    this.board = new WGo.Board(this.boardElt, config);
     if (this.withCoords) this.board.addCustomObject(WGo.Board.coordinates);
     var self = this;
     this.board.addEventListener('click', function (x,y) {
@@ -113,7 +109,7 @@ Ui.prototype.refreshHistory = function () {
         var color = black ? 'B' : 'W';
         txt += num + ': ' + color + '-' + moves[i] + '<br>';
     }
-    this.history.innerHTML = txt;
+    this.historyElt.innerHTML = txt;
 };
 
 function newElement(parent, type, className) {
@@ -136,7 +132,7 @@ function newLabel(parent, name, label) {
 }
 
 function newInput(parent, name, label, init) {
-    newLabel(parent, 'inputLabel', label + ':');
+    newLabel(parent, name + 'Label input', label + ':');
     var inp = newElement(parent, 'input', name + 'Input');
     if (init !== undefined) inp.value = init;
     return inp;
@@ -150,8 +146,11 @@ function newRadio(parent, name, labels, values, init) {
         inp.type = 'radio';
         inp.name = name;
         inp.value = values[i];
+        inp.id = name + 'Radio' + values[i];
         if (values[i] === init) inp.checked = true;
-        newLabel(parent, name + 'Radio', labels[i]);
+        var label = newElement(parent, 'label', name + 'RadioLabel');
+        label.textContent = labels[i];
+        label.setAttribute('for', inp.id);
     }
     return opts;
 }
@@ -161,32 +160,53 @@ function getRadioValue(opts) {
     }
 }
 
+Ui.prototype.createUi = function () {
+    this.createGameUi();
+    this.createBoard();
+    this.newGameDialog();
+};
+
+Ui.prototype.createGameUi = function () {
+    newElement(document.body, 'h1', 'pageTitle').textContent = 'Rubigolo';
+    var gameDiv = newElement(document.body, 'div', 'gameUi');
+    var boardHist = newElement(gameDiv, 'div');
+    this.boardElt = newElement(boardHist, 'div', 'board');
+    this.historyElt = newElement(boardHist, 'div', 'logBox historyBox');
+    this.controlElt = newElement(gameDiv, 'div', 'controls');
+    this.output = newElement(gameDiv, 'div', 'logBox outputBox');
+
+    this.boardWidth = 600;
+    this.createControls();
+};
+
 Ui.prototype.newGameDialog = function () {
-    this.ctrl.newg.disabled = true;
+    this.setVisible('ALL', false);
     var dialog = newElement(document.body, 'div', 'newGameDialog');
     var form = newElement(dialog, 'form');
     form.setAttribute('action',' ');
     var options = newElement(form, 'div');
 
-    var sizeAndHandBox = newElement(options, 'div');
-    var size = newInput(sizeAndHandBox, 'size', 'Size', this.gsize);
-    var handicap = newInput(sizeAndHandBox, 'handicap', 'Handicap', this.handicap);
+    var sizeBox = newElement(options, 'div');
+    newLabel(sizeBox, 'input', 'Size:');
+    var sizeElt = newRadio(sizeBox, 'size', [5,7,9,13,19], null, this.gsize);
+
+    var handicap = newInput(options, 'handicap', 'Handicap', this.handicap);
 
     var aiColorBox = newElement(options, 'div');
-    newLabel(aiColorBox, 'inputLabel', 'AI plays:');
+    newLabel(aiColorBox, 'input', 'AI plays:');
     var aiColor = newRadio(aiColorBox, 'aiColor', ['white', 'black', 'both', 'none'], null, this.aiPlays);
 
     var moves = newInput(form, 'moves', 'Moves to load');
     var self = this;
     var okBtn = newButton(form, 'gameButton start', 'OK', function (ev) {
         ev.preventDefault();
-        self.gsize = parseInt(size.value) || 9;
+        self.gsize = ~~getRadioValue(sizeElt);
         self.handicap = parseInt(handicap.value) || 0;
         self.aiPlays = getRadioValue(aiColor);
 
+        self.setVisible('ALL', true);
         self.startGame(moves.value);
         document.body.removeChild(dialog);
-        self.ctrl.newg.disabled = false;
     });
     okBtn.setAttribute('type','submit');
 };
@@ -198,9 +218,8 @@ Ui.prototype.newButton = function (name, label, action, isTest) {
 
 Ui.prototype.createControls = function () {
     this.ctrl = {};
-    this.controls = document.getElementById('controls');
-    this.mainButtons = newElement(this.controls, 'div');
-    this.testButtons = newElement(this.controls, 'div', 'testControls');
+    this.mainButtons = newElement(this.controlElt, 'div');
+    this.testButtons = newElement(this.controlElt, 'div', 'testControls');
     var self = this;
     this.newButton('pass', 'Pass', function () {
         self.playerMove('pass');
@@ -235,7 +254,7 @@ Ui.prototype.createControls = function () {
         self.inEvalMode = !self.inEvalMode;
         main.debug = true;
         main.log.level = main.Logger.DEBUG;
-        self.setEnabledAllBut('eval', !self.inEvalMode);
+        self.setEnabled('ALL', !self.inEvalMode, ['eval']);
     }, true);
     this.newButton('score', 'Score test', function () {
         self.scoreTest();
@@ -256,24 +275,22 @@ Ui.prototype.toggleControls = function () {
     this.setVisible(['newg'], this.game.gameEnded);
 };
 
-Ui.prototype.setEnabled = function (names, enabled) {
+Ui.prototype.setEnabled = function (names, enabled, except) {
+    if (names === 'ALL') names = Object.keys(this.ctrl);
     for (var i = 0; i < names.length; i++) {
+        if (except && except.indexOf(names[i]) !== -1) continue;
         var ctrl = this.ctrl[names[i]];
         ctrl.disabled = !enabled;
     }
 };
 
-Ui.prototype.setVisible = function (names, show) {
+Ui.prototype.setVisible = function (names, show, except) {
+    if (names === 'ALL') names = Object.keys(this.ctrl);
     for (var i = 0; i < names.length; i++) {
+        if (except && except.indexOf(names[i]) !== -1) continue;
         var ctrl = this.ctrl[names[i]];
         ctrl.hidden = !show;
     }
-};
-
-Ui.prototype.setEnabledAllBut = function (btnName, enabled) {
-    var allBtns = Object.keys(this.ctrl);
-    allBtns.splice(allBtns.indexOf(btnName), 1);
-    this.setEnabled(allBtns, enabled);
 };
 
 Ui.prototype.message = function (html, append) {
@@ -468,8 +485,3 @@ Ui.prototype.territoryTest = function () {
         }
     });
 };
-
-//---
-
-var ui = new Ui();
-ui.startGame(); //TMP

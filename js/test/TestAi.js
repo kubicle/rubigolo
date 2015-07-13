@@ -105,6 +105,12 @@ TestAi.prototype.playAndCheck = function (expMove, expEval) {
     this.game.playOneMove(move);
 };
 
+TestAi.prototype.checkBasicGame = function (moves, expMove, gsize) {
+    this.initBoard(gsize || 5);
+    this.playMoves(moves);
+    this.playAndCheck(expMove);
+};
+
 
 //--- Tests are below
 
@@ -112,15 +118,25 @@ TestAi.prototype.testEyeMaking = function () {
     // ++@@@
     // +@@OO
     // +@OO+
-    // +@@O+
+    // +@@O*
     // +@OO+
-    this.initBoard(5);
-    this.playMoves('b3,d3,b2,c3,c2,d2,c4,c1,b1,d1,b4,d4,d5,pass,e5,e4,c5');
-    this.checkTurn(WHITE);
-    this.playAndCheck('e2');
+    this.checkBasicGame('b3,d3,b2,c3,c2,d2,c4,c1,b1,d1,b4,d4,d5,pass,e5,e4,c5', 'e2');
 };
 
-TestAi.prototype.testCornering = function () {
+TestAi.prototype.testCornerEyeMaking = function () {
+    // OOO+*
+    // @@OO+
+    // +@@OO
+    // ++@@O
+    // +++@@
+    this.checkBasicGame('b3,d3,c3,d4,c2,c4,d2,e2,b4,b5,d1,a5,a4,c5,e1,e3,pass', 'e5');
+};
+
+TestAi.prototype.testBorderLock = function () {
+    this.checkBasicGame('d4,c3,c4,d3,e3,e2,e4', 'c2');
+};
+
+TestAi.prototype.testCornerKill = function () {
     // 9 ++++++++O
     // 8 ++++++++@
     // 7 +++@+++++
@@ -356,7 +372,6 @@ TestAi.prototype.testKillingSavesNearbyGroupInAtari = function () {
 };
 
 TestAi.prototype.testAiSeesSnapbackAttack = function () {
-    this.initBoard(5);
     // 5 O@+O+
     // 4 O@*@@  <-- here
     // 3 OO@++
@@ -364,9 +379,7 @@ TestAi.prototype.testAiSeesSnapbackAttack = function () {
     // 1 +++++
     //   abcde
     // c4 expected for white, then if c5, c4 again (snapback)
-    this.playMoves('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,e4');
-    this.checkTurn(WHITE);
-    this.playAndCheck('c4', 6);
+    this.checkBasicGame('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,e4', 'c4');
     this.game.playOneMove('c5');
     this.playAndCheck('c4', 8); // 3 taken & 1 saved
 };
@@ -477,6 +490,5 @@ TestAi.prototype.testSemiAndEndGame = function () {
 TestAi.prototype.testConnector_connectionNotNeeded = function () {
     this.initBoard(7);
     this.playMoves('d4,f6,f3,c7,g4,e4,e3,e5,g5,f4,g6,b4,c3');
-    this.checkTurn(WHITE);
     this.checkEval('f5', 0);
 };
