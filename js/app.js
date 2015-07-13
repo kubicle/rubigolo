@@ -11,6 +11,18 @@ main.Grid = require('./Grid');
 main.Ai1Player = require('./ai/Ai1Player');
 main.ScoreAnalyser = require('./ScoreAnalyser');
 
-//main.Ui = require('./Ui');
+var Ui = require('./Ui');
+var TestUi = require('./TestUi');
+
+// Include tests in main build
+require('./test/TestAll');
 
 main.debug = false;
+
+if (window.unitTest) {
+    var testUi = new TestUi();
+    testUi.createUi();
+} else {
+    var ui = new Ui();
+    ui.startGame();
+}
