@@ -132,7 +132,11 @@ TestAi.prototype.testCornerEyeMaking = function () {
     this.checkBasicGame('b3,d3,c3,d4,c2,c4,d2,e2,b4,b5,d1,a5,a4,c5,e1,e3,pass', 'e5');
 };
 
-TestAi.prototype.testCornering = function () {
+TestAi.prototype.testBorderLock = function () {
+    this.checkBasicGame('d4,c3,c4,d3,e3,e2,e4', 'c2');
+};
+
+TestAi.prototype.testCornerKill = function () {
     // 9 ++++++++O
     // 8 ++++++++@
     // 7 +++@+++++
