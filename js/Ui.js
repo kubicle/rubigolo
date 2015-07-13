@@ -1,8 +1,7 @@
 'use strict';
 
-//var main = require('./main');
-//var WGo = require('../lib/wgo.js');
-var main = window.main, WGo = window.WGo; //TMP
+var main = require('./main');
+var WGo = window.WGo;
 
 var GameLogic = main.GameLogic;
 var Grid = main.Grid;
@@ -19,19 +18,17 @@ function Ui() {
     this.withCoords = true;
 
     this.scorer = new ScoreAnalyser();
-    this.createControls();
-    this.history = document.getElementById('history');
-    this.output = document.getElementById('output');
+    this.createGameUi();
 }
-//TMP module.exports = Ui;
+module.exports = Ui;
+
 
 Ui.prototype.createBoard = function () {
     if (this.boardSize === this.gsize) return; // already have the right board
     this.boardSize = this.gsize;
-    var parentElt = document.getElementById('board');
-    parentElt.innerHTML = '';
-    var config = { size: this.gsize, width: 600, section: { top: -0.5, left: -0.5, right: -0.5, bottom: -0.5 } };
-    this.board = new WGo.Board(parentElt, config);
+    this.boardElt.innerHTML = '';
+    var config = { size: this.gsize, width: this.boardWidth, section: { top: -0.5, left: -0.5, right: -0.5, bottom: -0.5 } };
+    this.board = new WGo.Board(this.boardElt, config);
     if (this.withCoords) this.board.addCustomObject(WGo.Board.coordinates);
     var self = this;
     this.board.addEventListener('click', function (x,y) {
@@ -113,7 +110,7 @@ Ui.prototype.refreshHistory = function () {
         var color = black ? 'B' : 'W';
         txt += num + ': ' + color + '-' + moves[i] + '<br>';
     }
-    this.history.innerHTML = txt;
+    this.historyElt.innerHTML = txt;
 };
 
 function newElement(parent, type, className) {
@@ -161,6 +158,19 @@ function getRadioValue(opts) {
     }
 }
 
+Ui.prototype.createGameUi = function () {
+    newElement(document.body, 'h1', 'pageTitle').textContent = 'Rubigolo';
+    var gameDiv = newElement(document.body, 'div', 'gameUi');
+    var boardHist = newElement(gameDiv, 'div');
+    this.boardElt = newElement(boardHist, 'div', 'board');
+    this.historyElt = newElement(boardHist, 'div', 'logBox historyBox');
+    this.controlElt = newElement(gameDiv, 'div', 'controls');
+    this.output = newElement(gameDiv, 'div', 'logBox outputBox');
+
+    this.boardWidth = 600;
+    this.createControls();
+};
+
 Ui.prototype.newGameDialog = function () {
     this.ctrl.newg.disabled = true;
     var dialog = newElement(document.body, 'div', 'newGameDialog');
@@ -198,9 +208,8 @@ Ui.prototype.newButton = function (name, label, action, isTest) {
 
 Ui.prototype.createControls = function () {
     this.ctrl = {};
-    this.controls = document.getElementById('controls');
-    this.mainButtons = newElement(this.controls, 'div');
-    this.testButtons = newElement(this.controls, 'div', 'testControls');
+    this.mainButtons = newElement(this.controlElt, 'div');
+    this.testButtons = newElement(this.controlElt, 'div', 'testControls');
     var self = this;
     this.newButton('pass', 'Pass', function () {
         self.playerMove('pass');
@@ -468,8 +477,3 @@ Ui.prototype.territoryTest = function () {
         }
     });
 };
-
-//---
-
-var ui = new Ui();
-ui.startGame(); //TMP
