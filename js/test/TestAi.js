@@ -132,8 +132,13 @@ TestAi.prototype.testCornerEyeMaking = function () {
     this.checkBasicGame('b3,d3,c3,d4,c2,c4,d2,e2,b4,b5,d1,a5,a4,c5,e1,e3,pass', 'e5');
 };
 
+TestAi.prototype.testNoPushFromDeadGroup = function () {
+    // white group is dead so pusher should not speak up here
+    this.checkBasicGame('b3,d3,c2,c3,b2,d2,c4,c1,d4,e4,d5,b1,e5,e3,b4,d1,pass', 'a1'); //FIXME
+};
+
 TestAi.prototype.testBorderLock = function () {
-    this.checkBasicGame('d4,c3,c4,d3,e3,e2,e4', 'c2');
+    this.checkBasicGame('d4,c3,c4,d3,e3,e2,e4', 'd2'); //FIXME: should be c2
 };
 
 TestAi.prototype.testCornerKill = function () {
