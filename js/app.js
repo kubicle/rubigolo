@@ -19,10 +19,5 @@ require('./test/TestAll');
 
 main.debug = false;
 
-if (window.unitTest) {
-    var testUi = new TestUi();
-    testUi.createUi();
-} else {
-    var ui = new Ui();
-    ui.startGame();
-}
+var ui = window.unitTest ? new TestUi() : new Ui();
+ui.createUi();
