@@ -2,31 +2,35 @@
 'use strict';
 
 var main = require('../main');
-var inherits = require('util').inherits;
-var Grid = require('../Grid');
-var assertEqual = main.assertEqual;
-var GameLogic = require('../GameLogic');
-var Ai1Player = require('../ai/Ai1Player');
 
+var Ai1Player = require('../ai/Ai1Player');
+var GameLogic = require('../GameLogic');
+var Grid = require('../Grid');
+var inherits = require('util').inherits;
+
+var assertEqual = main.assertEqual;
 var BLACK = main.BLACK, WHITE = main.WHITE;
+
+var BIG_SCORE = 100;
 
 
 /** @class NB: for debugging think of using @goban.debug_display
  */
 function TestAi(testName) {
     main.TestCase.call(this, testName);
-    return this.initBoard();
 }
 inherits(TestAi, main.TestCase);
 module.exports = main.tests.add(TestAi);
 
 TestAi.prototype.initBoard = function (size, handicap) {
-    if (size === undefined) size = 9;
-    if (handicap === undefined) handicap = 0;
     this.game = new GameLogic();
-    this.game.newGame(size, handicap);
+    this.game.newGame(size, handicap || 0);
     this.goban = this.game.goban;
     this.players = [new Ai1Player(this.goban, BLACK), new Ai1Player(this.goban, WHITE)];
+};
+
+TestAi.prototype.showInUi = function (msg) {
+    window.testUi.showTestGame(this.name, msg, this.game);
 };
 
 TestAi.prototype.playMoves = function (moves) {
@@ -46,9 +50,11 @@ TestAi.prototype.logErrorContext = function (player) {
 TestAi.prototype.checkScore = function(player, color, move, score, expScore, heuristic) {
     var range = Math.abs(expScore) > 2 ? 0.5 : Math.abs(expScore) / 5 + 0.1;
     if (Math.abs(score - expScore) > range) {
-        main.log.error('Discrepancy in ' + this.name + ': ' + Grid.colorName(color) + ' ' + move +
+        var msg = 'Discrepancy in ' + this.name + ': ' + Grid.colorName(color) + ' ' + move +
             ' got ' + score.toFixed(3) + ' instead of ' + expScore +
-            (heuristic ? ' for ' + heuristic : ''));
+            (heuristic ? ' for ' + heuristic : '');
+        main.log.error(msg);
+        if (Math.abs(expScore) !== BIG_SCORE) this.showInUi(msg);
         this.logErrorContext(player);
     }
 };
@@ -76,9 +82,11 @@ TestAi.prototype.checkEval = function (move, expEval, heuristic) {
 TestAi.prototype.checkMoveBetter = function (move1, move2) {
     var s1 = this.checkEval(move1), s2 = this.checkEval(move2);
     if (s2 < s1) return;
-    main.log.error(move1 + ' ranked lower than ' + move2 + '(' + s1 + ' <= ' + s2 + ')');
-    this.checkEval(move1, 100);
-    this.checkEval(move2, -100);
+    var msg = move1 + ' ranked lower than ' + move2 + ' (' + s1 + ' <= ' + s2 + ')';
+    main.log.error(msg);
+    this.showInUi(msg);
+    this.checkEval(move1, BIG_SCORE);
+    this.checkEval(move2, -BIG_SCORE);
 };
 
 TestAi.prototype.playAndCheck = function (expMove, expEval) {
@@ -98,6 +106,7 @@ TestAi.prototype.playAndCheck = function (expMove, expEval) {
             main.log.error('CAUTION: ' + expMove + ' and ' + move + 
                 ' are twins or very close => consider modifying the test scenario');
         }
+        this.showInUi('expected ' + Grid.colorName(color) + '-' + expMove + ' but got ' + move);
         assertEqual(expMove, move, Grid.colorName(color));
     } else if (expEval) {
         this.checkScore(player, color, move, player.bestScore, expEval);
@@ -149,6 +158,7 @@ TestAi.prototype.testCornerKill = function () {
     // 5 ++O++++++
     // 4 +++++@+++
     //   abcdefghj
+    this.initBoard(9);
     this.playMoves('j8,j9,d7,c5,f4,pass,g6,pass');
     this.checkTurn(BLACK);
     this.checkMoveBetter('c3', 'h9');
@@ -164,6 +174,7 @@ TestAi.prototype.testPreAtari = function () {
     //   abcdefghj
     // f3-f2 can be saved in g2
     // Hunter should not attack in c1 since c1 would be in atari
+    this.initBoard(9);
     this.playMoves('d4,e2,d2,c3,d3,c2,b4,d1,c4,f4,f3,e3,e4,g3,f2,e1');
     this.checkTurn(BLACK);
     this.checkEval('c1', -5.3);
@@ -179,6 +190,7 @@ TestAi.prototype.testHunter1 = function () {
     // 5 ++++++++@
     // 4 +++@++++@
     //   abcdefghj
+    this.initBoard(9);
     this.playMoves('d4,j7,j8,j6,j5,j9,j4,pass,h8,pass');
     this.checkTurn(BLACK);
     this.checkEval('h7', 14.3);
@@ -197,6 +209,7 @@ TestAi.prototype.testLadder = function () {
     // 5 ++++++++@
     // 4 ++++++++@
     //   abcdefghj
+    this.initBoard(9);
     this.playMoves('j9,j7,j8,j6,j5,a9,j4,pass');
     this.checkTurn(BLACK);
     this.playAndCheck('h7', 16);
@@ -227,6 +240,7 @@ TestAi.prototype.testLadderBreaker1 = function () {
     // 4 @@@@+++++
     //   abcdefghj
     // Ladder breaker a7 does not work since the whole group dies
+    this.initBoard(9);
     this.playMoves('a4,a9,a5,a8,b4,a7,c4,e7,d4,b5,d5,c5');
     this.checkTurn(BLACK);
     this.checkEval('b6', 0);
@@ -243,6 +257,7 @@ TestAi.prototype.testLadderBreaker2 = function () {
     //   abcdefghj
     // Ladder breaker are a7 and e7
     // What is sure is that neither b6 nor c6 works
+    this.initBoard(9);
     this.playMoves('a4,a9,a5,a8,b4,a7,c4,e7,d4,b5,d5,c5,pass,b8,pass,c8');
     this.checkTurn(BLACK);
     this.checkEval('c6', 0);
@@ -262,6 +277,7 @@ TestAi.prototype.testSeeDeadGroup = function () {
     // 1 ++O@@@@O+
     //   abcdefghj
     // Interesting here: SW corner group O (white) is dead. Both sides should see it and play accordingly.
+    this.initBoard(9);
     this.playMoves('d6,f4,e5,f6,g5,f5,g7,h6,g6,e7,f7,e6,g3,h4,g4,h5,d8,c7,d7,f8,e8,d4,d5,e4,f9,g9,e9,c9,g8,c8,h9,d9,e3,f2,f3,h7,c4,c5,d3,c6,b5,h8,b7,a6,b6,a4,b9,a5,b8,b3,b4,c3,c2,e2,a7,d2,a3,b2,g1,c1,g2,h2,j3,h3,f1,j2,e1,j4,d1,a2,a4,h1,c8,j8,f8,j9,g9');
     this.checkTurn(WHITE);
     this.playAndCheck('pass');
@@ -273,7 +289,6 @@ TestAi.prototype.testSeeDeadGroup = function () {
 };
 
 TestAi.prototype.testBorderDefense = function () {
-    this.initBoard(7);
     // 7 +++++++
     // 6 +++@@@+
     // 5 @++@OO+
@@ -283,6 +298,7 @@ TestAi.prototype.testBorderDefense = function () {
     // 1 +++++++
     //   abcdefg
     // Issue: after W:a3 we expect B:b5 or b6 but AI does not see attack in b5; 
+    this.initBoard(7);
     this.playMoves('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3');
     this.checkTurn(BLACK);
     this.checkEval('g5', 1.2, 'Pusher'); // no kill for black in g5 but terr gain
@@ -291,7 +307,6 @@ TestAi.prototype.testBorderDefense = function () {
 };
 
 TestAi.prototype.testBorderAttackAndInvasion = function () {
-    this.initBoard(7);
     // 7 +++++++
     // 6 +++@@@@
     // 5 @*+@OO@
@@ -335,6 +350,7 @@ TestAi.prototype.testBorderClosing = function () {
     // 1 +++O+++
     //   abcdefg
     // AI should see f4 is dead inside white territory if g5 is played (non trivial)
+    this.initBoard(7);
     this.playMoves('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,b6,d1,g6');
     this.checkTurn(WHITE);
     this.checkEval('g5', 0.3);
@@ -342,7 +358,6 @@ TestAi.prototype.testBorderClosing = function () {
 };
 
 TestAi.prototype.testSaviorHunter = function () {
-    this.initBoard(7);
     // 7 +++++++
     // 6 +++@@@@
     // 5 @@+@OO+
@@ -352,6 +367,7 @@ TestAi.prototype.testSaviorHunter = function () {
     // 1 +++++++
     //   abcdefg
     // g4 is actually a valid move for black
+    this.initBoard(7);
     this.playMoves('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b5,b3,c4,a4,a5,a3,g6,pass');
     this.checkTurn(BLACK);
     this.playAndCheck('g4', 6.5); // NB: d2 is already dead
@@ -359,7 +375,6 @@ TestAi.prototype.testSaviorHunter = function () {
 };
 
 TestAi.prototype.testKillingSavesNearbyGroupInAtari = function () {
-    this.initBoard(7);
     // 7 +++++++
     // 6 +@+@@@+
     // 5 @++@OO@
@@ -368,6 +383,7 @@ TestAi.prototype.testKillingSavesNearbyGroupInAtari = function () {
     // 2 ++O+O++
     // 1 +++O+++
     //   abcdefg
+    this.initBoard(7);
     this.playMoves('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,b6,d1,g5');
     this.checkTurn(WHITE);
     this.checkEval('e3', 6);
@@ -390,7 +406,6 @@ TestAi.prototype.testAiSeesSnapbackAttack = function () {
 };
 
 TestAi.prototype.testSnapbackFails = function () {
-    this.initBoard(7);
     // 7 O@+OO++
     // 6 O@+@@++
     // 5 OO@@+++
@@ -398,6 +413,7 @@ TestAi.prototype.testSnapbackFails = function () {
     // 3 ++++O++
     //   abcdefg
     // Snapback c6 is bad idea since black-a4 can kill white group
+    this.initBoard(7);
     this.playMoves('b7,a7,b6,a6,c5,b5,c4,a5,d6,d7,d5,e7,b4,e3,e6');
     this.checkTurn(WHITE);
     this.checkEval('c6', -2); // NoEasyPrisoner
@@ -406,14 +422,13 @@ TestAi.prototype.testSnapbackFails = function () {
 };
 
 TestAi.prototype.testAiSeesKillingBringSnapback = function () {
-    this.initBoard(5);
     // 5 O@*OO  <-- c5 is bad idea for Black
     // 4 O@O@+
     // 3 OO@@+
     // 2 ++@++
     // 1 ++@++
     //   abcde
-    // 
+    this.initBoard(5);
     this.playMoves('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,d3,e5,c1,c4');
     this.checkTurn(BLACK);
     this.checkEval('c5', 0.02);
@@ -421,7 +436,6 @@ TestAi.prototype.testAiSeesKillingBringSnapback = function () {
 };
 
 TestAi.prototype.testSeesAttackNoGood = function () {
-    this.initBoard(5);
     // 5 O@@OO
     // 4 O@+@+
     // 3 OO@@+
@@ -429,6 +443,7 @@ TestAi.prototype.testSeesAttackNoGood = function () {
     // 1 ++@++
     //   abcde
     // NB: we could use this game to check when AI can see dead groups
+    this.initBoard(5);
     this.playMoves('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,d3,e5,c1,c4,c5');
     this.checkTurn(WHITE);
     this.playAndCheck('c4', 12); // kills 3 and saves 2 + 1 (disputable) space in black territory

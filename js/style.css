@@ -28,6 +28,9 @@ h2 {
 
 .board {
 }
+.boardDesc {
+  font-family: "Arial";
+}
 .gameButton {
   margin-right: 10px;
   margin-bottom: 10px;
@@ -41,6 +44,9 @@ h2 {
   border-radius: 10px;
   width: 100px;
   height: 30px;
+}
+.gameButton.toggled {
+  background-color: #08d;
 }
 
 .resiButton {
@@ -124,7 +130,7 @@ h2 {
   height: 40px;
 }
 .testOutputBox {
-  height: 200px;
+  height: 160px;
   font-size: 14px;
 }
 .testErrorBox {

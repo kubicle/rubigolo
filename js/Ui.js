@@ -1,22 +1,23 @@
 'use strict';
 
 var main = require('./main');
-var WGo = window.WGo;
+var GameLogic = require('./GameLogic');
+var Grid = require('./Grid');
+var Ai1Player = require('./ai/Ai1Player');
+var ScoreAnalyser = require('./ScoreAnalyser');
 
-var GameLogic = main.GameLogic;
-var Grid = main.Grid;
-var Ai1Player = main.Ai1Player;
-var ScoreAnalyser = main.ScoreAnalyser;
+var WGo = window.WGo;
 
 var WHITE = main.WHITE, BLACK = main.BLACK, EMPTY = main.EMPTY;
 
 
-function Ui() {
+function Ui(game) {
     this.gsize = 9;
     this.handicap = 0;
     this.aiPlays = 'white';
     this.withCoords = true;
 
+    this.game = new GameLogic(game);
     this.scorer = new ScoreAnalyser();
 }
 module.exports = Ui;
@@ -100,6 +101,7 @@ Ui.prototype.showScoringBoard = function () {
 };
 
 Ui.prototype.refreshHistory = function () {
+    if (!this.historyElt) return;
     var moves = this.game.history;
     var black = !this.handicap;
     var txt = '';
@@ -116,6 +118,19 @@ function newElement(parent, type, className) {
     var elt = parent.appendChild(document.createElement(type));
     if (className) elt.className = className;
     return elt;
+}
+
+function toggleElementClass(elt, className, enable) {
+    var classes = elt.className.split(' ');
+    var ndx = classes.indexOf(className);
+    if (enable) {
+        if (ndx >= 0) return;
+        elt.className += ' ' + className;
+    } else {
+        if (ndx < 0) return;
+        classes.splice(ndx, 1);
+        elt.className = classes.join(' ');
+    }
 }
 
 function newButton(parent, name, label, action) {
@@ -161,21 +176,32 @@ function getRadioValue(opts) {
 }
 
 Ui.prototype.createUi = function () {
-    this.createGameUi();
-    this.createBoard();
+    this.createGameUi('main', document.body, 'Rubigolo');
+    this.createBoard(); // TODO: replace by png or any other decoration
     this.newGameDialog();
 };
 
-Ui.prototype.createGameUi = function () {
-    newElement(document.body, 'h1', 'pageTitle').textContent = 'Rubigolo';
-    var gameDiv = newElement(document.body, 'div', 'gameUi');
+Ui.prototype.loadFromTest = function (parent, testName, msg) {
+    this.createGameUi('compact', parent, testName, msg);
+    this.aiPlays = 'both';
+    this.startGame(null, /*isLoaded=*/true);
+    this.message(this.whoPlaysNow());
+};
+
+Ui.prototype.createGameUi = function (layout, parent, title, descr) {
+    if (title) newElement(parent, 'h1', 'pageTitle').textContent = title;
+    var gameDiv = newElement(parent, 'div', 'gameUi');
     var boardHist = newElement(gameDiv, 'div');
     this.boardElt = newElement(boardHist, 'div', 'board');
-    this.historyElt = newElement(boardHist, 'div', 'logBox historyBox');
+    if (descr) {
+        this.boardDesc = newElement(boardHist, 'div', 'boardDesc');
+        this.boardDesc.textContent = descr;
+    }
+    if (layout === 'main') this.historyElt = newElement(boardHist, 'div', 'logBox historyBox');
     this.controlElt = newElement(gameDiv, 'div', 'controls');
     this.output = newElement(gameDiv, 'div', 'logBox outputBox');
 
-    this.boardWidth = 600;
+    this.boardWidth = layout === 'compact' ? (this.game.goban.gsize + 2) * 28 : 600;
     this.createControls();
 };
 
@@ -250,11 +276,12 @@ Ui.prototype.createControls = function () {
     this.newButton('newg', 'New game', function () {
         self.newGameDialog();
     });
-    this.newButton('eval', 'Eval test', function () {
+    this.newButton('evalMode', 'Eval mode', function () {
         self.inEvalMode = !self.inEvalMode;
         main.debug = true;
         main.log.level = main.Logger.DEBUG;
-        self.setEnabled('ALL', !self.inEvalMode, ['eval']);
+        self.setEnabled('ALL', !self.inEvalMode, ['evalMode','undo','next','pass']);
+        toggleElementClass(self.ctrl.evalMode, 'toggled', self.inEvalMode);
     }, true);
     this.newButton('score', 'Score test', function () {
         self.scoreTest();
@@ -266,7 +293,7 @@ Ui.prototype.createControls = function () {
 
 Ui.prototype.toggleControls = function () {
     var inGame = !(this.game.gameEnded || this.game.gameEnding);
-    var auto = this.numberOfAi === 2;
+    var auto = this.aiPlays === 'both';
 
     this.setVisible(['accept', 'refuse'], this.game.gameEnding);
     this.setVisible(['undo'], inGame);
@@ -300,25 +327,31 @@ Ui.prototype.message = function (html, append) {
 
 Ui.prototype.createPlayers = function () {
   this.players = [];
-  this.numberOfAi = 0;
+  this.playerIsAi = [false, false];
   if (this.aiPlays === 'black' || this.aiPlays === 'both') {
     this.players[BLACK] = new Ai1Player(this.game.goban, BLACK);
-    this.numberOfAi++;
+    this.playerIsAi[BLACK] = true;
   }
   if (this.aiPlays === 'white' || this.aiPlays === 'both') {
     this.players[WHITE] = new Ai1Player(this.game.goban, WHITE);
-    this.numberOfAi++;
+    this.playerIsAi[WHITE] = true;
   }
   this.message('Game started. Your turn...'); // erased if moved are played
 };
 
-Ui.prototype.startGame = function (firstMoves) {
-    var game = this.game = new GameLogic();
-    game.newGame(this.gsize, this.handicap);
+Ui.prototype.getAiPlayer = function (color) {
+    var player = this.players[color];
+    if (!player) player = this.players[color] = new Ai1Player(this.game.goban, color);
+    return player;
+};
+
+Ui.prototype.startGame = function (firstMoves, isLoaded) {
+    var game = this.game;
+    if (!isLoaded) game.newGame(this.gsize, this.handicap);
     if (firstMoves) {
         game.loadMoves(firstMoves);
     }
-    // reread values from game to make sure they are valid and match loaded game
+    // read values from game to make sure they are valid and match loaded game
     this.gsize = game.goban.gsize;
     this.handicap = game.handicap;
 
@@ -326,6 +359,8 @@ Ui.prototype.startGame = function (firstMoves) {
     this.toggleControls();
     this.createBoard();
     this.refreshBoard();
+
+    if (isLoaded) return;
     if (firstMoves && this.checkEnd()) return;
     this.letNextPlayerPlay();
 };
@@ -365,7 +400,7 @@ Ui.prototype.acceptScore = function (acceptEnd) {
     this.toggleControls();
     this.refreshBoard(/*force=*/true);
     // In AI VS AI move we don't ask AI to play again otherwise it simply passes again
-    if (this.numberOfAi < 2) this.letNextPlayerPlay();
+    if (this.aiPlays !== 'both') this.letNextPlayerPlay();
 };
 
 Ui.prototype.showEnd = function () {
@@ -382,7 +417,8 @@ Ui.prototype.showAiMoveData = function (aiPlayer, move) {
     this.message(txt);
 };
 
-Ui.prototype.letAiPlay = function (aiPlayer, automatic) {
+Ui.prototype.letAiPlay = function (automatic) {
+    var aiPlayer = this.players[this.game.curColor];
     var move = aiPlayer.getMove();
     if (!automatic) this.showAiMoveData(aiPlayer, move);
     this.game.playOneMove(move);
@@ -408,28 +444,30 @@ Ui.prototype.playerMove = function (move) {
 };
 
 Ui.prototype.playUndo = function () {
-    var stepByStep = this.aiPlays === 'none' || this.aiPlays === 'both';
+    var command = 'undo';
+    if (this.aiPlays === 'none' || this.aiPlays === 'both' || this.inEvalMode) {
+        command = 'half_undo';
+    }
 
-    if (!this.game.playOneMove(stepByStep ? 'half_undo' : 'undo')) {
+    if (!this.game.playOneMove(command)) {
         this.message(this.game.getErrors().join('<br>'));
     } else {
         this.refreshBoard();
         this.message('Undo!');
     }
-    this.showWhoPlaysNow();
+    this.message(' ' + this.whoPlaysNow(), true);
 };
 
-Ui.prototype.showWhoPlaysNow = function () {
+Ui.prototype.whoPlaysNow = function () {
     var playerName = Grid.colorName(this.game.curColor);
-    this.message('<br>(' + playerName + '\'s turn)', true);
+    return '(' + playerName + '\'s turn)';
 };
 
 Ui.prototype.letNextPlayerPlay = function (automatic) {
-    var player = this.players[this.game.curColor];
-    if (player instanceof Ai1Player) {
-        this.letAiPlay(player, automatic);
+    if (this.playerIsAi[this.game.curColor]) {
+        this.letAiPlay(automatic);
     } else {
-        this.showWhoPlaysNow();
+        this.message(' ' + this.whoPlaysNow(), true);
     }
 };
 
@@ -444,16 +482,7 @@ Ui.prototype.automaticAiPlay = function (turns) {
 //---
 
 Ui.prototype.evalMove = function (move) {
-    // find out which player should eval - or create an AI to do it
-    var curColor = this.game.curColor;
-    var player;
-    if (this.aiPlays === 'none') {
-        player = new Ai1Player(this.game.goban, curColor);
-    } else {
-        player = this.players[curColor];
-        if (!(player instanceof Ai1Player)) player = this.players[1 - curColor];
-    }
-
+    var player = this.getAiPlayer(this.game.curColor);
     var coords = Grid.parseMove(move);
     player.testMoveEval(coords[0], coords[1]);
     this.showAiMoveData(player, move);
@@ -471,9 +500,7 @@ Ui.prototype.territoryTest = function () {
     this.territoryDisplayed = !this.territoryDisplayed;
     if (!this.territoryDisplayed) return this.refreshBoard(/*force=*/true);
 
-    var curColor = this.game.curColor;
-    var aiPlayer = new Ai1Player(this.game.goban, curColor);
-    var yx = aiPlayer.ter.guessTerritories();
+    var yx = this.getAiPlayer(this.game.curColor).ter.guessTerritories();
     this.showBoard(function (i, j) {
         switch (yx[j][i]) {
         case -1:   return { type: 'mini', c: WGo.B };
