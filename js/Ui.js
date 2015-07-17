@@ -392,7 +392,10 @@ Ui.prototype.proposeScore = function () {
 };
 
 Ui.prototype.acceptScore = function (acceptEnd) {
+    // who actually refused? Current player unless this is a human VS AI match (in which case always human)
     var whoRefused = this.game.curColor;
+    if (this.playerIsAi[whoRefused] && !this.playerIsAi[1 - whoRefused]) whoRefused = 1 - whoRefused;
+
     this.game.acceptEnding(acceptEnd, whoRefused);
     if (acceptEnd) return this.showEnd();
 
