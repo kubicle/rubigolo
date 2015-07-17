@@ -143,7 +143,7 @@ TestAi.prototype.testCornerEyeMaking = function () {
 
 TestAi.prototype.testNoPushFromDeadGroup = function () {
     // white group is dead so pusher should not speak up here
-    this.checkBasicGame('b3,d3,c2,c3,b2,d2,c4,c1,d4,e4,d5,b1,e5,e3,b4,d1,pass', 'a1'); //FIXME
+    this.checkBasicGame('b3,d3,c2,c3,b2,d2,c4,c1,d4,e4,d5,b1,e5,e3,b4,d1,pass', 'a1'); //FIXME NOT a1
 };
 
 TestAi.prototype.testBorderLock = function () {
@@ -316,13 +316,13 @@ TestAi.prototype.testBorderAttackAndInvasion = function () {
     // 1 +++O+++
     //   abcdefg
     // AI should see attack in b5 with territory invasion
+    this.initBoard(7);
     this.playMoves('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,g6,d1,g5,g4,pass');
     this.checkTurn(WHITE);
     this.playAndCheck('b5', 10.6);
 };
 
 TestAi.prototype.testBorderAttackAndInvasion2 = function () {
-    this.initBoard(7);
     // 7 +++++++
     // 6 +++@@@@
     // 5 @*+@OO+
@@ -334,13 +334,13 @@ TestAi.prototype.testBorderAttackAndInvasion2 = function () {
     // AI should see attack in b5 with territory invasion.
     // Actually O in g4 is chosen because pusher gives it 0.33 pts.
     // NB: g4 is actually a valid move for black
+    this.initBoard(7);
     this.playMoves('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,g6');
     this.checkTurn(WHITE);
     this.playAndCheck('b5', 10.6);
 };
 
 TestAi.prototype.testBorderClosing = function () {
-    this.initBoard(7);
     // 7 +++++++
     // 6 +@+@@@@
     // 5 @++@OO+
