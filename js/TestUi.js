@@ -1,10 +1,16 @@
 'use strict';
 
 var main = require('./main');
+var Ui = require('./Ui');
+
 var Logger = main.Logger;
+
 
 function TestUi() {
     this.ctrl = {};
+    main.debug = false;
+    main.log.level = Logger.INFO;
+    window.testUi = this;
 }
 module.exports = TestUi;
 
@@ -17,22 +23,21 @@ TestUi.prototype.runTest = function (name) {
     this.output.textContent = '';
 
     var specificClass;
-    if (name !== 'TestAll' && name !== 'TestSpeed') {
-        specificClass = name;
-        main.debug = true;
-        main.log.level = Logger.DEBUG;
-    } else {
+    if (name === 'TestAll' || name === 'TestSpeed') {
         main.debug = false;
         main.log.level = Logger.INFO;
+    } else {
+        specificClass = name;
     }
     var self = this;
-    main.tests.run(function (lvl, msg) { self.logfn(lvl, msg); }, specificClass);
+    main.tests.run(function (lvl, msg) { return self.logfn(lvl, msg); }, specificClass);
     this.enableButtons(true);
 };
 
 TestUi.prototype.initTest = function (name) {
     this.output.textContent = 'Running unit test "' + name + '"...';
     this.errors.textContent = '';
+    this.gameDiv.innerHTML = '';
     this.enableButtons(false);
     var self = this;
     return window.setTimeout(function () { self.runTest(name); }, 50);
@@ -76,6 +81,12 @@ TestUi.prototype.createUi = function () {
     this.output = newElement(testDiv, 'div', 'logBox testOutputBox');
     newElement(testDiv, 'h2').textContent = 'Errors';
     this.errors = newElement(testDiv, 'div', 'logBox testErrorBox');
+    this.gameDiv = newElement(testDiv, 'div');
 
     this.createControls();
+};
+
+TestUi.prototype.showTestGame = function (title, msg, game) {
+    var ui = new Ui(game);
+    ui.loadFromTest(this.gameDiv, title, msg);
 };
