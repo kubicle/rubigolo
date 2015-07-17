@@ -163,7 +163,7 @@ GameLogic.prototype.acceptEnding = function (accept, whoRefused) {
     // Score refused (in dispute)
     // if the player who refused just played, we give the turn back to him
     if (whoRefused !== this.curColor) {
-        this.history.pop(); // remove last "pass" (half a move so "undo" cannot help)
+        this.history.pop(); // remove last "pass"
         this.nextPlayer();
     }
     return true;
