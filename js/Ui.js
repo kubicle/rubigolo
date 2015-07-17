@@ -1,9 +1,11 @@
 'use strict';
 
 var main = require('./main');
+
+var Ai1Player = require('./ai/Ai1Player');
+var Dome = require('./Dome');
 var GameLogic = require('./GameLogic');
 var Grid = require('./Grid');
-var Ai1Player = require('./ai/Ai1Player');
 var ScoreAnalyser = require('./ScoreAnalyser');
 
 var WGo = window.WGo;
@@ -26,9 +28,9 @@ module.exports = Ui;
 Ui.prototype.createBoard = function () {
     if (this.boardSize === this.gsize) return; // already have the right board
     this.boardSize = this.gsize;
-    this.boardElt.innerHTML = '';
+    this.boardElt.clear();
     var config = { size: this.gsize, width: this.boardWidth, section: { top: -0.5, left: -0.5, right: -0.5, bottom: -0.5 } };
-    this.board = new WGo.Board(this.boardElt, config);
+    this.board = new WGo.Board(this.boardElt.elt, config);
     if (this.withCoords) this.board.addCustomObject(WGo.Board.coordinates);
     var self = this;
     this.board.addEventListener('click', function (x,y) {
@@ -111,69 +113,8 @@ Ui.prototype.refreshHistory = function () {
         var color = black ? 'B' : 'W';
         txt += num + ': ' + color + '-' + moves[i] + '<br>';
     }
-    this.historyElt.innerHTML = txt;
+    this.historyElt.setHtml(txt);
 };
-
-function newElement(parent, type, className) {
-    var elt = parent.appendChild(document.createElement(type));
-    if (className) elt.className = className;
-    return elt;
-}
-
-function toggleElementClass(elt, className, enable) {
-    var classes = elt.className.split(' ');
-    var ndx = classes.indexOf(className);
-    if (enable) {
-        if (ndx >= 0) return;
-        elt.className += ' ' + className;
-    } else {
-        if (ndx < 0) return;
-        classes.splice(ndx, 1);
-        elt.className = classes.join(' ');
-    }
-}
-
-function newButton(parent, name, label, action) {
-    var btn = newElement(parent, 'button', name + 'Button');
-    btn.innerText = label;
-    btn.addEventListener('click', action);
-    return btn;
-}
-
-function newLabel(parent, name, label) {
-    var elt = newElement(parent, 'span', name + 'Label');
-    elt.textContent = label;
-    return elt;
-}
-
-function newInput(parent, name, label, init) {
-    newLabel(parent, name + 'Label input', label + ':');
-    var inp = newElement(parent, 'input', name + 'Input');
-    if (init !== undefined) inp.value = init;
-    return inp;
-}
-
-function newRadio(parent, name, labels, values, init) {
-    if (!values) values = labels;
-    var opts = [];
-    for (var i = 0; i < labels.length; i++) {
-        var inp = opts[i] = newElement(parent, 'input', name + 'RadioBtn');
-        inp.type = 'radio';
-        inp.name = name;
-        inp.value = values[i];
-        inp.id = name + 'Radio' + values[i];
-        if (values[i] === init) inp.checked = true;
-        var label = newElement(parent, 'label', name + 'RadioLabel');
-        label.textContent = labels[i];
-        label.setAttribute('for', inp.id);
-    }
-    return opts;
-}
-function getRadioValue(opts) {
-    for (var i = 0; i < opts.length; i++) {
-        if (opts[i].checked) return opts[i].value;
-    }
-}
 
 Ui.prototype.createUi = function () {
     this.createGameUi('main', document.body, 'Rubigolo');
@@ -189,17 +130,14 @@ Ui.prototype.loadFromTest = function (parent, testName, msg) {
 };
 
 Ui.prototype.createGameUi = function (layout, parent, title, descr) {
-    if (title) newElement(parent, 'h1', 'pageTitle').textContent = title;
-    var gameDiv = newElement(parent, 'div', 'gameUi');
-    var boardHist = newElement(gameDiv, 'div');
-    this.boardElt = newElement(boardHist, 'div', 'board');
-    if (descr) {
-        this.boardDesc = newElement(boardHist, 'div', 'boardDesc');
-        this.boardDesc.textContent = descr;
-    }
-    if (layout === 'main') this.historyElt = newElement(boardHist, 'div', 'logBox historyBox');
-    this.controlElt = newElement(gameDiv, 'div', 'controls');
-    this.output = newElement(gameDiv, 'div', 'logBox outputBox');
+    if (title) new Dome(parent, 'h1', 'pageTitle').setText(title);
+    var gameDiv = new Dome(parent, 'div', 'gameUi');
+    var boardHist = new Dome(gameDiv, 'div');
+    this.boardElt = new Dome(boardHist, 'div', 'board');
+    if (descr) this.boardDesc = new Dome(boardHist, 'div', 'boardDesc').setText(descr);
+    if (layout === 'main') this.historyElt = new Dome(boardHist, 'div', 'logBox historyBox');
+    this.controlElt = new Dome(gameDiv, 'div', 'controls');
+    this.output = new Dome(gameDiv, 'div', 'logBox outputBox');
 
     this.boardWidth = layout === 'compact' ? (this.game.goban.gsize + 2) * 28 : 600;
     this.createControls();
@@ -207,88 +145,67 @@ Ui.prototype.createGameUi = function (layout, parent, title, descr) {
 
 Ui.prototype.newGameDialog = function () {
     this.setVisible('ALL', false);
-    var dialog = newElement(document.body, 'div', 'newGameDialog');
-    var form = newElement(dialog, 'form');
+    var dialog = new Dome(document.body, 'div', 'newGameDialog');
+    var form = new Dome(dialog, 'form');
     form.setAttribute('action',' ');
-    var options = newElement(form, 'div');
+    var options = new Dome(form, 'div');
 
-    var sizeBox = newElement(options, 'div');
-    newLabel(sizeBox, 'input', 'Size:');
-    var sizeElt = newRadio(sizeBox, 'size', [5,7,9,13,19], null, this.gsize);
+    var sizeBox = new Dome(options, 'div');
+    Dome.newLabel(sizeBox, 'input', 'Size:');
+    var sizeElt = Dome.newRadio(sizeBox, 'size', [5,7,9,13,19], null, this.gsize);
 
-    var handicap = newInput(options, 'handicap', 'Handicap', this.handicap);
+    var handicap = Dome.newInput(options, 'handicap', 'Handicap', this.handicap);
 
-    var aiColorBox = newElement(options, 'div');
-    newLabel(aiColorBox, 'input', 'AI plays:');
-    var aiColor = newRadio(aiColorBox, 'aiColor', ['white', 'black', 'both', 'none'], null, this.aiPlays);
+    var aiColorBox = new Dome(options, 'div');
+    Dome.newLabel(aiColorBox, 'input', 'AI plays:');
+    var aiColor = Dome.newRadio(aiColorBox, 'aiColor', ['white', 'black', 'both', 'none'], null, this.aiPlays);
 
-    var moves = newInput(form, 'moves', 'Moves to load');
+    var moves = Dome.newInput(form, 'moves', 'Moves to load');
     var self = this;
-    var okBtn = newButton(form, 'gameButton start', 'OK', function (ev) {
+    var okBtn = Dome.newButton(form, 'gameButton start', 'OK', function (ev) {
         ev.preventDefault();
-        self.gsize = ~~getRadioValue(sizeElt);
-        self.handicap = parseInt(handicap.value) || 0;
-        self.aiPlays = getRadioValue(aiColor);
+        self.gsize = ~~Dome.getRadioValue(sizeElt);
+        self.handicap = parseInt(handicap.value()) || 0;
+        self.aiPlays = Dome.getRadioValue(aiColor);
 
         self.setVisible('ALL', true);
-        self.startGame(moves.value);
-        document.body.removeChild(dialog);
+        self.startGame(moves.value());
+        Dome.deleteChild(document.body, dialog);
     });
     okBtn.setAttribute('type','submit');
 };
 
-Ui.prototype.newButton = function (name, label, action, isTest) {
-    var parent = isTest ? this.testButtons : this.mainButtons;
-    this.ctrl[name] = newButton(parent, 'gameButton ' + name, label, action);
+Ui.prototype.newButton = function (name, label, action) {
+    this.ctrl[name] = Dome.newButton(this.mainButtons, 'gameButton ' + name, label, action);
+};
+Ui.prototype.newTestButton = function (name, label, action) {
+    this.ctrl[name] = Dome.newButton(this.testButtons, 'gameButton ' + name, label, action);
 };
 
 Ui.prototype.createControls = function () {
     this.ctrl = {};
-    this.mainButtons = newElement(this.controlElt, 'div');
-    this.testButtons = newElement(this.controlElt, 'div', 'testControls');
+    this.mainButtons = new Dome(this.controlElt, 'div');
+    this.testButtons = new Dome(this.controlElt, 'div', 'testControls');
     var self = this;
-    this.newButton('pass', 'Pass', function () {
-        self.playerMove('pass');
-    });
-    this.newButton('next', 'Next', function () {
-        self.letNextPlayerPlay();
-    });
-    this.newButton('next10', 'Next 10', function () {
-        self.automaticAiPlay(10);
-    });
-    this.newButton('nextAll', 'Finish', function () {
-        self.automaticAiPlay();
-    });
-    this.newButton('undo', 'Undo', function () {
-        self.playUndo();
-    });
-    this.newButton('resi', 'Resign', function () {
-        self.game.playOneMove('resi');
-        self.computeScore();
-        self.checkEnd();
-    });
-    this.newButton('accept', 'Accept', function () {
-        self.acceptScore(true);
-    });
-    this.newButton('refuse', 'Refuse', function () {
-        self.acceptScore(false);
-    });
-    this.newButton('newg', 'New game', function () {
-        self.newGameDialog();
-    });
-    this.newButton('evalMode', 'Eval mode', function () {
+    this.newButton('pass', 'Pass', function () { self.playerMove('pass'); });
+    this.newButton('next', 'Next', function () { self.letNextPlayerPlay(); });
+    this.newButton('next10', 'Next 10', function () { self.automaticAiPlay(10); });
+    this.newButton('nextAll', 'Finish', function () { self.automaticAiPlay(); });
+    this.newButton('undo', 'Undo', function () { self.playUndo(); });
+    this.newButton('resi', 'Resign', function () { self.playerResigns(); });
+    this.newButton('accept', 'Accept', function () { self.acceptScore(true); });
+    this.newButton('refuse', 'Refuse', function () { self.acceptScore(false); });
+    this.newButton('newg', 'New game', function () { self.newGameDialog(); });
+
+    this.newTestButton('evalMode', 'Eval mode', function () {
         self.inEvalMode = !self.inEvalMode;
+        self.setEnabled('ALL', !self.inEvalMode, ['evalMode','undo','next','pass']);
+        self.ctrl.evalMode.toggleClass('toggled', self.inEvalMode);
         main.debug = true;
         main.log.level = main.Logger.DEBUG;
-        self.setEnabled('ALL', !self.inEvalMode, ['evalMode','undo','next','pass']);
-        toggleElementClass(self.ctrl.evalMode, 'toggled', self.inEvalMode);
-    }, true);
-    this.newButton('score', 'Score test', function () {
-        self.scoreTest();
-    }, true);
-    this.newButton('territory', 'Territory test', function () {
-        self.territoryTest();
-    }, true);
+    });
+    this.newTestButton('score', 'Score test', function () { self.scoreTest(); });
+    this.newTestButton('territory', 'Territory test', function () { self.territoryTest(); });
 };
 
 Ui.prototype.toggleControls = function () {
@@ -306,8 +223,7 @@ Ui.prototype.setEnabled = function (names, enabled, except) {
     if (names === 'ALL') names = Object.keys(this.ctrl);
     for (var i = 0; i < names.length; i++) {
         if (except && except.indexOf(names[i]) !== -1) continue;
-        var ctrl = this.ctrl[names[i]];
-        ctrl.disabled = !enabled;
+        this.ctrl[names[i]].setEnabled(enabled);
     }
 };
 
@@ -315,28 +231,27 @@ Ui.prototype.setVisible = function (names, show, except) {
     if (names === 'ALL') names = Object.keys(this.ctrl);
     for (var i = 0; i < names.length; i++) {
         if (except && except.indexOf(names[i]) !== -1) continue;
-        var ctrl = this.ctrl[names[i]];
-        ctrl.hidden = !show;
+        this.ctrl[names[i]].setVisible(show);
     }
 };
 
 Ui.prototype.message = function (html, append) {
-  if (!append) this.output.innerHTML = '';
-  this.output.innerHTML += html;
+    if (append) html = this.output.html() + html;
+    this.output.setHtml(html);
 };
 
 Ui.prototype.createPlayers = function () {
-  this.players = [];
-  this.playerIsAi = [false, false];
-  if (this.aiPlays === 'black' || this.aiPlays === 'both') {
-    this.players[BLACK] = new Ai1Player(this.game.goban, BLACK);
-    this.playerIsAi[BLACK] = true;
-  }
-  if (this.aiPlays === 'white' || this.aiPlays === 'both') {
-    this.players[WHITE] = new Ai1Player(this.game.goban, WHITE);
-    this.playerIsAi[WHITE] = true;
-  }
-  this.message('Game started. Your turn...'); // erased if moved are played
+    this.players = [];
+    this.playerIsAi = [false, false];
+    if (this.aiPlays === 'black' || this.aiPlays === 'both') {
+        this.players[BLACK] = new Ai1Player(this.game.goban, BLACK);
+        this.playerIsAi[BLACK] = true;
+    }
+    if (this.aiPlays === 'white' || this.aiPlays === 'both') {
+        this.players[WHITE] = new Ai1Player(this.game.goban, WHITE);
+        this.playerIsAi[WHITE] = true;
+    }
+    this.message('Game started. Your turn...'); // erased if moved are played
 };
 
 Ui.prototype.getAiPlayer = function (color) {
@@ -444,6 +359,12 @@ Ui.prototype.playerMove = function (move) {
     this.refreshBoard();
     this.message(playerName + ': ' + move);
     this.letNextPlayerPlay();
+};
+
+Ui.prototype.playerResigns = function () {
+    this.game.playOneMove('resi');
+    this.computeScore();
+    this.checkEnd();
 };
 
 Ui.prototype.playUndo = function () {
