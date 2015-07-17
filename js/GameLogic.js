@@ -12,18 +12,25 @@ var HandicapSetter = require('./HandicapSetter');
 /** @class GameLogic enforces the game logic.
  *  public read-only attribute: goban, komi, curColor, gameEnded, gameEnding, whoResigned
  */
-function GameLogic() {
+function GameLogic(src) {
     this.console = false;
     this.history = [];
     this.errors = [];
     this.handicap = 0;
     this.whoResigned = null;
     this.goban = null;
+    if (src) this.copy(src);
 }
 module.exports = GameLogic;
 
+
+GameLogic.prototype.copy = function (src) {
+    this.newGame(src.goban.gsize, src.handicap, src.komi);
+    this.loadMoves(src.history.join(','));
+};
+
+// handicap and komi are optional (default is 0)
 GameLogic.prototype.newGame = function (gsize, handicap, komi) {
-    if (handicap === undefined) handicap = 0;
     this.history.clear();
     this.errors.clear();
     this.numPass = 0;
@@ -36,8 +43,8 @@ GameLogic.prototype.newGame = function (gsize, handicap, komi) {
     } else {
         this.goban.clear();
     }
-    this.komi = (( komi ? komi : (( handicap === 0 ? 6.5 : 0.5 )) ));
-    return this.setHandicap(handicap);
+    this.komi = komi !== undefined ? komi : (handicap ? 0.5 : 6.5);
+    return this.setHandicap(handicap || 0);
 };
 
 // Initializes the handicap points
