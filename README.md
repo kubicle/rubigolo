@@ -15,13 +15,13 @@ Dependencies
 ============
 
 - [WGo.js](http://github.com/waltheri/wgo.js) is included in the project
-- Browserify used for the build
+- Browserify, watchify, lessify are used for the build
 
 How to build
 ============
 
-cd ...\rubigolo\js
-browserify app.js -o build.js
+npm install
+npm start
 
 =======
 
