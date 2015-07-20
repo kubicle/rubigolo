@@ -146,6 +146,18 @@ TestAi.prototype.testNoPushFromDeadGroup = function () {
     this.checkBasicGame('b3,d3,c2,c3,b2,d2,c4,c1,d4,e4,d5,b1,e5,e3,b4,d1,pass', 'a1'); //FIXME NOT a1
 };
 
+TestAi.prototype.testWrongSavior = function () {
+    this.checkBasicGame('e1,e2,d2', 'd3');
+};
+
+TestAi.prototype.testWrongSavior2 = function () {
+    this.checkBasicGame('e1,e2,d2,e3,d3,e4,d4', 'b3'); // d1 would be wrong
+};
+
+TestAi.prototype.testWrongSavior3 = function () {
+    this.checkBasicGame('e1,d1,d2,c2,c1,b1,d1', 'b2'); //FIXME: should be d3
+};
+
 TestAi.prototype.testBorderLock = function () {
     this.checkBasicGame('d4,c3,c4,d3,e3,e2,e4', 'd2'); //FIXME: should be c2
 };
@@ -281,11 +293,7 @@ TestAi.prototype.testSeeDeadGroup = function () {
     this.playMoves('d6,f4,e5,f6,g5,f5,g7,h6,g6,e7,f7,e6,g3,h4,g4,h5,d8,c7,d7,f8,e8,d4,d5,e4,f9,g9,e9,c9,g8,c8,h9,d9,e3,f2,f3,h7,c4,c5,d3,c6,b5,h8,b7,a6,b6,a4,b9,a5,b8,b3,b4,c3,c2,e2,a7,d2,a3,b2,g1,c1,g2,h2,j3,h3,f1,j2,e1,j4,d1,a2,a4,h1,c8,j8,f8,j9,g9');
     this.checkTurn(WHITE);
     this.playAndCheck('pass');
-    this.playAndCheck('c2', 2); // FIXME: BoardAnalyser should see O group is dead
-    this.playAndCheck('d2', 4); // same here, d2 is wasted
-    this.playAndCheck('e2', 4);
-    this.playAndCheck('pass');
-    this.playAndCheck('pass');
+    this.playAndCheck('pass'); // c2 is wrong: should see white group is dead
 };
 
 TestAi.prototype.testBorderDefense = function () {
@@ -511,4 +519,10 @@ TestAi.prototype.testConnector_connectionNotNeeded = function () {
     this.initBoard(7);
     this.playMoves('d4,f6,f3,c7,g4,e4,e3,e5,g5,f4,g6,b4,c3');
     this.checkEval('f5', 0);
+};
+
+TestAi.prototype.testWrongAttack = function () {
+    // c6 would be great... if it worked; this is a wrong move here
+    this.checkBasicGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,b5,d1,pass,g4,pass,g6,pass,g7,pass,f7,pass,e7,pass,d7,c7',
+        'g5', 7);
 };
