@@ -12,6 +12,8 @@ var PotentialTerritory = require('../PotentialTerritory');
 var BoardAnalyser = require('../BoardAnalyser');
 var Genes = require('../Genes');
 
+var sOK = main.sOK, sINVALID = main.sINVALID, sBLUNDER = main.sBLUNDER;
+
 var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
 
 
@@ -49,6 +51,7 @@ function Ai1Player(goban, color, genes) {
 }
 inherits(Ai1Player, Player);
 module.exports = Ai1Player;
+
 
 Ai1Player.prototype.getHeuristic = function (heuristicName) {
     for (var n = this.heuristics.length - 1; n >= 0; n--) {
@@ -116,21 +119,6 @@ Ai1Player.prototype._keepBestMoves = function(i, j, score) {
         this.numBestTwins++;
         if (Math.random() * this.numBestTwins >= 1) return; // keep current twin if it does not win
         this._foundBestMove(i, j, score);
-    }
-};
-
-
-var sOK = 0, sINVALID = -1, sBLUNDER = -2;
-
-// TMP: Called by heuristics which do not handle evalBoard yet
-Ai1Player.prototype.boardIterator = function (evalFn) {
-    var stateYx = this.stateGrid.yx;
-    var scoreYx = this.scoreGrid.yx;
-    for (var j = 1; j <= this.gsize; j++) {
-        for (var i = 1; i <= this.gsize; i++) {
-            if (stateYx[j][i] < sOK) continue;
-            scoreYx[j][i] += evalFn(i, j);
-        }
     }
 };
 

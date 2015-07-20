@@ -2,6 +2,9 @@
 'use strict';
 
 var main = require('../main');
+var Grid = require('../Grid');
+
+var sOK = main.sOK;
 
 
 /** @class Base class for all heuristics.
@@ -15,6 +18,7 @@ function Heuristic(player, consultant) {
     this.inf = player.inf;
     this.ter = player.ter;
     this.boan = player.boan;
+    this.scoreGrid = new Grid(this.gsize);
 
     this.spaceInvasionCoeff = this.getGene('spaceInvasion', 2.0, 0.01, 4.0);
 }
@@ -32,11 +36,15 @@ Heuristic.prototype.initColor = function () {
 };
 
 //TMP For heuristics which do not handle evalBoard yet
-Heuristic.prototype.evalBoard = function (/*stateYx, scoreYx*/) {
-    var self = this;
-    this.player.boardIterator(function (i, j) {
-        return self.evalMove(i, j);
-    });
+Heuristic.prototype.evalBoard = function (stateYx, scoreYx) {
+    var myScoreYx = this.scoreGrid.yx;
+    for (var j = 1; j <= this.gsize; j++) {
+        for (var i = 1; i <= this.gsize; i++) {
+            if (stateYx[j][i] < sOK) continue;
+            var score = myScoreYx[j][i] = this.evalMove(i, j);
+            scoreYx[j][i] += score;
+        }
+    }
 };
 
 Heuristic.prototype.getGene = function (name, defVal, lowLimit, highLimit) {

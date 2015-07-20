@@ -8,3 +8,7 @@ main.BORDER = null;
 main.EMPTY = -1;
 main.BLACK = 0;
 main.WHITE = 1;
+
+main.sOK = 0;
+main.sINVALID = -1;
+main.sBLUNDER = -2;

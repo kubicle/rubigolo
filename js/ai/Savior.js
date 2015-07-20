@@ -1,11 +1,15 @@
 //Translated from savior.rb using babyruby2js
 'use strict';
 
-var inherits = require('util').inherits;
 var main = require('../main');
-var Stone = require('../Stone');
 var Heuristic = require('./Heuristic');
 var Hunter = require('./Hunter');
+var inherits = require('util').inherits;
+var Stone = require('../Stone');
+
+
+var sOK = main.sOK;
+
 
 /** @class Saviors rescue ally groups in atari */
 function Savior(player) {
@@ -20,17 +24,19 @@ Savior.prototype.initColor = function () {
     return this.enemyHunter.initColor();
 };
 
-//TMP
 Savior.prototype.evalBoard = function (stateYx, scoreYx) {
-    var self = this;
-    this.player.boardIterator(function (i, j) {
-        var stone = self.goban.stoneAt(i, j);
-        var threat = self._evalEscape(i, j, stone);
-        if (main.debug && threat > 0) {
-            main.log.debug('=> Savior thinks we can save a threat of ' + threat + ' in ' + i + ',' + j);
+    var myScoreYx = this.scoreGrid.yx;
+    for (var j = 1; j <= this.gsize; j++) {
+        for (var i = 1; i <= this.gsize; i++) {
+            if (stateYx[j][i] < sOK) continue;
+            var stone = this.goban.stoneAt(i, j);
+            var threat = this._evalEscape(i, j, stone);
+            if (threat === 0) continue;
+            if (main.debug) main.log.debug('=> Savior thinks we can save a threat of ' + threat + ' in ' + stone);
+            var score = myScoreYx[j][i] = threat;
+            scoreYx[j][i] += score;
         }
-        return threat;
-    });
+    }
 };
 
 Savior.prototype._evalEscape = function (i, j, stone) {

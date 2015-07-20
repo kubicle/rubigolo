@@ -15,6 +15,7 @@ inherits(Shaper, Heuristic);
 module.exports = Shaper;
 
 Shaper.prototype.evalBoard = function (stateYx, scoreYx) {
+    var myScoreYx = this.scoreGrid.yx;
     var allGroups = this.boan.allGroups;
     for (var ndx in allGroups) {
         var g = allGroups[ndx], gi = g._info;
@@ -23,7 +24,9 @@ Shaper.prototype.evalBoard = function (stateYx, scoreYx) {
         var coords = [];
         var alive = Shaper.getEyeMakerMove(this.goban, eye.i, eye.j, eye.vcount, coords);
         if (alive !== 1) continue;
-        scoreYx[coords[1]][coords[0]] += this.groupThreat(g);
+        var i = coords[0], j = coords[1];
+        var score = myScoreYx[j][i] = this.groupThreat(g);
+        scoreYx[j][i] += score;
     }
 };
 

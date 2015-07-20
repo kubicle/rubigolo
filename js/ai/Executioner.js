@@ -1,12 +1,14 @@
 //Translated from executioner.rb using babyruby2js
 'use strict';
 
-var inherits = require('util').inherits;
 var main = require('../main');
-// Executioner only preys on enemy groups in atari
 var Heuristic = require('./Heuristic');
+var inherits = require('util').inherits;
 
-/** @class */
+var sOK = main.sOK;
+
+
+/** @class Executioner only preys on enemy groups in atari */
 function Executioner(player) {
     Heuristic.call(this, player);
 }
@@ -39,6 +41,17 @@ Executioner.prototype.isSureDeath = function (empty, color) {
         }
     }
     return true;
+};
+
+Executioner.prototype.evalBoard = function (stateYx, scoreYx) {
+    var myScoreYx = this.scoreGrid.yx;
+    for (var j = 1; j <= this.gsize; j++) {
+        for (var i = 1; i <= this.gsize; i++) {
+            if (stateYx[j][i] < sOK) continue;
+            var score = myScoreYx[j][i] = this.evalMove(i, j);
+            scoreYx[j][i] += score;
+        }
+    }
 };
 
 Executioner.prototype.evalMove = function (i, j) {
