@@ -79,7 +79,7 @@ TestUi.prototype.createUi = function () {
     this.output = testDiv.newDiv('logBox testOutputBox');
     testDiv.newDiv('subTitle').setText('Errors');
     this.errors = testDiv.newDiv('logBox testErrorBox');
-    this.gameDiv = testDiv.newDiv('gameDiv');
+    this.gameDiv = Dome.newDiv(document.body, 'gameDiv');
 };
 
 TestUi.prototype.showTestGame = function (title, msg, game) {
