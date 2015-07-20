@@ -49,14 +49,14 @@ TestAi.prototype.logErrorContext = function (player) {
 
 TestAi.prototype.checkScore = function(player, color, move, score, expScore, heuristic) {
     var range = Math.abs(expScore) > 2 ? 0.5 : Math.abs(expScore) / 5 + 0.1;
-    if (Math.abs(score - expScore) > range) {
-        var msg = 'Discrepancy in ' + this.name + ': ' + Grid.colorName(color) + ' ' + move +
-            ' got ' + score.toFixed(3) + ' instead of ' + expScore +
-            (heuristic ? ' for ' + heuristic : '');
-        main.log.error(msg);
-        if (Math.abs(expScore) !== BIG_SCORE) this.showInUi(msg);
-        this.logErrorContext(player);
-    }
+    if (Math.abs(score - expScore) <= range) return;
+
+    var msg = 'Discrepancy in ' + this.name + ': ' + Grid.colorName(color) + ' ' + move +
+        ' got ' + score.toFixed(3) + ' instead of ' + expScore +
+        (heuristic ? ' for ' + heuristic : '');
+    main.log.error(msg);
+    if (Math.abs(expScore) !== BIG_SCORE) this.showInUi(msg);
+    this.logErrorContext(player);
 };
 
 // if expEval is null there is not check: value is returned
@@ -85,15 +85,16 @@ TestAi.prototype.checkMoveBetter = function (move1, move2) {
     var msg = move1 + ' ranked lower than ' + move2 + ' (' + s1 + ' <= ' + s2 + ')';
     main.log.error(msg);
     this.showInUi(msg);
-    this.checkEval(move1, BIG_SCORE);
+    this.checkEval(move1, BIG_SCORE); // use checkEval to display scores
     this.checkEval(move2, -BIG_SCORE);
 };
 
+/** Lets AI play and verify we got the right move.
+ *  We abort the test if the wrong move is played
+ * (since we cannot do anything right after this happens).
+ */
 TestAi.prototype.playAndCheck = function (expMove, expEval) {
-    if (expEval === undefined) expEval = null;
-    if (main.debug) {
-        main.log.debug('Letting AI play...');
-    }
+    if (main.debug) main.log.debug('Letting AI play. Expected move is: ' + expMove);
     var color = this.game.curColor;
     var player = this.players[color];
 
@@ -101,16 +102,16 @@ TestAi.prototype.playAndCheck = function (expMove, expEval) {
     var score = player.bestScore;
     if (move !== expMove) {
         this.logErrorContext(player);
-        var expMoveScore = this.checkEval(expMove, expEval); // see how much the expMove got
-        if (Math.abs(expMoveScore - score) < 0.001) {
+        // if expMove got a very close score, our test scenario bumps on twin moves
+        if (expMove !== 'pass' && Math.abs(this.checkEval(expMove) - score) < 0.001) {
             main.log.error('CAUTION: ' + expMove + ' and ' + move + 
                 ' are twins or very close => consider modifying the test scenario');
         }
         this.showInUi('expected ' + Grid.colorName(color) + '-' + expMove + ' but got ' + move);
-        assertEqual(expMove, move, Grid.colorName(color));
-    } else if (expEval) {
-        this.checkScore(player, color, move, player.bestScore, expEval);
+        assertEqual(expMove, move, Grid.colorName(color)); // test aborts here
     }
+    if (expEval) this.checkScore(player, color, move, score, expEval);
+
     this.game.playOneMove(move);
 };
 
