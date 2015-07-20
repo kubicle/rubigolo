@@ -460,24 +460,17 @@ function BoardAnalyser() {
 }
 module.exports = BoardAnalyser;
 
+
 /** Calling this method updates the goban to show the detected result.
  *  If grid is not given a new one will be created from goban */
 BoardAnalyser.prototype.countScore = function (goban, grid) {
     if (main.debug) main.log.debug('Counting score...');
-    this.goban = goban;
     this.scores = [0, 0];
     this.prisoners = Group.countPrisoners(goban);
-    this.filler = new ZoneFiller(goban, grid);
-    if (goban.moveNumber() === 0) return;
 
-    this._initVoidsAndGroups();
-    this._findBrothers();
-    this._findEyeOwners();
-    this._findBattleWinners();
-
-    this._lifeOrDeathLoop();
-
-    this.finalCounting();
+    if (!this._initAnalysis(goban, grid)) return;
+    this._runAnalysis();
+    this._finalCounting();
     if (main.debug) main.log.debug(this.filler.grid.toText(function (c) { return Grid.colorToChar(c); }));
 };
 
@@ -506,6 +499,15 @@ BoardAnalyser.prototype.debugDump = function () {
             return ' player ' + i + ': ' + s + ' points';
         }));
     }
+};
+
+BoardAnalyser.prototype._initAnalysis = function (goban, grid) {
+    this.goban = goban;
+    this.filler = new ZoneFiller(goban, grid);
+    if (goban.moveNumber() === 0) return false;
+
+    this._initVoidsAndGroups();
+    return true;
 };
 
 BoardAnalyser.prototype._addGroup = function (g) {
@@ -540,6 +542,13 @@ BoardAnalyser.prototype._initVoidsAndGroups = function () {
             neighbors = [[], []];
         }
     }
+};
+
+BoardAnalyser.prototype._runAnalysis = function () {
+    this._findBrothers();
+    this._findEyeOwners();
+    this._findBattleWinners();
+    this._lifeOrDeathLoop();
 };
 
 BoardAnalyser.prototype._findBrothers = function () {
@@ -654,7 +663,7 @@ BoardAnalyser.prototype._colorVoids = function () {
     }
 };
 
-BoardAnalyser.prototype.finalCounting = function () {
+BoardAnalyser.prototype._finalCounting = function () {
     this._findDameVoids();
     this._colorVoids();
 
