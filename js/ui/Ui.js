@@ -1,12 +1,12 @@
 'use strict';
 
-var main = require('./main');
+var main = require('../main');
 
-var Ai1Player = require('./ai/Ai1Player');
+var Ai1Player = require('../ai/Ai1Player');
 var Dome = require('./Dome');
-var GameLogic = require('./GameLogic');
-var Grid = require('./Grid');
-var ScoreAnalyser = require('./ScoreAnalyser');
+var GameLogic = require('../GameLogic');
+var Grid = require('../Grid');
+var ScoreAnalyser = require('../ScoreAnalyser');
 
 var WGo = window.WGo;
 

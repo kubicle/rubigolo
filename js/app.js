@@ -14,8 +14,8 @@ require('./test/TestAll');
 
 main.debug = false;
 
-var Ui = require('./Ui');
-var TestUi = require('./TestUi');
+var Ui = require('./ui/Ui');
+var TestUi = require('./ui/TestUi');
 
 var ui = window.unitTest ? new TestUi() : new Ui();
 ui.createUi();
