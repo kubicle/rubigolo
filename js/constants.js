@@ -12,3 +12,7 @@ main.WHITE = 1;
 main.sOK = 0;
 main.sINVALID = -1;
 main.sBLUNDER = -2;
+
+main.NEVER = 0;
+main.DEPENDS = 1; // depends who plays first
+main.ALWAYS = 2;
