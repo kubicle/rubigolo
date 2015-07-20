@@ -12,6 +12,9 @@ var WGo = window.WGo;
 
 var WHITE = main.WHITE, BLACK = main.BLACK, EMPTY = main.EMPTY;
 
+var viewportWidth = document.documentElement.clientWidth;
+var pixelRatio = window.devicePixelRatio || 1;
+
 
 function Ui(game) {
     this.gsize = 9;
@@ -26,7 +29,7 @@ module.exports = Ui;
 
 
 Ui.prototype.createBoard = function () {
-    if (this.boardSize === this.gsize) return; // already have the right board
+    if (this.board && this.boardSize === this.gsize) return; // already have the right board
     this.boardSize = this.gsize;
     this.boardElt.clear();
     var config = { size: this.gsize, width: this.boardWidth, section: { top: -0.5, left: -0.5, right: -0.5, bottom: -0.5 } };
@@ -114,11 +117,10 @@ Ui.prototype.refreshHistory = function () {
         txt += num + ': ' + color + '-' + moves[i] + '<br>';
     }
     this.historyElt.setHtml(txt);
+    this.historyElt.elt.scrollTop = this.historyElt.elt.scrollHeight;
 };
 
 Ui.prototype.createUi = function () {
-    this.createGameUi('main', document.body, 'Rubigolo');
-    this.createBoard(); // TODO: replace by png or any other decoration
     this.newGameDialog();
 };
 
@@ -130,109 +132,98 @@ Ui.prototype.loadFromTest = function (parent, testName, msg) {
 };
 
 Ui.prototype.createGameUi = function (layout, parent, title, descr) {
-    if (title) new Dome(parent, 'h1', 'pageTitle').setText(title);
-    var gameDiv = new Dome(parent, 'div', 'gameUi');
-    var boardHist = new Dome(gameDiv, 'div');
-    this.boardElt = new Dome(boardHist, 'div', 'board');
-    if (descr) this.boardDesc = new Dome(boardHist, 'div', 'boardDesc').setText(descr);
-    if (layout === 'main') this.historyElt = new Dome(boardHist, 'div', 'logBox historyBox');
-    this.controlElt = new Dome(gameDiv, 'div', 'controls');
-    this.output = new Dome(gameDiv, 'div', 'logBox outputBox');
+    var isCompact = layout === 'compact';
+    var gameDiv = this.gameDiv = Dome.newDiv(parent, 'gameUi');
 
-    this.boardWidth = layout === 'compact' ? (this.game.goban.gsize + 2) * 28 : 600;
+    if (title) gameDiv.newDiv(isCompact ? 'testTitle' : 'pageTitle').setText(title);
+    this.boardElt = gameDiv.newDiv('board');
+    if (descr) this.boardDesc = gameDiv.newDiv('boardDesc').setText(descr);
+    this.controlElt = gameDiv.newDiv('controls');
+
+    var logDiv = gameDiv.newDiv('logDiv');
+    this.output = logDiv.newDiv('logBox outputBox');
+    if (!isCompact) this.historyElt = logDiv.newDiv('logBox historyBox');
+
+    var width = this.game.goban.gsize + 2; // width in stones
+    this.boardWidth = isCompact ? width * 28 : viewportWidth;
+    this.boardWidth = Math.min(this.boardWidth, width * 60);
     this.createControls();
 };
 
-Ui.prototype.newGameDialog = function () {
-    this.setVisible('ALL', false);
-    var dialog = new Dome(document.body, 'div', 'newGameDialog');
-    var form = new Dome(dialog, 'form');
-    form.setAttribute('action',' ');
-    var options = new Dome(form, 'div');
+Ui.prototype.resetUi = function () {
+    if (!this.gameDiv) return;
+    this.gameDiv.clear();
+    this.gameDiv = null;
+    this.board = null;
+};
 
-    var sizeBox = new Dome(options, 'div');
+Ui.prototype.newGameDialog = function () {
+    this.resetUi();
+    var dialog = Dome.newDiv(document.body, 'newGameBackground');
+    var frame = dialog.newDiv('newGameDialog');
+    frame.newDiv('dialogTitle').setText('Start a new game');
+    var form = new Dome(frame, 'form').setAttribute('action',' ');
+
+    var options = form.newDiv();
+    var sizeBox = options.newDiv();
     Dome.newLabel(sizeBox, 'input', 'Size:');
     var sizeElt = Dome.newRadio(sizeBox, 'size', [5,7,9,13,19], null, this.gsize);
 
     var handicap = Dome.newInput(options, 'handicap', 'Handicap', this.handicap);
 
-    var aiColorBox = new Dome(options, 'div');
+    var aiColorBox = options.newDiv();
     Dome.newLabel(aiColorBox, 'input', 'AI plays:');
     var aiColor = Dome.newRadio(aiColorBox, 'aiColor', ['white', 'black', 'both', 'none'], null, this.aiPlays);
 
     var moves = Dome.newInput(form, 'moves', 'Moves to load');
     var self = this;
-    var okBtn = Dome.newButton(form, 'gameButton start', 'OK', function (ev) {
+    var okBtn = Dome.newButton(form.newDiv('btnDiv'), 'start', 'OK', function (ev) {
         ev.preventDefault();
         self.gsize = ~~Dome.getRadioValue(sizeElt);
         self.handicap = parseInt(handicap.value()) || 0;
         self.aiPlays = Dome.getRadioValue(aiColor);
 
-        self.setVisible('ALL', true);
         self.startGame(moves.value());
         Dome.deleteChild(document.body, dialog);
     });
     okBtn.setAttribute('type','submit');
 };
 
-Ui.prototype.newButton = function (name, label, action) {
-    this.ctrl[name] = Dome.newButton(this.mainButtons, 'gameButton ' + name, label, action);
-};
-Ui.prototype.newTestButton = function (name, label, action) {
-    this.ctrl[name] = Dome.newButton(this.testButtons, 'gameButton ' + name, label, action);
-};
-
 Ui.prototype.createControls = function () {
-    this.ctrl = {};
-    this.mainButtons = new Dome(this.controlElt, 'div');
-    this.testButtons = new Dome(this.controlElt, 'div', 'testControls');
+    this.controls = Dome.newGroup();
+    this.mainBtn = this.controlElt.newDiv('mainControls');
+    this.testBtn = this.controlElt.newDiv('testControls');
     var self = this;
-    this.newButton('pass', 'Pass', function () { self.playerMove('pass'); });
-    this.newButton('next', 'Next', function () { self.letNextPlayerPlay(); });
-    this.newButton('next10', 'Next 10', function () { self.automaticAiPlay(10); });
-    this.newButton('nextAll', 'Finish', function () { self.automaticAiPlay(); });
-    this.newButton('undo', 'Undo', function () { self.playUndo(); });
-    this.newButton('resi', 'Resign', function () { self.playerResigns(); });
-    this.newButton('accept', 'Accept', function () { self.acceptScore(true); });
-    this.newButton('refuse', 'Refuse', function () { self.acceptScore(false); });
-    this.newButton('newg', 'New game', function () { self.newGameDialog(); });
+    Dome.newButton(this.mainBtn, '#pass', 'Pass', function () { self.playerMove('pass'); });
+    Dome.newButton(this.mainBtn, '#next', 'Next', function () { self.letNextPlayerPlay(); });
+    Dome.newButton(this.mainBtn, '#next10', 'Next 10', function () { self.automaticAiPlay(10); });
+    Dome.newButton(this.mainBtn, '#nextAll', 'Finish', function () { self.automaticAiPlay(); });
+    Dome.newButton(this.mainBtn, '#undo', 'Undo', function () { self.playUndo(); });
+    Dome.newButton(this.mainBtn, '#resi', 'Resign', function () { self.playerResigns(); });
+    Dome.newButton(this.mainBtn, '#accept', 'Accept', function () { self.acceptScore(true); });
+    Dome.newButton(this.mainBtn, '#refuse', 'Refuse', function () { self.acceptScore(false); });
+    Dome.newButton(this.mainBtn, '#newg', 'New game', function () { self.newGameDialog(); });
 
-    this.newTestButton('evalMode', 'Eval mode', function () {
+    Dome.newButton(this.testBtn, '#evalMode', 'Eval mode', function () {
         self.inEvalMode = !self.inEvalMode;
-        self.setEnabled('ALL', !self.inEvalMode, ['evalMode','undo','next','pass']);
-        self.ctrl.evalMode.toggleClass('toggled', self.inEvalMode);
+        self.controls.setEnabled('ALL', !self.inEvalMode, ['evalMode','undo','next','pass']);
+        self.controls.get('evalMode').toggleClass('toggled', self.inEvalMode);
         main.debug = true;
         main.log.level = main.Logger.DEBUG;
     });
-    this.newTestButton('score', 'Score test', function () { self.scoreTest(); });
-    this.newTestButton('territory', 'Territory test', function () { self.territoryTest(); });
+    Dome.newButton(this.testBtn, '#score', 'Score test', function () { self.scoreTest(); });
+    Dome.newButton(this.testBtn, '#territory', 'Territory test', function () { self.territoryTest(); });
 };
 
 Ui.prototype.toggleControls = function () {
     var inGame = !(this.game.gameEnded || this.game.gameEnding);
     var auto = this.aiPlays === 'both';
 
-    this.setVisible(['accept', 'refuse'], this.game.gameEnding);
-    this.setVisible(['undo'], inGame);
-    this.setVisible(['pass', 'resi'], inGame && !auto);
-    this.setVisible(['next', 'next10', 'nextAll'], inGame && auto);
-    this.setVisible(['newg'], this.game.gameEnded);
-};
-
-Ui.prototype.setEnabled = function (names, enabled, except) {
-    if (names === 'ALL') names = Object.keys(this.ctrl);
-    for (var i = 0; i < names.length; i++) {
-        if (except && except.indexOf(names[i]) !== -1) continue;
-        this.ctrl[names[i]].setEnabled(enabled);
-    }
-};
-
-Ui.prototype.setVisible = function (names, show, except) {
-    if (names === 'ALL') names = Object.keys(this.ctrl);
-    for (var i = 0; i < names.length; i++) {
-        if (except && except.indexOf(names[i]) !== -1) continue;
-        this.ctrl[names[i]].setVisible(show);
-    }
+    this.controls.setVisible(['accept', 'refuse'], this.game.gameEnding);
+    this.controls.setVisible(['undo'], inGame);
+    this.controls.setVisible(['pass', 'resi'], inGame && !auto);
+    this.controls.setVisible(['next', 'next10', 'nextAll'], inGame && auto);
+    this.controls.setVisible(['newg'], this.game.gameEnded);
 };
 
 Ui.prototype.message = function (html, append) {
@@ -251,7 +242,6 @@ Ui.prototype.createPlayers = function () {
         this.players[WHITE] = new Ai1Player(this.game.goban, WHITE);
         this.playerIsAi[WHITE] = true;
     }
-    this.message('Game started. Your turn...'); // erased if moved are played
 };
 
 Ui.prototype.getAiPlayer = function (color) {
@@ -271,12 +261,15 @@ Ui.prototype.startGame = function (firstMoves, isLoaded) {
     this.handicap = game.handicap;
 
     this.createPlayers();
+    if (!this.gameDiv) this.createGameUi('main', document.body, 'Rubigolo');
     this.toggleControls();
     this.createBoard();
     this.refreshBoard();
 
     if (isLoaded) return;
     if (firstMoves && this.checkEnd()) return;
+
+    this.message('Game started. Your turn...'); // erased if a move is played below
     this.letNextPlayerPlay();
 };
 

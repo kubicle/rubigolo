@@ -1,5 +1,7 @@
 'use strict';
 
+require('./ui/style.less');
+
 var main = require('./main');
 window.main = main;
 

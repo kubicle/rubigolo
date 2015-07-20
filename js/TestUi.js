@@ -1,13 +1,14 @@
 'use strict';
 
 var main = require('./main');
+var Dome = require('./Dome');
 var Ui = require('./Ui');
 
 var Logger = main.Logger;
 
 
 function TestUi() {
-    this.ctrl = {};
+    this.controls = Dome.newGroup();
     main.debug = false;
     main.log.level = Logger.INFO;
     window.testUi = this;
@@ -20,7 +21,7 @@ TestUi.prototype.enableButtons = function (enabled) {
 };
 
 TestUi.prototype.runTest = function (name) {
-    this.output.textContent = '';
+    this.output.setText('');
 
     var specificClass;
     if (name === 'TestAll' || name === 'TestSpeed') {
@@ -31,32 +32,40 @@ TestUi.prototype.runTest = function (name) {
     }
     var self = this;
     main.tests.run(function (lvl, msg) { return self.logfn(lvl, msg); }, specificClass);
-    this.enableButtons(true);
+    this.controls.setEnabled('ALL', true);
 };
 
 TestUi.prototype.initTest = function (name) {
-    this.output.textContent = 'Running unit test "' + name + '"...';
-    this.errors.textContent = '';
-    this.gameDiv.innerHTML = '';
-    this.enableButtons(false);
+    this.output.setText('Running unit test "' + name + '"...');
+    this.errors.setText('');
+    this.gameDiv.clear();
+    this.controls.setEnabled('ALL', false);
     var self = this;
     return window.setTimeout(function () { self.runTest(name); }, 50);
 };
 
-TestUi.prototype.newButton = function (name, label) {
-    var btn = this.ctrl[name] = document.createElement('button');
-    btn.className = 'testButton';
-    btn.innerText = label;
-    var self = this;
-    btn.addEventListener('click', function () { self.initTest(name); });
-    this.controlElt.appendChild(btn);
-};
+//TODO: checkbox to toggle debug logs
+// main.debug = true;
+// main.log.level = Logger.DEBUG;
 
 TestUi.prototype.logfn = function (lvl, msg) {
     msg = msg.replace(/\n/g, '<br>').replace(/ /g, '&nbsp;') + '<br>';
-    if (lvl >= Logger.WARN) this.errors.innerHTML += msg;
-    else if (lvl > Logger.DEBUG) this.output.innerHTML += msg;
+    if (lvl >= Logger.WARN) this.errors.setHtml(this.errors.html() + msg);
+    else if (lvl > Logger.DEBUG) this.output.setHtml(this.output.html() + msg);
     return true; // also log in console
+};
+
+TestUi.prototype.createUi = function () {
+    var testDiv = Dome.newDiv(document.body, 'testUi');
+    testDiv.newDiv('pageTitle').setText('Rubigolo - Tests');
+    this.controlElt = testDiv.newDiv('controls');
+    testDiv.newDiv('subTitle').setText('Result');
+    this.output = testDiv.newDiv('logBox testOutputBox');
+    testDiv.newDiv('subTitle').setText('Errors');
+    this.errors = testDiv.newDiv('logBox testErrorBox');
+    this.gameDiv = testDiv.newDiv('gameDiv');
+
+    this.createControls();
 };
 
 TestUi.prototype.createControls = function () {
@@ -67,23 +76,9 @@ TestUi.prototype.createControls = function () {
     this.newButton('TestAi', 'AI');
 };
 
-function newElement(parent, type, className) {
-    var elt = parent.appendChild(document.createElement(type));
-    if (className) elt.className = className;
-    return elt;
-}
-
-TestUi.prototype.createUi = function () {
-    newElement(document.body, 'h1', 'pageTitle').textContent = 'Rubigolo - Tests';
-    var testDiv = newElement(document.body, 'div', 'testUi');
-    this.controlElt = newElement(testDiv, 'div', 'controls');
-    newElement(testDiv, 'h2').textContent = 'Result';
-    this.output = newElement(testDiv, 'div', 'logBox testOutputBox');
-    newElement(testDiv, 'h2').textContent = 'Errors';
-    this.errors = newElement(testDiv, 'div', 'logBox testErrorBox');
-    this.gameDiv = newElement(testDiv, 'div');
-
-    this.createControls();
+TestUi.prototype.newButton = function (name, label) {
+    var self = this;
+    Dome.newButton(this.controlElt, '#' + name, label, function () { self.initTest(name); });
 };
 
 TestUi.prototype.showTestGame = function (title, msg, game) {
