@@ -6,7 +6,7 @@ var main = require('./main');
 window.main = main;
 
 // Constants attached to main and extensions of common classes
-require('./StoneConstants');
+require('./constants');
 require('./rb');
 
 // Include tests in main build
