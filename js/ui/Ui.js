@@ -120,6 +120,7 @@ Ui.prototype.refreshHistory = function () {
     this.historyElt.elt.scrollTop = this.historyElt.elt.scrollHeight;
 };
 
+/** This is the entry point for starting the app */
 Ui.prototype.createUi = function () {
     this.newGameDialog();
 };
@@ -138,7 +139,7 @@ Ui.prototype.createGameUi = function (layout, parent, title, descr) {
     if (title) gameDiv.newDiv(isCompact ? 'testTitle' : 'pageTitle').setText(title);
     this.boardElt = gameDiv.newDiv('board');
     if (descr) this.boardDesc = gameDiv.newDiv('boardDesc').setText(descr);
-    this.controlElt = gameDiv.newDiv('controls');
+    this.createControls(gameDiv);
 
     var logDiv = gameDiv.newDiv('logDiv');
     this.output = logDiv.newDiv('logBox outputBox');
@@ -147,7 +148,6 @@ Ui.prototype.createGameUi = function (layout, parent, title, descr) {
     var width = this.game.goban.gsize + 2; // width in stones
     this.boardWidth = isCompact ? width * 28 : viewportWidth;
     this.boardWidth = Math.min(this.boardWidth, width * 60);
-    this.createControls();
 };
 
 Ui.prototype.resetUi = function () {
@@ -160,22 +160,22 @@ Ui.prototype.resetUi = function () {
 Ui.prototype.newGameDialog = function () {
     this.resetUi();
     var dialog = Dome.newDiv(document.body, 'newGameBackground');
-    var frame = dialog.newDiv('newGameDialog');
+    var frame = dialog.newDiv('newGameDialog dialog');
     frame.newDiv('dialogTitle').setText('Start a new game');
     var form = new Dome(frame, 'form').setAttribute('action',' ');
 
     var options = form.newDiv();
     var sizeBox = options.newDiv();
-    Dome.newLabel(sizeBox, 'input', 'Size:');
+    Dome.newLabel(sizeBox, 'inputLbl', 'Size:');
     var sizeElt = Dome.newRadio(sizeBox, 'size', [5,7,9,13,19], null, this.gsize);
 
-    var handicap = Dome.newInput(options, 'handicap', 'Handicap', this.handicap);
+    var handicap = Dome.newInput(options, 'handicap', 'Handicap:', this.handicap);
 
     var aiColorBox = options.newDiv();
-    Dome.newLabel(aiColorBox, 'input', 'AI plays:');
+    Dome.newLabel(aiColorBox, 'inputLbl', 'AI plays:');
     var aiColor = Dome.newRadio(aiColorBox, 'aiColor', ['white', 'black', 'both', 'none'], null, this.aiPlays);
 
-    var moves = Dome.newInput(form, 'moves', 'Moves to load');
+    var moves = Dome.newInput(form, 'moves', 'Moves to load:');
     var self = this;
     var okBtn = Dome.newButton(form.newDiv('btnDiv'), 'start', 'OK', function (ev) {
         ev.preventDefault();
@@ -189,8 +189,9 @@ Ui.prototype.newGameDialog = function () {
     okBtn.setAttribute('type','submit');
 };
 
-Ui.prototype.createControls = function () {
+Ui.prototype.createControls = function (parentDiv) {
     this.controls = Dome.newGroup();
+    this.controlElt = parentDiv.newDiv('controls');
     this.mainBtn = this.controlElt.newDiv('mainControls');
     this.testBtn = this.controlElt.newDiv('testControls');
     var self = this;

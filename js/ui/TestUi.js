@@ -72,14 +72,14 @@ TestUi.prototype.createControls = function (parentDiv) {
 
 TestUi.prototype.createUi = function () {
     var testDiv = Dome.newDiv(document.body, 'testUi');
+    this.gameDiv = Dome.newDiv(document.body, 'gameDiv');
     testDiv.newDiv('pageTitle').setText('Rubigolo - Tests');
     this.createControls(testDiv);
-    this.namePattern = Dome.newInput(testDiv, 'namePattern', 'Test name pattern');
+    this.namePattern = Dome.newInput(testDiv, 'namePattern', 'Test name pattern:');
     testDiv.newDiv('subTitle').setText('Result');
     this.output = testDiv.newDiv('logBox testOutputBox');
     testDiv.newDiv('subTitle').setText('Errors');
     this.errors = testDiv.newDiv('logBox testErrorBox');
-    this.gameDiv = Dome.newDiv(document.body, 'gameDiv');
 };
 
 TestUi.prototype.showTestGame = function (title, msg, game) {

@@ -62,12 +62,13 @@ Dome.newButton = function (parent, name, label, action) {
 
 /** A label is a span = helps to write text on the left of an element */
 Dome.newLabel = function (parent, name, label) {
-    return new Dome(parent, 'span', name + 'Label', name).setText(label);
+    return new Dome(parent, 'span', name, name).setText(label);
 };
 
 Dome.newInput = function (parent, name, label, init) {
-    Dome.newLabel(parent, name + 'Label input', label + ':', name + 'Label');
-    var input = new Dome(parent, 'input', name + 'Input', name);
+    var labelName = name + 'Label';
+    Dome.newLabel(parent, labelName + ' inputLbl', label, labelName);
+    var input = new Dome(parent, 'input', name + 'Input inputBox', name);
     if (init !== undefined) input.elt.value = init;
     return input;
 };
@@ -77,14 +78,14 @@ Dome.newRadio = function (parent, name, labels, values, init) {
     if (!values) values = labels;
     var opts = [];
     for (var i = 0; i < labels.length; i++) {
-        var input = opts[i] = new Dome(parent, 'input', name + 'RadioBtn', name);
+        var input = opts[i] = new Dome(parent, 'input', name + 'RadioBtn radioBtn', name);
         var inp = input.elt;
         inp.type = 'radio';
         inp.name = name;
         inp.value = values[i];
         inp.id = name + 'Radio' + values[i];
         if (values[i] === init) inp.checked = true;
-        var label = new Dome(parent, 'label', name + 'RadioLabel', name).elt;
+        var label = new Dome(parent, 'label', name + 'RadioLabel radioLbl', name).elt;
         label.textContent = labels[i];
         label.setAttribute('for', inp.id);
     }
