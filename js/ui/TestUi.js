@@ -8,7 +8,6 @@ var Logger = main.Logger;
 
 
 function TestUi() {
-    this.controls = Dome.newGroup();
     main.debug = false;
     main.log.level = Logger.INFO;
     window.testUi = this;
@@ -31,7 +30,8 @@ TestUi.prototype.runTest = function (name) {
         specificClass = name;
     }
     var self = this;
-    main.tests.run(function (lvl, msg) { return self.logfn(lvl, msg); }, specificClass);
+    var logfn = function (lvl, msg) { return self.logfn(lvl, msg); };
+    main.tests.run(logfn, specificClass, this.namePattern.value());
     this.controls.setEnabled('ALL', true);
 };
 
@@ -55,20 +55,14 @@ TestUi.prototype.logfn = function (lvl, msg) {
     return true; // also log in console
 };
 
-TestUi.prototype.createUi = function () {
-    var testDiv = Dome.newDiv(document.body, 'testUi');
-    testDiv.newDiv('pageTitle').setText('Rubigolo - Tests');
-    this.controlElt = testDiv.newDiv('controls');
-    testDiv.newDiv('subTitle').setText('Result');
-    this.output = testDiv.newDiv('logBox testOutputBox');
-    testDiv.newDiv('subTitle').setText('Errors');
-    this.errors = testDiv.newDiv('logBox testErrorBox');
-    this.gameDiv = testDiv.newDiv('gameDiv');
-
-    this.createControls();
+TestUi.prototype.newButton = function (name, label) {
+    var self = this;
+    Dome.newButton(this.controlElt, '#' + name, label, function () { self.initTest(name); });
 };
 
-TestUi.prototype.createControls = function () {
+TestUi.prototype.createControls = function (parentDiv) {
+    this.controls = Dome.newGroup();
+    this.controlElt = parentDiv.newDiv('controls');
     this.newButton('TestAll', 'Test All');
     this.newButton('TestSpeed', 'Speed');
     this.newButton('TestBoardAnalyser', 'Scoring');
@@ -76,9 +70,16 @@ TestUi.prototype.createControls = function () {
     this.newButton('TestAi', 'AI');
 };
 
-TestUi.prototype.newButton = function (name, label) {
-    var self = this;
-    Dome.newButton(this.controlElt, '#' + name, label, function () { self.initTest(name); });
+TestUi.prototype.createUi = function () {
+    var testDiv = Dome.newDiv(document.body, 'testUi');
+    testDiv.newDiv('pageTitle').setText('Rubigolo - Tests');
+    this.createControls(testDiv);
+    this.namePattern = Dome.newInput(testDiv, 'namePattern', 'Test name pattern');
+    testDiv.newDiv('subTitle').setText('Result');
+    this.output = testDiv.newDiv('logBox testOutputBox');
+    testDiv.newDiv('subTitle').setText('Errors');
+    this.errors = testDiv.newDiv('logBox testErrorBox');
+    this.gameDiv = testDiv.newDiv('gameDiv');
 };
 
 TestUi.prototype.showTestGame = function (title, msg, game) {

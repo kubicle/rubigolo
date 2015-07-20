@@ -66,10 +66,11 @@ TestSeries.prototype.add = function (klass) {
   return klass;
 };
 
-TestSeries.prototype.testOneClass = function (Klass) {
+TestSeries.prototype.testOneClass = function (Klass, methodPattern) {
   for (var method in Klass.prototype) {
     if (typeof Klass.prototype[method] !== 'function') continue;
     if (method.substr(0,4) !== 'test') continue;
+    if (methodPattern && method.indexOf(methodPattern) === -1) continue;
     this.testCount++;
     var test = new Klass(Klass.name + '#' + method);
     try {
@@ -87,7 +88,7 @@ TestSeries.prototype.testOneClass = function (Klass) {
   }
 };
 
-TestSeries.prototype.run = function (logfunc, specificClass) {
+TestSeries.prototype.run = function (logfunc, specificClass, methodPattern) {
   main.log.setLogFunc(logfunc);
   main.assertCount = main.count = 0;
   var startTime = Date.now();
@@ -97,7 +98,7 @@ TestSeries.prototype.run = function (logfunc, specificClass) {
     if (specificClass && t !== specificClass) continue;
     classCount++;
     var Klass = this.testCases[t];
-    this.testOneClass(Klass);
+    this.testOneClass(Klass, methodPattern);
   }
   var duration = ((Date.now() - startTime) / 1000).toFixed(2);
   var report = 'Completed tests. (' + classCount + ' classes, ' + this.testCount + ' tests, ' +
