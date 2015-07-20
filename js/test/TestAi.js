@@ -144,7 +144,7 @@ TestAi.prototype.testCornerEyeMaking = function () {
 
 TestAi.prototype.testNoPushFromDeadGroup = function () {
     // white group is dead so pusher should not speak up here
-    this.checkBasicGame('b3,d3,c2,c3,b2,d2,c4,c1,d4,e4,d5,b1,e5,e3,b4,d1,pass', 'a1'); //FIXME NOT a1
+    this.checkBasicGame('b3,d3,c2,c3,b2,d2,c4,c1,d4,e4,d5,b1,e5,e3,b4,d1,pass', 'pass');
 };
 
 TestAi.prototype.testWrongSavior = function () {
