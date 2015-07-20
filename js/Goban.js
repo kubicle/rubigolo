@@ -101,33 +101,32 @@ Goban.prototype.loadImage = function (image) {
     }
 };
 
+Goban.prototype.getAllGroups = function () {
+    var groups = {};
+    for (var j = this.gsize; j >= 1; j--) {
+        for (var i = this.gsize; i >= 1; i--) {
+            var group = this.ban[j][i].group;
+            if (group) groups[group.ndx] = group;
+        }
+    }
+    return groups;
+};
+
 // For debugging only
 Goban.prototype.debugDisplay = function () {
     console.log('Board:');
-    console.log(this.grid.toText(function (s) {
-        return Grid.colorToChar(s.color);
-    }));
+    console.log(this.grid.toText(function (s) { return Grid.colorToChar(s.color); }));
     console.log('Groups:');
-    console.log(this.grid.toText(function (s) {
-        if (s.group) {
-            return '' + s.group.ndx;
-        } else {
-            return '.';
-        }
-    }));
+    console.log(this.grid.toText(function (s) { return s.group ? '' + s.group.ndx : '.'; }));
     console.log('Full info on groups and stones:');
     var groups = {};
     for (var row, row_array = this.grid.yx, row_ndx = 0; row=row_array[row_ndx], row_ndx < row_array.length; row_ndx++) {
         for (var s, s_array = row, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
-            if (s && s.group) {
-                groups[s.group.ndx] = s.group;
-            }
+            if (s && s.group) groups[s.group.ndx] = s.group;
         }
     }
     for (var ndx = 1; ndx <= this.numGroups; ndx++) {
-        if (groups[ndx]) {
-            console.log(groups[ndx].debugDump());
-        }
+        if (groups[ndx]) console.log(groups[ndx].debugDump());
     }
 };
 
