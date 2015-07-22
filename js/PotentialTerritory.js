@@ -7,6 +7,7 @@ var Stone = require('./Stone');
 var BoardAnalyser = require('./BoardAnalyser');
 
 var EMPTY = main.EMPTY, BLACK = main.BLACK, WHITE = main.WHITE;
+var NEVER = main.NEVER;
 
 var POT2CHAR = Grid.territory2char;
 var POT2OWNER = Grid.territory2owner;
@@ -35,25 +36,24 @@ module.exports = PotentialTerritory;
 // +1: definitely white, -1: definitely black
 // Values in between are possible too.
 PotentialTerritory.prototype.guessTerritories = function () {
+    this._initGroupState();
     // update real grid to current goban
     this.realGrid.initFromGoban(this.goban);
     // evaluate 2 "scenarios" - each player plays everywhere *first*
-    for (var first = BLACK; first <= WHITE; first++) {
-        this._foresee(this.grids[first], first, 1 - first);
-    }
+    this._foresee(this.grids[BLACK], BLACK, WHITE);
+    this._foresee(this.grids[WHITE], WHITE, BLACK);
     // now merge the result
+    var blackYx = this.grids[BLACK].yx;
+    var whiteYx = this.grids[WHITE].yx;
+    var resultYx = this.territory.yx;
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
-            var owner = 0;
-            for (first = BLACK; first <= WHITE; first++) {
-                owner += POT2OWNER[2 + this.grids[first].yx[j][i]];
-            }
-            this.territory.yx[j][i] = owner / 2.0;
+            resultYx[j][i] = (POT2OWNER[2 + blackYx[j][i]] + POT2OWNER[2 + whiteYx[j][i]]) / 2;
         }
     }
     if (main.debug) main.log.debug('Guessing territory for:\n' + this.realGrid +
         '\nBLACK first:\n' + this.grids[BLACK] + 'WHITE first:\n' + this.grids[WHITE] + this);
-    return this.territory.yx;
+    return resultYx;
 };
 
 PotentialTerritory.prototype.potential = function () {
@@ -76,9 +76,43 @@ PotentialTerritory.prototype._grid = function (first) {
 };
 
 PotentialTerritory.prototype._foresee = function (grid, first, second) {
+    var moveCount = this.goban.moveNumber();
+
+    // passed grid will receive the result (scoring grid)
+    this._connectThings(grid, first, second);
+    this.boan.analyse(first, this.goban, grid.initFromGoban(this.goban));
+    this._collectGroupState();
+
+    // restore goban
+    moveCount = this.goban.moveNumber() - moveCount;
+    while (moveCount-- > 0) Stone.undo(this.goban);
+};
+
+PotentialTerritory.prototype._initGroupState = function () {
+    this.allGroups = this.goban.getAllGroups();
+    for (var ndx in this.allGroups) {
+        var g = this.allGroups[ndx];
+        g.isAlive = g.isDead = NEVER;
+    }
+};
+
+PotentialTerritory.prototype._collectGroupState = function () {
+    for (var ndx in this.allGroups) {
+        var g0 = this.allGroups[ndx], gn = g0;
+        // follow merge history to get final group g0 ended up into
+        while (gn.mergedWith) gn = gn.mergedWith;
+        // collect state of final group
+        if (gn.killedBy || gn._info.isDead) {
+            g0.isDead++;
+        } else if (gn._info.isAlive) {
+            g0.isAlive++;
+        }
+    }
+};
+
+PotentialTerritory.prototype._connectThings = function (grid, first, second) {
     this.tmp = this.territory; // safe to use it as temp grid here
     this.reducedYx = null;
-    var moveCount = this.goban.moveNumber();
     // enlarging starts with real grid
     this.enlarge(this.realGrid, this.tmp.copy(this.realGrid), first, second);
     this.enlarge(this.tmp, grid.copy(this.tmp), second, first);
@@ -97,12 +131,6 @@ PotentialTerritory.prototype._foresee = function (grid, first, second) {
     if (main.debug) main.log.debug('after 2nd enlarge (before connectToBorders):\n' + grid);
     this.connectToBorders(grid.yx);
     if (main.debug) main.log.debug('after connectToBorders:\n' + grid);
-
-    // passed grid will receive the result (scoring grid)
-    this.boan.countScore(this.goban, grid.initFromGoban(this.goban));
-    // restore goban
-    moveCount = this.goban.moveNumber() - moveCount;
-    while (moveCount-- > 0) Stone.undo(this.goban);
 };
 
 PotentialTerritory.prototype.enlarge = function (inGrid, outGrid, first, second) {
