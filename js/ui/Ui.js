@@ -138,7 +138,7 @@ Ui.prototype.createGameUi = function (layout, parent, title, descr) {
 
     if (title) gameDiv.newDiv(isCompact ? 'testTitle' : 'pageTitle').setText(title);
     this.boardElt = gameDiv.newDiv('board');
-    if (descr) this.boardDesc = gameDiv.newDiv('boardDesc').setText(descr);
+    if (descr) this.boardDesc = gameDiv.newDiv('boardDesc').setHtml(descr);
     this.createControls(gameDiv);
 
     var logDiv = gameDiv.newDiv('logDiv');

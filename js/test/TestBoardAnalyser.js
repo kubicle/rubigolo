@@ -25,18 +25,21 @@ TestBoardAnalyser.prototype.initBoard = function (gsize, handicap) {
     this.goban = this.game.goban;
 };
 
-TestBoardAnalyser.prototype.checkBasicGame = function (moves, score, gsize, finalPos) {
+TestBoardAnalyser.prototype.checkBasicGame = function (moves, expScore, gsize, finalPos) {
     this.initBoard(gsize || 5);
     if ('+O@'.indexOf(moves[0]) !== -1) {
         this.goban.loadImage(moves); // an image, not the list of moves
     } else {
         this.game.loadMoves(moves);
     }
+    if (finalPos) assertEqual(finalPos, this.goban.image());
     this.boan = new BoardAnalyser();
     this.boan.countScore(this.goban);
 
-    assertEqual(score, this.goban.scoringGrid.image());
-    if (finalPos) assertEqual(finalPos, this.goban.image());
+    var score = this.goban.scoringGrid.image();
+    if (score === expScore) return;
+    this.showInUi('Expected scoring grid was:<br>' + expScore + ' but we got:<br>' + score);
+    assertEqual(expScore, score);
 };
 
 TestBoardAnalyser.prototype.checkScore = function (prisoners, dead, score) {
@@ -47,6 +50,17 @@ TestBoardAnalyser.prototype.checkScore = function (prisoners, dead, score) {
     assertEqual(dead[WHITE], futurePrisoners[WHITE] - prisoners[WHITE], 'WHITE dead');
 
     return assertEqual(score, this.boan.scores);
+};
+
+TestBoardAnalyser.prototype.showInUi = function (msg) {
+    window.testUi.showTestGame(this.name, msg, this.game);
+};
+
+
+TestBoardAnalyser.prototype.testClearWinWithUnplayedMoves = function () {
+    // Black wins clearly because he can make 2 eyes while white cannot.
+    this.checkBasicGame('b3,d3,c2,c3,b2,d2,c4,c1,d4,e4,d5,b1,e5,e3,b4,d1',
+        '---@@,-@@@#,-@###,-@@#-,-###-');
 };
 
 TestBoardAnalyser.prototype.testSeeTwoGroupsSharingSingleEyeAreDead = function () {
