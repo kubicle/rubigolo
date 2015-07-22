@@ -145,14 +145,15 @@ Ui.prototype.createGameUi = function (layout, parent, title, descr) {
     this.output = logDiv.newDiv('logBox outputBox');
     if (!isCompact) this.historyElt = logDiv.newDiv('logBox historyBox');
 
+    // width adjustments
     var width = this.game.goban.gsize + 2; // width in stones
-    this.boardWidth = isCompact ? width * 28 : viewportWidth;
-    this.boardWidth = Math.min(this.boardWidth, width * 60);
+    this.boardWidth = isCompact ? width * 28 : Math.min(width * 60, viewportWidth);
+    if (!isCompact) this.controlElt.setAttribute('style', 'max-width:' + this.boardWidth + 'px');
 };
 
 Ui.prototype.resetUi = function () {
     if (!this.gameDiv) return;
-    this.gameDiv.clear();
+    Dome.deleteChild(document.body, this.gameDiv);
     this.gameDiv = null;
     this.board = null;
 };
