@@ -101,7 +101,8 @@ TestSeries.prototype.run = function (logfunc, specificClass, methodPattern) {
     this.testOneClass(Klass, methodPattern);
   }
   var duration = ((Date.now() - startTime) / 1000).toFixed(2);
-  var report = 'Completed tests. (' + classCount + ' classes, ' + this.testCount + ' tests, ' +
+  var classes = specificClass ? 'class ' + specificClass : classCount + ' classes';
+  var report = 'Completed tests. (' + classes + ', ' + this.testCount + ' tests, ' +
     main.assertCount + ' assertions in ' + duration + 's)' +
     ', failed: ' + this.failedCount + ', exceptions: ' + this.errorCount;
   if (main.count) report += ', generic count: ' + main.count;
