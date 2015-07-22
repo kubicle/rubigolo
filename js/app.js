@@ -17,5 +17,5 @@ main.debug = false;
 var Ui = require('./ui/Ui');
 var TestUi = require('./ui/TestUi');
 
-var ui = window.unitTest ? new TestUi() : new Ui();
+var ui = main.ui = window.unitTest ? new TestUi() : new Ui();
 ui.createUi();
