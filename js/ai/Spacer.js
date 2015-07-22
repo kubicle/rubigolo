@@ -1,10 +1,10 @@
 //Translated from spacer.rb using babyruby2js
 'use strict';
 
-var inherits = require('util').inherits;
 var main = require('../main');
-var Grid = require('../Grid');
 var Heuristic = require('./Heuristic');
+var inherits = require('util').inherits;
+
 
 /** @class Tries to occupy empty space + counts when filling up territory */
 function Spacer(player) {
