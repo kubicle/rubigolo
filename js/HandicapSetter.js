@@ -15,31 +15,27 @@ module.exports = HandicapSetter;
 // string examples: "3" or "3=d4-p16-p4" or "d4-p16-p4"
 // Returns the handicap actual count
 HandicapSetter.setHandicap = function (goban, h) {
-    var i, j;
-    if (h === 0 || h === '0') {
-        return 0;
-    }
+    if (h === 0 || h === '0') return 0;
+    
     // Standard handicap?
-    if (main.isA(String, h)) {
-        var eq = h.indexOf('=');
-        if (h[0].between('0', '9') && eq < 0) {
+    var posEqual = -1;
+    if (typeof h === 'string') {
+        posEqual = h.indexOf('=');
+        if (h[0].between('0', '9') && posEqual < 0) {
             h = parseInt(h);
         }
     }
-    if (main.isA('Fixnum', h)) { // e.g. 3
+    if (typeof h === 'number') { // e.g. 3
         return HandicapSetter.setStandardHandicap(goban, h);
     }
     // Could be standard or not but we are given the stones so use them   
-    if (eq) { // "3=d4-p16-p4" would become "d4-p16-p4"
-        h = h.range(eq + 1, -1);
+    if (posEqual !== -1) { // "3=d4-p16-p4" would become "d4-p16-p4"
+        h = h.substring(posEqual + 1);
     }
     var moves = h.split('-');
     for (var move, move_array = moves, move_ndx = 0; move=move_array[move_ndx], move_ndx < move_array.length; move_ndx++) {
-        var _m = Grid.parseMove(move);
-        i = _m[0];
-        j = _m[1];
-        
-        Stone.playAt(goban, i, j, main.BLACK);
+        var coords = Grid.parseMove(move);
+        Stone.playAt(goban, coords[0], coords[1], main.BLACK);
     }
     return moves.length;
 };
@@ -49,12 +45,12 @@ HandicapSetter.setHandicap = function (goban, h) {
 // NB: a handicap of 1 stone does not make sense but we don't really need to care.
 // Returns the handicap actual count (if board is too small it can be smaller than count)
 HandicapSetter.setStandardHandicap = function (goban, count) {
-    // we want middle points only if the board is big enough 
-    // and has an odd number of intersections
     var gsize = goban.gsize;
-    if ((gsize < 9 || gsize % 2 === 0) && count > 4) {
-        count = 4;
-    }
+    // no middle point if size is an even number or size<9
+    if (count > 4 && (gsize < 9 || gsize % 2 === 0)) count = 4;
+    // no handicap on smaller than 5 boards
+    if (gsize <= 5) return 0;
+
     // Compute the distance from the handicap points to the border:
     // on boards smaller than 13, the handicap point is 2 points away from the border
     var distToBorder = (( gsize < 13 ? 2 : 3 ));
@@ -115,5 +111,3 @@ HandicapSetter.setStandardHandicap = function (goban, count) {
     }
     return count;
 };
-
-// E02: unknown method: index(...)
