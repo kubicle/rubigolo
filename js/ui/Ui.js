@@ -3,17 +3,17 @@
 var main = require('../main');
 
 var Ai1Player = require('../ai/Ai1Player');
+var Board = require('./Board');
 var Dome = require('./Dome');
 var GameLogic = require('../GameLogic');
 var Grid = require('../Grid');
+var NewGameDlg = require('./NewGameDlg');
 var ScoreAnalyser = require('../ScoreAnalyser');
 
-var WGo = window.WGo;
-
-var WHITE = main.WHITE, BLACK = main.BLACK, EMPTY = main.EMPTY;
+var WHITE = main.WHITE, BLACK = main.BLACK;
 
 var viewportWidth = document.documentElement.clientWidth;
-var pixelRatio = window.devicePixelRatio || 1;
+//var pixelRatio = window.devicePixelRatio || 1;
 
 
 function Ui(game) {
@@ -24,85 +24,19 @@ function Ui(game) {
 
     this.game = new GameLogic(game);
     this.scorer = new ScoreAnalyser();
+    this.board = null;
 }
 module.exports = Ui;
 
 
-Ui.prototype.createBoard = function () {
-    if (this.board && this.boardSize === this.gsize) return; // already have the right board
-    this.boardSize = this.gsize;
-    this.boardElt.clear();
-    var config = { size: this.gsize, width: this.boardWidth, section: { top: -0.5, left: -0.5, right: -0.5, bottom: -0.5 } };
-    this.board = new WGo.Board(this.boardElt.elt, config);
-    if (this.withCoords) this.board.addCustomObject(WGo.Board.coordinates);
-    var self = this;
-    this.board.addEventListener('click', function (x,y) {
-        if (x < 0 || y < 0 || x >= self.gsize || y >= self.gsize) return;
-        var move = Grid.moveAsString(x + 1, self.gsize - y);
-        if (self.inEvalMode) return self.evalMove(move);
-        self.playerMove(move);
-    });
+/** This is the entry point for starting the app */
+Ui.prototype.createUi = function () {
+    this.newGameDialog();
 };
 
-// Color codes conversions WGo->Rubigolo
-var fromWgoColor = {};
-fromWgoColor[WGo.B] = BLACK;
-fromWgoColor[WGo.W] = WHITE;
-// Color codes conversions Rubigolo->WGo
-var toWgoColor = {};
-toWgoColor[EMPTY] = null;
-toWgoColor[BLACK] = WGo.B;
-toWgoColor[WHITE] = WGo.W;
-
-Ui.prototype.refreshBoard = function (force) {
+Ui.prototype.refreshBoard = function () {
     this.refreshHistory();
-
-    for (var j = 0; j < this.gsize; j++) {
-        for (var i = 0; i < this.gsize; i++) {
-            var color = this.game.goban.color(i + 1, this.gsize - j);
-            var wgoColor = toWgoColor[color];
-
-            var obj = this.board.obj_arr[i][j][0];
-            if (force) { obj = null; this.board.removeObjectsAt(i,j); }
-
-            if (wgoColor === null) {
-                if (obj) this.board.removeObjectsAt(i,j);
-            } else if (!obj || obj.c !== wgoColor) {
-                this.board.addObject({ x: i, y: j, c: wgoColor });
-            }
-        }
-    }
-};
-
-Ui.prototype.showBoard = function (fn) {
-    this.refreshBoard(); // the base is the up-to-date board
-
-    for (var j = 0; j < this.gsize; j++) {
-        for (var i = 0; i < this.gsize; i++) {
-            var obj = fn(i + 1, this.gsize - j);
-            if (!obj) continue;
-            obj.x = i; obj.y = j;
-            this.board.addObject(obj);
-        }
-    }
-};
-
-Ui.prototype.showScoringBoard = function () {
-    var yx = this.game.goban.scoringGrid.yx;
-    this.showBoard(function (i, j) {
-        switch (yx[j][i]) {
-        case Grid.TERRITORY_COLOR + BLACK:
-        case Grid.DEAD_COLOR + WHITE:
-            return { type: 'mini', c: WGo.B };
-        case Grid.TERRITORY_COLOR + WHITE:
-        case Grid.DEAD_COLOR + BLACK:
-            return { type: 'mini', c: WGo.W };
-        case Grid.DAME_COLOR:
-            return { type: 'SL', c: 'grey' };
-        default:
-            return null;
-        }
-    });
+    this.board.refresh();
 };
 
 Ui.prototype.refreshHistory = function () {
@@ -118,11 +52,6 @@ Ui.prototype.refreshHistory = function () {
     }
     this.historyElt.setHtml(txt);
     this.historyElt.elt.scrollTop = this.historyElt.elt.scrollHeight;
-};
-
-/** This is the entry point for starting the app */
-Ui.prototype.createUi = function () {
-    this.newGameDialog();
 };
 
 Ui.prototype.loadFromTest = function (parent, testName, msg) {
@@ -149,45 +78,36 @@ Ui.prototype.createGameUi = function (layout, parent, title, descr) {
     var width = this.game.goban.gsize + 2; // width in stones
     this.boardWidth = isCompact ? width * 28 : Math.min(width * 60, viewportWidth);
     if (!isCompact) this.controlElt.setAttribute('style', 'max-width:' + this.boardWidth + 'px');
+
+    var self = this;
+    this.board = new Board();
+    this.board.setTapHandler(function (move) {
+        if (self.inEvalMode) return self.evalMove(move);
+        self.playerMove(move);
+    });
 };
 
 Ui.prototype.resetUi = function () {
     if (!this.gameDiv) return;
-    Dome.deleteChild(document.body, this.gameDiv);
+    Dome.removeChild(document.body, this.gameDiv);
     this.gameDiv = null;
     this.board = null;
 };
 
 Ui.prototype.newGameDialog = function () {
     this.resetUi();
-    var dialog = Dome.newDiv(document.body, 'newGameBackground');
-    var frame = dialog.newDiv('newGameDialog dialog');
-    frame.newDiv('dialogTitle').setText('Start a new game');
-    var form = new Dome(frame, 'form').setAttribute('action',' ');
-
-    var options = form.newDiv();
-    var sizeBox = options.newDiv();
-    Dome.newLabel(sizeBox, 'inputLbl', 'Size:');
-    var sizeElt = Dome.newRadio(sizeBox, 'size', [5,7,9,13,19], null, this.gsize);
-
-    var handicap = Dome.newInput(options, 'handicap', 'Handicap:', this.handicap);
-
-    var aiColorBox = options.newDiv();
-    Dome.newLabel(aiColorBox, 'inputLbl', 'AI plays:');
-    var aiColor = Dome.newRadio(aiColorBox, 'aiColor', ['white', 'black', 'both', 'none'], null, this.aiPlays);
-
-    var moves = Dome.newInput(form, 'moves', 'Moves to load:');
+    var options = {
+        gsize: this.gsize,
+        handicap: this.handicap,
+        aiPlays: this.aiPlays
+    };
     var self = this;
-    var okBtn = Dome.newButton(form.newDiv('btnDiv'), 'start', 'OK', function (ev) {
-        ev.preventDefault();
-        self.gsize = ~~Dome.getRadioValue(sizeElt);
-        self.handicap = parseInt(handicap.value()) || 0;
-        self.aiPlays = Dome.getRadioValue(aiColor);
-
-        self.startGame(moves.value());
-        Dome.deleteChild(document.body, dialog);
+    new NewGameDlg(options, function (options) {
+        self.gsize = options.gsize;
+        self.handicap = options.handicap;
+        self.aiPlays = options.aiPlays;
+        self.startGame(options.moves);
     });
-    okBtn.setAttribute('type','submit');
 };
 
 Ui.prototype.createControls = function (parentDiv) {
@@ -265,7 +185,9 @@ Ui.prototype.startGame = function (firstMoves, isLoaded) {
     this.createPlayers();
     if (!this.gameDiv) this.createGameUi('main', document.body, 'Rubigolo');
     this.toggleControls();
-    this.createBoard();
+
+    var options = { coords: this.withCoords };
+    this.board.create(this.boardElt, this.boardWidth, this.game.goban, options);
     this.refreshBoard();
 
     if (isLoaded) return;
@@ -298,7 +220,7 @@ Ui.prototype.proposeScore = function () {
     this.message('<br><br>Do you accept this score?', true);
     this.toggleControls();
     this.refreshHistory();
-    this.showScoringBoard();
+    this.board.showScoring();
 };
 
 Ui.prototype.acceptScore = function (acceptEnd) {
@@ -311,7 +233,7 @@ Ui.prototype.acceptScore = function (acceptEnd) {
 
     this.message('Score in dispute. Continue playing...');
     this.toggleControls();
-    this.refreshBoard(/*force=*/true);
+    this.refreshBoard();
     // In AI VS AI move we don't ask AI to play again otherwise it simply passes again
     if (this.aiPlays !== 'both') this.letNextPlayerPlay();
 };
@@ -408,26 +330,18 @@ Ui.prototype.evalMove = function (move) {
 };
 
 Ui.prototype.scoreTest = function () {
-    this.scoreDisplayed = !this.scoreDisplayed;
-    if (!this.scoreDisplayed) return this.refreshBoard(/*force=*/true);
+    if (!this.board.prepareSpecialDisplay('scoring')) return;
 
     this.computeScore();
-    this.showScoringBoard();
+    this.scorer.computeScore(this.game.goban, 0);
+    
+    var yx = this.game.goban.scoringGrid.yx;
+    this.board.showSpecial('scoring', yx);
 };
 
 Ui.prototype.territoryTest = function () {
-    this.territoryDisplayed = !this.territoryDisplayed;
-    if (!this.territoryDisplayed) return this.refreshBoard(/*force=*/true);
+    if (!this.board.prepareSpecialDisplay('territory')) return;
 
     var yx = this.getAiPlayer(this.game.curColor).ter.guessTerritories();
-    this.showBoard(function (i, j) {
-        switch (yx[j][i]) {
-        case -1:   return { type: 'mini', c: WGo.B };
-        case -0.5: return { type: 'outline', c: WGo.B };
-        case  0:   return null;
-        case +0.5: return { type: 'outline', c: WGo.W };
-        case +1:   return { type: 'mini', c: WGo.W };
-        default:   return null;
-        }
-    });
+    this.board.showSpecial('territory', yx);
 };
