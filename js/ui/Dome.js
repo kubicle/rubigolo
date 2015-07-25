@@ -16,10 +16,8 @@ function Dome(parent, type, className, name) {
 }
 module.exports = Dome;
 
-Dome.deleteChild = function (parent, dome) {
-    if (parent instanceof Dome) parent = parent.elt;
-    parent.removeChild(dome.elt);
-};
+
+// Setters
 
 Dome.prototype.clear = function () { this.elt.innerHTML = ''; };
 Dome.prototype.setText = function (text) { this.elt.textContent = text; return this; };
@@ -28,9 +26,12 @@ Dome.prototype.setAttribute = function (name, val) { this.elt.setAttribute(name,
 Dome.prototype.setEnabled = function (enable) { this.elt.disabled = !enable; return this; };
 Dome.prototype.setVisible = function (show) { this.elt.hidden = !show; return this; };
 
+// Getters
+
 Dome.prototype.text = function () { return this.elt.textContent; };
 Dome.prototype.html = function () { return this.elt.innerHTML; };
 Dome.prototype.value = function () { return this.elt.value; };
+Dome.prototype.getDomElt = function () { return this.elt; };
 
 Dome.prototype.toggleClass = function (className, enable) {
     var elt = this.elt;
@@ -49,8 +50,13 @@ Dome.prototype.toggleClass = function (className, enable) {
 Dome.newDiv = function (parent, className) {
     return new Dome(parent, 'div', className);
 };
-// object like helper for newDiv
 Dome.prototype.newDiv = function (className) { return new Dome(this, 'div', className); };
+
+Dome.removeChild = function (parent, dome) {
+    if (parent instanceof Dome) parent = parent.elt;
+    parent.removeChild(dome.elt);
+};
+Dome.prototype.removeChild = function (child) { this.elt.removeChild(child.elt); };
 
 Dome.newButton = function (parent, name, label, action) {
     var button = new Dome(parent, 'button', name + 'Button', name);
@@ -73,7 +79,10 @@ Dome.newInput = function (parent, name, label, init) {
     return input;
 };
 
-/** e.g. Dome.newRadio(parent, 'stoneColor', ['white', 'black'], null, 'white') */
+/** var myOptions = Dome.newRadio(parent, 'stoneColor', ['white', 'black'], null, 'white');
+ *  ...
+ *  var result = Dome.getRadioValue(myOptions);
+ */
 Dome.newRadio = function (parent, name, labels, values, init) {
     if (!values) values = labels;
     var opts = [];
@@ -97,6 +106,24 @@ Dome.getRadioValue = function (opts) {
     for (var i = 0; i < opts.length; i++) {
         if (opts[i].elt.checked) return opts[i].elt.value;
     }
+};
+
+/** var mySelect = Dome.newDropdown(parent, 'stoneColor', ['white', 'black'], null, 'white')
+ *  ...
+ *  mySelect.value()
+ */
+Dome.newDropdown = function (parent, name, labels, values, init) {
+    if (!values) values = labels;
+    var select = new Dome(parent, 'select', name + 'Dropdwn dropdwn');
+    var cur = 0;
+    for (var i = 0; i < labels.length; i++) {
+        var opt = new Dome(select, 'option').elt;
+        opt.value = values[i];
+        opt.textContent = labels[i];
+        if (values[i] === init) cur = i;
+    }
+    select.elt.selectedIndex = cur;
+    return select;
 };
 
 
