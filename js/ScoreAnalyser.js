@@ -44,15 +44,14 @@ ScoreAnalyser.prototype.startScoring = function (goban, komi, whoResigned) {
     this.analyser.countScore(goban);
     var scores = this.analyser.scores;
     var prisoners = this.analyser.prisoners;
-    var totals = [];
-    var details = [];
-    var addPris = true;
-    for (var c = BLACK; c <= WHITE; c++) {
-        var kom = (( c === WHITE ? komi : 0 ));
-        var pris = (( addPris ? prisoners[1 - c] : -prisoners[c] ));
-        totals[c] = scores[c] + pris + kom;
-        details[c] = [scores[c], pris, kom];
-    }
+
+    var totals = [
+        scores[BLACK] + prisoners[WHITE],
+        scores[WHITE] + prisoners[BLACK] + komi];
+    var details = [
+        [scores[BLACK], prisoners[WHITE], 0],
+        [scores[WHITE], prisoners[BLACK], komi]];
+
     this.scoreInfo = [totals, details];
     return this.scoreInfo;
 };
