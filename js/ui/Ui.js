@@ -324,7 +324,7 @@ Ui.prototype.automaticAiPlay = function (turns) {
 
 Ui.prototype.evalMove = function (move) {
     var player = this.getAiPlayer(this.game.curColor);
-    var coords = Grid.parseMove(move);
+    var coords = Grid.move2xy(move);
     player.testMoveEval(coords[0], coords[1]);
     this.showAiMoveData(player, move);
 };

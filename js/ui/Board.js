@@ -35,7 +35,7 @@ Board.prototype.create = function (parent, width, goban, options) {
         x++; y = gsize - y;
 
         if (self.goban.color(x, y) !== EMPTY) return;
-        var move = Grid.moveAsString(x, y);
+        var move = Grid.xy2move(x, y);
         self.tapHandlerFn(move);
     });
 };

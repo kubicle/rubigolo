@@ -65,6 +65,7 @@ GameLogic.prototype.setHandicap = function (h) {
 // game is a series of moves, e.g. "c2,b2,pass,b4,b3,undo,b4,pass,b3"
 GameLogic.prototype.loadMoves = function (game) {
     try {
+        if (!game) return true;
         game = this.sgfToGame(game);
         for (var move, move_array = game.split(','), move_ndx = 0; move=move_array[move_ndx], move_ndx < move_array.length; move_ndx++) {
             if (!this.playOneMove(move)) {
@@ -111,7 +112,7 @@ GameLogic.prototype.playOneMove = function (move) {
 // Handles a new stone move (not special commands like "pass")
 GameLogic.prototype.playAStone = function (move) {
     var i, j;
-    var _m = Grid.parseMove(move);
+    var _m = Grid.move2xy(move);
     i = _m[0];
     j = _m[1];
     

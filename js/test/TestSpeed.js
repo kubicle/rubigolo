@@ -108,7 +108,7 @@ TestSpeed.prototype.testSpeed2 = function () {
 TestSpeed.prototype.movesIj = function (game) {
     var movesIj = [];
     for (var m, m_array = game.split(','), m_ndx = 0; m=m_array[m_ndx], m_ndx < m_array.length; m_ndx++) {
-        var ij = Grid.parseMove(m);
+        var ij = Grid.move2xy(m);
         movesIj.push(ij[0]);
         movesIj.push(ij[1]);
     }

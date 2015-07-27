@@ -194,7 +194,7 @@ Grid.prototype.loadImage = function (image) {
 var SKIPPED_I = 9;
 
 // Parses a move like "c12" into 3,12
-Grid.parseMove = function (move) {
+Grid.move2xy = function (move) {
     var i = move[0].charCodeAt() - Grid.NOTATION_A + 1;
     if (i > SKIPPED_I) i--;
     var j = parseInt(move.substr(1, 2));
@@ -203,7 +203,7 @@ Grid.parseMove = function (move) {
 };
 
 // Builds a string representation of a move (3,12->"c12")  
-Grid.moveAsString = function (col, row) {
+Grid.xy2move = function (col, row) {
     if (col >= SKIPPED_I) col++;
     return String.fromCharCode((col + Grid.NOTATION_A - 1)) + row;
 };
@@ -213,5 +213,3 @@ Grid.xLabel = function (i) {
     if (i >= SKIPPED_I) i++;
     return String.fromCharCode((i + Grid.NOTATION_A - 1));
 };
-
-// E02: unknown method: index(...)
