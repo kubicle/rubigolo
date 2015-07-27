@@ -59,6 +59,8 @@ var FAILED_ASSERTION_MSG = 'Failed assertion: ';
 /** @class */
 function TestSeries() {
   this.testCases = {};
+  this.testCount = this.failedCount = this.errorCount = 0;
+  this.warningCount = 0;
 }
 
 TestSeries.prototype.add = function (klass) {
@@ -76,14 +78,13 @@ TestSeries.prototype.testOneClass = function (Klass, methodPattern) {
     try {
       test[method].call(test);
     } catch(e) {
-      var header = 'Test failed';
       if (e.message.startWith(FAILED_ASSERTION_MSG)) {
         this.failedCount++;
+        main.log.error('Test failed: ' + test.name + '\n');
       } else {
-        header += ' with exception';
         this.errorCount++;
+        main.log.error('Exception during test: ' + test.name + ':\n' + e.stack + '\n');
       }
-      main.log.error(header + ': ' + test.name + ':\n' + e.stack + '\n');
     }
   }
 };
@@ -94,6 +95,7 @@ TestSeries.prototype.run = function (logfunc, specificClass, methodPattern) {
   var startTime = Date.now();
   var classCount = 0;
   this.testCount = this.failedCount = this.errorCount = 0;
+  this.warningCount = 0;
   for (var t in this.testCases) {
     if (specificClass && t !== specificClass) continue;
     classCount++;
@@ -104,7 +106,9 @@ TestSeries.prototype.run = function (logfunc, specificClass, methodPattern) {
   var classes = specificClass ? 'class ' + specificClass : classCount + ' classes';
   var report = 'Completed tests. (' + classes + ', ' + this.testCount + ' tests, ' +
     main.assertCount + ' assertions in ' + duration + 's)' +
-    ', failed: ' + this.failedCount + ', exceptions: ' + this.errorCount;
+    ', exceptions: ' + this.errorCount +
+    ', failed: ' + this.failedCount +
+    ', warnings: ' + this.warningCount;
   if (main.count) report += ', generic count: ' + main.count;
   main.log.info(report);
   return report;
