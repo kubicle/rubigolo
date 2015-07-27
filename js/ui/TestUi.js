@@ -21,17 +21,20 @@ TestUi.prototype.enableButtons = function (enabled) {
 
 TestUi.prototype.runTest = function (name) {
     this.output.setText('');
+    main.debug = this.debug.isChecked();
 
     var specificClass;
     if (name === 'TestAll' || name === 'TestSpeed') {
-        main.debug = false;
-        main.log.level = Logger.INFO;
+        main.debug = false; // dead slow if debug is ON
     } else {
         specificClass = name;
     }
+    main.log.level = main.debug ? Logger.DEBUG : Logger.INFO;
     var self = this;
     var logfn = function (lvl, msg) { return self.logfn(lvl, msg); };
+
     main.tests.run(logfn, specificClass, this.namePattern.value());
+
     this.controls.setEnabled('ALL', true);
 };
 
@@ -76,6 +79,7 @@ TestUi.prototype.createUi = function () {
     testDiv.newDiv('pageTitle').setText('Rubigolo - Tests');
     this.createControls(testDiv);
     this.namePattern = Dome.newInput(testDiv, 'namePattern', 'Test name pattern:');
+    this.debug = Dome.newCheckbox(testDiv, 'debug', 'Debug');
     testDiv.newDiv('subTitle').setText('Result');
     this.output = testDiv.newDiv('logBox testOutputBox');
     testDiv.newDiv('subTitle').setText('Errors');

@@ -31,6 +31,7 @@ Dome.prototype.setVisible = function (show) { this.elt.hidden = !show; return th
 Dome.prototype.text = function () { return this.elt.textContent; };
 Dome.prototype.html = function () { return this.elt.innerHTML; };
 Dome.prototype.value = function () { return this.elt.value; };
+Dome.prototype.isChecked = function () { return this.elt.checked; }; // for checkboxes
 Dome.prototype.getDomElt = function () { return this.elt; };
 
 Dome.prototype.toggleClass = function (className, enable) {
@@ -79,6 +80,25 @@ Dome.newInput = function (parent, name, label, init) {
     return input;
 };
 
+/** var myCheckbox = Dome.newCheckbox(testDiv, 'debug', 'Debug', null, true);
+ *  ...
+ *  if (myCheckbox.isChecked()) ...
+ */
+Dome.newCheckbox = function (parent, name, label, value, init) {
+    var input = new Dome(parent, 'input', name + 'ChkBox chkBox', name);
+    var inp = input.elt;
+    inp.type = 'checkbox';
+    inp.name = name;
+    inp.value = value;
+    inp.id = name + 'ChkBox' + value;
+    if (init) inp.checked = true;
+
+    new Dome(parent, 'label', name + 'ChkLabel chkLbl', name)
+        .setText(label)
+        .setAttribute('for', inp.id);
+    return input;
+};
+
 /** var myOptions = Dome.newRadio(parent, 'stoneColor', ['white', 'black'], null, 'white');
  *  ...
  *  var result = Dome.getRadioValue(myOptions);
@@ -94,9 +114,10 @@ Dome.newRadio = function (parent, name, labels, values, init) {
         inp.value = values[i];
         inp.id = name + 'Radio' + values[i];
         if (values[i] === init) inp.checked = true;
-        var label = new Dome(parent, 'label', name + 'RadioLabel radioLbl', name).elt;
-        label.textContent = labels[i];
-        label.setAttribute('for', inp.id);
+
+        new Dome(parent, 'label', name + 'RadioLabel radioLbl', name)
+            .setText(labels[i])
+            .setAttribute('for', inp.id);
     }
     return opts;
 };
@@ -110,7 +131,7 @@ Dome.getRadioValue = function (opts) {
 
 /** var mySelect = Dome.newDropdown(parent, 'stoneColor', ['white', 'black'], null, 'white')
  *  ...
- *  mySelect.value()
+ *  var result = mySelect.value()
  */
 Dome.newDropdown = function (parent, name, labels, values, init) {
     if (!values) values = labels;
