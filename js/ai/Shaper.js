@@ -23,6 +23,7 @@ Shaper.prototype.evalBoard = function (stateYx, scoreYx) {
         var g = allGroups[ndx], gi = g._info;
         if (g.isDead === ALWAYS || gi.eyeCount !== 1) continue;
         var eye = gi.getSingleEye();
+        if (!eye) continue;
         var coords = [];
         var alive = Shaper.getEyeMakerMove(this.goban, eye.i, eye.j, eye.vcount, coords);
         if (alive !== 1) continue;
