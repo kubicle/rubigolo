@@ -1,8 +1,10 @@
 'use strict';
 
-var inherits = require('util').inherits;
-//var main = require('../main');
+var main = require('../main');
 var Heuristic = require('./Heuristic');
+var inherits = require('util').inherits;
+
+var ALWAYS = main.ALWAYS;
 
 
 /** @class Cares about good shapes
@@ -16,10 +18,10 @@ module.exports = Shaper;
 
 Shaper.prototype.evalBoard = function (stateYx, scoreYx) {
     var myScoreYx = this.scoreGrid.yx;
-    var allGroups = this.boan.allGroups;
+    var allGroups = this.ter.allGroups;
     for (var ndx in allGroups) {
         var g = allGroups[ndx], gi = g._info;
-        if (gi.isDead || gi.eyeCount !== 1 || gi.band || gi.deadEnemies.length) continue;
+        if (g.isDead === ALWAYS || gi.eyeCount !== 1) continue;
         var eye = gi.getSingleEye();
         var coords = [];
         var alive = Shaper.getEyeMakerMove(this.goban, eye.i, eye.j, eye.vcount, coords);
