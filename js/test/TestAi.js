@@ -185,7 +185,7 @@ TestAi.prototype.runChecks = function (checkString) {
     }
 };
 
-TestAi.prototype.checkBasicGame = function (moves, checks, gsize) {
+TestAi.prototype.checkGame = function (moves, checks, gsize) {
     this.initBoard(gsize || 5);
     this.playMoves(moves);
     this.runChecks(checks);
@@ -200,7 +200,7 @@ TestAi.prototype.testEyeMaking = function () {
     // +@OO+
     // +@@O*
     // +@OO+
-    this.checkBasicGame('b3,d3,b2,c3,c2,d2,c4,c1,b1,d1,b4,d4,d5,pass,e5,e4,c5', 'e2');
+    this.checkGame('b3,d3,b2,c3,c2,d2,c4,c1,b1,d1,b4,d4,d5,pass,e5,e4,c5', 'e2');
 };
 
 TestAi.prototype.testAiClosesItsTerritory = function () {
@@ -210,7 +210,7 @@ TestAi.prototype.testAiClosesItsTerritory = function () {
     // +@@O+
     // +@OO+
     // e4 might seem to AI like filling up its own space; but it is mandatory here
-    this.checkBasicGame('c3,d3,c2,d2,c4,c1,b1,d1,b2,d4,d5', 'e4');
+    this.checkGame('c3,d3,c2,d2,c4,c1,b1,d1,b2,d4,d5', 'e4');
 };
 
 TestAi.prototype.testCornerEyeMaking = function () {
@@ -219,32 +219,32 @@ TestAi.prototype.testCornerEyeMaking = function () {
     // +@@OO
     // ++@@O
     // +++@@
-    this.checkBasicGame('b3,d3,c3,d4,c2,c4,d2,e2,b4,b5,d1,a5,a4,c5,e1,e3,pass', 'e5');
+    this.checkGame('b3,d3,c3,d4,c2,c4,d2,e2,b4,b5,d1,a5,a4,c5,e1,e3,pass', 'e5');
 };
 
 TestAi.prototype.testNoPushFromDeadGroup = function () {
     // white group is dead so pusher should not speak up here
-    this.checkBasicGame('b3,d3,c2,c3,b2,d2,c4,c1,d4,e4,d5,b1,e5,e3,b4,d1,pass', 'pass');
+    this.checkGame('b3,d3,c2,c3,b2,d2,c4,c1,d4,e4,d5,b1,e5,e3,b4,d1,pass', 'pass');
 };
 
 TestAi.prototype.testWrongSaviorAlongBorder = function () {
-    this.checkBasicGame('e1,e2,d2', 'd3');
+    this.checkGame('e1,e2,d2', 'd3');
 };
 
 TestAi.prototype.testWrongSaviorInCorner = function () {
-    this.checkBasicGame('e1,e2,d2,e3,d3,e4,d4', 'b3'); // d1 would be wrong
+    this.checkGame('e1,e2,d2,e3,d3,e4,d4', 'b3'); // d1 would be wrong
 };
 
 TestAi.prototype.testWrongSaviorInsteadOfKill = function () {
-    this.checkBasicGame('e1,d1,d2,c2,c1,b1,d1', 'd3');
+    this.checkGame('e1,d1,d2,c2,c1,b1,d1', 'd3');
 };
 
 TestAi.prototype.testWrongSaviorGoingTowardWall = function () {
-    this.checkBasicGame('b2,b3,c2,c3,pass,d2,pass,a2', 'pass'); // b1 would be wrong
+    this.checkGame('b2,b3,c2,c3,pass,d2,pass,a2', 'pass'); // b1 would be wrong
 };
 
 TestAi.prototype.testBorderLock = function () {
-    this.checkBasicGame('d4,c3,c4,d3,e3,e2,e4', 'd2'); //FIXME: should be c2
+    this.checkGame('d4,c3,c4,d3,e3,e2,e4', 'd2'); //FIXME: should be c2
 };
 
 TestAi.prototype.testCornerKill = function () {
@@ -255,7 +255,7 @@ TestAi.prototype.testCornerKill = function () {
     // 5 ++O++++++
     // 4 +++++@+++
     //   abcdefghj
-    this.checkBasicGame('j8,j9,d7,c5,f4,pass,g6,pass', 'c3>h9, c3', 9);
+    this.checkGame('j8,j9,d7,c5,f4,pass,g6,pass', 'c3>h9, c3', 9);
     //this.checkMoveIsBetter('h8', 'h9'); // FIXME: h8 is better than killing in h9 (non trivial)
 };
 
@@ -268,14 +268,14 @@ TestAi.prototype.testWrongAttack = function () {
     //   abcdefghj
     // f3-f2 cannot be saved in g2
     // c1 and f1 are wrong attacks
-    this.checkBasicGame('d4,e2,d2,c3,d3,c2,b4,d1,c4,f4,f3,e3,e4,g3,f2,e1',
+    this.checkGame('d4,e2,d2,c3,d3,c2,b4,d1,c4,f4,f3,e3,e4,g3,f2,e1',
         'g2', // if possible should be 'd7|f7',
         9);
 };
 
 TestAi.prototype.testWrongAttack2 = function () {
     // white-c6 would be great... if it worked; this is a wrong move here
-    this.checkBasicGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,b5,d1,pass,g4,pass,g6,pass,g7,pass,f7,pass,e7,pass,d7,c7',
+    this.checkGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,b5,d1,pass,g4,pass,g6,pass,g7,pass,f7,pass,e7,pass,d7,c7',
         'g5,c6,pass,pass', 7);
 };
 
@@ -288,7 +288,7 @@ TestAi.prototype.testHunter1 = function () {
     // 5 ++++++++@
     // 4 +++@++++@
     //   abcdefghj
-    this.checkBasicGame('d4,j7,j8,j6,j5,j9,j4,pass,h8,pass',
+    this.checkGame('d4,j7,j8,j6,j5,j9,j4,pass,h8,pass',
         'h6=h7, h6~=14.3,' + // h7 is OK too but capturing same 2 stones in a ladder
         '#h6, #h7, g7', // force black in h6 - choice between h6 and h7 may vary due to smaller differences
         9);
@@ -302,7 +302,7 @@ TestAi.prototype.testLadder = function () {
     // 5 ++++++++@
     // 4 ++++++++@
     //   abcdefghj
-    this.checkBasicGame('j9,j7,j8,j6,j5,a9,j4,pass', 'h7', 9);
+    this.checkGame('j9,j7,j8,j6,j5,a9,j4,pass', 'h7', 9);
     // we force white to run the ladder to verify black tracks to kill
     this.runChecks('!h6, #h6, h8~=0.6, g6~16');
     this.runChecks('!h5, #h5, h4~=16~Hunter, h4~28'); // h4 big because black j4-j5 is now threatened
@@ -318,7 +318,7 @@ TestAi.prototype.testLadderBreaker1 = function () {
     // 4 @@@@+++++
     //   abcdefghj
     // Ladder breaker a7 does not work since the whole group dies
-    this.checkBasicGame('a4,a9,a5,a8,b4,a7,c4,e7,d4,b5,d5,c5', '!b6,c6', 9);
+    this.checkGame('a4,a9,a5,a8,b4,a7,c4,e7,d4,b5,d5,c5', '!b6,c6', 9);
 };
 
 TestAi.prototype.testLadderBreaker2 = function () {
@@ -331,7 +331,7 @@ TestAi.prototype.testLadderBreaker2 = function () {
     //   abcdefghj
     // Ladder breaker are a7 and e7
     // What is sure is that neither b6 nor c6 works
-    this.checkBasicGame('a4,a9,a5,a8,b4,a7,c4,e7,d4,b5,d5,c5,pass,b8,pass,c8',
+    this.checkGame('a4,a9,a5,a8,b4,a7,c4,e7,d4,b5,d5,c5,pass,b8,pass,c8',
         '!c6, !b6, g4~=8, g4|g6|f3', 9); // g4 takes 8 from Spacer
 };
 
@@ -347,7 +347,7 @@ TestAi.prototype.testSeeDeadGroup = function () {
     // 1 ++O@@@@O+
     //   abcdefghj
     // Interesting here: SW corner group O (white) is dead. Both sides should see it and play accordingly.
-    this.checkBasicGame('d6,f4,e5,f6,g5,f5,g7,h6,g6,e7,f7,e6,g3,h4,g4,h5,d8,c7,d7,f8,e8,d4,d5,e4,f9,g9,e9,c9,g8,c8,h9,d9,e3,f2,f3,h7,c4,c5,d3,c6,b5,h8,b7,a6,b6,a4,b9,a5,b8,b3,b4,c3,c2,e2,a7,d2,a3,b2,g1,c1,g2,h2,j3,h3,f1,j2,e1,j4,d1,a2,a4,h1,c8,j8,f8,j9,g9',
+    this.checkGame('d6,f4,e5,f6,g5,f5,g7,h6,g6,e7,f7,e6,g3,h4,g4,h5,d8,c7,d7,f8,e8,d4,d5,e4,f9,g9,e9,c9,g8,c8,h9,d9,e3,f2,f3,h7,c4,c5,d3,c6,b5,h8,b7,a6,b6,a4,b9,a5,b8,b3,b4,c3,c2,e2,a7,d2,a3,b2,g1,c1,g2,h2,j3,h3,f1,j2,e1,j4,d1,a2,a4,h1,c8,j8,f8,j9,g9',
         '!c2,pass,pass', 9); // c2 is wrong: should see white group is dead
 };
 
@@ -361,7 +361,7 @@ TestAi.prototype.testBorderDefense = function () {
     // 1 +++++++
     //   abcdefg
     // Issue: after W:a3 we expect B:b5 or b6 but AI does not see attack in b5; 
-    this.checkBasicGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3',
+    this.checkGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3',
         'g5~=1.2~Pusher,' + // no kill for black in g5 but terr gain
         '!b6,' + // FIXME b6 should be close to b5 score: black can save a5 in b6
         'b5~10.6',
@@ -378,7 +378,7 @@ TestAi.prototype.testBorderAttackAndInvasion = function () {
     // 1 +++O+++
     //   abcdefg
     // AI should see attack in b5 with territory invasion
-    this.checkBasicGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,g6,d1,g5,g4,pass',
+    this.checkGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,g6,d1,g5,g4,pass',
         'b5~10.6', 7);
 };
 
@@ -394,7 +394,7 @@ TestAi.prototype.testBorderAttackAndInvasion2 = function () {
     // AI should see attack in b5 with territory invasion.
     // Actually O in g4 is chosen because pusher gives it 0.33 pts.
     // NB: g4 is actually a valid move for black
-    this.checkBasicGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,g6',
+    this.checkGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,g6',
         'b5~10.6', 7);
 };
 
@@ -408,7 +408,7 @@ TestAi.prototype.testBorderClosing = function () {
     // 1 +++O+++
     //   abcdefg
     // AI should see f4 is dead inside white territory if g5 is played (non trivial)
-    this.checkBasicGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,b6,d1,g6',
+    this.checkGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,b6,d1,g6',
         'g5~=0.3, g4~6', 7); // FIXME should be g5 here
 };
 
@@ -422,7 +422,7 @@ TestAi.prototype.testEndMoveTerrGain1 = function () {
     // 1 +++++++
     //   abcdefg
     // g4 is actually a valid move for black
-    this.checkBasicGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b5,b3,c4,a4,a5,a3,g6,pass',
+    this.checkGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b5,b3,c4,a4,a5,a3,g6,pass',
         'g4~6.5, g3~=0.3, e3, g5', 7); // NB: d2 is already dead
 };
 
@@ -435,7 +435,7 @@ TestAi.prototype.testKillingSavesNearbyGroupInAtari = function () {
     // 2 ++O+O++
     // 1 +++O+++
     //   abcdefg
-    this.checkBasicGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,b6,d1,g5',
+    this.checkGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,b6,d1,g5',
         'e3~=6, g4~12.1, g6~4.6, !c7', 7);
 };
 
@@ -447,7 +447,7 @@ TestAi.prototype.testAiSeesSnapbackAttack = function () {
     // 1 +++++
     //   abcde
     // c4 expected for white, then if c5, c4 again (snapback)
-    this.checkBasicGame('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,e4', 'c4, #c5, c4');
+    this.checkGame('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,e4', 'c4, #c5, c4');
 };
 
 TestAi.prototype.testSnapbackFails = function () {
@@ -458,7 +458,7 @@ TestAi.prototype.testSnapbackFails = function () {
     // 3 ++++O++
     //   abcdefg
     // Snapback c6 is bad idea since black-a4 can kill white group
-    this.checkBasicGame('b7,a7,b6,a6,c5,b5,c4,a5,d6,d7,d5,e7,b4,e3,e6',
+    this.checkGame('b7,a7,b6,a6,c5,b5,c4,a5,d6,d7,d5,e7,b4,e3,e6',
         '!c6, !f7,' + // f7 is bad since d7-e7 are dead
         '!a4', // white NW group cannot escape
         7); 
@@ -472,7 +472,7 @@ TestAi.prototype.testAiSeesKillingBringSnapback = function () {
     // 1 ++@++
     //   abcde
     // c5 is a blunder (b2 seems OK)
-    this.checkBasicGame('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,d3,e5,c1,c4', '!c5');
+    this.checkGame('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,d3,e5,c1,c4', '!c5');
 };
 
 TestAi.prototype.testSeesAttackNoGood = function () {
@@ -483,7 +483,7 @@ TestAi.prototype.testSeesAttackNoGood = function () {
     // 1 ++@++
     //   abcde
     // NB: we could use this game to check when AI can see dead groups
-    this.checkBasicGame('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,d3,e5,c1,c4,c5',
+    this.checkGame('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,d3,e5,c1,c4,c5',
         'c4~12, !c5'); // c4 kills 3 and saves 2 + 1 (disputable) space in black territory
 };
 
@@ -496,7 +496,7 @@ TestAi.prototype.testPusher1 = function () {
     // 2 +++++++
     // 1 +++++++
     //   abcdefg
-    this.checkBasicGame('d4,c5,d6,c7,c4,c6,b4',
+    this.checkGame('d4,c5,d6,c7,c4,c6,b4',
         '!e7, e5~=0.5, d5~=1.1, e3~1.3', // cannot connect if e7; e5: spacer only, cannot connect
         7);
 };
@@ -510,7 +510,7 @@ TestAi.prototype.testPusher2 = function () {
     // 2 +++@+++++
     // 1 +++++++++
     //   abcdefghj
-    this.checkBasicGame('e5,g3,c3,e3,g6,d4,d5,c5,c4,d6,e6,c6,d2,e4,d3',
+    this.checkGame('e5,g3,c3,e3,g6,d4,d5,c5,c4,d6,e6,c6,d2,e4,d3',
         '!f5,' + // f5 cannot connect with e4
         'e2~=0.2, g5~=1.3', // FIXME: e2 & g5 should be bigger (invasion blocker's job)
         9);
@@ -527,7 +527,7 @@ TestAi.prototype.testSemiAndEndGame = function () {
     // 2 O+OOO@+++
     // 1 @@@+OO@++
     //   abcdefghj
-    this.checkBasicGame('d4,f6,f3,f4,e4,e5,d6,c5,c7,d5,g3,c6,c4,d7,b4,e6,g4,f5,h6,h5,g5,h4,h3,g6,j5,c8,j4,b7,h7,g8,g7,j8,h8,f8,f7,a5,b5,a6,b6,a3,a4,b3,a7,d3,e3,c3,e7,e2,f2,d2,c1,f1,g1,e1,b1,c2,a1,a2,a8,h9,j7,b9,j9,g9,j8,e8',
+    this.checkGame('d4,f6,f3,f4,e4,e5,d6,c5,c7,d5,g3,c6,c4,d7,b4,e6,g4,f5,h6,h5,g5,h4,h3,g6,j5,c8,j4,b7,h7,g8,g7,j8,h8,f8,f7,a5,b5,a6,b6,a3,a4,b3,a7,d3,e3,c3,e7,e2,f2,d2,c1,f1,g1,e1,b1,c2,a1,a2,a8,h9,j7,b9,j9,g9,j8,e8',
         'b8~=0.75,' + // huge threat but only if white does not answer it
         '!d9,' + // right in enemy territory
         '#b8, c7~=2', // FIXME if not c7 huge damage
@@ -539,11 +539,11 @@ TestAi.prototype.testSemiAndEndGame = function () {
 };
 
 TestAi.prototype.testConnector_connectionNotNeeded = function () {
-    this.checkBasicGame('d4,f6,f3,c7,g4,e4,e3,e5,g5,f4,g6,b4,c3', '!f5', 7);
+    this.checkGame('d4,f6,f3,c7,g4,e4,e3,e5,g5,f4,g6,b4,c3', '!f5', 7);
 };
 
 TestAi.prototype.testRaceWinOnKo = function () {
     // if AI thinks black group is dead then a2 looks pointless
-    this.checkBasicGame('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,d3,e5,c1,c4,c5,c4,b5,b2,c5,b4,b1,e2,e3,d2,d1,c5,pass,e4,pass,a1,e1,e2',
+    this.checkGame('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,d3,e5,c1,c4,c5,c4,b5,b2,c5,b4,b1,e2,e3,d2,d1,c5,pass,e4,pass,a1,e1,e2',
         'a2,pass,b5');
 };
