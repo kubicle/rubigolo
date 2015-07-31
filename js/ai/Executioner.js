@@ -5,7 +5,7 @@ var main = require('../main');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
 
-var sOK = main.sOK;
+var sOK = main.sOK, ALWAYS = main.ALWAYS;
 
 
 /** @class Executioner only preys on enemy groups in atari */
@@ -16,7 +16,7 @@ inherits(Executioner, Heuristic);
 module.exports = Executioner;
 
 
-// In this board, c5 is a "sure death" move
+// In this board, black c5 is a "sure death" move
 // 5 O@+OO
 // 4 O@O@+
 // 3 OO@@+
@@ -24,7 +24,7 @@ module.exports = Executioner;
 // 1 ++@++
 //   abcde
 Executioner.prototype.isSureDeath = function (empty, color) {
-    var numKill = 0;
+    var numAllies = 0, numKill = 0;
     for (var i = empty.neighbors.length - 1; i >= 0; i--) {
         var n = empty.neighbors[i];
         switch (n.color) {
@@ -32,6 +32,7 @@ Executioner.prototype.isSureDeath = function (empty, color) {
             return false;
         case color:
             if (n.group.lives > 1) return false; // TODO: where do we worry about life of group?
+            numAllies++;
             break;
         default:
             if (n.group.lives > 1) break; // not a kill
@@ -40,6 +41,7 @@ Executioner.prototype.isSureDeath = function (empty, color) {
             numKill++;
         }
     }
+    if (!numAllies && numKill) return false; // case of KO
     return true;
 };
 
@@ -57,14 +59,17 @@ Executioner.prototype.evalBoard = function (stateYx, scoreYx) {
 Executioner.prototype.evalMove = function (i, j) {
     var stone = this.goban.stoneAt(i, j);
     if (this.isSureDeath(stone, this.color)) {
-        return this.markMoveAsBlunder(i, j, 'sure death');
+        this.markMoveAsBlunder(i, j, 'sure death');
+        return 0;
     }
     var threat = 0, saving = 0;
     for (var g, g_array = stone.uniqueEnemies(this.color), g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
         if (g.lives > 1) { // NB: more than 1 is a job for hunter
             continue;
         }
+        //threat += g.isDead < ALWAYS ? this.groupThreat(g) : 0;
         threat += this.groupThreat(g);
+        //no need to count saved ones since Savior will do
         for (var ally, ally_array = g.allEnemies(), ally_ndx = 0; ally=ally_array[ally_ndx], ally_ndx < ally_array.length; ally_ndx++) {
             if (ally.lives > 1) {
                 continue;
