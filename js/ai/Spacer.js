@@ -9,7 +9,7 @@ var inherits = require('util').inherits;
 /** @class Tries to occupy empty space + counts when filling up territory */
 function Spacer(player) {
     Heuristic.call(this, player);
-    this.inflCoeff = this.getGene('infl', 2, 1, 4);
+    this.inflCoeff = this.getGene('infl', 1, 0.5, 3);
     this.borderCoeff = this.getGene('border', 1, 0, 2);
 }
 inherits(Spacer, Heuristic);
