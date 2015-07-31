@@ -126,6 +126,9 @@ Ui.prototype.createControls = function (parentDiv) {
     Dome.newButton(this.mainBtn, '#refuse', 'Refuse', function () { self.acceptScore(false); });
     Dome.newButton(this.mainBtn, '#newg', 'New game', function () { self.newGameDialog(); });
 
+    this.aiVsAiFlags = this.mainBtn.newDiv('aiVsAiFlags');
+    this.animated = Dome.newCheckbox(this.aiVsAiFlags, 'animated', 'Animated');
+
     Dome.newButton(this.testBtn, '#evalMode', 'Eval mode', function () {
         self.inEvalMode = !self.inEvalMode;
         self.controls.setEnabled('ALL', !self.inEvalMode, ['evalMode','undo','next','pass']);
@@ -146,6 +149,7 @@ Ui.prototype.toggleControls = function () {
     this.controls.setVisible(['pass', 'resi'], inGame && !auto);
     this.controls.setVisible(['next', 'next10', 'nextAll'], inGame && auto);
     this.controls.setVisible(['newg'], this.game.gameEnded);
+    this.aiVsAiFlags.setVisible(auto);
 };
 
 Ui.prototype.message = function (html, append) {
@@ -313,11 +317,17 @@ Ui.prototype.letNextPlayerPlay = function (automatic) {
 };
 
 Ui.prototype.automaticAiPlay = function (turns) {
-    for(var i = 0; i < turns || !turns; i++) {
-        this.letNextPlayerPlay(true);
-        if (this.game.gameEnding) return; // no refresh since scoring board is displayed
-    }
-    this.refreshBoard();
+    var animated = this.animated.isChecked();
+
+    this.letNextPlayerPlay(true);
+    if (this.game.gameEnding) return; // no refresh since scoring board is displayed
+    if (turns && --turns === 0) return this.refreshBoard();
+    if (animated) this.refreshBoard();
+
+    var self = this;
+    window.setTimeout(function () {
+        self.automaticAiPlay(turns);
+    }, animated ? 100 : 0);
 };
 
 //---
