@@ -220,7 +220,7 @@ Ui.prototype.proposeScore = function () {
     this.message('<br><br>Do you accept this score?', true);
     this.toggleControls();
     this.refreshHistory();
-    this.board.showScoring();
+    this.board.showScoring(this.game.goban.scoringGrid.yx);
 };
 
 Ui.prototype.acceptScore = function (acceptEnd) {
