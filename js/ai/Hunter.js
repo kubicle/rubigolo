@@ -1,14 +1,16 @@
 //Translated from hunter.rb using babyruby2js
 'use strict';
 
-var inherits = require('util').inherits;
 var main = require('../main');
-var Stone = require('../Stone');
-// Hunters find threats to struggling enemy groups.
-// Ladder attack fits in here.
-var Heuristic = require('./Heuristic');
 
-/** @class */
+var Grid = require('../Grid');
+var Heuristic = require('./Heuristic');
+var inherits = require('util').inherits;
+var Stone = require('../Stone');
+
+
+/** @class Hunters find threats to struggling enemy groups.
+ *  Ladder attack fits in here. */
 function Hunter(player, consultant) {
     if (consultant === undefined) consultant = false;
     Heuristic.call(this, player, consultant);
@@ -28,11 +30,19 @@ Hunter.prototype.evalMove = function (i, j, level) {
             continue;
         }
         // if even a single of our groups around is in atari this will not work (enemy will kill our group and escape)
-        var ourGroups = eg.allEnemies(), atari = false;
+        var ourGroups = eg.allEnemies(), atariLives = 0;
         for (var n = ourGroups.length - 1; n >= 0; n--) {
-            if (ourGroups[n].lives < 2) { atari = true; break; }
+            var ourGroup = ourGroups[n];
+            if (ourGroup.lives === 1) {
+                atariLives += ourGroup.stones.length;
+                if (atariLives > 1) break;
+                var enemies = ourGroup.allEnemies();
+                for (var e = enemies.length - 1; e >= 0; e--) {
+                    atariLives += enemies[e].lives;
+                }
+            }
         }
-        if (atari) continue;
+        if (atariLives > 1) continue;
         
         if (empties.length === 1 && allies.length === 0) {
             // unless this is a snapback, this is a dumb move
@@ -45,13 +55,9 @@ Hunter.prototype.evalMove = function (i, j, level) {
             }
             // here we know this is a snapback
             snapback = true;
-            if (main.debug) {
-                main.log.debug('Hunter sees a snapback in ' + stone);
-            }
+            if (main.debug) main.log.debug('Hunter sees a snapback in ' + stone);
         }
-        if (main.debug) {
-            main.log.debug('Hunter (level ' + level + ') looking at ' + i + ',' + j + ' threat on ' + eg);
-        }
+        if (main.debug) main.log.debug('Hunter (level ' + level + ') looking at ' + Grid.xy2move(i, j) + ' threat on ' + eg);
         if (!egroups) egroups = [eg];
         else egroups.push(eg);
     }
@@ -81,9 +87,7 @@ Hunter.prototype.evalMove = function (i, j, level) {
         var t = this.groupThreat(egroups[g]);
         if (t > threat) threat = t;
     }
-    if (main.debug) {
-        main.log.debug('Hunter found a threat of ' + threat + ' at ' + i + ',' + j);
-    }
+    if (main.debug) main.log.debug('Hunter found a threat of ' + threat + ' at ' + Grid.xy2move(i, j));
     return threat;
 };
 
@@ -97,9 +101,7 @@ Hunter.prototype.atariIsCaught = function (g, level) {
     var stone = Stone.playAt(this.goban, lastLife.i, lastLife.j, g.color); // enemy's escape move
     var isCaught = this.escapingAtariIsCaught(stone, level);
     Stone.undo(this.goban);
-    if (main.debug) {
-        main.log.debug('Hunter: group in atari would be caught: ' + g);
-    }
+    if (main.debug) main.log.debug('Hunter: group in atari would be caught: ' + g);
     return isCaught;
 };
 
