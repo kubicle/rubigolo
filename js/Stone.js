@@ -53,7 +53,7 @@ Stone.prototype.toString = function () {
 
 // Returns "c3" for a stone in 3,3
 Stone.prototype.asMove = function () {
-    return '' + Grid.moveAsString(this.i, this.j);
+    return Grid.xy2move(this.i, this.j);
 };
 
 Stone.prototype.debugDump = function () {
@@ -262,4 +262,12 @@ Stone.prototype.allyStones = function (color, array) {
         }
     }
     return count;
+};
+
+Stone.prototype.isNextTo = function (group) {
+    var neighbors = this.neighbors;
+    for (var i = neighbors.length - 1; i >= 0; i--) {
+        if (neighbors[i].group === group) return true;
+    }
+    return false;
 };

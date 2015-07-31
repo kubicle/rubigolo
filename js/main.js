@@ -59,6 +59,8 @@ var FAILED_ASSERTION_MSG = 'Failed assertion: ';
 /** @class */
 function TestSeries() {
   this.testCases = {};
+  this.testCount = this.failedCount = this.errorCount = 0;
+  this.warningCount = 0;
 }
 
 TestSeries.prototype.add = function (klass) {
@@ -66,43 +68,47 @@ TestSeries.prototype.add = function (klass) {
   return klass;
 };
 
-TestSeries.prototype.testOneClass = function (Klass) {
+TestSeries.prototype.testOneClass = function (Klass, methodPattern) {
   for (var method in Klass.prototype) {
     if (typeof Klass.prototype[method] !== 'function') continue;
     if (method.substr(0,4) !== 'test') continue;
+    if (methodPattern && method.indexOf(methodPattern) === -1) continue;
     this.testCount++;
     var test = new Klass(Klass.name + '#' + method);
     try {
       test[method].call(test);
     } catch(e) {
-      var header = 'Test failed';
       if (e.message.startWith(FAILED_ASSERTION_MSG)) {
         this.failedCount++;
+        main.log.error('Test failed: ' + test.name + '\n');
       } else {
-        header += ' with exception';
         this.errorCount++;
+        main.log.error('Exception during test: ' + test.name + ':\n' + e.stack + '\n');
       }
-      main.log.error(header + ': ' + test.name + ':\n' + e.stack + '\n');
     }
   }
 };
 
-TestSeries.prototype.run = function (logfunc, specificClass) {
+TestSeries.prototype.run = function (logfunc, specificClass, methodPattern) {
   main.log.setLogFunc(logfunc);
   main.assertCount = main.count = 0;
   var startTime = Date.now();
   var classCount = 0;
   this.testCount = this.failedCount = this.errorCount = 0;
+  this.warningCount = 0;
   for (var t in this.testCases) {
     if (specificClass && t !== specificClass) continue;
     classCount++;
     var Klass = this.testCases[t];
-    this.testOneClass(Klass);
+    this.testOneClass(Klass, methodPattern);
   }
   var duration = ((Date.now() - startTime) / 1000).toFixed(2);
-  var report = 'Completed tests. (' + classCount + ' classes, ' + this.testCount + ' tests, ' +
+  var classes = specificClass ? 'class ' + specificClass : classCount + ' classes';
+  var report = 'Completed tests. (' + classes + ', ' + this.testCount + ' tests, ' +
     main.assertCount + ' assertions in ' + duration + 's)' +
-    ', failed: ' + this.failedCount + ', exceptions: ' + this.errorCount;
+    ', exceptions: ' + this.errorCount +
+    ', failed: ' + this.failedCount +
+    ', warnings: ' + this.warningCount;
   if (main.count) report += ', generic count: ' + main.count;
   main.log.info(report);
   return report;

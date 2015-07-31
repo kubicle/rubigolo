@@ -7,7 +7,7 @@ Still in development.
 
 JavaScript:
 - [run it](http://rawgit.com/kubicle/rubigolo/master/index.html) in your browser.
-- [unit tests](http://rawgit.com/kubicle/rubigolo/master/js/tests.html)
+- [unit tests](http://rawgit.com/kubicle/rubigolo/master/js/ui/tests.html)
 
 Ruby: check the [help page](http://htmlpreview.github.io/?https://github.com/kubicle/rubigolo/blob/master/help-index.html)
 
@@ -15,13 +15,13 @@ Dependencies
 ============
 
 - [WGo.js](http://github.com/waltheri/wgo.js) is included in the project
-- Browserify used for the build
+- Browserify, watchify, lessify are used for the build
 
 How to build
 ============
 
-cd ...\rubigolo\js
-browserify app.js -o build.js
+npm install
+npm start
 
 =======
 

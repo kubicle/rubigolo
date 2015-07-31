@@ -1,10 +1,10 @@
 //Translated from connector.rb using babyruby2js
 'use strict';
 
-var inherits = require('util').inherits;
 var main = require('../main');
-var Heuristic = require('./Heuristic');
 var Grid = require('../Grid');
+var Heuristic = require('./Heuristic');
+var inherits = require('util').inherits;
 
 
 /** @class A move that connects 2 of our groups is good.

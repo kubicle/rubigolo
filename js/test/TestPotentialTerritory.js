@@ -32,11 +32,19 @@ TestPotentialTerritory.prototype.checkPotential = function (expected) {
 TestPotentialTerritory.prototype.checkBasicGame = function (moves, expected, gsize, finalPos) {
     this.initBoard(gsize || 7);
     this.game.loadMoves(moves);
-    this.ter.guessTerritories();
-
-    assertEqual(expected, this.ter.image());
     if (finalPos) assertEqual(finalPos, this.goban.image());
+
+    this.ter.guessTerritories();
+    var territory = this.ter.image();
+    if (territory === expected) return;
+    this.showInUi('Expected territory was<br>' + expected + ' but got<br>' + territory);
+    assertEqual(expected, territory);
 };
+
+TestPotentialTerritory.prototype.showInUi = function (msg) {
+    window.testUi.showTestGame(this.name, msg, this.game);
+};
+
 
 TestPotentialTerritory.prototype.testBigEmptySpace = function () {
     /** 

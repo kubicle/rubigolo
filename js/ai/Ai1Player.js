@@ -12,6 +12,8 @@ var PotentialTerritory = require('../PotentialTerritory');
 var BoardAnalyser = require('../BoardAnalyser');
 var Genes = require('../Genes');
 
+var sOK = main.sOK, sINVALID = main.sINVALID, sBLUNDER = main.sBLUNDER;
+
 var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
 
 
@@ -34,7 +36,7 @@ function Ai1Player(goban, color, genes) {
     this.scoreGrid = new Grid(this.gsize);
 
     this.genes = (( genes ? genes : new Genes() ));
-    this.minimumScore = this.getGene('smaller-move', 0.033, 0.02, 0.066);
+    this.minimumScore = this.getGene('smaller-move', 0.03, 0.01, 0.1);
 
     this.heuristics = [];
     var heuristics = allHeuristics();
@@ -45,10 +47,11 @@ function Ai1Player(goban, color, genes) {
     this.setColor(color);
     // genes need to exist before we create heuristics so passing genes below is done
     // to keep things coherent
-    return this.prepareGame(this.genes);
+    this.prepareGame(this.genes);
 }
 inherits(Ai1Player, Player);
 module.exports = Ai1Player;
+
 
 Ai1Player.prototype.getHeuristic = function (heuristicName) {
     for (var n = this.heuristics.length - 1; n >= 0; n--) {
@@ -78,7 +81,7 @@ Ai1Player.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
 };
 
 function score2str(i, j, score) {
-    return Grid.moveAsString(i, j) + ':' + score.toFixed(3);
+    return Grid.xy2move(i, j) + ':' + score.toFixed(3);
 }
 
 Ai1Player.prototype._foundSecondBestMove = function(i, j, score) {
@@ -116,21 +119,6 @@ Ai1Player.prototype._keepBestMoves = function(i, j, score) {
         this.numBestTwins++;
         if (Math.random() * this.numBestTwins >= 1) return; // keep current twin if it does not win
         this._foundBestMove(i, j, score);
-    }
-};
-
-
-var sOK = 0, sINVALID = -1, sBLUNDER = -2;
-
-// TMP: Called by heuristics which do not handle evalBoard yet
-Ai1Player.prototype.boardIterator = function (evalFn) {
-    var stateYx = this.stateGrid.yx;
-    var scoreYx = this.scoreGrid.yx;
-    for (var j = 1; j <= this.gsize; j++) {
-        for (var i = 1; i <= this.gsize; i++) {
-            if (stateYx[j][i] < sOK) continue;
-            scoreYx[j][i] += evalFn(i, j);
-        }
     }
 };
 
@@ -175,7 +163,7 @@ Ai1Player.prototype.getMove = function () {
     if (this.bestScore <= this.minimumScore) {
         return 'pass';
     }
-    return Grid.moveAsString(this.bestI, this.bestJ);
+    return Grid.xy2move(this.bestI, this.bestJ);
 };
 
 Ai1Player.prototype._prepareEval = function () {
@@ -186,13 +174,18 @@ Ai1Player.prototype._prepareEval = function () {
 
     this.inf.buildMap();
     this.ter.guessTerritories();
-    this.boan.countScore(this.goban);
+
+    // get "raw" group info
+    this.boan.analyse(this.color, this.goban);
 };
 
 /** Called by heuristics if they decide to stop looking further (rare cases) */
 Ai1Player.prototype.markMoveAsBlunder = function (i, j, reason) {
     this.stateGrid.yx[j][i] = sBLUNDER;
-    main.log.debug(Grid.moveAsString(i, j) + ' seen as blunder: ' + reason);
+    main.log.debug(Grid.xy2move(i, j) + ' seen as blunder: ' + reason);
+};
+Ai1Player.prototype.isBlunderMove = function (i, j) {
+    return this.stateGrid.yx[j][i] === sBLUNDER;
 };
 
 /** For tests */
@@ -244,13 +237,13 @@ Ai1Player.prototype.getMoveSurveyText = function (rank) {
         if (this.bestI === NO_MOVE) break;
         this._testMoveEval(this.bestI, this.bestJ);
         survey = this.survey; score = this.bestScore;
-        move = Grid.moveAsString(this.bestI, this.bestJ);
+        move = Grid.xy2move(this.bestI, this.bestJ);
         break;
     case 2:
         if (this.secondBestI === NO_MOVE) break;
         this._testMoveEval(this.secondBestI, this.secondBestJ);
         survey = this.survey; score = this.secondBestScore;
-        move = Grid.moveAsString(this.secondBestI, this.secondBestJ);
+        move = Grid.xy2move(this.secondBestI, this.secondBestJ);
         break;
     }
     if (!survey) return '';

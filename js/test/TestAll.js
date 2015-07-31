@@ -2,12 +2,8 @@
 'use strict';
 
 var main = require('../main');
-window.main = main;
 
 main.testAll = true;
-
-require('../StoneConstants');
-require('../rb');
 
 var TestAi = require('./TestAi');
 var TestBoardAnalyser = require('./TestBoardAnalyser');

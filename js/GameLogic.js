@@ -12,18 +12,25 @@ var HandicapSetter = require('./HandicapSetter');
 /** @class GameLogic enforces the game logic.
  *  public read-only attribute: goban, komi, curColor, gameEnded, gameEnding, whoResigned
  */
-function GameLogic() {
+function GameLogic(src) {
     this.console = false;
     this.history = [];
     this.errors = [];
     this.handicap = 0;
     this.whoResigned = null;
     this.goban = null;
+    if (src) this.copy(src);
 }
 module.exports = GameLogic;
 
+
+GameLogic.prototype.copy = function (src) {
+    this.newGame(src.goban.gsize, src.handicap, src.komi);
+    this.loadMoves(src.history.join(','));
+};
+
+// handicap and komi are optional (default is 0)
 GameLogic.prototype.newGame = function (gsize, handicap, komi) {
-    if (handicap === undefined) handicap = 0;
     this.history.clear();
     this.errors.clear();
     this.numPass = 0;
@@ -36,8 +43,8 @@ GameLogic.prototype.newGame = function (gsize, handicap, komi) {
     } else {
         this.goban.clear();
     }
-    this.komi = (( komi ? komi : (( handicap === 0 ? 6.5 : 0.5 )) ));
-    return this.setHandicap(handicap);
+    this.komi = komi !== undefined ? komi : (handicap ? 0.5 : 6.5);
+    return this.setHandicap(handicap || 0);
 };
 
 // Initializes the handicap points
@@ -58,6 +65,7 @@ GameLogic.prototype.setHandicap = function (h) {
 // game is a series of moves, e.g. "c2,b2,pass,b4,b3,undo,b4,pass,b3"
 GameLogic.prototype.loadMoves = function (game) {
     try {
+        if (!game) return true;
         game = this.sgfToGame(game);
         for (var move, move_array = game.split(','), move_ndx = 0; move=move_array[move_ndx], move_ndx < move_array.length; move_ndx++) {
             if (!this.playOneMove(move)) {
@@ -104,7 +112,7 @@ GameLogic.prototype.playOneMove = function (move) {
 // Handles a new stone move (not special commands like "pass")
 GameLogic.prototype.playAStone = function (move) {
     var i, j;
-    var _m = Grid.parseMove(move);
+    var _m = Grid.move2xy(move);
     i = _m[0];
     j = _m[1];
     
@@ -156,7 +164,7 @@ GameLogic.prototype.acceptEnding = function (accept, whoRefused) {
     // Score refused (in dispute)
     // if the player who refused just played, we give the turn back to him
     if (whoRefused !== this.curColor) {
-        this.history.pop(); // remove last "pass" (half a move so "undo" cannot help)
+        this.history.pop(); // remove last "pass"
         this.nextPlayer();
     }
     return true;

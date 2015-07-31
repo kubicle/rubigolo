@@ -1,0 +1,30 @@
+{
+  "name": "rubigolo",
+  "version": "0.0.1",
+  "description": "",
+  "author": "Olivier Lombart (kubicle)",
+  "license": "MIT",
+  "scripts": {
+    "start": "watchify js/app.js -o js/build.js -t lessify -v",
+    "test": "python -m SimpleHTTPServer 8080"
+  },
+  "main": "js/app.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kubicle/rubigolo"
+  },
+  "bugs": {
+    "url": "https://github.com/kubicle/rubigolo/issues"
+  },
+  "keywords": [
+    "baduk",
+    "go",
+    "igo",
+    "weiqi"
+  ],
+  "devDependencies": {
+    "browserify": "~10.2.4",
+    "lessify": "~1.0.1",
+    "watchify": "^3.2.2"
+  }
+}
