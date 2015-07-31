@@ -56,6 +56,12 @@ TestBoardAnalyser.prototype.showInUi = function (msg) {
     window.testUi.showTestGame(this.name, msg, this.game);
 };
 
+//---
+
+TestBoardAnalyser.prototype.testUnconnectedBrothers = function () {
+    this.checkBasicGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b5,b3,c4,a4,a5,a3,g6,pass,g4,g3,g5',
+        '-------,---@@@@,@@-@OO@,O?@@O@@,OOOO?OO,::O&O::,:::::::', 7);
+};
 
 TestBoardAnalyser.prototype.testClearWinWithUnplayedMoves = function () {
     // Black wins clearly because he can make 2 eyes while white cannot.
