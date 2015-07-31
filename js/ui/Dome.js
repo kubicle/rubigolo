@@ -135,7 +135,7 @@ Dome.getRadioValue = function (opts) {
  */
 Dome.newDropdown = function (parent, name, labels, values, init) {
     if (!values) values = labels;
-    var select = new Dome(parent, 'select', name + 'Dropdwn dropdwn');
+    var select = new Dome(parent, 'select', name + 'DropDwn dropDwn');
     var cur = 0;
     for (var i = 0; i < labels.length; i++) {
         var opt = new Dome(select, 'option').elt;
