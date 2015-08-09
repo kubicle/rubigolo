@@ -47,10 +47,6 @@ TestUi.prototype.initTest = function (name) {
     return window.setTimeout(function () { self.runTest(name); }, 50);
 };
 
-//TODO: checkbox to toggle debug logs
-// main.debug = true;
-// main.log.level = Logger.DEBUG;
-
 TestUi.prototype.logfn = function (lvl, msg) {
     msg = msg.replace(/\n/g, '<br>').replace(/ /g, '&nbsp;') + '<br>';
     if (lvl >= Logger.WARN) this.errors.setHtml(this.errors.html() + msg);
