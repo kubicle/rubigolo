@@ -13,7 +13,6 @@ var ScoreAnalyser = require('../ScoreAnalyser');
 var WHITE = main.WHITE, BLACK = main.BLACK;
 
 var viewportWidth = document.documentElement.clientWidth;
-//var pixelRatio = window.devicePixelRatio || 1;
 
 
 function Ui(game) {
@@ -73,11 +72,11 @@ Ui.prototype.createGameUi = function (layout, parent, title, descr) {
     var logDiv = gameDiv.newDiv('logDiv');
     this.output = logDiv.newDiv('logBox outputBox');
     if (!isCompact) this.historyElt = logDiv.newDiv('logBox historyBox');
+    else this.output.setAttribute('style', 'width:100%');
 
     // width adjustments
     var width = this.game.goban.gsize + 2; // width in stones
-    this.boardWidth = isCompact ? width * 28 : Math.min(width * 60, viewportWidth);
-    if (!isCompact) this.controlElt.setAttribute('style', 'max-width:' + this.boardWidth + 'px');
+    this.boardWidth = isCompact ? width * 28 : Math.min(width * 60, viewportWidth - 15);
 
     var self = this;
     this.board = new Board();
@@ -149,6 +148,7 @@ Ui.prototype.toggleControls = function () {
     this.controls.setVisible(['pass', 'resi'], inGame && !auto);
     this.controls.setVisible(['next', 'next10', 'nextAll'], inGame && auto);
     this.controls.setVisible(['newg'], this.game.gameEnded);
+    this.controls.setVisible(['evalMode', 'score', 'territory'], inGame);
     this.aiVsAiFlags.setVisible(auto);
 };
 
@@ -309,10 +309,12 @@ Ui.prototype.whoPlaysNow = function () {
 };
 
 Ui.prototype.letNextPlayerPlay = function (automatic) {
-    if (this.playerIsAi[this.game.curColor]) {
+    var color = this.game.curColor;
+    if (this.playerIsAi[color]) {
         this.letAiPlay(automatic);
     } else {
         this.message(' ' + this.whoPlaysNow(), true);
+        this.board.setCurrentColor(color);
     }
 };
 
