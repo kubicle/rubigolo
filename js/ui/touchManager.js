@@ -15,17 +15,13 @@ module.exports = new TouchManager();
 
 TouchManager.prototype.listenOn = function (elt, handlerFn) {
     var self = this;
-    var target = {
-        elt: elt,
-        rect: elt.getBoundingClientRect(),
-        handlerFn: handlerFn
-    };
+    elt.touchHandlerFn = handlerFn;
 
     elt.addEventListener('touchstart', function (e) {
         self.touchCount += e.changedTouches.length;
         if (self.touchCount > 1) {
             self.multiTouch = true;
-            return self.cancelDrag(target);
+            return self.cancelDrag(elt);
         }
         self.onTouchStart(e.changedTouches[0]);
     });
@@ -35,15 +31,15 @@ TouchManager.prototype.listenOn = function (elt, handlerFn) {
 
     elt.addEventListener('touchmove', function (e) {
         if (self.startX === null) return; // drag cancelled
-        if (e.changedTouches.length > 1) return self.cancelDrag(target);
+        if (e.changedTouches.length > 1) return self.cancelDrag(elt);
 
-        if (self.onTouchMove(e.changedTouches[0], target)) {
+        if (self.onTouchMove(e.changedTouches[0], elt)) {
             e.preventDefault();
         }
     });
     elt.addEventListener('mousemove', function (e) {
         if (self.startX === null) return; // mouse move without holding button
-        if (self.onTouchMove(e, target)) {
+        if (self.onTouchMove(e, elt)) {
             e.preventDefault();
         }
     });
@@ -54,19 +50,19 @@ TouchManager.prototype.listenOn = function (elt, handlerFn) {
             self.multiTouch = self.touchCount > 0; // multiTouch is true until we remove all fingers
             return;
         }
-        if (self.onTouchEnd(e.changedTouches[0], target)) {
+        if (self.onTouchEnd(e.changedTouches[0], elt)) {
             e.preventDefault();
         }
     });
     elt.addEventListener('mouseup', function (e) {
-        if (self.onTouchEnd(e, target)) {
+        if (self.onTouchEnd(e, elt)) {
             e.preventDefault();
         }
     });
 
     elt.addEventListener('touchcancel', function (e) {
         self.touchCount -= e.changedTouches.length;
-        return self.cancelDrag(target);
+        return self.cancelDrag(elt);
     });
 };
 
@@ -74,7 +70,7 @@ TouchManager.prototype.cancelDrag = function (target) {
     this.startX = null;
     if (this.dragging) {
         this.dragging = false;
-        target.handlerFn('dragCancel');
+        target.touchHandlerFn('dragCancel');
     }
 };
 
@@ -98,17 +94,13 @@ TouchManager.prototype.onTouchMove = function (ev, target) {
     } else {
         eventName = 'drag';
     }
-    var rect = target.rect;
-    var x = ev.clientX - rect.left, y = ev.clientY - rect.top;
-    target.handlerFn(eventName, x, y);
+    target.touchHandlerFn(eventName, ev.pageX - target.offsetLeft, ev.pageY - target.offsetTop);
     return true;
 };
 
 TouchManager.prototype.onTouchEnd = function (ev, target) {
     var eventName = this.dragging ? 'dragEnd' : 'tap';
-    var rect = target.rect;
-    var x = ev.clientX - rect.left, y = ev.clientY - rect.top;
-    target.handlerFn(eventName, x, y);
+    target.touchHandlerFn(eventName, ev.pageX - target.offsetLeft, ev.pageY - target.offsetTop);
     this.startX = null;
     this.dragging = false;
     return true;
