@@ -116,7 +116,7 @@ Ui.prototype.createControls = function (parentDiv) {
     this.testBtn = this.controlElt.newDiv('testControls');
     var self = this;
     Dome.newButton(this.mainBtn, '#pass', 'Pass', function () { self.playerMove('pass'); });
-    Dome.newButton(this.mainBtn, '#next', 'Next', function () { self.letNextPlayerPlay(); });
+    Dome.newButton(this.mainBtn, '#next', 'Next', function () { self.automaticAiPlay(1); });
     Dome.newButton(this.mainBtn, '#next10', 'Next 10', function () { self.automaticAiPlay(10); });
     Dome.newButton(this.mainBtn, '#nextAll', 'Finish', function () { self.automaticAiPlay(); });
     Dome.newButton(this.mainBtn, '#undo', 'Undo', function () { self.playUndo(); });
@@ -256,17 +256,16 @@ Ui.prototype.showAiMoveData = function (aiPlayer, move) {
     this.message(txt);
 };
 
-Ui.prototype.letAiPlay = function (automatic) {
+Ui.prototype.letAiPlay = function (skipRefresh) {
     var aiPlayer = this.players[this.game.curColor];
     var move = aiPlayer.getMove();
-    if (!automatic) this.showAiMoveData(aiPlayer, move);
+    if (!skipRefresh) this.showAiMoveData(aiPlayer, move);
     this.game.playOneMove(move);
 
     // AI resigned or double-passed?
     if (this.checkEnd()) return;
 
-    // no refresh in automatic mode until last move
-    if (!automatic) this.refreshBoard();
+    if (!skipRefresh) this.refreshBoard();
 };
 
 Ui.prototype.playerMove = function (move) {
@@ -308,27 +307,29 @@ Ui.prototype.whoPlaysNow = function () {
     return '(' + playerName + '\'s turn)';
 };
 
-Ui.prototype.letNextPlayerPlay = function (automatic) {
-    var color = this.game.curColor;
-    if (this.playerIsAi[color]) {
-        this.letAiPlay(automatic);
+Ui.prototype.letNextPlayerPlay = function (skipRefresh) {
+    if (this.playerIsAi[this.game.curColor]) {
+        this.letAiPlay(skipRefresh);
     } else {
-        this.message(' ' + this.whoPlaysNow(), true);
-        this.board.setCurrentColor(color);
+        if (!skipRefresh) this.message(' ' + this.whoPlaysNow(), true);
     }
+    if (!skipRefresh) this.board.setCurrentColor(this.game.curColor);
 };
 
 Ui.prototype.automaticAiPlay = function (turns) {
+    var isLastTurn = turns === 1;
     var animated = this.animated.isChecked();
+    // we refresh for last move OR if animated
+    var skipRefresh = !isLastTurn && !animated;
 
-    this.letNextPlayerPlay(true);
-    if (this.game.gameEnding) return; // no refresh since scoring board is displayed
-    if (turns && --turns === 0) return this.refreshBoard();
-    if (animated) this.refreshBoard();
+    this.letNextPlayerPlay(skipRefresh);
+    if (isLastTurn) return;
+    if (this.game.gameEnding) return; // scoring board is displayed
 
+    // play next move
     var self = this;
     window.setTimeout(function () {
-        self.automaticAiPlay(turns);
+        self.automaticAiPlay(turns - 1);
     }, animated ? 100 : 0);
 };
 
