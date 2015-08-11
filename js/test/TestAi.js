@@ -228,7 +228,7 @@ TestAi.prototype.testNoPushFromDeadGroup = function () {
 };
 
 TestAi.prototype.testWrongSaviorAlongBorder = function () {
-    this.checkGame('e1,e2,d2', 'd3');
+    this.checkGame('e1,e2,d2', 'c3');
 };
 
 TestAi.prototype.testWrongSaviorInCorner = function () {
@@ -269,7 +269,7 @@ TestAi.prototype.testWrongAttack = function () {
     // f3-f2 cannot be saved in g2
     // c1 and f1 are wrong attacks
     this.checkGame('d4,e2,d2,c3,d3,c2,b4,d1,c4,f4,f3,e3,e4,g3,f2,e1',
-        'g2', // if possible should be 'd7|f7',
+        'd7|f7', // g2 is not working
         9);
 };
 
@@ -305,7 +305,7 @@ TestAi.prototype.testLadder = function () {
     this.checkGame('j9,j7,j8,j6,j5,a9,j4,pass', 'h7', 9);
     // we force white to run the ladder to verify black tracks to kill
     this.runChecks('!h6, #h6, h8~=0.6, g6~16');
-    this.runChecks('!h5, #h5, h4~=16~Hunter, h4~28'); // h4 big because black j4-j5 is now threatened
+    this.runChecks('!h5, #h5, h4~=16~Hunter, h4~29'); // h4 big because black j4-j5 is now threatened
     this.runChecks('#g5, h8~=0.6, g7~=10.6, f5~20');
 };
 
@@ -409,7 +409,7 @@ TestAi.prototype.testBorderClosing = function () {
     //   abcdefg
     // AI should see f4 is dead inside white territory if g5 is played (non trivial)
     this.checkGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,b6,d1,g6',
-        'g5~=0.3, g4~6', 7); // FIXME should be g5 here
+        'g5~=1.3, g4~7.3', 7); // FIXME should be g5 here
 };
 
 TestAi.prototype.testEndMoveTerrGain1 = function () {
@@ -423,7 +423,7 @@ TestAi.prototype.testEndMoveTerrGain1 = function () {
     //   abcdefg
     // g4 is actually a valid move for black
     this.checkGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b5,b3,c4,a4,a5,a3,g6,pass',
-        'g4~6.5, g3~=0.3, e3, g5', 7); // NB: d2 is already dead
+        'g4~7.2, g3~=1.2, g3, g5, e3', 7); // NB: d2 is already dead
 };
 
 TestAi.prototype.testKillingSavesNearbyGroupInAtari = function () {
@@ -497,7 +497,7 @@ TestAi.prototype.testPusher1 = function () {
     // 1 +++++++
     //   abcdefg
     this.checkGame('d4,c5,d6,c7,c4,c6,b4',
-        '!e7, e5~=0.5, d5~=1.1, e3~1.3', // cannot connect if e7; e5: spacer only, cannot connect
+        '!e7, e5~=0.5, e3~=1.3, d5~2.1', // cannot connect if e7 or e5
         7);
 };
 
@@ -512,7 +512,7 @@ TestAi.prototype.testPusher2 = function () {
     //   abcdefghj
     this.checkGame('e5,g3,c3,e3,g6,d4,d5,c5,c4,d6,e6,c6,d2,e4,d3',
         '!f5,' + // f5 cannot connect with e4
-        'e2~=0.2, g5~=1.3', // FIXME: e2 & g5 should be bigger (invasion blocker's job)
+        'e2~=1.2, g5~=1.3', // FIXME: e2 & g5 should be bigger (invasion blocker's job)
         9);
 };
 
@@ -528,9 +528,9 @@ TestAi.prototype.testSemiAndEndGame = function () {
     // 1 @@@+OO@++
     //   abcdefghj
     this.checkGame('d4,f6,f3,f4,e4,e5,d6,c5,c7,d5,g3,c6,c4,d7,b4,e6,g4,f5,h6,h5,g5,h4,h3,g6,j5,c8,j4,b7,h7,g8,g7,j8,h8,f8,f7,a5,b5,a6,b6,a3,a4,b3,a7,d3,e3,c3,e7,e2,f2,d2,c1,f1,g1,e1,b1,c2,a1,a2,a8,h9,j7,b9,j9,g9,j8,e8',
-        'b8~=0.75,' + // huge threat but only if white does not answer it
         '!d9,' + // right in enemy territory
-        '#b8, c7~=2', // FIXME if not c7 huge damage
+        'b8~1.7,' + // huge threat but only if white does not answer it
+        'c7~20', // FIXME should be much bigger! If not c7 huge damage
         9);
     // this.playAndCheck('a9', 99);
     // this.playAndCheck('c9', 99);
@@ -539,7 +539,7 @@ TestAi.prototype.testSemiAndEndGame = function () {
 };
 
 TestAi.prototype.testConnector_connectionNotNeeded = function () {
-    this.checkGame('d4,f6,f3,c7,g4,e4,e3,e5,g5,f4,g6,b4,c3', '!f5', 7);
+    this.checkGame('d4,f6,f3,c7,g4,e4,e3,e5,g5,f4,g6,b4,c3', 'f5=~1.1~=Pusher', 7);
 };
 
 TestAi.prototype.testRaceWinOnKo = function () {
