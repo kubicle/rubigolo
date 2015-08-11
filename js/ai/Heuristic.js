@@ -56,6 +56,14 @@ Heuristic.prototype.territoryScore = function (i, j, color) {
     return ter[j][i] * ( color === main.BLACK ? 1 : -1);
 };
 
+Heuristic.prototype.enemyTerritoryScore = function (i, j, color) {
+    var score = Grid.territory2owner[2 + this.ter.grids[1 - color].yx[j][i]];
+    score *= color === main.BLACK ? 1 : -1;
+    var fillTer = this.territoryScore(i,j,color)
+    if (score !== fillTer) console.error('HERE ',i,j,'pusher would see', fillTer, 'but now',score)
+    return score;
+};
+
 // TODO: instead of below, evaluate the damage caused by an *invasion* by taking group g
 Heuristic.prototype.groupThreat = function (g) {
     var lives = g.allLives();
