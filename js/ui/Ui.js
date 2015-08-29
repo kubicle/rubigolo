@@ -345,8 +345,8 @@ Ui.prototype.evalMove = function (move) {
 Ui.prototype.scoreTest = function () {
     if (!this.board.prepareSpecialDisplay('scoring')) return;
 
-    this.computeScore();
-    this.scorer.computeScore(this.game.goban, 0);
+    var score = this.scorer.computeScore(this.game.goban, this.game.komi);
+    this.message(score);
     
     var yx = this.game.goban.scoringGrid.yx;
     this.board.showSpecial('scoring', yx);
