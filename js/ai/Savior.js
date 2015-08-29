@@ -48,7 +48,7 @@ Savior.prototype._evalEscape = function (i, j, stone) {
         if (g.lives === 1) {
             // NB: if more than 1 group in atari, they merge if we play this "savior" stone
             groups.push(g);
-            threat += this.groupThreat(g);
+            threat += this.groupThreat(g, true);
         } else if (g.lives === 2) {
             groups.push(g);
             if (hunterThreat !== null) continue;

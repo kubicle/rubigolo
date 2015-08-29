@@ -35,13 +35,14 @@ Heuristic.prototype.initColor = function () {
     }
 };
 
-//TMP For heuristics which do not handle evalBoard yet
+// For heuristics which do not handle evalBoard (but evalMove)
 Heuristic.prototype.evalBoard = function (stateYx, scoreYx) {
+    var color = this.player.color;
     var myScoreYx = this.scoreGrid.yx;
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
             if (stateYx[j][i] < sOK) continue;
-            var score = myScoreYx[j][i] = this.evalMove(i, j);
+            var score = myScoreYx[j][i] = this.evalMove(i, j, color);
             scoreYx[j][i] += score;
         }
     }
@@ -58,21 +59,32 @@ Heuristic.prototype.territoryScore = function (i, j, color) {
 
 Heuristic.prototype.enemyTerritoryScore = function (i, j, color) {
     var score = Grid.territory2owner[2 + this.ter.grids[1 - color].yx[j][i]];
-    score *= color === main.BLACK ? 1 : -1;
-    var fillTer = this.territoryScore(i,j,color)
-    if (score !== fillTer) console.error('HERE ',i,j,'pusher would see', fillTer, 'but now',score)
-    return score;
+    return score * (color === main.BLACK ? 1 : -1);
 };
 
-// TODO: instead of below, evaluate the damage caused by an *invasion* by taking group g
-Heuristic.prototype.groupThreat = function (g) {
+/** Pass saved as true if g is an ally group (we evaluate how much we save) */
+Heuristic.prototype.groupThreat = function (g, saved) {
     var lives = g.allLives();
     var numEmpties = 0;
     for (var i = lives.length - 1; i >= 0; i--) {
         numEmpties += lives[i].numEmpties();
     }
-    return g.stones.length * 2 + // 2 points are pretty much granted for the prisonners
-        this.spaceInvasionCoeff * numEmpties; //...and the "open gate" to territory will count a lot
+    var threat = 2 * g.stones.length; // 2 points are pretty much granted for the prisonners
+    // TODO: instead of below, evaluate the damage caused by an *invasion* by taking group g
+    threat += this.spaceInvasionCoeff * Math.max(0, numEmpties - 1); //...and the "open gate" to territory will count a lot
+    if (saved) return threat;
+    return threat + this._countSavedAllies(g);
+};
+
+// Count indirectly saved groups (Savior looks only at rescue by connection)
+Heuristic.prototype._countSavedAllies = function (killedEnemyGroup) {
+    var saving = 0;
+    var allies = killedEnemyGroup.allEnemies();
+    for (var a = allies.length - 1; a >= 0; a--) {
+        if (allies[a].lives > 1) continue;
+        saving += this.groupThreat(allies[a], /*saved=*/true);
+    }
+    return saving;
 };
 
 Heuristic.prototype.markMoveAsBlunder = function (i, j, reason) {
