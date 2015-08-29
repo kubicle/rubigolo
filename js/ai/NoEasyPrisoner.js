@@ -5,7 +5,6 @@ var main = require('../main');
 
 var Grid = require('../Grid');
 var Heuristic = require('./Heuristic');
-var Hunter = require('./Hunter');
 var inherits = require('util').inherits;
 var Stone = require('../Stone');
 
@@ -16,17 +15,14 @@ var sOK = main.sOK;
 function NoEasyPrisoner(player) {
     Heuristic.call(this, player);
     this.executioner = player.getHeuristic('Executioner');
-    this.enemyHunter = new Hunter(player, true);
+    this.hunter = null;
 }
 inherits(NoEasyPrisoner, Heuristic);
 module.exports = NoEasyPrisoner;
 
-NoEasyPrisoner.prototype.initColor = function () {
-    Heuristic.prototype.initColor.call(this);
-    return this.enemyHunter.initColor();
-};
 
 NoEasyPrisoner.prototype.evalBoard = function (stateYx, scoreYx) {
+    if (!this.hunter) this.hunter = this.player.getHeuristic('Hunter');
     var myScoreYx = this.scoreGrid.yx;
     var executionerYx = this.executioner.scoreGrid.yx;
     for (var j = 1; j <= this.gsize; j++) {
@@ -54,8 +50,8 @@ NoEasyPrisoner.prototype.evalMove = function (i, j) {
         if (main.debug) main.log.debug('NoEasyPrisoner says ' + move + ' is plain foolish (' + score + ')');
     } else if (g.lives === 2) {
         if (main.debug) main.log.debug('NoEasyPrisoner asking Hunter to look at ' + move);
-        if (this.enemyHunter.escapingAtariIsCaught(stone)) {
-            score = - this.groupThreat(g);
+        if (this.hunter.escapingAtariIsCaught(stone)) {
+            score = - this.groupThreat(g, true);
             if (main.debug) main.log.debug('NoEasyPrisoner (backed by Hunter) says ' + move + ' is foolish  (' + score + ')');
         }
     }

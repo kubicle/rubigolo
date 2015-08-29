@@ -5,7 +5,6 @@ var main = require('../main');
 
 var Grid = require('../Grid');
 var Heuristic = require('./Heuristic');
-var Hunter = require('./Hunter');
 var inherits = require('util').inherits;
 var Stone = require('../Stone');
 
@@ -15,17 +14,14 @@ var sOK = main.sOK, ALWAYS = main.ALWAYS;
 /** @class Saviors rescue ally groups in atari */
 function Savior(player) {
     Heuristic.call(this, player);
-    this.enemyHunter = new Hunter(player, true);
+    this.hunter = null;
 }
 inherits(Savior, Heuristic);
 module.exports = Savior;
 
-Savior.prototype.initColor = function () {
-    Heuristic.prototype.initColor.call(this);
-    return this.enemyHunter.initColor();
-};
 
 Savior.prototype.evalBoard = function (stateYx, scoreYx) {
+    if (!this.hunter) this.hunter = this.player.getHeuristic('Hunter');
     var myScoreYx = this.scoreGrid.yx;
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
@@ -53,7 +49,7 @@ Savior.prototype._evalEscape = function (i, j, stone) {
             groups.push(g);
             if (hunterThreat !== null) continue;
             if (main.debug) main.log.debug('Savior asking hunter to look at ' + Grid.xy2move(i, j) + ': pre-atari on ' + g);
-            hunterThreat = this.enemyHunter.evalMove(i, j);
+            hunterThreat = this.hunter.evalMove(i, j, this.enemyColor);
             threat += hunterThreat;
         } else if (g.isDead < ALWAYS) {
             livesAdded += g.lives - 1;
@@ -82,7 +78,7 @@ Savior.prototype._evalEscape = function (i, j, stone) {
         // when we get 2 lives from the new stone, get our "consultant hunter" to evaluate if we can escape
         if (main.debug) main.log.debug('Savior asking hunter to look at ' + Grid.xy2move(i, j) + ': threat=' + threat + ', lives_added=' + livesAdded);
         Stone.playAt(this.goban, i, j, this.color);
-        var isCaught = this.enemyHunter.escapingAtariIsCaught(stone);
+        var isCaught = this.hunter.escapingAtariIsCaught(stone);
         Stone.undo(this.goban);
         if (!isCaught) {
             return threat;
