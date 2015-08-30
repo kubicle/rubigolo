@@ -5,7 +5,6 @@ var main = require('../main');
 
 var Grid = require('../Grid');
 var Heuristic = require('./Heuristic');
-var Hunter = require('./Hunter');
 var inherits = require('util').inherits;
 var Stone = require('../Stone');
 
@@ -15,28 +14,20 @@ var sOK = main.sOK;
 /** @class Should recognize when our move is foolish... */
 function NoEasyPrisoner(player) {
     Heuristic.call(this, player);
-    this.executioner = player.getHeuristic('Executioner');
-    this.enemyHunter = new Hunter(player, true);
+    this.hunter = null;
 }
 inherits(NoEasyPrisoner, Heuristic);
 module.exports = NoEasyPrisoner;
 
-NoEasyPrisoner.prototype.initColor = function () {
-    Heuristic.prototype.initColor.call(this);
-    return this.enemyHunter.initColor();
-};
 
 NoEasyPrisoner.prototype.evalBoard = function (stateYx, scoreYx) {
+    if (!this.hunter) this.hunter = this.player.getHeuristic('Hunter');
     var myScoreYx = this.scoreGrid.yx;
-    var executionerYx = this.executioner.scoreGrid.yx;
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
             if (stateYx[j][i] < sOK) continue;
             var score = myScoreYx[j][i] = this.evalMove(i, j);
             if (score === 0) continue;
-            // Remove score given by Executioner if this move does not work
-            // var execScore = executionerYx[j][i];
-            // if (execScore < -score) score -= execScore;
             scoreYx[j][i] += score;
         }
     }
@@ -50,12 +41,16 @@ NoEasyPrisoner.prototype.evalMove = function (i, j) {
     var score = 0, move;
     if (main.debug) move = Grid.xy2move(i, j);
     if (g.lives === 1) {
-        score = - this.groupThreat(g);
-        if (main.debug) main.log.debug('NoEasyPrisoner says ' + move + ' is plain foolish (' + score + ')');
+        if (g.stones.length === 1 && stone.empties()[0].moveIsKo(this.enemyColor)) {
+            if (main.debug) main.log.debug('NoEasyPrisoner sees ' + move + ' starts a KO');
+        } else {
+            score = - this.groupThreat(g, true);
+            if (main.debug) main.log.debug('NoEasyPrisoner says ' + move + ' is plain foolish (' + score + ')');
+        }
     } else if (g.lives === 2) {
         if (main.debug) main.log.debug('NoEasyPrisoner asking Hunter to look at ' + move);
-        if (this.enemyHunter.escapingAtariIsCaught(stone)) {
-            score = - this.groupThreat(g);
+        if (this.hunter.isEscapingAtariCaught(stone)) {
+            score = - this.groupThreat(g, true);
             if (main.debug) main.log.debug('NoEasyPrisoner (backed by Hunter) says ' + move + ' is foolish  (' + score + ')');
         }
     }

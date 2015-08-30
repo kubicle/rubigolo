@@ -26,12 +26,14 @@ Grid.STONE_CHARS = '@O';
 Grid.DEAD_CHARS = '&#';
 Grid.TERRITORY_CHARS = '-:';
 Grid.COLOR_CHARS = Grid.STONE_CHARS + Grid.DEAD_CHARS + Grid.TERRITORY_CHARS + Grid.DAME_CHAR + Grid.EMPTY_CHAR;
-Grid.EMPTY_COLOR = -1; // this is same as EMPTY, conveniently
-Grid.DAME_COLOR = -2; // index of ? in above string; 2 from the end of the string
-Grid.DEAD_COLOR = 2;
-Grid.TERRITORY_COLOR = 4;
 Grid.CIRCULAR_COLOR_CHARS = Grid.DAME_CHAR + Grid.EMPTY_CHAR + Grid.COLOR_CHARS;
 Grid.ZONE_CODE = 100; // used for zones (100, 101, etc.); must be > COLOR_CHARS.size
+
+// Possible values of a color (beside BLACK & WHITE)
+Grid.EMPTY_COLOR = -1; // this is same as EMPTY, conveniently
+Grid.DAME_COLOR = -2; // index of ? in above string; 2 from the end of the string
+Grid.DEAD_COLOR = 2; // 2 and 3
+Grid.TERRITORY_COLOR = 4; // 4 and 5
 
 // Converts a "territory" character into an owner score (-1= black, +1= white)
 // dame, empty, live*2, dead*2, terr*2

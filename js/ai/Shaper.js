@@ -11,7 +11,6 @@ var ALWAYS = main.ALWAYS;
  */
 function Shaper(player) {
     Heuristic.call(this, player);
-    //this.allyCoeff = this.getGene('ally-infl', 0.1, 0.01, 4.0);
 }
 inherits(Shaper, Heuristic);
 module.exports = Shaper;
@@ -28,7 +27,7 @@ Shaper.prototype.evalBoard = function (stateYx, scoreYx) {
         var alive = Shaper.getEyeMakerMove(this.goban, eye.i, eye.j, eye.vcount, coords);
         if (alive !== 1) continue;
         var i = coords[0], j = coords[1];
-        var score = myScoreYx[j][i] = this.groupThreat(g);
+        var score = myScoreYx[j][i] = this.groupThreat(g, this.color === g.color);
         scoreYx[j][i] += score;
     }
 };

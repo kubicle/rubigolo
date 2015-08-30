@@ -8,12 +8,12 @@ var BoardAnalyser = require('./BoardAnalyser');
 
 var EMPTY = main.EMPTY, BLACK = main.BLACK, WHITE = main.WHITE;
 var NEVER = main.NEVER;
+var UP = main.UP, RIGHT = main.RIGHT, DOWN = main.DOWN, LEFT = main.LEFT;
 
 var POT2CHAR = Grid.territory2char;
 var POT2OWNER = Grid.territory2owner;
 
-var UP = 0, RIGHT = 1, DOWN = 2, LEFT = 3;
-var XY_AROUND = Stone.XY_AROUND; // UP RIGHT DOWN LEFT
+var XY_AROUND = Stone.XY_AROUND;
 var XY_DIAGONAL = Stone.XY_DIAGONAL;
 
 

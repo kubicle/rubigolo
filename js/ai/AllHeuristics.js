@@ -3,7 +3,6 @@
 
 // When creating a new heuristic, remember to add it here.
 var Spacer = require('./Spacer');
-var Executioner = require('./Executioner');
 var Savior = require('./Savior');
 var Hunter = require('./Hunter');
 var Connector = require('./Connector');
@@ -13,6 +12,14 @@ var Shaper = require('./Shaper');
 
 
 var allHeuristics = function () {
-    return [Executioner, Savior, Hunter, Connector, Spacer, Pusher, NoEasyPrisoner, Shaper];
+    return [
+        NoEasyPrisoner,
+        Savior,
+        Hunter,
+        Connector,
+        Spacer,
+        Pusher,
+        Shaper
+    ];
 };
 module.exports = allHeuristics;

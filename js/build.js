@@ -1449,7 +1449,7 @@ BoardAnalyser.prototype._colorDeadGroups = function () {
     }
 };
 
-},{"./Grid":10,"./Group":11,"./ZoneFiller":20,"./ai/Shaper":30,"./main":34}],6:[function(require,module,exports){
+},{"./Grid":10,"./Group":11,"./ZoneFiller":20,"./ai/Shaper":29,"./main":33}],6:[function(require,module,exports){
 //Translated from breeder.rb using babyruby2js
 'use strict';
 
@@ -1664,7 +1664,7 @@ Breeder.prototype.bwBalanceCheck = function (numGames /*, gsize*/) {
     return numWins;
 };
 
-},{"./GameLogic":7,"./Genes":8,"./ScoreAnalyser":16,"./TimeKeeper":19,"./ai/Ai1Player":21,"./main":34}],7:[function(require,module,exports){
+},{"./GameLogic":7,"./Genes":8,"./ScoreAnalyser":16,"./TimeKeeper":19,"./ai/Ai1Player":21,"./main":33}],7:[function(require,module,exports){
 //Translated from game_logic.rb using babyruby2js
 'use strict';
 
@@ -1947,7 +1947,7 @@ GameLogic.prototype.sgfToGame = function (game) {
     return reader.toMoveList();
 };
 
-},{"./Goban":9,"./Grid":10,"./Group":11,"./HandicapSetter":12,"./SgfReader":17,"./Stone":18,"./main":34}],8:[function(require,module,exports){
+},{"./Goban":9,"./Grid":10,"./Group":11,"./HandicapSetter":12,"./SgfReader":17,"./Stone":18,"./main":33}],8:[function(require,module,exports){
 //Translated from genes.rb using babyruby2js
 'use strict';
 
@@ -2114,7 +2114,7 @@ Genes.prototype.mutateAll = function () {
 // W02: unknown constant supposed to be attached to main: YAML
 // E02: unknown method: load(...)
 // W02: unknown constant supposed to be attached to main: YAML
-},{"./main":34}],9:[function(require,module,exports){
+},{"./main":33}],9:[function(require,module,exports){
 //Translated from goban.rb using babyruby2js
 'use strict';
 
@@ -2317,7 +2317,7 @@ Goban.prototype.previousStone = function () {
     return this.history[this.history.length-1];
 };
 
-},{"./Grid":10,"./Group":11,"./Stone":18,"./main":34}],10:[function(require,module,exports){
+},{"./Grid":10,"./Group":11,"./Stone":18,"./main":33}],10:[function(require,module,exports){
 //Translated from grid.rb using babyruby2js
 'use strict';
 
@@ -2346,12 +2346,14 @@ Grid.STONE_CHARS = '@O';
 Grid.DEAD_CHARS = '&#';
 Grid.TERRITORY_CHARS = '-:';
 Grid.COLOR_CHARS = Grid.STONE_CHARS + Grid.DEAD_CHARS + Grid.TERRITORY_CHARS + Grid.DAME_CHAR + Grid.EMPTY_CHAR;
-Grid.EMPTY_COLOR = -1; // this is same as EMPTY, conveniently
-Grid.DAME_COLOR = -2; // index of ? in above string; 2 from the end of the string
-Grid.DEAD_COLOR = 2;
-Grid.TERRITORY_COLOR = 4;
 Grid.CIRCULAR_COLOR_CHARS = Grid.DAME_CHAR + Grid.EMPTY_CHAR + Grid.COLOR_CHARS;
 Grid.ZONE_CODE = 100; // used for zones (100, 101, etc.); must be > COLOR_CHARS.size
+
+// Possible values of a color (beside BLACK & WHITE)
+Grid.EMPTY_COLOR = -1; // this is same as EMPTY, conveniently
+Grid.DAME_COLOR = -2; // index of ? in above string; 2 from the end of the string
+Grid.DEAD_COLOR = 2; // 2 and 3
+Grid.TERRITORY_COLOR = 4; // 4 and 5
 
 // Converts a "territory" character into an owner score (-1= black, +1= white)
 // dame, empty, live*2, dead*2, terr*2
@@ -2534,7 +2536,7 @@ Grid.xLabel = function (i) {
     return String.fromCharCode((i + Grid.NOTATION_A - 1));
 };
 
-},{"./main":34}],11:[function(require,module,exports){
+},{"./main":33}],11:[function(require,module,exports){
 //Translated from group.rb using babyruby2js
 'use strict';
 
@@ -2816,7 +2818,7 @@ Group.countPrisoners = function (goban) {
     return prisoners;
 };
 
-},{"./Grid":10,"./main":34}],12:[function(require,module,exports){
+},{"./Grid":10,"./main":33}],12:[function(require,module,exports){
 //Translated from handicap_setter.rb using babyruby2js
 'use strict';
 
@@ -2931,7 +2933,7 @@ HandicapSetter.setStandardHandicap = function (goban, count) {
     return count;
 };
 
-},{"./Grid":10,"./HandicapSetter":12,"./Stone":18,"./main":34}],13:[function(require,module,exports){
+},{"./Grid":10,"./HandicapSetter":12,"./Stone":18,"./main":33}],13:[function(require,module,exports){
 //Translated from influence_map.rb using babyruby2js
 'use strict';
 
@@ -3013,7 +3015,7 @@ InfluenceMap.prototype.debugDump = function () {
     }
 };
 
-},{"./Grid":10,"./main":34}],14:[function(require,module,exports){
+},{"./Grid":10,"./main":33}],14:[function(require,module,exports){
 //Translated from player.rb using babyruby2js
 'use strict';
 
@@ -3041,12 +3043,12 @@ var BoardAnalyser = require('./BoardAnalyser');
 
 var EMPTY = main.EMPTY, BLACK = main.BLACK, WHITE = main.WHITE;
 var NEVER = main.NEVER;
+var UP = main.UP, RIGHT = main.RIGHT, DOWN = main.DOWN, LEFT = main.LEFT;
 
 var POT2CHAR = Grid.territory2char;
 var POT2OWNER = Grid.territory2owner;
 
-var UP = 0, RIGHT = 1, DOWN = 2, LEFT = 3;
-var XY_AROUND = Stone.XY_AROUND; // UP RIGHT DOWN LEFT
+var XY_AROUND = Stone.XY_AROUND;
 var XY_DIAGONAL = Stone.XY_DIAGONAL;
 
 
@@ -3336,7 +3338,7 @@ PotentialTerritory.prototype.connectToBorders = function (yx) {
     }
 };
 
-},{"./BoardAnalyser":5,"./Grid":10,"./Stone":18,"./main":34}],16:[function(require,module,exports){
+},{"./BoardAnalyser":5,"./Grid":10,"./Stone":18,"./main":33}],16:[function(require,module,exports){
 //Translated from score_analyser.rb using babyruby2js
 'use strict';
 
@@ -3446,7 +3448,7 @@ ScoreAnalyser.prototype.scoreDiffToS = function (diff) {
     return Grid.colorName(win) + ' wins by ' + pointsToString(Math.abs(diff));
 };
 
-},{"./BoardAnalyser":5,"./Grid":10,"./main":34}],17:[function(require,module,exports){
+},{"./BoardAnalyser":5,"./Grid":10,"./main":33}],17:[function(require,module,exports){
 //Translated from sgf_reader.rb using babyruby2js
 'use strict';
 
@@ -3639,7 +3641,7 @@ SgfReader.prototype.error = function (reason, t) {
 
 // E02: unknown method: info(...)
 // E02: unknown method: index(...)
-},{"./main":34}],18:[function(require,module,exports){
+},{"./main":33}],18:[function(require,module,exports){
 //Translated from stone.rb using babyruby2js
 'use strict';
 
@@ -3722,7 +3724,7 @@ Stone.validMove = function (goban, i, j, color) {
     if (stone.moveIsSuicide(color)) {
         return false;
     }
-    if (stone._moveIsKo(color)) {
+    if (stone.moveIsKo(color)) {
         return false;
     }
     return true;
@@ -3751,7 +3753,7 @@ Stone.prototype.moveIsSuicide = function (color) {
 // if the move would kill with stone i,j a single stone A (and nothing else!)
 // and the previous move killed with stone A a single stone B in same position i,j
 // then it is a ko
-Stone.prototype._moveIsKo = function (color) {
+Stone.prototype.moveIsKo = function (color) {
     // 1) Must kill a single group
     // NB: we don't need to iterate on unique groups because on condition #2 below
     var groupA = null;
@@ -3914,7 +3916,7 @@ Stone.prototype.isNextTo = function (group) {
     return false;
 };
 
-},{"./Grid":10,"./Group":11,"./main":34}],19:[function(require,module,exports){
+},{"./Grid":10,"./Group":11,"./main":33}],19:[function(require,module,exports){
 //Translated from time_keeper.rb using babyruby2js
 'use strict';
 
@@ -3996,7 +3998,7 @@ TimeKeeper.prototype.checkLimits = function (raiseIfOverlimit) {
     return '';
 };
 
-},{"./main":34}],20:[function(require,module,exports){
+},{"./main":33}],20:[function(require,module,exports){
 //Translated from zone_filler.rb using babyruby2js
 'use strict';
 
@@ -4081,7 +4083,7 @@ ZoneFiller.prototype._check = function (i, j) {
     return false;
 };
 
-},{"./main":34}],21:[function(require,module,exports){
+},{"./main":33}],21:[function(require,module,exports){
 //Translated from ai1_player.rb using babyruby2js
 'use strict';
 
@@ -4250,6 +4252,13 @@ Ai1Player.prototype.getMove = function () {
     return Grid.xy2move(this.bestI, this.bestJ);
 };
 
+Ai1Player.prototype._collectGroupInfo = function () {
+    // var allGroups = this.ter.allGroups;
+    // for (var ndx in allGroups) {
+    //     var g = allGroups[ndx], gi = g._info;
+    // }
+};
+
 Ai1Player.prototype._prepareEval = function () {
     this.currentMove = this.goban.moveNumber();
     this.bestScore = this.secondBestScore = this.minimumScore;
@@ -4258,6 +4267,7 @@ Ai1Player.prototype._prepareEval = function () {
 
     this.inf.buildMap();
     this.ter.guessTerritories();
+    this._collectGroupInfo();
 
     // get "raw" group info
     this.boan.analyse(this.color, this.goban);
@@ -4340,13 +4350,12 @@ Ai1Player.prototype.getMoveSurveyText = function (rank) {
 };
 
 
-},{"../BoardAnalyser":5,"../Genes":8,"../Grid":10,"../InfluenceMap":13,"../Player":14,"../PotentialTerritory":15,"../Stone":18,"../main":34,"./AllHeuristics":22,"util":4}],22:[function(require,module,exports){
+},{"../BoardAnalyser":5,"../Genes":8,"../Grid":10,"../InfluenceMap":13,"../Player":14,"../PotentialTerritory":15,"../Stone":18,"../main":33,"./AllHeuristics":22,"util":4}],22:[function(require,module,exports){
 //Translated from all_heuristics.rb using babyruby2js
 'use strict';
 
 // When creating a new heuristic, remember to add it here.
 var Spacer = require('./Spacer');
-var Executioner = require('./Executioner');
 var Savior = require('./Savior');
 var Hunter = require('./Hunter');
 var Connector = require('./Connector');
@@ -4356,11 +4365,19 @@ var Shaper = require('./Shaper');
 
 
 var allHeuristics = function () {
-    return [Executioner, Savior, Hunter, Connector, Spacer, Pusher, NoEasyPrisoner, Shaper];
+    return [
+        NoEasyPrisoner,
+        Savior,
+        Hunter,
+        Connector,
+        Spacer,
+        Pusher,
+        Shaper
+    ];
 };
 module.exports = allHeuristics;
 
-},{"./Connector":23,"./Executioner":24,"./Hunter":26,"./NoEasyPrisoner":27,"./Pusher":28,"./Savior":29,"./Shaper":30,"./Spacer":31}],23:[function(require,module,exports){
+},{"./Connector":23,"./Hunter":25,"./NoEasyPrisoner":26,"./Pusher":27,"./Savior":28,"./Shaper":29,"./Spacer":30}],23:[function(require,module,exports){
 //Translated from connector.rb using babyruby2js
 'use strict';
 
@@ -4368,6 +4385,8 @@ var main = require('../main');
 var Grid = require('../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
+
+var EMPTY = main.EMPTY;
 
 
 /** @class A move that connects 2 of our groups is good.
@@ -4410,8 +4429,9 @@ Connector.prototype.connectsMyGroups = function (i, j, color) {
     }
     if (!s2) return 0; // nothing to connect here
     if (numStones === 4) return 0; // 1 empty between 4 stones; never connect unless forced to
-    // 3 of our stones around: no need to connect unless enemy comes by
-    if (numStones === 3 && numEnemies === 0) return 0;
+    // 3 of our stones around: no need to connect unless enemy comes by or threatens
+    if (numStones === 3 && numEnemies === 0 &&
+        s1.group.lives > 1 && s2.group.lives > 1 && (!s3 || s3.group.lives > 1)) return 0;
 
     var numGroups = s3 ? 3 : 2;
     // if 3rd stone in same group than 1 or 2; we keep the diagonal ones
@@ -4421,8 +4441,8 @@ Connector.prototype.connectsMyGroups = function (i, j, color) {
     }
     // Case of diagonal (strong) stones
     if (s1.i !== s2.i && s1.j !== s2.j) {
-        // No need to connect if both connection points are free (no cutting stone yet)
-        if (this.goban.isEmpty(s1.i, s2.j) && this.goban.isEmpty(s2.i, s1.j)) return 0;
+        // no need to connect now if connection is granted
+        if (this.distanceBetweenStones(s1, s2, color) === 0) return 0;
         // We count the cutting stone as enemy (we did not "see" it above because it's diagonal)
         numEnemies++;
     }
@@ -4432,113 +4452,23 @@ Connector.prototype.connectsMyGroups = function (i, j, color) {
     } else {
         score = this.allyCoeff1 * numGroups;
     }
-    if (main.debug) {
-        main.log.debug('Connector for ' + Grid.colorName(color) + ' gives ' + score.toFixed(3) + ' to ' + i + ',' + j +
-            ' (allies:' + numGroups + ' enemies: ' + numEnemies + ')');
-    }
+    if (main.debug) main.log.debug('Connector for ' + Grid.colorName(color) + ' gives ' + score.toFixed(3) + ' to ' + i + ',' + j +
+        ' (allies:' + numGroups + ' enemies: ' + numEnemies + ')');
     return score;
 };
 
-},{"../Grid":10,"../main":34,"./Heuristic":25,"util":4}],24:[function(require,module,exports){
-//Translated from executioner.rb using babyruby2js
-'use strict';
-
-var main = require('../main');
-var Heuristic = require('./Heuristic');
-var inherits = require('util').inherits;
-
-var sOK = main.sOK, ALWAYS = main.ALWAYS;
-
-
-/** @class Executioner only preys on enemy groups in atari */
-function Executioner(player) {
-    Heuristic.call(this, player);
-}
-inherits(Executioner, Heuristic);
-module.exports = Executioner;
-
-
-// In this board, black c5 is a "sure death" move
-// 5 O@+OO
-// 4 O@O@+
-// 3 OO@@+
-// 2 ++@++
-// 1 ++@++
-//   abcde
-Executioner.prototype.isSureDeath = function (empty, color) {
-    var numAllies = 0, numKill = 0;
-    for (var i = empty.neighbors.length - 1; i >= 0; i--) {
-        var n = empty.neighbors[i];
-        switch (n.color) {
-        case main.EMPTY:
-            return false;
-        case color:
-            if (n.group.lives > 1) return false; // TODO: where do we worry about life of group?
-            numAllies++;
-            break;
-        default:
-            if (n.group.lives > 1) break; // not a kill
-            if (n.group.stones.length > 1) return false; // kill more than 1 stone
-            if (numKill) return false; // kill at least 2 groups (hence more than 1 stone)
-            numKill++;
-        }
-    }
-    if (!numAllies && numKill) return false; // case of KO
-    return true;
-};
-
-Executioner.prototype.evalBoard = function (stateYx, scoreYx) {
-    var myScoreYx = this.scoreGrid.yx;
-    for (var j = 1; j <= this.gsize; j++) {
-        for (var i = 1; i <= this.gsize; i++) {
-            if (stateYx[j][i] < sOK) continue;
-            var score = myScoreYx[j][i] = this.evalMove(i, j);
-            scoreYx[j][i] += score;
-        }
-    }
-};
-
-Executioner.prototype.evalMove = function (i, j) {
-    var stone = this.goban.stoneAt(i, j);
-    if (this.isSureDeath(stone, this.color)) {
-        this.markMoveAsBlunder(i, j, 'sure death');
-        return 0;
-    }
-    var threat = 0, saving = 0;
-    for (var g, g_array = stone.uniqueEnemies(this.color), g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
-        if (g.lives > 1) { // NB: more than 1 is a job for hunter
-            continue;
-        }
-        //threat += g.isDead < ALWAYS ? this.groupThreat(g) : 0;
-        threat += this.groupThreat(g);
-        //no need to count saved ones since Savior will do
-        for (var ally, ally_array = g.allEnemies(), ally_ndx = 0; ally=ally_array[ally_ndx], ally_ndx < ally_array.length; ally_ndx++) {
-            if (ally.lives > 1) {
-                continue;
-            }
-            saving += this.groupThreat(ally);
-        }
-    }
-    if (threat === 0) {
-        return 0;
-    }
-    if (main.debug) {
-        main.log.debug('Executioner heuristic found a threat of ' + threat + ' at ' + i + ',' + j);
-    }
-    if (main.debug && saving > 0) {
-        main.log.debug('...this would also save ' + saving);
-    }
-    return threat + saving;
-};
-
-},{"../main":34,"./Heuristic":25,"util":4}],25:[function(require,module,exports){
+},{"../Grid":10,"../main":33,"./Heuristic":24,"util":4}],24:[function(require,module,exports){
 //Translated from heuristic.rb using babyruby2js
 'use strict';
 
 var main = require('../main');
 var Grid = require('../Grid');
+var Stone = require('../Stone');
 
 var sOK = main.sOK, ALWAYS = main.ALWAYS;
+var EMPTY = main.EMPTY, BORDER = main.BORDER;
+var XY_AROUND = Stone.XY_AROUND;
+var DIR0 = main.DIR0, DIR3 = main.DIR3;
 
 
 /** @class Base class for all heuristics.
@@ -4569,13 +4499,14 @@ Heuristic.prototype.initColor = function () {
     }
 };
 
-//TMP For heuristics which do not handle evalBoard yet
+// For heuristics which do not handle evalBoard (but evalMove)
 Heuristic.prototype.evalBoard = function (stateYx, scoreYx) {
+    var color = this.player.color;
     var myScoreYx = this.scoreGrid.yx;
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
             if (stateYx[j][i] < sOK) continue;
-            var score = myScoreYx[j][i] = this.evalMove(i, j);
+            var score = myScoreYx[j][i] = this.evalMove(i, j, color);
             scoreYx[j][i] += score;
         }
     }
@@ -4590,15 +4521,67 @@ Heuristic.prototype.territoryScore = function (i, j, color) {
     return ter[j][i] * ( color === main.BLACK ? 1 : -1);
 };
 
-// TODO: instead of below, evaluate the damage caused by an *invasion* by taking group g
-Heuristic.prototype.groupThreat = function (g) {
+Heuristic.prototype.enemyTerritoryScore = function (i, j, color) {
+    var score = Grid.territory2owner[2 + this.ter.grids[1 - color].yx[j][i]];
+    return score * (color === main.BLACK ? 1 : -1);
+};
+
+/** Pass saved as true if g is an ally group (we evaluate how much we save) */
+Heuristic.prototype.groupThreat = function (g, saved) {
+    var threat = 2 * g.stones.length; // 2 points are pretty much granted for the prisonners
+
+    // TODO: instead of below, evaluate the damage caused by an *invasion* by taking group g
     var lives = g.allLives();
     var numEmpties = 0;
     for (var i = lives.length - 1; i >= 0; i--) {
         numEmpties += lives[i].numEmpties();
     }
-    return g.stones.length * 2 + // 2 points are pretty much granted for the prisonners
-        this.spaceInvasionCoeff * numEmpties; //...and the "open gate" to territory will count a lot
+    threat += this.spaceInvasionCoeff * Math.max(0, numEmpties - 1); //...and the "open gate" to territory will count a lot
+
+    if (saved) return threat;
+    return threat + this._countSavedAllies(g);
+};
+
+// Count indirectly saved groups
+Heuristic.prototype._countSavedAllies = function (killedEnemyGroup) {
+    // do not count any saved allies if we gave them a single life along border TODO: improve later
+    if (killedEnemyGroup.stones.length === 1 &&
+        this.distanceFromStoneToBorder(killedEnemyGroup.stones[0]) === 0) {
+        return 0;
+    }
+    var saving = 0;
+    var allies = killedEnemyGroup.allEnemies();
+    for (var a = allies.length - 1; a >= 0; a--) {
+        if (allies[a].lives > 1) continue;
+        saving += this.groupThreat(allies[a], /*saved=*/true);
+    }
+    return saving;
+};
+
+Heuristic.prototype._invasionCost = function (i, j, dir, color, level) {
+    if (level-- === 0) return 0;
+    var s = this.goban.stoneAt(i, j);
+    if (s === BORDER || s.color !== EMPTY) return 0;
+    var cost = this.enemyTerritoryScore(i, j, color);
+    if (cost <= 0) return 0;
+
+    var dx = XY_AROUND[dir][0], dy = XY_AROUND[dir][1];
+    var spread = XY_AROUND[(dir + 3) % 4];
+    var vx = spread[0], vy = spread[1];
+
+    cost += this._invasionCost(i + dx + vx, j + dy + vy, dir, color, level);
+    cost += this._invasionCost(i + dx - vx, j + dy - vy, dir, color, level);
+    return cost;
+};
+
+var INVASION_DEEPNESS = 0; // TODO: better algo for this
+
+Heuristic.prototype.invasionCost = function (i, j, color) {
+    var cost = Math.max(0, this.enemyTerritoryScore(i, j, color));
+    for (var dir = DIR0; dir <= DIR3; dir++) {
+        cost += this._invasionCost(i + XY_AROUND[dir][0], j + XY_AROUND[dir][1], dir, color, INVASION_DEEPNESS);
+    }
+    return cost;
 };
 
 Heuristic.prototype.markMoveAsBlunder = function (i, j, reason) {
@@ -4606,7 +4589,7 @@ Heuristic.prototype.markMoveAsBlunder = function (i, j, reason) {
 };
 
 Heuristic.prototype.distanceFromStoneToBorder = function (stone) {
-    var gsize = this.goban.gsize;
+    var gsize = this.gsize;
     var i = stone.i, j = stone.j;
     return Math.min(Math.min(i - 1, gsize - i), Math.min(j - 1, gsize - j));
 };
@@ -4621,16 +4604,19 @@ Heuristic.prototype.distanceBetweenStones = function (s1, s2, color) {
     var enemy = 1 - color;
     var numEnemies = 0, between;
     if (dx === 1 && dy === 1) { // hane
-        var diags = this.diagonalStones(s1, s2);
-        if (diags[0].color === color || diags[1].color === color) return 0;
-        if (diags[0].color === enemy) numEnemies++;
-        if (diags[1].color === enemy) numEnemies++;
+        var diags = this.diagonalStones(s1, s2), c1 = diags[0], c2 = diags[1];
+        if (c1.color === color || c2.color === color) return 0; // already connected
+        if (c1.color === enemy) numEnemies++;
+        if (c2.color === enemy) numEnemies++;
         if (numEnemies === 0) return 0; // safe hane
-        if (numEnemies === 2) return 9; // cut!
+        if (numEnemies === 2) return 99; // cut!
+        var connPoint = c1.color === enemy ? c2 : c1;
         if (this.distanceFromStoneToBorder(s1) === 0 || this.distanceFromStoneToBorder(s2) === 0) {
-            // hane close to border works even if 1 enemy unless another enemy is waiting on the border
-            var empty = diags[0].color === enemy ? diags[1] : diags[0];
-            if (empty.allyStones(enemy) !== 0) return 1;
+            if (this.distanceFromStoneToBorder(connPoint) === 1) return 1; // enemy cut-stone on border
+            if (connPoint.allyStones(enemy) !== 0) return 1; // other enemy next to conn point
+            return 0;
+        } else if (this.distanceFromStoneToBorder(connPoint) === 1) {
+            if (connPoint.allyStones(enemy) !== 0) return 1;
             return 0;
         }
         return 1;
@@ -4697,7 +4683,28 @@ Heuristic.prototype.canConnect = function (i, j, color) {
     return null;
 };
 
-},{"../Grid":10,"../main":34}],26:[function(require,module,exports){
+// Cannot start from corner!
+Heuristic.prototype.canConnectAlongBorder = function (i, j, color) {
+    // decide direction
+    var gsize = this.gsize;
+    var dx = 0, dy = 0;
+    if (i === 1 || i === gsize) dy = 1;
+    else if (j === 1 || j === gsize) dx = 1;
+    else return null;
+    // check 1 stone to see if we should reverse direction
+    var s = this.goban.stoneAt(i + dx, j + dy);
+    if (s === BORDER) return null;
+    if (s.color !== EMPTY) { dx = -dx; dy = -dy; }
+
+    for(;;) {
+        i += dx; j += dy;
+        s = this.goban.stoneAt(i, j);
+        if (s === BORDER) return null;
+        if (s.color === color && s.group.lives > 2) return s.group;
+    }
+};
+
+},{"../Grid":10,"../Stone":18,"../main":33}],25:[function(require,module,exports){
 //Translated from hunter.rb using babyruby2js
 'use strict';
 
@@ -4708,41 +4715,102 @@ var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
 var Stone = require('../Stone');
 
+var ALWAYS = main.ALWAYS;
+
 
 /** @class Hunters find threats to struggling enemy groups.
  *  Ladder attack fits in here. */
-function Hunter(player, consultant) {
-    if (consultant === undefined) consultant = false;
-    Heuristic.call(this, player, consultant);
+function Hunter(player) {
+    Heuristic.call(this, player);
 }
 inherits(Hunter, Heuristic);
 module.exports = Hunter;
 
-Hunter.prototype.evalMove = function (i, j, level) {
+
+/** Returns true if group g could get at least minLives by killing one of the
+ *  enemy groups around in atari
+ */
+Hunter.prototype._gotLivesFromKillingAround = function (g, minLives) {
+    var enemies = g.allEnemies();
+    for (var n = enemies.length - 1; n >= 0; n--) {
+        var eg = enemies[n];
+        if (eg.lives > 1) continue;
+        // found 1 enemy group in atari; killing it would give us its size in new lives
+        var addedLives = eg.stones.length;
+        if (addedLives >= minLives) return true;
+        // this is not enough, so count lives we would get by connecting with our groups around eg
+        var allies = eg.allEnemies();
+        for (var a = allies.length - 1; a >= 0; a--) {
+            addedLives += allies[a].lives - 1;
+            if (addedLives >= minLives) return true;
+        }
+    }
+    return false;
+};
+
+
+var KO_KILL_SCORE = 1;
+
+/** Returns a score to measure what kind of kill a move is.
+ *  Any number < 1.01 is sign of a "not so good" kill.
+ *  E.g. in this board, black c5 has a bad "kill score" of 1.0001
+ *  5 O@+OO
+ *  4 O@O@+
+ *  3 OO@@+
+ *  2 ++@++
+ *  1 ++@++
+ *    abcde
+ *  NB: kill score of a KO is 1 (KO_KILL_SCORE)
+ */
+Hunter.prototype._killScore = function (empty, color) {
+    var numAllies = 0, numKill = 0, life = 0;
+    for (var i = empty.neighbors.length - 1; i >= 0; i--) {
+        var n = empty.neighbors[i];
+        switch (n.color) {
+        case main.EMPTY:
+            life += 0.01;
+            break;
+        case color: // ally
+            life += (n.group.lives - 1) * 0.01;
+            if (n.group.isAlive === ALWAYS) life += 2;
+            numAllies += 0.0001;
+            break;
+        default: // enemy
+            if (n.group.lives > 1) break; // not a kill
+            numKill += n.group.stones.length;
+        }
+    }
+    return numKill + life + numAllies;
+};
+
+Hunter.prototype.evalMove = function (i, j, color, level) {
     if (level === undefined) level = 1;
     var stone = this.goban.stoneAt(i, j);
     var empties = stone.empties();
-    var allies = stone.uniqueAllies(this.color);
-    var egroups = null;
-    var snapback = false;
-    for (var eg, eg_array = stone.uniqueEnemies(this.color), eg_ndx = 0; eg=eg_array[eg_ndx], eg_ndx < eg_array.length; eg_ndx++) {
-        if (eg.lives !== 2) { // NB if 1 this is a case for Executioner
+    var allies = stone.uniqueAllies(color);
+    var enemies = stone.uniqueEnemies(color);
+    var egroups = null, eg;
+    var threat1 = 0;
+    // first count groups already in atari
+    for (var egNdx = enemies.length - 1; egNdx >= 0; egNdx--) {
+        eg = enemies[egNdx];
+        if (eg.lives !== 1) continue;
+        // if we can take eg anytime later, no need to take it now
+        //TODO also verify no group in "enemies" is strong
+        if (this._isAtariGroupCaught(eg) && !this._gotLivesFromKillingAround(eg, 1)) {
             continue;
         }
-        // if even a single of our groups around is in atari this will not work (enemy will kill our group and escape)
-        var ourGroups = eg.allEnemies(), atariLives = 0;
-        for (var n = ourGroups.length - 1; n >= 0; n--) {
-            var ourGroup = ourGroups[n];
-            if (ourGroup.lives === 1) {
-                atariLives += ourGroup.stones.length;
-                if (atariLives > 1) break;
-                var enemies = ourGroup.allEnemies();
-                for (var e = enemies.length - 1; e >= 0; e--) {
-                    atariLives += enemies[e].lives;
-                }
-            }
-        }
-        if (atariLives > 1) continue;
+        threat1 += this.groupThreat(eg);
+    }
+    var snapback = false;
+    // now look for groups with 2 lives
+    for (egNdx = enemies.length - 1; egNdx >= 0; egNdx--) {
+        eg = enemies[egNdx];
+        if (eg.lives !== 2) continue;
+        // no good if enemy can escape by killing one of our weak groups around
+        if (this._gotLivesFromKillingAround(eg, 2)) continue; // >=2 because killing 1 stone is not enough to escape
+        // same but for the group of our new stone; if should not become atari either
+        if (empties.length === 0 && allies.length === 1 && allies[0].lives === 2) continue;
         
         if (empties.length === 1 && allies.length === 0) {
             // unless this is a snapback, this is a dumb move
@@ -4755,96 +4823,124 @@ Hunter.prototype.evalMove = function (i, j, level) {
             }
             // here we know this is a snapback
             snapback = true;
-            if (main.debug) main.log.debug('Hunter sees a snapback in ' + stone);
+            if (main.debug) main.log.debug('Hunter ' + Grid.colorName(color) + ' sees a snapback in ' + stone);
         }
-        if (main.debug) main.log.debug('Hunter (level ' + level + ') looking at ' + Grid.xy2move(i, j) + ' threat on ' + eg);
+        if (main.debug) main.log.debug('Hunter ' + Grid.colorName(color) + '(level ' + level + ') looking at ' + Grid.xy2move(i, j) + ' threat on ' + eg);
         if (!egroups) egroups = [eg];
         else egroups.push(eg);
     }
-    if (!egroups) return 0;
+    if (!egroups) return threat1;
 
-    // unless snapback, make sure our new stone's group is not in atari
-    if (!snapback && empties.length < 2) {
-        var lives = empties.length;
-        for (var ag, ag_array = allies, ag_ndx = 0; ag=ag_array[ag_ndx], ag_ndx < ag_array.length; ag_ndx++) {
-            lives += ag.lives - 1;
-        }
-        if (lives < 2) {
-            return 0;
+    // unless snapback, make sure our new stone's group can survive
+    if (!snapback && empties.length <= 1) {
+        var killScore = this._killScore(stone, color);
+        if (killScore !== KO_KILL_SCORE && killScore < 1.01) {
+            return 0; // REVIEW ME: return threat1 does not penalize snapback victim enough
         }
     }
-    Stone.playAt(this.goban, i, j, this.color); // our attack takes one of the 2 last lives (the one in i,j)
-    // filter out the attacks that fail
+
+    Stone.playAt(this.goban, i, j, color); // our attack takes one of the 2 last lives (the one in i,j)
+
+    // see attacks that fail
+    var canEscape = [false, false, false];
     for (var g = egroups.length - 1; g >= 0; g--) {
-        if (!this.atariIsCaught(egroups[g], level)) egroups.splice(g, 1);
+        if (this._isAtariGroupCaught(egroups[g], level)) continue;
+        if (egroups.length === 1) { egroups.pop(); break; }
+        canEscape[g] = true;
     }
+
     Stone.undo(this.goban); // important to undo before, so we compute threat right
-    if (!egroups.length) return 0; // none is caught
-    
-    // find the bigger threat if more than 1 chase is possible
-    var threat = 0;
-    for (g = egroups.length - 1; g >= 0; g--) {
-        var t = this.groupThreat(egroups[g]);
-        if (t > threat) threat = t;
-    }
-    if (main.debug) main.log.debug('Hunter found a threat of ' + threat + ' at ' + Grid.xy2move(i, j));
-    return threat;
+
+    var threat = this._getMultipleChaseThreat(egroups, canEscape);
+
+    if (main.debug && (threat1 || threat)) main.log.debug('Hunter ' + Grid.colorName(color) +
+        ' found a threat of ' + threat1 + ' + ' + threat + ' at ' + Grid.xy2move(i, j));
+    return threat + threat1;
 };
 
-Hunter.prototype.atariIsCaught = function (g, level) {
-    if (level === undefined) level = 1;
-    var allLives = g.allLives();
-    if (allLives.length !== 1) {
-        throw new Error('Unexpected: hunter #1: ' + allLives.length);
+/** Returns the maximum threat we can hope for when several groups can be chased.
+ *  Some of these chases might fail, but even so, the enemy can only defend one.
+ *  Rule of thumb:
+ *  - if 0 can escape => we capture the bigger one
+ *  - if　1 or more can escape => we capture nothing if only 1, or the 2nd bigger if the 1st can escape
+ */
+Hunter.prototype._getMultipleChaseThreat = function (egroups, canEscape) {
+    switch (egroups.length) {
+    case 0: return 0;
+    case 1: return canEscape[0] ? 0 : this.groupThreat(egroups[0]);
+    case 2: 
+        if (!canEscape[0] && !canEscape[1]) return Math.max(this.groupThreat(egroups[0]), this.groupThreat(egroups[1]));
+        if ( canEscape[0] &&  canEscape[1]) return Math.min(this.groupThreat(egroups[0]), this.groupThreat(egroups[1]));
+        return canEscape[0] ? this.groupThreat(egroups[1]) : this.groupThreat(egroups[0]);
+    case 3:
+        var threats = [this.groupThreat(egroups[0]), this.groupThreat(egroups[1]), this.groupThreat(egroups[2])];
+        if (!canEscape[0] && !canEscape[1] && !canEscape[2]) return Math.max(threats[0], threats[1], threats[2]);
+        var sortedThreats = threats.concat().sort(function (a,b) { return a<b; });
+        var bigger = threats.indexOf(sortedThreats[0]);
+        if (!canEscape[bigger]) return threats[bigger];
+        var secondBigger = threats.indexOf(sortedThreats[1]);
+        return threats[secondBigger];
+    default: throw new Error('Unexpected in Hunter#getMultipleChaseThreat');
     }
+};
+
+Hunter.prototype._isAtariGroupCaught = function (g, level) {
+    var allLives = g.allLives();
+    if (allLives.length !== 1) throw new Error('Unexpected: hunter #1: ' + allLives.length);
+
     var lastLife = allLives[0];
     var stone = Stone.playAt(this.goban, lastLife.i, lastLife.j, g.color); // enemy's escape move
-    var isCaught = this.escapingAtariIsCaught(stone, level);
+    var isCaught = this.isEscapingAtariCaught(stone, level);
     Stone.undo(this.goban);
-    if (main.debug) main.log.debug('Hunter: group in atari would be caught: ' + g);
+    if (main.debug) main.log.debug('Hunter: group with last life ' + lastLife + ' would ' + (isCaught ? 'be caught: ' : 'escape: ') + g);
     return isCaught;
 };
 
-// stone is the atari escape move
-Hunter.prototype.escapingAtariIsCaught = function (stone, level) {
-    if (level === undefined) level = 1;
+/** Returns true if played stone has put a nearby enemy group in atari */
+Hunter.prototype._isStoneCreatingAtari = function (stone) {
+    var enemyColor = 1 - stone.color;
+    var neighbors = stone.neighbors;
+    for (var n = neighbors.length - 1; n >= 0; n--) {
+        if (neighbors[n].color !== enemyColor) continue;
+        if (neighbors[n].group.lives === 1) {
+            return true;
+        }
+    }
+    return false;
+};
+
+/** @param stone is the enemy group's escape move (played)
+ *  @param [level] - just to keep track for logging purposes
+ *  @return true if the group gets captured
+ */
+Hunter.prototype.isEscapingAtariCaught = function (stone, level) {
     var g = stone.group;
+    if (g.lives <= 1) return true; // caught
     if (g.lives > 2) {
-        return false;
+        return false; //TODO look better
     }
-    if (g.lives === 0) {
-        return true;
-    }
-    // g.lives is 1 or 2
-    for (var allyThreatened, allyThreatened_array = stone.neighbors, allyThreatened_ndx = 0; allyThreatened=allyThreatened_array[allyThreatened_ndx], allyThreatened_ndx < allyThreatened_array.length; allyThreatened_ndx++) {
-        if (allyThreatened.color !== this.color) {
-            continue;
-        }
-        if (allyThreatened.group.lives < g.lives) {
-            return false;
-        }
-    }
-    if (g.lives === 1) {
-        return true;
-    }
+    // g.lives is 2
+
+    // if escape move just put one of our groups in atari the chase fails
+    if (this._isStoneCreatingAtari(stone)) return false;
+
+    // get 2 possible escape moves
     var empties = stone.empties();
     if (empties.length !== 2) {
         empties = g.allLives();
     }
-    if (empties.length !== 2) {
-        throw new Error('Unexpected: hunter #2');
-    }
-    var e1 = empties[0]; // need to keep the empties ref since all_lives returns volatile content
+    if (empties.length !== 2) throw new Error('Unexpected: hunter #2');
+    var e1 = empties[0];
     var e2 = empties[1];
-    //  recursive descent
-    if (main.debug) {
-        main.log.debug('Enemy has 2 lives left: ' + e1 + ' and ' + e2);
-    }
-    return (this.evalMove(e1.i, e1.j, level + 1) > 0 || this.evalMove(e2.i, e2.j, level + 1) > 0);
+    if (main.debug) main.log.debug('Hunter: group has 2 lives left: ' + e1 + ' and ' + e2);
+
+    // play the 2 moves (recursive descent)
+    var color = 1 - g.color;
+    level = (level || 1) + 1;
+    return (this.evalMove(e1.i, e1.j, color, level) > 0 || this.evalMove(e2.i, e2.j, color, level) > 0);
 };
 
-
-},{"../Grid":10,"../Stone":18,"../main":34,"./Heuristic":25,"util":4}],27:[function(require,module,exports){
+},{"../Grid":10,"../Stone":18,"../main":33,"./Heuristic":24,"util":4}],26:[function(require,module,exports){
 //Translated from no_easy_prisoner.rb using babyruby2js
 'use strict';
 
@@ -4852,7 +4948,6 @@ var main = require('../main');
 
 var Grid = require('../Grid');
 var Heuristic = require('./Heuristic');
-var Hunter = require('./Hunter');
 var inherits = require('util').inherits;
 var Stone = require('../Stone');
 
@@ -4862,28 +4957,20 @@ var sOK = main.sOK;
 /** @class Should recognize when our move is foolish... */
 function NoEasyPrisoner(player) {
     Heuristic.call(this, player);
-    this.executioner = player.getHeuristic('Executioner');
-    this.enemyHunter = new Hunter(player, true);
+    this.hunter = null;
 }
 inherits(NoEasyPrisoner, Heuristic);
 module.exports = NoEasyPrisoner;
 
-NoEasyPrisoner.prototype.initColor = function () {
-    Heuristic.prototype.initColor.call(this);
-    return this.enemyHunter.initColor();
-};
 
 NoEasyPrisoner.prototype.evalBoard = function (stateYx, scoreYx) {
+    if (!this.hunter) this.hunter = this.player.getHeuristic('Hunter');
     var myScoreYx = this.scoreGrid.yx;
-    var executionerYx = this.executioner.scoreGrid.yx;
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
             if (stateYx[j][i] < sOK) continue;
             var score = myScoreYx[j][i] = this.evalMove(i, j);
             if (score === 0) continue;
-            // Remove score given by Executioner if this move does not work
-            // var execScore = executionerYx[j][i];
-            // if (execScore < -score) score -= execScore;
             scoreYx[j][i] += score;
         }
     }
@@ -4897,12 +4984,16 @@ NoEasyPrisoner.prototype.evalMove = function (i, j) {
     var score = 0, move;
     if (main.debug) move = Grid.xy2move(i, j);
     if (g.lives === 1) {
-        score = - this.groupThreat(g);
-        if (main.debug) main.log.debug('NoEasyPrisoner says ' + move + ' is plain foolish (' + score + ')');
+        if (g.stones.length === 1 && stone.empties()[0].moveIsKo(this.enemyColor)) {
+            if (main.debug) main.log.debug('NoEasyPrisoner sees ' + move + ' starts a KO');
+        } else {
+            score = - this.groupThreat(g, true);
+            if (main.debug) main.log.debug('NoEasyPrisoner says ' + move + ' is plain foolish (' + score + ')');
+        }
     } else if (g.lives === 2) {
         if (main.debug) main.log.debug('NoEasyPrisoner asking Hunter to look at ' + move);
-        if (this.enemyHunter.escapingAtariIsCaught(stone)) {
-            score = - this.groupThreat(g);
+        if (this.hunter.isEscapingAtariCaught(stone)) {
+            score = - this.groupThreat(g, true);
             if (main.debug) main.log.debug('NoEasyPrisoner (backed by Hunter) says ' + move + ' is foolish  (' + score + ')');
         }
     }
@@ -4910,26 +5001,26 @@ NoEasyPrisoner.prototype.evalMove = function (i, j) {
     return score;
 };
 
-},{"../Grid":10,"../Stone":18,"../main":34,"./Heuristic":25,"./Hunter":26,"util":4}],28:[function(require,module,exports){
+},{"../Grid":10,"../Stone":18,"../main":33,"./Heuristic":24,"util":4}],27:[function(require,module,exports){
 //Translated from pusher.rb using babyruby2js
 'use strict';
 
-var inherits = require('util').inherits;
 var main = require('../main');
+var Grid = require('../Grid');
 var Heuristic = require('./Heuristic');
+var inherits = require('util').inherits;
 
 var sOK = main.sOK;
 
 
 /** @class
- *  Quite a dumb way of "pushing" our influence further...
- *  For that reason the coeff are rather low.
- *  This should eventually disappear.
+ *  Way of "pushing" our influence further...
+ *  Still very naive; for that reason the coeff are rather low.
  */
 function Pusher(player) {
     Heuristic.call(this, player);
-    this.allyCoeff = this.getGene('ally-infl', 0.1, 0.01, 4.0);
-    this.enemyCoeff = this.getGene('enemy-infl', 0.4, 0.01, 4.0);
+    this.allyCoeff = this.getGene('ally-infl', 0.03, 0.01, 1.0);
+    this.enemyCoeff = this.getGene('enemy-infl', 0.13, 0.01, 1.0);
 }
 inherits(Pusher, Heuristic);
 module.exports = Pusher;
@@ -4954,17 +5045,16 @@ Pusher.prototype.evalMove = function (i, j) {
     }
     if (!this.canConnect(i, j, this.color)) return 0;
 
-    var fillTer = this.territoryScore(i, j, this.color);
-    if (fillTer < 0) fillTer = 0; // Spacer will count <0 scores
+    var invasion = this.invasionCost(i, j, this.color);
 
-    var score = fillTer + 0.33 * (this.enemyCoeff * enemyInf - this.allyCoeff * allyInf);
-    if (main.debug) {
-        main.log.debug('Pusher heuristic sees influences ' + allyInf + ' - ' + enemyInf + ' at ' + i + ',' + j + ' -> ' + '%.03f'.format(score));
-    }
+    var score = invasion + this.enemyCoeff * enemyInf - this.allyCoeff * allyInf;
+    if (main.debug) main.log.debug('Pusher heuristic sees invasion:' + invasion +
+        ', influences:' + allyInf + ' - ' + enemyInf + ' at ' + Grid.xy2move(i, j) +
+        ' -> ' + '%.03f'.format(score));
     return score;
 };
 
-},{"../main":34,"./Heuristic":25,"util":4}],29:[function(require,module,exports){
+},{"../Grid":10,"../main":33,"./Heuristic":24,"util":4}],28:[function(require,module,exports){
 //Translated from savior.rb using babyruby2js
 'use strict';
 
@@ -4972,7 +5062,6 @@ var main = require('../main');
 
 var Grid = require('../Grid');
 var Heuristic = require('./Heuristic');
-var Hunter = require('./Hunter');
 var inherits = require('util').inherits;
 var Stone = require('../Stone');
 
@@ -4982,17 +5071,14 @@ var sOK = main.sOK, ALWAYS = main.ALWAYS;
 /** @class Saviors rescue ally groups in atari */
 function Savior(player) {
     Heuristic.call(this, player);
-    this.enemyHunter = new Hunter(player, true);
+    this.hunter = null;
 }
 inherits(Savior, Heuristic);
 module.exports = Savior;
 
-Savior.prototype.initColor = function () {
-    Heuristic.prototype.initColor.call(this);
-    return this.enemyHunter.initColor();
-};
 
 Savior.prototype.evalBoard = function (stateYx, scoreYx) {
+    if (!this.hunter) this.hunter = this.player.getHeuristic('Hunter');
     var myScoreYx = this.scoreGrid.yx;
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
@@ -5009,18 +5095,17 @@ Savior.prototype.evalBoard = function (stateYx, scoreYx) {
 
 Savior.prototype._evalEscape = function (i, j, stone) {
     // look around stone for 2 things: threatened allies & strong allies
-    var threat = 0, livesAdded = 0, groups = [];
+    var threat = 0, groups = [], livesAdded = 0;
     var hunterThreat = null;
     for (var g, g_array = stone.uniqueAllies(this.color), g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
         if (g.lives === 1) {
-            // NB: if more than 1 group in atari, they merge if we play this "savior" stone
             groups.push(g);
-            threat += this.groupThreat(g);
+            threat += this.groupThreat(g, true);
         } else if (g.lives === 2) {
             groups.push(g);
             if (hunterThreat !== null) continue;
-            if (main.debug) main.log.debug('Savior asking hunter to look at ' + Grid.xy2move(i, j) + ': pre-atari on ' + g);
-            hunterThreat = this.enemyHunter.evalMove(i, j);
+            if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' asking hunter to look at ' + Grid.xy2move(i, j) + ': pre-atari on ' + g);
+            hunterThreat = this.hunter.evalMove(i, j, this.enemyColor);
             threat += hunterThreat;
         } else if (g.isDead < ALWAYS) {
             livesAdded += g.lives - 1;
@@ -5030,7 +5115,7 @@ Savior.prototype._evalEscape = function (i, j, stone) {
 
     livesAdded += stone.numEmpties();
     if (livesAdded > 2) return threat; // we can save the threat
-    if (livesAdded >= 2) {
+    if (livesAdded === 2) {
         // do not count empties that were already a life of threatened groups
         var empties = stone.empties();
         for (var t = groups.length - 1; t >= 0; t--) {
@@ -5040,26 +5125,25 @@ Savior.prototype._evalEscape = function (i, j, stone) {
             }
         }
     }
-    if (livesAdded >= 2) {
-        if (livesAdded === 2 && this.distanceFromStoneToBorder(stone) === 0) {
-            if (main.debug) main.log.debug('Savior giving up on threat of ' + threat + ' in ' + Grid.xy2move(i, j) +
-                ' because escape is along the border (TODO later)');
-            return 0;
+    if (livesAdded === 2) {
+        if (this.distanceFromStoneToBorder(stone) === 0) {
+            if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' sees an escape along border in ' + Grid.xy2move(i, j));
+            return this.canConnectAlongBorder(i, j, this.color) ? threat : 0;
         }
-        // when we get 2 lives from the new stone, get our "consultant hunter" to evaluate if we can escape
-        if (main.debug) main.log.debug('Savior asking hunter to look at ' + Grid.xy2move(i, j) + ': threat=' + threat + ', lives_added=' + livesAdded);
+        // when we get 2 lives from the new stone, get our hunter to evaluate if we can escape
+        if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' asking hunter to look at ' + Grid.xy2move(i, j) + ': threat=' + threat + ', lives_added=' + livesAdded);
         Stone.playAt(this.goban, i, j, this.color);
-        var isCaught = this.enemyHunter.escapingAtariIsCaught(stone);
+        var isCaught = this.hunter.isEscapingAtariCaught(stone);
         Stone.undo(this.goban);
         if (!isCaught) {
             return threat;
         }
     }
-    if (main.debug) main.log.debug('Savior giving up on threat of ' + threat + ' in ' + Grid.xy2move(i, j));
+    if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' giving up on threat of ' + threat + ' in ' + Grid.xy2move(i, j));
     return 0; // nothing we can do to help
 };
 
-},{"../Grid":10,"../Stone":18,"../main":34,"./Heuristic":25,"./Hunter":26,"util":4}],30:[function(require,module,exports){
+},{"../Grid":10,"../Stone":18,"../main":33,"./Heuristic":24,"util":4}],29:[function(require,module,exports){
 'use strict';
 
 var main = require('../main');
@@ -5073,7 +5157,6 @@ var ALWAYS = main.ALWAYS;
  */
 function Shaper(player) {
     Heuristic.call(this, player);
-    //this.allyCoeff = this.getGene('ally-infl', 0.1, 0.01, 4.0);
 }
 inherits(Shaper, Heuristic);
 module.exports = Shaper;
@@ -5090,7 +5173,7 @@ Shaper.prototype.evalBoard = function (stateYx, scoreYx) {
         var alive = Shaper.getEyeMakerMove(this.goban, eye.i, eye.j, eye.vcount, coords);
         if (alive !== 1) continue;
         var i = coords[0], j = coords[1];
-        var score = myScoreYx[j][i] = this.groupThreat(g);
+        var score = myScoreYx[j][i] = this.groupThreat(g, this.color === g.color);
         scoreYx[j][i] += score;
     }
 };
@@ -5147,7 +5230,7 @@ Shaper.getEyeMakerMove = function (goban, i, j, vcount, coords) {
     return 2;
 };
 
-},{"../main":34,"./Heuristic":25,"util":4}],31:[function(require,module,exports){
+},{"../main":33,"./Heuristic":24,"util":4}],30:[function(require,module,exports){
 //Translated from spacer.rb using babyruby2js
 'use strict';
 
@@ -5199,7 +5282,7 @@ Spacer.prototype.distanceFromBorder = function (n) {
     return Math.min(n - 1, this.gsize - n);
 };
 
-},{"../main":34,"./Heuristic":25,"util":4}],32:[function(require,module,exports){
+},{"../main":33,"./Heuristic":24,"util":4}],31:[function(require,module,exports){
 'use strict';
 
 require('./ui/style.less');
@@ -5222,7 +5305,7 @@ var TestUi = require('./ui/TestUi');
 var ui = main.ui = window.unitTest ? new TestUi() : new Ui();
 ui.createUi();
 
-},{"./constants":33,"./main":34,"./rb":35,"./test/TestAll":37,"./ui/TestUi":51,"./ui/Ui":52,"./ui/style.less":53}],33:[function(require,module,exports){
+},{"./constants":32,"./main":33,"./rb":34,"./test/TestAll":36,"./ui/TestUi":50,"./ui/Ui":51,"./ui/style.less":52}],32:[function(require,module,exports){
 //Translated from stone_constants.rb using babyruby2js
 'use strict';
 
@@ -5242,7 +5325,14 @@ main.NEVER = 0;
 main.DEPENDS = 1; // depends who plays first
 main.ALWAYS = 2;
 
-},{"./main":34}],34:[function(require,module,exports){
+main.DIR0 = 0;
+main.DIR3 = 3;
+main.UP = 0;
+main.RIGHT = 1;
+main.DOWN = 2;
+main.LEFT = 3;
+
+},{"./main":33}],33:[function(require,module,exports){
 //main class for babyruby2js
 'use strict';
 
@@ -5452,7 +5542,7 @@ Logger.prototype._newLogFn = function (lvl, consoleFn) {
 main.log = new Logger();
 main.Logger = Logger;
 
-},{}],35:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 'use strict';
 
 
@@ -5631,7 +5721,7 @@ Array.prototype.range = function (begin, end) {
   return this.slice(begin, end + 1);
 };
 
-},{}],36:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 //Translated from test_ai.rb using babyruby2js
 'use strict';
 
@@ -5862,7 +5952,7 @@ TestAi.prototype.testNoPushFromDeadGroup = function () {
 };
 
 TestAi.prototype.testWrongSaviorAlongBorder = function () {
-    this.checkGame('e1,e2,d2', 'd3');
+    this.checkGame('e1,e2,d2', 'c3');
 };
 
 TestAi.prototype.testWrongSaviorInCorner = function () {
@@ -5903,7 +5993,7 @@ TestAi.prototype.testWrongAttack = function () {
     // f3-f2 cannot be saved in g2
     // c1 and f1 are wrong attacks
     this.checkGame('d4,e2,d2,c3,d3,c2,b4,d1,c4,f4,f3,e3,e4,g3,f2,e1',
-        'g2', // if possible should be 'd7|f7',
+        'g2', // g2 seems OK
         9);
 };
 
@@ -5923,7 +6013,7 @@ TestAi.prototype.testHunter1 = function () {
     // 4 +++@++++@
     //   abcdefghj
     this.checkGame('d4,j7,j8,j6,j5,j9,j4,pass,h8,pass',
-        'h6=h7, h6~=14.3,' + // h7 is OK too but capturing same 2 stones in a ladder
+        'h6=h7, h6~=12.3,' + // h7 is OK too but capturing same 2 stones in a ladder
         '#h6, #h7, g7', // force black in h6 - choice between h6 and h7 may vary due to smaller differences
         9);
 };
@@ -5938,9 +6028,9 @@ TestAi.prototype.testLadder = function () {
     //   abcdefghj
     this.checkGame('j9,j7,j8,j6,j5,a9,j4,pass', 'h7', 9);
     // we force white to run the ladder to verify black tracks to kill
-    this.runChecks('!h6, #h6, h8~=0.6, g6~16');
-    this.runChecks('!h5, #h5, h4~=16~Hunter, h4~28'); // h4 big because black j4-j5 is now threatened
-    this.runChecks('#g5, h8~=0.6, g7~=10.6, f5~20');
+    this.runChecks('!h6, #h6, h8~=0.6, g6~14');
+    this.runChecks('!h5, #h5, h4~=14~Hunter, h4~25'); // h4 big because black j4-j5 is now threatened
+    this.runChecks('#g5, h8~=0.6, g7~=8.6, f5~18');
 };
 
 TestAi.prototype.testLadderBreaker1 = function () {
@@ -5998,7 +6088,7 @@ TestAi.prototype.testBorderDefense = function () {
     this.checkGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3',
         'g5~=1.2~Pusher,' + // no kill for black in g5 but terr gain
         '!b6,' + // FIXME b6 should be close to b5 score: black can save a5 in b6
-        'b5~10.6',
+        'b5~8.7',
         7);
 };
 
@@ -6013,7 +6103,7 @@ TestAi.prototype.testBorderAttackAndInvasion = function () {
     //   abcdefg
     // AI should see attack in b5 with territory invasion
     this.checkGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,g6,d1,g5,g4,pass',
-        'b5~10.6', 7);
+        'b5~8.7', 7);
 };
 
 TestAi.prototype.testBorderAttackAndInvasion2 = function () {
@@ -6029,7 +6119,7 @@ TestAi.prototype.testBorderAttackAndInvasion2 = function () {
     // Actually O in g4 is chosen because pusher gives it 0.33 pts.
     // NB: g4 is actually a valid move for black
     this.checkGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,g6',
-        'b5~10.6', 7);
+        'b5~8.7', 7);
 };
 
 TestAi.prototype.testBorderClosing = function () {
@@ -6043,7 +6133,7 @@ TestAi.prototype.testBorderClosing = function () {
     //   abcdefg
     // AI should see f4 is dead inside white territory if g5 is played (non trivial)
     this.checkGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,b6,d1,g6',
-        'g5~=0.3, g4~6', 7); // FIXME should be g5 here
+        'g5~=1.3, g4|g5', 7); // FIXME should be g5 here
 };
 
 TestAi.prototype.testEndMoveTerrGain1 = function () {
@@ -6057,7 +6147,7 @@ TestAi.prototype.testEndMoveTerrGain1 = function () {
     //   abcdefg
     // g4 is actually a valid move for black
     this.checkGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b5,b3,c4,a4,a5,a3,g6,pass',
-        'g4~6.5, g3~=0.3, e3, g5', 7); // NB: d2 is already dead
+        'g4~5.2, g3~=1.2, g3, g5, e3', 7); // NB: d2 is already dead
 };
 
 TestAi.prototype.testKillingSavesNearbyGroupInAtari = function () {
@@ -6070,7 +6160,7 @@ TestAi.prototype.testKillingSavesNearbyGroupInAtari = function () {
     // 1 +++O+++
     //   abcdefg
     this.checkGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,b6,d1,g5',
-        'e3~=6, g4~12.1, g6~4.6, !c7', 7);
+        'e3~=6, g4~9.5, g6~2, !c7', 7);
 };
 
 TestAi.prototype.testAiSeesSnapbackAttack = function () {
@@ -6118,7 +6208,7 @@ TestAi.prototype.testSeesAttackNoGood = function () {
     //   abcde
     // NB: we could use this game to check when AI can see dead groups
     this.checkGame('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,d3,e5,c1,c4,c5',
-        'c4~12, !c5'); // c4 kills 3 and saves 2 + 1 (disputable) space in black territory
+        'c4~10, !c5'); // c4 kills 3 and saves 2 + 1 (disputable) space in black territory
 };
 
 TestAi.prototype.testPusher1 = function () {
@@ -6131,7 +6221,7 @@ TestAi.prototype.testPusher1 = function () {
     // 1 +++++++
     //   abcdefg
     this.checkGame('d4,c5,d6,c7,c4,c6,b4',
-        '!e7, e5~=0.5, d5~=1.1, e3~1.3', // cannot connect if e7; e5: spacer only, cannot connect
+        '!e7, e5~=0.5, e3~=1.3, d5~2.1', // cannot connect if e7 or e5
         7);
 };
 
@@ -6146,7 +6236,7 @@ TestAi.prototype.testPusher2 = function () {
     //   abcdefghj
     this.checkGame('e5,g3,c3,e3,g6,d4,d5,c5,c4,d6,e6,c6,d2,e4,d3',
         '!f5,' + // f5 cannot connect with e4
-        'e2~=0.2, g5~=1.3', // FIXME: e2 & g5 should be bigger (invasion blocker's job)
+        'e2~=1.2, g5~=1.3', // FIXME: e2 & g5 should be bigger (invasion blocker's job)
         9);
 };
 
@@ -6162,18 +6252,51 @@ TestAi.prototype.testSemiAndEndGame = function () {
     // 1 @@@+OO@++
     //   abcdefghj
     this.checkGame('d4,f6,f3,f4,e4,e5,d6,c5,c7,d5,g3,c6,c4,d7,b4,e6,g4,f5,h6,h5,g5,h4,h3,g6,j5,c8,j4,b7,h7,g8,g7,j8,h8,f8,f7,a5,b5,a6,b6,a3,a4,b3,a7,d3,e3,c3,e7,e2,f2,d2,c1,f1,g1,e1,b1,c2,a1,a2,a8,h9,j7,b9,j9,g9,j8,e8',
-        'b8~=0.75,' + // huge threat but only if white does not answer it
         '!d9,' + // right in enemy territory
-        '#b8, c7~=2', // FIXME if not c7 huge damage
+        'b8~1.7,' + // huge threat but only if white does not answer it
+        'c7~22,' + // If not c7 huge damage, see below
+        'pass, pass', // FIXME a6,c9 should be played at some point
         9);
-    // this.playAndCheck('a9', 99);
-    // this.playAndCheck('c9', 99);
-    // this.playAndCheck('pass');
-    // this.playAndCheck('pass');
 };
 
-TestAi.prototype.testConnector_connectionNotNeeded = function () {
-    this.checkGame('d4,f6,f3,c7,g4,e4,e3,e5,g5,f4,g6,b4,c3', '!f5', 7);
+TestAi.prototype.testAnotherKillAfterKo = function () {
+    // Same game as above but white did not defend -> attack
+    this.checkGame('d4,f6,f3,f4,e4,e5,d6,c5,c7,d5,g3,c6,c4,d7,b4,e6,g4,f5,h6,h5,g5,h4,h3,g6,j5,c8,j4,b7,h7,g8,g7,j8,h8,f8,f7,a5,b5,a6,b6,a3,a4,b3,a7,d3,e3,c3,e7,e2,f2,d2,c1,f1,g1,e1,b1,c2,a1,a2,a8,h9,j7,b9,j9,g9,j8,e8',
+        '#b8, #c9,' + // right in enemy territory
+        'c7~20, #d8,' + // black goes for the kill in c7; too late for white now
+        'd6~20, e9~26', // it seems that real score difference for e9 is 26 indeed :)
+        9);
+};
+
+TestAi.prototype.testSemi1 = function () {
+    // NB: scoring sees W group dead, which is true
+    this.checkGame('a4,a2,b4,a3,c4,b3,d4,c3,a1,c2,b1,d2,c1,e2,d3,e1,e3',
+        'pass, !d1, ' + // W cannot play first. Then black d1 would be a blunder
+        '#b2,' + // FIXME: should be b2~16 or so; new job for Shaper
+        'd1, #b1'); // FIXME: should be b1~20 or more
+};
+
+TestAi.prototype.testSemi2 = function () {
+    // Same as above but Black plays d1 by mistake
+    this.checkGame('a4,a2,b4,a3,c4,b3,d4,c3,a1,c2,b1,d2,c1,e2,d3,e1,e3',
+        'pass, #d1,' +
+        'b2~25,' +
+        '!b1, !c1, #b1' // Black sees there is no way so we force it in b1
+        );
+        // + ',c1,' + // FIXME Shaper should be c1
+        // 'pass, a1~0.2~Pusher'); // FIXME should be pass, not a1
+};
+
+TestAi.prototype.testConnNotNeeded1 = function () {
+    this.checkGame('d4,f6,f3,c7,g4,e4,e3,e5,g5,f4,g6,b4,c3', 'f5=~1.1~=Pusher', 7);
+};
+
+TestAi.prototype.testConnNotNeededOnBorder = function () {
+    this.checkGame('c3,c2,b3,d3,b2,d2,c1,c4', '!b1, b4|d1');
+};
+
+TestAi.prototype.testConnNotNeededOnBorder2 = function () {
+    this.checkGame('c3,c2,b3,d3,b2,d2,c1,c4,d1,b4,a4', '!d4');
 };
 
 TestAi.prototype.testRaceWinOnKo = function () {
@@ -6182,7 +6305,7 @@ TestAi.prototype.testRaceWinOnKo = function () {
         'a2,pass,b5');
 };
 
-},{"../GameLogic":7,"../Grid":10,"../ai/Ai1Player":21,"../main":34,"util":4}],37:[function(require,module,exports){
+},{"../GameLogic":7,"../Grid":10,"../ai/Ai1Player":21,"../main":33,"util":4}],36:[function(require,module,exports){
 //Translated from test_all.rb using babyruby2js
 'use strict';
 
@@ -6202,7 +6325,7 @@ var TestSpeed = require('./TestSpeed');
 var TestStone = require('./TestStone');
 var TestZoneFiller = require('./TestZoneFiller');
 
-},{"../main":34,"./TestAi":36,"./TestBoardAnalyser":38,"./TestBreeder":39,"./TestGameLogic":40,"./TestGroup":41,"./TestPotentialTerritory":42,"./TestScoreAnalyser":43,"./TestSgfReader":44,"./TestSpeed":45,"./TestStone":46,"./TestZoneFiller":47}],38:[function(require,module,exports){
+},{"../main":33,"./TestAi":35,"./TestBoardAnalyser":37,"./TestBreeder":38,"./TestGameLogic":39,"./TestGroup":40,"./TestPotentialTerritory":41,"./TestScoreAnalyser":42,"./TestSgfReader":43,"./TestSpeed":44,"./TestStone":45,"./TestZoneFiller":46}],37:[function(require,module,exports){
 //Translated from test_board_analyser.rb using babyruby2js
 'use strict';
 
@@ -6465,7 +6588,7 @@ TestBoardAnalyser.prototype.testBigGame2 = function () {
     this.checkScore([11, 6], [3, 3], [44, 55]);
 };
 
-},{"../BoardAnalyser":5,"../GameLogic":7,"../Group":11,"../main":34,"util":4}],39:[function(require,module,exports){
+},{"../BoardAnalyser":5,"../GameLogic":7,"../Group":11,"../main":33,"util":4}],38:[function(require,module,exports){
 //Translated from test_breeder.rb using babyruby2js
 'use strict';
 
@@ -6490,7 +6613,7 @@ TestBreeder.prototype.testBwBalance = function () {
     return main.assertInDelta(Math.abs(numWins / (numGames / 2)), 1, tolerance);
 };
 
-},{"../Breeder":6,"../main":34,"util":4}],40:[function(require,module,exports){
+},{"../Breeder":6,"../main":33,"util":4}],39:[function(require,module,exports){
 //Translated from test_game_logic.rb using babyruby2js
 'use strict';
 
@@ -6530,7 +6653,7 @@ TestGameLogic.prototype.testHandicap = function () {
     return assertEqual(img, this.goban.image());
 };
 
-},{"../GameLogic":7,"../main":34,"util":4}],41:[function(require,module,exports){
+},{"../GameLogic":7,"../main":33,"util":4}],40:[function(require,module,exports){
 //Translated from test_group.rb using babyruby2js
 'use strict';
 
@@ -6841,7 +6964,7 @@ TestGroup.prototype.testUndo3 = function () {
     return assertEqual(5, b2.lives);
 };
 
-},{"../GameLogic":7,"../Stone":18,"../main":34,"util":4}],42:[function(require,module,exports){
+},{"../GameLogic":7,"../Stone":18,"../main":33,"util":4}],41:[function(require,module,exports){
 //Translated from test_potential_territory.rb using babyruby2js
 'use strict';
 /* jshint quotmark: false */
@@ -6987,7 +7110,7 @@ TestPotentialTerritory.prototype.testConnectBordersNoC7 = function () {
         "------?::,------:::,-----::::,-----?:::,-----?:::,----?::::,---::::::,----:::::,----:::::", 9);
 };
 
-},{"../GameLogic":7,"../PotentialTerritory":15,"../main":34,"util":4}],43:[function(require,module,exports){
+},{"../GameLogic":7,"../PotentialTerritory":15,"../main":33,"util":4}],42:[function(require,module,exports){
 //Translated from test_score_analyser.rb using babyruby2js
 'use strict';
 
@@ -7079,7 +7202,7 @@ TestScoreAnalyser.prototype.testScoreDiffToS = function () {
     return assertEqual('Tie game', this.sa.scoreDiffToS(0));
 };
 
-},{"../GameLogic":7,"../Grid":10,"../ScoreAnalyser":16,"../main":34,"util":4}],44:[function(require,module,exports){
+},{"../GameLogic":7,"../Grid":10,"../ScoreAnalyser":16,"../main":33,"util":4}],43:[function(require,module,exports){
 //Translated from test_sgf_reader.rb using babyruby2js
 'use strict';
 
@@ -7119,7 +7242,7 @@ TestSgfReader.prototype.test2 = function () {
     return assertEqual(expMoves, moves);
 };
 
-},{"../SgfReader":17,"../main":34,"util":4}],45:[function(require,module,exports){
+},{"../SgfReader":17,"../main":33,"util":4}],44:[function(require,module,exports){
 //Translated from test_speed.rb using babyruby2js
 'use strict';
 
@@ -7296,7 +7419,7 @@ TestSpeed.prototype.play10Stones = function () {
 
 // E02: unknown method: level=(...)
 
-},{"../Goban":9,"../Grid":10,"../Stone":18,"../TimeKeeper":19,"../main":34,"util":4}],46:[function(require,module,exports){
+},{"../Goban":9,"../Grid":10,"../Stone":18,"../TimeKeeper":19,"../main":33,"util":4}],45:[function(require,module,exports){
 //Translated from test_stone.rb using babyruby2js
 'use strict';
 
@@ -7395,7 +7518,7 @@ TestStone.prototype.testKo = function () {
     return assertEqual(false, Stone.validMove(this.goban, 1, 2, main.BLACK)); // and black cannot take it now
 };
 
-},{"../Goban":9,"../Stone":18,"../main":34,"util":4}],47:[function(require,module,exports){
+},{"../Goban":9,"../Stone":18,"../main":33,"util":4}],46:[function(require,module,exports){
 //Translated from test_zone_filler.rb using babyruby2js
 'use strict';
 
@@ -7481,16 +7604,30 @@ TestZoneFiller.prototype.testFill3 = function () {
     return assertEqual('+++OX,+++OO,+O+++,++OO+,+O+O+', this.grid.image());
 };
 
-},{"../GameLogic":7,"../Grid":10,"../ZoneFiller":20,"../main":34,"util":4}],48:[function(require,module,exports){
+},{"../GameLogic":7,"../Grid":10,"../ZoneFiller":20,"../main":33,"util":4}],47:[function(require,module,exports){
 'use strict';
 
 var main = require('../main');
 
 var Grid = require('../Grid');
+var touchManager = require('./touchManager.js');
 
 var WGo = window.WGo;
 
 var WHITE = main.WHITE, BLACK = main.BLACK, EMPTY = main.EMPTY;
+
+var pixelRatio = window.devicePixelRatio || 1;
+var finger2cursorInPx = 60 * pixelRatio;
+
+// Color codes conversions from WGo
+var fromWgoColor = {};
+fromWgoColor[WGo.B] = BLACK;
+fromWgoColor[WGo.W] = WHITE;
+// Color codes conversions to WGo
+var toWgoColor = {};
+toWgoColor[EMPTY] = null;
+toWgoColor[BLACK] = WGo.B;
+toWgoColor[WHITE] = WGo.W;
 
 
 function Board() {
@@ -7499,6 +7636,8 @@ function Board() {
     this.goban = null;
     this.gsize = 0;
     this.displayType = null;
+    this.cursor = { type: 'CR', x: 0, y: 0 };
+    this.isCursorOn = false;
 }
 module.exports = Board;
 
@@ -7512,29 +7651,83 @@ Board.prototype.create = function (parent, width, goban, options) {
     var config = { size: gsize, width: width, section: { top: -0.5, left: -0.5, right: -0.5, bottom: -0.5 } };
     this.board = new WGo.Board(parent.getDomElt(), config);
     if (options.coords) this.board.addCustomObject(WGo.Board.coordinates);
-    var self = this;
-    this.board.addEventListener('click', function (x,y) {
-        if (x < 0 || y < 0 || x >= gsize || y >= gsize) return;
-        // convert to goban coordinates
-        x++; y = gsize - y;
+    this.setEventListeners();
+};
 
-        if (self.goban.color(x, y) !== EMPTY) return;
-        var move = Grid.xy2move(x, y);
-        self.tapHandlerFn(move);
+Board.prototype.setEventListeners = function () {
+    var self = this;
+    touchManager.listenOn(this.board.element, function (evName, x, y) {
+        if (evName === 'dragCancel') return self.moveCursor(-1, -1);
+        if (evName.substr(0, 4) === 'drag') {
+            y -= finger2cursorInPx;
+        }
+        var vertex = self.canvas2grid(x, y);
+        x = vertex[0]; y = vertex[1];
+  
+        switch (evName) {
+        case 'dragStart':
+            return self.moveCursor(x, y);
+        case 'drag':
+            return self.moveCursor(x, y);
+        case 'dragEnd':
+            self.moveCursor(-1, -1);
+            return self.onTap(x, y);
+        case 'tap':
+            return self.onTap(x, y);
+        }
     });
 };
 
-Board.prototype.setTapHandler = function (fn) { this.tapHandlerFn = fn; };
+Board.prototype.setCurrentColor = function (color) {
+    this.cursorColor = toWgoColor[color];
+};
 
-// Color codes conversions from WGo
-var fromWgoColor = {};
-fromWgoColor[WGo.B] = BLACK;
-fromWgoColor[WGo.W] = WHITE;
-// Color codes conversions to WGo
-var toWgoColor = {};
-toWgoColor[EMPTY] = null;
-toWgoColor[BLACK] = WGo.B;
-toWgoColor[WHITE] = WGo.W;
+Board.prototype.moveCursor = function (x, y) {
+    var isValid = this.isValidCoords(x, y);
+    if (this.isCursorOn) {
+        if (x === this.cursor.x && y === this.cursor.y) return;
+        this.board.removeObject(this.cursor);
+    }
+    this.isCursorOn = isValid;
+    if (!isValid) return;
+    this.cursor.x = x; this.cursor.y = y;
+    if (this.board.obj_arr[x][y][0]) {
+        this.cursor.type = 'CR';
+        this.cursor.c = undefined;
+    } else {
+        this.cursor.type = undefined;
+        this.cursor.c = this.cursorColor;
+    }
+    this.board.addObject(this.cursor);
+};
+
+Board.prototype.isValidCoords = function (x, y) {
+    return x >= 0 && y >= 0 && x < this.gsize && y < this.gsize;
+};
+
+// x & y are WGo coordinates (origin 0,0 in top-left corner)
+Board.prototype.onTap = function (x, y) {
+    if (!this.isValidCoords(x, y)) return;
+    // convert to goban coordinates (origin 1,1 in bottom-left corner)
+    var i = x + 1;
+    var j = this.gsize - y;
+
+    if (this.goban.color(i, j) !== EMPTY) return;
+    var move = Grid.xy2move(i, j);
+    this.tapHandlerFn(move);
+};
+
+Board.prototype.setTapHandler = function (fn) {
+    this.tapHandlerFn = fn;
+};
+
+// Converts canvas to WGo coordinates
+Board.prototype.canvas2grid = function(x, y) {
+    var board = this.board;
+    x = Math.round((x * pixelRatio - board.left) / board.fieldWidth);
+    y = Math.round((y * pixelRatio - board.top) / board.fieldHeight);
+    return [x,y];
+};
 
 Board.prototype.refresh = function () {
     var restore = false; // most of the time only stones have been added/removed
@@ -7625,7 +7818,7 @@ Board.prototype.showSpecial = function (name, yx) {
     this.show(name, yx, fn);
 };
 
-},{"../Grid":10,"../main":34}],49:[function(require,module,exports){
+},{"../Grid":10,"../main":33,"./touchManager.js":53}],48:[function(require,module,exports){
 'use strict';
 
 var curGroup = null;
@@ -7806,7 +7999,7 @@ DomeGroup.prototype.setVisible = function (names, show, except) {
     }
 };
 
-},{}],50:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 'use strict';
 
 var Dome = require('./Dome');
@@ -7842,7 +8035,7 @@ function NewGameDlg(options, cb) {
 }
 module.exports = NewGameDlg;
 
-},{"./Dome":49}],51:[function(require,module,exports){
+},{"./Dome":48}],50:[function(require,module,exports){
 'use strict';
 
 var main = require('../main');
@@ -7892,10 +8085,6 @@ TestUi.prototype.initTest = function (name) {
     return window.setTimeout(function () { self.runTest(name); }, 50);
 };
 
-//TODO: checkbox to toggle debug logs
-// main.debug = true;
-// main.log.level = Logger.DEBUG;
-
 TestUi.prototype.logfn = function (lvl, msg) {
     msg = msg.replace(/\n/g, '<br>').replace(/ /g, '&nbsp;') + '<br>';
     if (lvl >= Logger.WARN) this.errors.setHtml(this.errors.html() + msg);
@@ -7936,7 +8125,7 @@ TestUi.prototype.showTestGame = function (title, msg, game) {
     ui.loadFromTest(this.gameDiv, title, msg);
 };
 
-},{"../main":34,"./Dome":49,"./Ui":52}],52:[function(require,module,exports){
+},{"../main":33,"./Dome":48,"./Ui":51}],51:[function(require,module,exports){
 'use strict';
 
 var main = require('../main');
@@ -7952,7 +8141,6 @@ var ScoreAnalyser = require('../ScoreAnalyser');
 var WHITE = main.WHITE, BLACK = main.BLACK;
 
 var viewportWidth = document.documentElement.clientWidth;
-//var pixelRatio = window.devicePixelRatio || 1;
 
 
 function Ui(game) {
@@ -8012,11 +8200,11 @@ Ui.prototype.createGameUi = function (layout, parent, title, descr) {
     var logDiv = gameDiv.newDiv('logDiv');
     this.output = logDiv.newDiv('logBox outputBox');
     if (!isCompact) this.historyElt = logDiv.newDiv('logBox historyBox');
+    else this.output.setAttribute('style', 'width:100%');
 
     // width adjustments
     var width = this.game.goban.gsize + 2; // width in stones
-    this.boardWidth = isCompact ? width * 28 : Math.min(width * 60, viewportWidth);
-    if (!isCompact) this.controlElt.setAttribute('style', 'max-width:' + this.boardWidth + 'px');
+    this.boardWidth = isCompact ? width * 28 : Math.min(width * 60, viewportWidth - 15);
 
     var self = this;
     this.board = new Board();
@@ -8056,7 +8244,7 @@ Ui.prototype.createControls = function (parentDiv) {
     this.testBtn = this.controlElt.newDiv('testControls');
     var self = this;
     Dome.newButton(this.mainBtn, '#pass', 'Pass', function () { self.playerMove('pass'); });
-    Dome.newButton(this.mainBtn, '#next', 'Next', function () { self.letNextPlayerPlay(); });
+    Dome.newButton(this.mainBtn, '#next', 'Next', function () { self.automaticAiPlay(1); });
     Dome.newButton(this.mainBtn, '#next10', 'Next 10', function () { self.automaticAiPlay(10); });
     Dome.newButton(this.mainBtn, '#nextAll', 'Finish', function () { self.automaticAiPlay(); });
     Dome.newButton(this.mainBtn, '#undo', 'Undo', function () { self.playUndo(); });
@@ -8088,6 +8276,7 @@ Ui.prototype.toggleControls = function () {
     this.controls.setVisible(['pass', 'resi'], inGame && !auto);
     this.controls.setVisible(['next', 'next10', 'nextAll'], inGame && auto);
     this.controls.setVisible(['newg'], this.game.gameEnded);
+    this.controls.setVisible(['evalMode', 'score', 'territory'], inGame);
     this.aiVsAiFlags.setVisible(auto);
 };
 
@@ -8195,17 +8384,16 @@ Ui.prototype.showAiMoveData = function (aiPlayer, move) {
     this.message(txt);
 };
 
-Ui.prototype.letAiPlay = function (automatic) {
+Ui.prototype.letAiPlay = function (skipRefresh) {
     var aiPlayer = this.players[this.game.curColor];
     var move = aiPlayer.getMove();
-    if (!automatic) this.showAiMoveData(aiPlayer, move);
+    if (!skipRefresh) this.showAiMoveData(aiPlayer, move);
     this.game.playOneMove(move);
 
     // AI resigned or double-passed?
     if (this.checkEnd()) return;
 
-    // no refresh in automatic mode until last move
-    if (!automatic) this.refreshBoard();
+    if (!skipRefresh) this.refreshBoard();
 };
 
 Ui.prototype.playerMove = function (move) {
@@ -8247,25 +8435,29 @@ Ui.prototype.whoPlaysNow = function () {
     return '(' + playerName + '\'s turn)';
 };
 
-Ui.prototype.letNextPlayerPlay = function (automatic) {
+Ui.prototype.letNextPlayerPlay = function (skipRefresh) {
     if (this.playerIsAi[this.game.curColor]) {
-        this.letAiPlay(automatic);
+        this.letAiPlay(skipRefresh);
     } else {
-        this.message(' ' + this.whoPlaysNow(), true);
+        if (!skipRefresh) this.message(' ' + this.whoPlaysNow(), true);
     }
+    if (!skipRefresh) this.board.setCurrentColor(this.game.curColor);
 };
 
 Ui.prototype.automaticAiPlay = function (turns) {
+    var isLastTurn = turns === 1;
     var animated = this.animated.isChecked();
+    // we refresh for last move OR if animated
+    var skipRefresh = !isLastTurn && !animated;
 
-    this.letNextPlayerPlay(true);
-    if (this.game.gameEnding) return; // no refresh since scoring board is displayed
-    if (turns && --turns === 0) return this.refreshBoard();
-    if (animated) this.refreshBoard();
+    this.letNextPlayerPlay(skipRefresh);
+    if (isLastTurn) return;
+    if (this.game.gameEnding) return; // scoring board is displayed
 
+    // play next move
     var self = this;
     window.setTimeout(function () {
-        self.automaticAiPlay(turns);
+        self.automaticAiPlay(turns - 1);
     }, animated ? 100 : 0);
 };
 
@@ -8281,8 +8473,8 @@ Ui.prototype.evalMove = function (move) {
 Ui.prototype.scoreTest = function () {
     if (!this.board.prepareSpecialDisplay('scoring')) return;
 
-    this.computeScore();
-    this.scorer.computeScore(this.game.goban, 0);
+    var score = this.scorer.computeScore(this.game.goban, this.game.komi);
+    this.message(score);
     
     var yx = this.game.goban.scoringGrid.yx;
     this.board.showSpecial('scoring', yx);
@@ -8295,9 +8487,118 @@ Ui.prototype.territoryTest = function () {
     this.board.showSpecial('territory', yx);
 };
 
-},{"../GameLogic":7,"../Grid":10,"../ScoreAnalyser":16,"../ai/Ai1Player":21,"../main":34,"./Board":48,"./Dome":49,"./NewGameDlg":50}],53:[function(require,module,exports){
-var css = "body {\n  background-color: #ffe;\n  font-family: \"Arial\";\n}\n.pageTitle {\n  margin-top: 10px;\n  margin-bottom: 10px;\n  font-size: 40px;\n  font-weight: bold;\n}\n.subTitle {\n  font-size: 30px;\n  margin-top: 0.5em;\n  margin-bottom: 5px;\n}\n.logBox {\n  font-size: 14px;\n  font-family: \"Arial\";\n  background-color: white;\n  border: solid #cca 1px;\n  border-radius: 8px;\n  padding: 5px;\n  overflow-y: auto;\n  word-wrap: break-word;\n}\n.controls {\n  width: 100%;\n  margin-top: 10px;\n}\n.inputLbl {\n  margin-left: 10px;\n}\n.inputBox {\n  margin: 17px 13px 17px 13px;\n  min-height: 1cm;\n  text-align: left;\n  font-size: 16pt;\n}\nbutton {\n  margin-right: 10px;\n  margin-bottom: 10px;\n  border-radius: 10px;\n  width: 120px;\n  height: 60px;\n}\nbutton.toggled {\n  background-color: #08d;\n}\n.chkBox {\n  margin: 5px 3px 14px 2px;\n}\n.dropDwn {\n  font-size: 16pt;\n  margin: 17px 13px 17px 13px;\n}\n.radioBtn {\n  margin: 17px 0px 17px 13px;\n  width: 29px;\n  height: 1.5em;\n}\n.radioLbl {\n  margin-right: 13px;\n}\n.dialog {\n  z-index: 1000;\n  position: relative;\n  margin: 0 auto;\n  top: 200px;\n  width: 45%;\n  padding: 10px;\n  background-color: #ffe;\n  border: solid #cca 1px;\n  border-radius: 10px;\n  font-family: Arial;\n  font-size: 18pt;\n}\n.dialogTitle {\n  font-size: 36px;\n  background-color: #ffebce;\n  border-radius: 10px;\n  margin: -6px;\n  margin-bottom: 15px;\n  padding: 10px 0px 10px 12px;\n}\n.gameUi .boardDesc {\n  font-style: italic;\n}\n.gameUi .resiButton {\n  margin-right: auto;\n  float: right;\n}\n.gameUi .testControls button {\n  height: 40px;\n}\n.gameUi .logDiv {\n  height: 100px;\n  width: 100%;\n}\n.gameUi .logDiv .outputBox {\n  height: 100%;\n  width: 290px;\n  font-weight: bold;\n}\n.gameUi .logDiv .historyBox {\n  position: relative;\n  top: -112px;\n  left: 310px;\n  height: 100%;\n  width: 120px;\n  font-family: \"Courier\";\n  font-weight: bold;\n}\n.testTitle {\n  margin-top: 40px;\n  margin-bottom: 10px;\n  font-size: 20px;\n  font-weight: bold;\n}\n.testOutputBox {\n  height: 160px;\n  font-size: 14px;\n}\n.testErrorBox {\n  word-wrap: break-word;\n  height: 250px;\n  font-size: 14px;\n  font-family: 'Courier';\n}\n.boardDesc {\n  font-family: 'Courier';\n}\n.newGameBackground {\n  background-image: url(\"js/ui/photo.jpg\");\n  background-repeat: repeat-y;\n  background-size: contain;\n  width: 100%;\n  height: 1200px;\n}\n.newGameDialog {\n  min-width: 600px;\n}\n.newGameDialog .handicapInput {\n  width: 20px;\n  text-align: center;\n}\n.newGameDialog .movesInput {\n  width: 50%;\n}\n.newGameDialog .btnDiv {\n  width: 100%;\n  height: 80px;\n}\n.newGameDialog .btnDiv .startButton {\n  width: 140px;\n  height: 100%;\n  font-size: 30px;\n  float: right;\n  margin-right: 0;\n}\n";(require('lessify'))(css); module.exports = css;
-},{"lessify":55}],54:[function(require,module,exports){
+},{"../GameLogic":7,"../Grid":10,"../ScoreAnalyser":16,"../ai/Ai1Player":21,"../main":33,"./Board":47,"./Dome":48,"./NewGameDlg":49}],52:[function(require,module,exports){
+var css = "body {\n  background-color: #ffe;\n  font-family: \"Arial\";\n  margin: 7px;\n}\n.pageTitle {\n  margin-top: 7px;\n  margin-bottom: 7px;\n  font-size: 40px;\n  font-weight: bold;\n}\n.subTitle {\n  font-size: 30px;\n  margin-top: 0.5em;\n  margin-bottom: 5px;\n}\n.logBox {\n  font-size: 28px;\n  font-family: \"Arial\";\n  background-color: white;\n  border: solid #cca 1px;\n  border-radius: 8px;\n  padding: 5px;\n  overflow-y: auto;\n  word-wrap: break-word;\n}\n.controls {\n  width: 100%;\n  margin-top: 10px;\n}\n.inputLbl {\n  margin-left: 10px;\n  font-size: 28px;\n}\n.inputBox {\n  margin: 17px 13px 17px 13px;\n  min-height: 1cm;\n  text-align: left;\n  font-size: 42px;\n}\nbutton {\n  margin-right: 10px;\n  margin-bottom: 10px;\n  border-radius: 10px;\n  width: 160px;\n  height: 120px;\n  font-size: 28px;\n}\nbutton.toggled {\n  background-color: #08d;\n}\n.chkBox {\n  margin: 5px 3px 14px 2px;\n  width: 29px;\n  height: 1.5em;\n}\n.chkLbl {\n  font-size: 28px;\n}\n.dropDwn {\n  font-size: 42px;\n  margin: 17px 13px 17px 13px;\n}\n.radioBtn {\n  margin: 17px 0px 17px 13px;\n  width: 29px;\n  height: 1.5em;\n}\n.radioLbl {\n  margin-right: 13px;\n}\n.dialog {\n  z-index: 1000;\n  position: relative;\n  margin: 0 auto;\n  top: 200px;\n  width: 45%;\n  padding: 10px;\n  background-color: #ffe;\n  border: solid #cca 1px;\n  border-radius: 10px;\n  font-family: Arial;\n  font-size: 42px;\n}\n.dialogTitle {\n  font-size: 50px;\n  background-color: #ffebce;\n  border-radius: 10px;\n  margin: -6px;\n  margin-bottom: 15px;\n  padding: 10px 0px 10px 12px;\n}\n.gameUi .boardDesc {\n  font-style: italic;\n}\n.gameUi .resiButton {\n  margin-left: 160px;\n}\n.gameUi .testControls button {\n  height: 90px;\n  font-size: 24px;\n}\n.gameUi .logDiv {\n  height: 100px;\n  width: 500px;\n}\n.gameUi .logDiv .outputBox {\n  height: 100%;\n  width: 400px;\n  font-weight: bold;\n}\n.gameUi .logDiv .historyBox {\n  position: relative;\n  top: -112px;\n  left: 420px;\n  height: 100%;\n  width: 230px;\n  font-family: \"Courier\";\n  font-weight: bold;\n}\n.testTitle {\n  margin-top: 40px;\n  margin-bottom: 10px;\n  font-size: 20px;\n  font-weight: bold;\n}\n.testOutputBox {\n  height: 160px;\n  font-size: 14px;\n}\n.testErrorBox {\n  word-wrap: break-word;\n  height: 250px;\n  font-size: 14px;\n  font-family: 'Courier';\n}\n.boardDesc {\n  font-family: 'Courier';\n}\n.newGameBackground {\n  background-image: url(\"js/ui/photo.jpg\");\n  background-repeat: repeat-y;\n  background-size: contain;\n  width: 100%;\n  height: 1200px;\n}\n.newGameDialog {\n  min-width: 800px;\n}\n.newGameDialog .handicapInput {\n  width: 20px;\n  text-align: center;\n}\n.newGameDialog .movesInput {\n  width: 50%;\n}\n.newGameDialog .btnDiv {\n  width: 100%;\n  height: 80px;\n}\n.newGameDialog .btnDiv .startButton {\n  width: 140px;\n  height: 100%;\n  font-size: 30px;\n  float: right;\n  margin-right: 0;\n}\n";(require('lessify'))(css); module.exports = css;
+},{"lessify":55}],53:[function(require,module,exports){
+'use strict';
+
+var DISTANCE_THRESHOLD = 10; // px
+var MIN_MOVE_DELAY = 100; // ms
+
+
+function TouchManager() {
+    this.startX = this.startY = null;
+    this.dragging = false;
+    this.touchCount = 0;
+    this.multiTouch = false;
+}
+
+module.exports = new TouchManager();
+
+TouchManager.prototype.listenOn = function (elt, handlerFn) {
+    var self = this;
+    elt.touchHandlerFn = handlerFn;
+
+    elt.addEventListener('touchstart', function (e) {
+        self.touchCount += e.changedTouches.length;
+        if (self.touchCount > 1) {
+            self.multiTouch = true;
+            return self.cancelDrag(elt);
+        }
+        self.onTouchStart(e.changedTouches[0]);
+    });
+    elt.addEventListener('mousedown', function (e) {
+        self.onTouchStart(e);
+    });
+
+    elt.addEventListener('touchmove', function (e) {
+        if (self.startX === null) return; // drag cancelled
+        if (e.changedTouches.length > 1) return self.cancelDrag(elt);
+
+        if (self.onTouchMove(e.changedTouches[0], elt)) {
+            e.preventDefault();
+        }
+    });
+    elt.addEventListener('mousemove', function (e) {
+        if (self.startX === null) return; // mouse move without holding button
+        if (self.onTouchMove(e, elt)) {
+            e.preventDefault();
+        }
+    });
+
+    elt.addEventListener('touchend', function (e) {
+        self.touchCount -= e.changedTouches.length;
+        if (self.multiTouch) {
+            self.multiTouch = self.touchCount > 0; // multiTouch is true until we remove all fingers
+            return;
+        }
+        if (self.onTouchEnd(e.changedTouches[0], elt)) {
+            e.preventDefault();
+        }
+    });
+    elt.addEventListener('mouseup', function (e) {
+        if (self.onTouchEnd(e, elt)) {
+            e.preventDefault();
+        }
+    });
+
+    elt.addEventListener('touchcancel', function (e) {
+        self.touchCount -= e.changedTouches.length;
+        return self.cancelDrag(elt);
+    });
+};
+
+TouchManager.prototype.cancelDrag = function (target) {
+    this.startX = null;
+    if (this.dragging) {
+        this.dragging = false;
+        target.touchHandlerFn('dragCancel');
+    }
+};
+
+TouchManager.prototype.onTouchStart = function (ev) {
+    this.startX = ev.clientX;
+    this.startY = ev.clientY;
+};
+
+TouchManager.prototype.onTouchMove = function (ev, target) {
+    var now = Date.now();
+    if (now - this.lastMoveTime < MIN_MOVE_DELAY) return true;
+    this.lastMoveTime = now;
+
+    var eventName;
+    if (!this.dragging) {
+        if (Math.abs(ev.clientX - this.startX) + Math.abs(ev.clientY - this.startY) < DISTANCE_THRESHOLD) {
+            return false;
+        }
+        this.dragging = true;
+        eventName = 'dragStart';
+    } else {
+        eventName = 'drag';
+    }
+    target.touchHandlerFn(eventName, ev.pageX - target.offsetLeft, ev.pageY - target.offsetTop);
+    return true;
+};
+
+TouchManager.prototype.onTouchEnd = function (ev, target) {
+    var eventName = this.dragging ? 'dragEnd' : 'tap';
+    target.touchHandlerFn(eventName, ev.pageX - target.offsetLeft, ev.pageY - target.offsetTop);
+    this.startX = null;
+    this.dragging = false;
+    return true;
+};
+
+},{}],54:[function(require,module,exports){
 module.exports = function (css, customDocument) {
   var doc = customDocument || document;
   if (doc.createStyleSheet) {
@@ -8339,4 +8640,4 @@ module.exports.byUrl = function(url) {
 },{}],55:[function(require,module,exports){
 module.exports = require('cssify');
 
-},{"cssify":54}]},{},[32]);
+},{"cssify":54}]},{},[31]);

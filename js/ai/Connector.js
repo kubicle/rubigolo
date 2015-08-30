@@ -6,6 +6,8 @@ var Grid = require('../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
 
+var EMPTY = main.EMPTY;
+
 
 /** @class A move that connects 2 of our groups is good.
  */
@@ -47,8 +49,9 @@ Connector.prototype.connectsMyGroups = function (i, j, color) {
     }
     if (!s2) return 0; // nothing to connect here
     if (numStones === 4) return 0; // 1 empty between 4 stones; never connect unless forced to
-    // 3 of our stones around: no need to connect unless enemy comes by
-    if (numStones === 3 && numEnemies === 0) return 0;
+    // 3 of our stones around: no need to connect unless enemy comes by or threatens
+    if (numStones === 3 && numEnemies === 0 &&
+        s1.group.lives > 1 && s2.group.lives > 1 && (!s3 || s3.group.lives > 1)) return 0;
 
     var numGroups = s3 ? 3 : 2;
     // if 3rd stone in same group than 1 or 2; we keep the diagonal ones
@@ -58,8 +61,8 @@ Connector.prototype.connectsMyGroups = function (i, j, color) {
     }
     // Case of diagonal (strong) stones
     if (s1.i !== s2.i && s1.j !== s2.j) {
-        // No need to connect if both connection points are free (no cutting stone yet)
-        if (this.goban.isEmpty(s1.i, s2.j) && this.goban.isEmpty(s2.i, s1.j)) return 0;
+        // no need to connect now if connection is granted
+        if (this.distanceBetweenStones(s1, s2, color) === 0) return 0;
         // We count the cutting stone as enemy (we did not "see" it above because it's diagonal)
         numEnemies++;
     }
@@ -69,9 +72,7 @@ Connector.prototype.connectsMyGroups = function (i, j, color) {
     } else {
         score = this.allyCoeff1 * numGroups;
     }
-    if (main.debug) {
-        main.log.debug('Connector for ' + Grid.colorName(color) + ' gives ' + score.toFixed(3) + ' to ' + i + ',' + j +
-            ' (allies:' + numGroups + ' enemies: ' + numEnemies + ')');
-    }
+    if (main.debug) main.log.debug('Connector for ' + Grid.colorName(color) + ' gives ' + score.toFixed(3) + ' to ' + i + ',' + j +
+        ' (allies:' + numGroups + ' enemies: ' + numEnemies + ')');
     return score;
 };

@@ -13,7 +13,6 @@ var ScoreAnalyser = require('../ScoreAnalyser');
 var WHITE = main.WHITE, BLACK = main.BLACK;
 
 var viewportWidth = document.documentElement.clientWidth;
-//var pixelRatio = window.devicePixelRatio || 1;
 
 
 function Ui(game) {
@@ -73,11 +72,11 @@ Ui.prototype.createGameUi = function (layout, parent, title, descr) {
     var logDiv = gameDiv.newDiv('logDiv');
     this.output = logDiv.newDiv('logBox outputBox');
     if (!isCompact) this.historyElt = logDiv.newDiv('logBox historyBox');
+    else this.output.setAttribute('style', 'width:100%');
 
     // width adjustments
     var width = this.game.goban.gsize + 2; // width in stones
-    this.boardWidth = isCompact ? width * 28 : Math.min(width * 60, viewportWidth);
-    if (!isCompact) this.controlElt.setAttribute('style', 'max-width:' + this.boardWidth + 'px');
+    this.boardWidth = isCompact ? width * 28 : Math.min(width * 60, viewportWidth - 15);
 
     var self = this;
     this.board = new Board();
@@ -117,7 +116,7 @@ Ui.prototype.createControls = function (parentDiv) {
     this.testBtn = this.controlElt.newDiv('testControls');
     var self = this;
     Dome.newButton(this.mainBtn, '#pass', 'Pass', function () { self.playerMove('pass'); });
-    Dome.newButton(this.mainBtn, '#next', 'Next', function () { self.letNextPlayerPlay(); });
+    Dome.newButton(this.mainBtn, '#next', 'Next', function () { self.automaticAiPlay(1); });
     Dome.newButton(this.mainBtn, '#next10', 'Next 10', function () { self.automaticAiPlay(10); });
     Dome.newButton(this.mainBtn, '#nextAll', 'Finish', function () { self.automaticAiPlay(); });
     Dome.newButton(this.mainBtn, '#undo', 'Undo', function () { self.playUndo(); });
@@ -149,6 +148,7 @@ Ui.prototype.toggleControls = function () {
     this.controls.setVisible(['pass', 'resi'], inGame && !auto);
     this.controls.setVisible(['next', 'next10', 'nextAll'], inGame && auto);
     this.controls.setVisible(['newg'], this.game.gameEnded);
+    this.controls.setVisible(['evalMode', 'score', 'territory'], inGame);
     this.aiVsAiFlags.setVisible(auto);
 };
 
@@ -256,17 +256,16 @@ Ui.prototype.showAiMoveData = function (aiPlayer, move) {
     this.message(txt);
 };
 
-Ui.prototype.letAiPlay = function (automatic) {
+Ui.prototype.letAiPlay = function (skipRefresh) {
     var aiPlayer = this.players[this.game.curColor];
     var move = aiPlayer.getMove();
-    if (!automatic) this.showAiMoveData(aiPlayer, move);
+    if (!skipRefresh) this.showAiMoveData(aiPlayer, move);
     this.game.playOneMove(move);
 
     // AI resigned or double-passed?
     if (this.checkEnd()) return;
 
-    // no refresh in automatic mode until last move
-    if (!automatic) this.refreshBoard();
+    if (!skipRefresh) this.refreshBoard();
 };
 
 Ui.prototype.playerMove = function (move) {
@@ -308,25 +307,29 @@ Ui.prototype.whoPlaysNow = function () {
     return '(' + playerName + '\'s turn)';
 };
 
-Ui.prototype.letNextPlayerPlay = function (automatic) {
+Ui.prototype.letNextPlayerPlay = function (skipRefresh) {
     if (this.playerIsAi[this.game.curColor]) {
-        this.letAiPlay(automatic);
+        this.letAiPlay(skipRefresh);
     } else {
-        this.message(' ' + this.whoPlaysNow(), true);
+        if (!skipRefresh) this.message(' ' + this.whoPlaysNow(), true);
     }
+    if (!skipRefresh) this.board.setCurrentColor(this.game.curColor);
 };
 
 Ui.prototype.automaticAiPlay = function (turns) {
+    var isLastTurn = turns === 1;
     var animated = this.animated.isChecked();
+    // we refresh for last move OR if animated
+    var skipRefresh = !isLastTurn && !animated;
 
-    this.letNextPlayerPlay(true);
-    if (this.game.gameEnding) return; // no refresh since scoring board is displayed
-    if (turns && --turns === 0) return this.refreshBoard();
-    if (animated) this.refreshBoard();
+    this.letNextPlayerPlay(skipRefresh);
+    if (isLastTurn) return;
+    if (this.game.gameEnding) return; // scoring board is displayed
 
+    // play next move
     var self = this;
     window.setTimeout(function () {
-        self.automaticAiPlay(turns);
+        self.automaticAiPlay(turns - 1);
     }, animated ? 100 : 0);
 };
 
@@ -342,8 +345,8 @@ Ui.prototype.evalMove = function (move) {
 Ui.prototype.scoreTest = function () {
     if (!this.board.prepareSpecialDisplay('scoring')) return;
 
-    this.computeScore();
-    this.scorer.computeScore(this.game.goban, 0);
+    var score = this.scorer.computeScore(this.game.goban, this.game.komi);
+    this.message(score);
     
     var yx = this.game.goban.scoringGrid.yx;
     this.board.showSpecial('scoring', yx);

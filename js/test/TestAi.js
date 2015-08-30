@@ -228,7 +228,7 @@ TestAi.prototype.testNoPushFromDeadGroup = function () {
 };
 
 TestAi.prototype.testWrongSaviorAlongBorder = function () {
-    this.checkGame('e1,e2,d2', 'd3');
+    this.checkGame('e1,e2,d2', 'c3');
 };
 
 TestAi.prototype.testWrongSaviorInCorner = function () {
@@ -269,7 +269,7 @@ TestAi.prototype.testWrongAttack = function () {
     // f3-f2 cannot be saved in g2
     // c1 and f1 are wrong attacks
     this.checkGame('d4,e2,d2,c3,d3,c2,b4,d1,c4,f4,f3,e3,e4,g3,f2,e1',
-        'g2', // if possible should be 'd7|f7',
+        'g2', // g2 seems OK
         9);
 };
 
@@ -289,7 +289,7 @@ TestAi.prototype.testHunter1 = function () {
     // 4 +++@++++@
     //   abcdefghj
     this.checkGame('d4,j7,j8,j6,j5,j9,j4,pass,h8,pass',
-        'h6=h7, h6~=14.3,' + // h7 is OK too but capturing same 2 stones in a ladder
+        'h6=h7, h6~=12.3,' + // h7 is OK too but capturing same 2 stones in a ladder
         '#h6, #h7, g7', // force black in h6 - choice between h6 and h7 may vary due to smaller differences
         9);
 };
@@ -304,9 +304,9 @@ TestAi.prototype.testLadder = function () {
     //   abcdefghj
     this.checkGame('j9,j7,j8,j6,j5,a9,j4,pass', 'h7', 9);
     // we force white to run the ladder to verify black tracks to kill
-    this.runChecks('!h6, #h6, h8~=0.6, g6~16');
-    this.runChecks('!h5, #h5, h4~=16~Hunter, h4~28'); // h4 big because black j4-j5 is now threatened
-    this.runChecks('#g5, h8~=0.6, g7~=10.6, f5~20');
+    this.runChecks('!h6, #h6, h8~=0.6, g6~14');
+    this.runChecks('!h5, #h5, h4~=14~Hunter, h4~25'); // h4 big because black j4-j5 is now threatened
+    this.runChecks('#g5, h8~=0.6, g7~=8.6, f5~18');
 };
 
 TestAi.prototype.testLadderBreaker1 = function () {
@@ -364,7 +364,7 @@ TestAi.prototype.testBorderDefense = function () {
     this.checkGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3',
         'g5~=1.2~Pusher,' + // no kill for black in g5 but terr gain
         '!b6,' + // FIXME b6 should be close to b5 score: black can save a5 in b6
-        'b5~10.6',
+        'b5~8.7',
         7);
 };
 
@@ -379,7 +379,7 @@ TestAi.prototype.testBorderAttackAndInvasion = function () {
     //   abcdefg
     // AI should see attack in b5 with territory invasion
     this.checkGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,g6,d1,g5,g4,pass',
-        'b5~10.6', 7);
+        'b5~8.7', 7);
 };
 
 TestAi.prototype.testBorderAttackAndInvasion2 = function () {
@@ -395,7 +395,7 @@ TestAi.prototype.testBorderAttackAndInvasion2 = function () {
     // Actually O in g4 is chosen because pusher gives it 0.33 pts.
     // NB: g4 is actually a valid move for black
     this.checkGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,g6',
-        'b5~10.6', 7);
+        'b5~8.7', 7);
 };
 
 TestAi.prototype.testBorderClosing = function () {
@@ -409,7 +409,7 @@ TestAi.prototype.testBorderClosing = function () {
     //   abcdefg
     // AI should see f4 is dead inside white territory if g5 is played (non trivial)
     this.checkGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,b6,d1,g6',
-        'g5~=0.3, g4~6', 7); // FIXME should be g5 here
+        'g5~=1.3, g4|g5', 7); // FIXME should be g5 here
 };
 
 TestAi.prototype.testEndMoveTerrGain1 = function () {
@@ -423,7 +423,7 @@ TestAi.prototype.testEndMoveTerrGain1 = function () {
     //   abcdefg
     // g4 is actually a valid move for black
     this.checkGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b5,b3,c4,a4,a5,a3,g6,pass',
-        'g4~6.5, g3~=0.3, e3, g5', 7); // NB: d2 is already dead
+        'g4~5.2, g3~=1.2, g3, g5, e3', 7); // NB: d2 is already dead
 };
 
 TestAi.prototype.testKillingSavesNearbyGroupInAtari = function () {
@@ -436,7 +436,7 @@ TestAi.prototype.testKillingSavesNearbyGroupInAtari = function () {
     // 1 +++O+++
     //   abcdefg
     this.checkGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,b6,d1,g5',
-        'e3~=6, g4~12.1, g6~4.6, !c7', 7);
+        'e3~=6, g4~9.5, g6~2, !c7', 7);
 };
 
 TestAi.prototype.testAiSeesSnapbackAttack = function () {
@@ -484,7 +484,7 @@ TestAi.prototype.testSeesAttackNoGood = function () {
     //   abcde
     // NB: we could use this game to check when AI can see dead groups
     this.checkGame('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,d3,e5,c1,c4,c5',
-        'c4~12, !c5'); // c4 kills 3 and saves 2 + 1 (disputable) space in black territory
+        'c4~10, !c5'); // c4 kills 3 and saves 2 + 1 (disputable) space in black territory
 };
 
 TestAi.prototype.testPusher1 = function () {
@@ -497,7 +497,7 @@ TestAi.prototype.testPusher1 = function () {
     // 1 +++++++
     //   abcdefg
     this.checkGame('d4,c5,d6,c7,c4,c6,b4',
-        '!e7, e5~=0.5, d5~=1.1, e3~1.3', // cannot connect if e7; e5: spacer only, cannot connect
+        '!e7, e5~=0.5, e3~=1.3, d5~2.1', // cannot connect if e7 or e5
         7);
 };
 
@@ -512,7 +512,7 @@ TestAi.prototype.testPusher2 = function () {
     //   abcdefghj
     this.checkGame('e5,g3,c3,e3,g6,d4,d5,c5,c4,d6,e6,c6,d2,e4,d3',
         '!f5,' + // f5 cannot connect with e4
-        'e2~=0.2, g5~=1.3', // FIXME: e2 & g5 should be bigger (invasion blocker's job)
+        'e2~=1.2, g5~=1.3', // FIXME: e2 & g5 should be bigger (invasion blocker's job)
         9);
 };
 
@@ -528,18 +528,51 @@ TestAi.prototype.testSemiAndEndGame = function () {
     // 1 @@@+OO@++
     //   abcdefghj
     this.checkGame('d4,f6,f3,f4,e4,e5,d6,c5,c7,d5,g3,c6,c4,d7,b4,e6,g4,f5,h6,h5,g5,h4,h3,g6,j5,c8,j4,b7,h7,g8,g7,j8,h8,f8,f7,a5,b5,a6,b6,a3,a4,b3,a7,d3,e3,c3,e7,e2,f2,d2,c1,f1,g1,e1,b1,c2,a1,a2,a8,h9,j7,b9,j9,g9,j8,e8',
-        'b8~=0.75,' + // huge threat but only if white does not answer it
         '!d9,' + // right in enemy territory
-        '#b8, c7~=2', // FIXME if not c7 huge damage
+        'b8~1.7,' + // huge threat but only if white does not answer it
+        'c7~22,' + // If not c7 huge damage, see below
+        'pass, pass', // FIXME a6,c9 should be played at some point
         9);
-    // this.playAndCheck('a9', 99);
-    // this.playAndCheck('c9', 99);
-    // this.playAndCheck('pass');
-    // this.playAndCheck('pass');
 };
 
-TestAi.prototype.testConnector_connectionNotNeeded = function () {
-    this.checkGame('d4,f6,f3,c7,g4,e4,e3,e5,g5,f4,g6,b4,c3', '!f5', 7);
+TestAi.prototype.testAnotherKillAfterKo = function () {
+    // Same game as above but white did not defend -> attack
+    this.checkGame('d4,f6,f3,f4,e4,e5,d6,c5,c7,d5,g3,c6,c4,d7,b4,e6,g4,f5,h6,h5,g5,h4,h3,g6,j5,c8,j4,b7,h7,g8,g7,j8,h8,f8,f7,a5,b5,a6,b6,a3,a4,b3,a7,d3,e3,c3,e7,e2,f2,d2,c1,f1,g1,e1,b1,c2,a1,a2,a8,h9,j7,b9,j9,g9,j8,e8',
+        '#b8, #c9,' + // right in enemy territory
+        'c7~20, #d8,' + // black goes for the kill in c7; too late for white now
+        'd6~20, e9~26', // it seems that real score difference for e9 is 26 indeed :)
+        9);
+};
+
+TestAi.prototype.testSemi1 = function () {
+    // NB: scoring sees W group dead, which is true
+    this.checkGame('a4,a2,b4,a3,c4,b3,d4,c3,a1,c2,b1,d2,c1,e2,d3,e1,e3',
+        'pass, !d1, ' + // W cannot play first. Then black d1 would be a blunder
+        '#b2,' + // FIXME: should be b2~16 or so; new job for Shaper
+        'd1, #b1'); // FIXME: should be b1~20 or more
+};
+
+TestAi.prototype.testSemi2 = function () {
+    // Same as above but Black plays d1 by mistake
+    this.checkGame('a4,a2,b4,a3,c4,b3,d4,c3,a1,c2,b1,d2,c1,e2,d3,e1,e3',
+        'pass, #d1,' +
+        'b2~25,' +
+        '!b1, !c1, #b1' // Black sees there is no way so we force it in b1
+        );
+        // + ',c1,' + // FIXME Shaper should be c1
+        // 'pass, a1~0.2~Pusher'); // FIXME should be pass, not a1
+};
+
+TestAi.prototype.testConnNotNeeded1 = function () {
+    this.checkGame('d4,f6,f3,c7,g4,e4,e3,e5,g5,f4,g6,b4,c3', 'f5=~1.1~=Pusher', 7);
+};
+
+TestAi.prototype.testConnNotNeededOnBorder = function () {
+    this.checkGame('c3,c2,b3,d3,b2,d2,c1,c4', '!b1, b4|d1');
+};
+
+TestAi.prototype.testConnNotNeededOnBorder2 = function () {
+    this.checkGame('c3,c2,b3,d3,b2,d2,c1,c4,d1,b4,a4', '!d4');
 };
 
 TestAi.prototype.testRaceWinOnKo = function () {

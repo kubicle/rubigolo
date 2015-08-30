@@ -80,7 +80,7 @@ Stone.validMove = function (goban, i, j, color) {
     if (stone.moveIsSuicide(color)) {
         return false;
     }
-    if (stone._moveIsKo(color)) {
+    if (stone.moveIsKo(color)) {
         return false;
     }
     return true;
@@ -109,7 +109,7 @@ Stone.prototype.moveIsSuicide = function (color) {
 // if the move would kill with stone i,j a single stone A (and nothing else!)
 // and the previous move killed with stone A a single stone B in same position i,j
 // then it is a ko
-Stone.prototype._moveIsKo = function (color) {
+Stone.prototype.moveIsKo = function (color) {
     // 1) Must kill a single group
     // NB: we don't need to iterate on unique groups because on condition #2 below
     var groupA = null;
