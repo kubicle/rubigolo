@@ -76,7 +76,7 @@ Savior.prototype._evalEscape = function (i, j, stone) {
         // when we get 2 lives from the new stone, get our hunter to evaluate if we can escape
         if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' asking hunter to look at ' + Grid.xy2move(i, j) + ': threat=' + threat + ', lives_added=' + livesAdded);
         Stone.playAt(this.goban, i, j, this.color);
-        var isCaught = this.hunter.escapingAtariIsCaught(stone);
+        var isCaught = this.hunter.isEscapingAtariCaught(stone);
         Stone.undo(this.goban);
         if (!isCaught) {
             return threat;

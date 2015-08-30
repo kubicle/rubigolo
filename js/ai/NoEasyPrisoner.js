@@ -49,7 +49,7 @@ NoEasyPrisoner.prototype.evalMove = function (i, j) {
         }
     } else if (g.lives === 2) {
         if (main.debug) main.log.debug('NoEasyPrisoner asking Hunter to look at ' + move);
-        if (this.hunter.escapingAtariIsCaught(stone)) {
+        if (this.hunter.isEscapingAtariCaught(stone)) {
             score = - this.groupThreat(g, true);
             if (main.debug) main.log.debug('NoEasyPrisoner (backed by Hunter) says ' + move + ' is foolish  (' + score + ')');
         }
