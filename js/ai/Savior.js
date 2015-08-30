@@ -38,17 +38,16 @@ Savior.prototype.evalBoard = function (stateYx, scoreYx) {
 
 Savior.prototype._evalEscape = function (i, j, stone) {
     // look around stone for 2 things: threatened allies & strong allies
-    var threat = 0, livesAdded = 0, groups = [];
+    var threat = 0, groups = [], livesAdded = 0;
     var hunterThreat = null;
     for (var g, g_array = stone.uniqueAllies(this.color), g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
         if (g.lives === 1) {
-            // NB: if more than 1 group in atari, they merge if we play this "savior" stone
             groups.push(g);
             threat += this.groupThreat(g, true);
         } else if (g.lives === 2) {
             groups.push(g);
             if (hunterThreat !== null) continue;
-            if (main.debug) main.log.debug('Savior asking hunter to look at ' + Grid.xy2move(i, j) + ': pre-atari on ' + g);
+            if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' asking hunter to look at ' + Grid.xy2move(i, j) + ': pre-atari on ' + g);
             hunterThreat = this.hunter.evalMove(i, j, this.enemyColor);
             threat += hunterThreat;
         } else if (g.isDead < ALWAYS) {
@@ -59,7 +58,7 @@ Savior.prototype._evalEscape = function (i, j, stone) {
 
     livesAdded += stone.numEmpties();
     if (livesAdded > 2) return threat; // we can save the threat
-    if (livesAdded >= 2) {
+    if (livesAdded === 2) {
         // do not count empties that were already a life of threatened groups
         var empties = stone.empties();
         for (var t = groups.length - 1; t >= 0; t--) {
@@ -69,14 +68,13 @@ Savior.prototype._evalEscape = function (i, j, stone) {
             }
         }
     }
-    if (livesAdded >= 2) {
-        if (livesAdded === 2 && this.distanceFromStoneToBorder(stone) === 0) {
-            if (main.debug) main.log.debug('Savior giving up on threat of ' + threat + ' in ' + Grid.xy2move(i, j) +
-                ' because escape is along the border (TODO later)');
-            return 0;
+    if (livesAdded === 2) {
+        if (this.distanceFromStoneToBorder(stone) === 0) {
+            if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' sees an escape along border in ' + Grid.xy2move(i, j));
+            return this.canConnectAlongBorder(i, j, this.color) ? threat : 0;
         }
-        // when we get 2 lives from the new stone, get our "consultant hunter" to evaluate if we can escape
-        if (main.debug) main.log.debug('Savior asking hunter to look at ' + Grid.xy2move(i, j) + ': threat=' + threat + ', lives_added=' + livesAdded);
+        // when we get 2 lives from the new stone, get our hunter to evaluate if we can escape
+        if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' asking hunter to look at ' + Grid.xy2move(i, j) + ': threat=' + threat + ', lives_added=' + livesAdded);
         Stone.playAt(this.goban, i, j, this.color);
         var isCaught = this.hunter.escapingAtariIsCaught(stone);
         Stone.undo(this.goban);
@@ -84,6 +82,6 @@ Savior.prototype._evalEscape = function (i, j, stone) {
             return threat;
         }
     }
-    if (main.debug) main.log.debug('Savior giving up on threat of ' + threat + ' in ' + Grid.xy2move(i, j));
+    if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' giving up on threat of ' + threat + ' in ' + Grid.xy2move(i, j));
     return 0; // nothing we can do to help
 };
