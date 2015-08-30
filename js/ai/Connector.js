@@ -61,12 +61,8 @@ Connector.prototype.connectsMyGroups = function (i, j, color) {
     }
     // Case of diagonal (strong) stones
     if (s1.i !== s2.i && s1.j !== s2.j) {
-        // No need to connect if both connection points are free (no cutting stone yet)
-        var c1 = this.goban.stoneAt(s1.i, s2.j), c2 = this.goban.stoneAt(s2.i, s1.j);
-        if (c1.color === EMPTY && c2.color === EMPTY) return 0;
-        // No need to connect on a border stone
-        if (this.distanceFromStoneToBorder(c1) === 0 && c1.color === EMPTY) return 0;
-        if (this.distanceFromStoneToBorder(c2) ===0 && c2.color === EMPTY) return 0;
+        // no need to connect now if connection is granted
+        if (this.distanceBetweenStones(s1, s2, color) === 0) return 0;
         // We count the cutting stone as enemy (we did not "see" it above because it's diagonal)
         numEnemies++;
     }
