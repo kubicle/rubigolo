@@ -16,3 +16,10 @@ main.sBLUNDER = -2;
 main.NEVER = 0;
 main.DEPENDS = 1; // depends who plays first
 main.ALWAYS = 2;
+
+main.DIR0 = 0;
+main.DIR3 = 3;
+main.UP = 0;
+main.RIGHT = 1;
+main.DOWN = 2;
+main.LEFT = 3;
