@@ -2,6 +2,7 @@
 'use strict';
 
 var main = require('../main');
+var Grid = require('../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
 
@@ -40,12 +41,11 @@ Pusher.prototype.evalMove = function (i, j) {
     }
     if (!this.canConnect(i, j, this.color)) return 0;
 
-    var fillTer = this.enemyTerritoryScore(i, j, this.color);
-    if (fillTer < 0) fillTer = 0; // Spacer will count <0 scores
+    var invasion = this.invasionCost(i, j, this.color);
 
-    var score = fillTer + this.enemyCoeff * enemyInf - this.allyCoeff * allyInf;
-    if (main.debug) {
-        main.log.debug('Pusher heuristic sees influences ' + allyInf + ' - ' + enemyInf + ' at ' + i + ',' + j + ' -> ' + '%.03f'.format(score));
-    }
+    var score = invasion + this.enemyCoeff * enemyInf - this.allyCoeff * allyInf;
+    if (main.debug) main.log.debug('Pusher heuristic sees invasion:' + invasion +
+        ', influences:' + allyInf + ' - ' + enemyInf + ' at ' + Grid.xy2move(i, j) +
+        ' -> ' + '%.03f'.format(score));
     return score;
 };
