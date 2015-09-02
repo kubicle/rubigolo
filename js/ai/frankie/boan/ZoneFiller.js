@@ -19,6 +19,9 @@ function ZoneFiller(goban, grid) {
 }
 module.exports = ZoneFiller;
 
+main.defaultAi.ZoneFiller = ZoneFiller;
+
+
 // "Color" a goban zone.
 // to_replace can be EMPTY or a zone code (but cannot be a real color like BLACK)
 // neighbors, if given should be an array of n arrays, with n == number of colors

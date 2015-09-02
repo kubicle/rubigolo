@@ -6,7 +6,7 @@ var inherits = require('util').inherits;
 var Grid = require('../Grid');
 var assertEqual = main.assertEqual;
 var GameLogic = require('../GameLogic');
-var ZoneFiller = require('../ZoneFiller');
+
 
 /** @class NB: for debugging think of using analyser.debug_dump
  *  TODO: add tests for group detection while filling
@@ -18,6 +18,7 @@ function TestZoneFiller(testName) {
 inherits(TestZoneFiller, main.TestCase);
 module.exports = main.tests.add(TestZoneFiller);
 
+
 TestZoneFiller.x = 123; // we use this color for replacements - should be rendered as "X"
 TestZoneFiller.prototype.initBoard = function (size, handicap) {
     if (size === undefined) size = 5;
@@ -26,7 +27,7 @@ TestZoneFiller.prototype.initBoard = function (size, handicap) {
     this.game.newGame(size, handicap);
     this.goban = this.game.goban;
     this.grid = new Grid(size);
-    this.filler = new ZoneFiller(this.goban, this.grid);
+    this.filler = new main.defaultAi.ZoneFiller(this.goban, this.grid);
 };
 
 TestZoneFiller.prototype.testFill1 = function () {

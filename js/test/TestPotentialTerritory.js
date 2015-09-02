@@ -6,7 +6,7 @@ var main = require('../main');
 var inherits = require('util').inherits;
 var assertEqual = main.assertEqual;
 var GameLogic = require('../GameLogic');
-var PotentialTerritory = require('../PotentialTerritory');
+
 
 /** @class NB: for debugging think of using analyser.debug_dump
  */
@@ -22,7 +22,7 @@ TestPotentialTerritory.prototype.initBoard = function (size, handicap) {
     this.game = new GameLogic();
     this.game.newGame(size, handicap);
     this.goban = this.game.goban;
-    this.ter = new PotentialTerritory(this.goban);
+    this.ter = new main.defaultAi.PotentialTerritory(this.goban);
 };
 
 TestPotentialTerritory.prototype.checkPotential = function (expected) {
