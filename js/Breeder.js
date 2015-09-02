@@ -21,7 +21,7 @@ function Breeder(gameSize) {
     this.game.newGame(this.gsize);
     this.goban = this.game.goban;
     this.players = [
-        new main.defaultAi(this.goban, main.BLACK),
+        new main.ais.Frankie(this.goban, main.BLACK),
         new main.defaultAi(this.goban, main.WHITE)
     ];
     this.scorer = new ScoreAnalyser();
