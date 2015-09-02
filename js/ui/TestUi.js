@@ -21,6 +21,7 @@ TestUi.prototype.enableButtons = function (enabled) {
 
 TestUi.prototype.runTest = function (name) {
     this.output.setText('');
+    main.defaultAi = main.ais[this.defaultAi.value()];
     main.debug = this.debug.isChecked();
 
     var specificClass = name === 'ALL' ? undefined : name;
@@ -73,8 +74,14 @@ TestUi.prototype.createUi = function () {
     this.gameDiv = Dome.newDiv(document.body, 'gameDiv');
     testDiv.newDiv('pageTitle').setText('Rubigolo - Tests');
     this.createControls(testDiv);
+
+    var defAiDiv = testDiv.newDiv();
+    Dome.newLabel(defAiDiv, 'inputLbl', 'Default AI:');
+    this.defaultAi = Dome.newDropdown(defAiDiv, 'defaultAi', Object.keys(main.ais), null, main.defaultAi.name);
+    
     this.namePattern = Dome.newInput(testDiv, 'namePattern', 'Test name pattern:');
     this.debug = Dome.newCheckbox(testDiv, 'debug', 'Debug');
+    
     testDiv.newDiv('subTitle').setText('Result');
     this.output = testDiv.newDiv('logBox testOutputBox');
     testDiv.newDiv('subTitle').setText('Errors');
