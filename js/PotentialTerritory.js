@@ -1,9 +1,9 @@
 //Translated from potential_territory.rb using babyruby2js
 'use strict';
 
-var Grid = require('./Grid');
-var main = require('./main');
-var Stone = require('./Stone');
+var Grid = require('../../../Grid');
+var main = require('../../../main');
+var Stone = require('../../../Stone');
 var BoardAnalyser = require('./BoardAnalyser');
 
 var EMPTY = main.EMPTY, BLACK = main.BLACK, WHITE = main.WHITE;

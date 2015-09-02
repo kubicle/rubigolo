@@ -1,7 +1,8 @@
 //Translated from zone_filler.rb using babyruby2js
 'use strict';
 
-var main = require('./main');
+var main = require('../../../main');
+
 
 /** @class public read-only attribute: grid
  *  if a grid is given, it is used as starting point; 

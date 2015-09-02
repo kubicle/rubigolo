@@ -3,14 +3,14 @@
 
 var inherits = require('util').inherits;
 var allHeuristics = require('./AllHeuristics');
-var main = require('../main');
-var Grid = require('../Grid');
-var Stone = require('../Stone');
-var Player = require('../Player');
-var InfluenceMap = require('../InfluenceMap');
-var PotentialTerritory = require('../PotentialTerritory');
-var BoardAnalyser = require('../BoardAnalyser');
-var Genes = require('../Genes');
+var main = require('../../main');
+var Grid = require('../../Grid');
+var Stone = require('../../Stone');
+var Player = require('../../Player');
+var InfluenceMap = require('./boan/InfluenceMap');
+var PotentialTerritory = require('./boan/PotentialTerritory');
+var BoardAnalyser = require('./boan/BoardAnalyser');
+var Genes = require('../../Genes');
 
 var sOK = main.sOK, sINVALID = main.sINVALID, sBLUNDER = main.sBLUNDER;
 
@@ -51,6 +51,8 @@ function Ai1Player(goban, color, genes) {
 }
 inherits(Ai1Player, Player);
 module.exports = Ai1Player;
+
+Ai1Player.BoardAnalyser = BoardAnalyser;
 
 
 Ai1Player.prototype.getHeuristic = function (heuristicName) {

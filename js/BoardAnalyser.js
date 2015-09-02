@@ -1,12 +1,11 @@
 //Translated from board_analyser.rb using babyruby2js
 'use strict';
 
-var main = require('./main');
-var Grid = require('./Grid');
-var Group = require('./Group');
+var main = require('../../../main');
+var Grid = require('../../../Grid');
+var Group = require('../../../Group');
 var ZoneFiller = require('./ZoneFiller');
-var Shaper = require('./ai/Shaper');
-
+var Shaper = require('../Shaper');
 
 var EMPTY = main.EMPTY, BLACK = main.BLACK, WHITE = main.WHITE;
 var ALIVE = 1000;

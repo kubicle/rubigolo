@@ -1,9 +1,9 @@
 //Translated from heuristic.rb using babyruby2js
 'use strict';
 
-var main = require('../main');
-var Grid = require('../Grid');
-var Stone = require('../Stone');
+var main = require('../../main');
+var Grid = require('../../Grid');
+var Stone = require('../../Stone');
 
 var sOK = main.sOK, ALWAYS = main.ALWAYS;
 var EMPTY = main.EMPTY, BORDER = main.BORDER;

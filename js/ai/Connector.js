@@ -1,8 +1,8 @@
 //Translated from connector.rb using babyruby2js
 'use strict';
 
-var main = require('../main');
-var Grid = require('../Grid');
+var main = require('../../main');
+var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
 
@@ -33,7 +33,7 @@ Connector.prototype.connectsMyGroups = function (i, j, color) {
     for (var n = stone.neighbors.length - 1; n >= 0; n--) {
         var s = stone.neighbors[n];
         switch (s.color) {
-        case main.EMPTY: continue;
+        case EMPTY: continue;
         case color:
             numStones++;
             if (!s1) {

@@ -1,8 +1,8 @@
 //Translated from pusher.rb using babyruby2js
 'use strict';
 
-var main = require('../main');
-var Grid = require('../Grid');
+var main = require('../../main');
+var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
 
