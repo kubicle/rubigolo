@@ -80,7 +80,7 @@ TestSeries.prototype.testOneClass = function (Klass, methodPattern) {
     } catch(e) {
       if (e.message.startWith(FAILED_ASSERTION_MSG)) {
         this.failedCount++;
-        main.log.error('Test failed: ' + test.name + '\n');
+        main.log.error('Test failed: ' + test.name + ': ' + e.message + '\n');
       } else {
         this.errorCount++;
         main.log.error('Exception during test: ' + test.name + ':\n' + e.stack + '\n');
