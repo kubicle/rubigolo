@@ -171,5 +171,3 @@ TestSpeed.prototype.play10Stones = function () {
         Stone.undo(this.goban);
     }
 };
-
-// E02: unknown method: level=(...)

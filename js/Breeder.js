@@ -193,7 +193,7 @@ Breeder.prototype.control = function () {
 // Play many games AI VS AI to verify black/white balance
 Breeder.prototype.bwBalanceCheck = function (numGames /*, gsize*/) {
     var totalScore, numWins;
-    this.timer.start('bw_balance_check', numGames / 1000.0 * 50, numGames / 1000.0 * 512);
+    this.timer.start('bwBalanceCheck', numGames / 1000.0 * 50, numGames / 1000.0 * 512);
     main.log.debug('Checking black/white balance by playing ' + numGames + ' games (komi=' + Breeder.KOMI + ')...');
     totalScore = numWins = 0;
     for (var _i = 0; _i < numGames; _i++) {
