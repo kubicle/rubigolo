@@ -23,11 +23,9 @@ TestUi.prototype.runTest = function (name) {
     this.output.setText('');
     main.debug = this.debug.isChecked();
 
-    var specificClass;
-    if (name === 'TestAll' || name === 'TestSpeed') {
+    var specificClass = name === 'ALL' ? undefined : name;
+    if (name === 'ALL' || name === 'TestSpeed') {
         main.debug = false; // dead slow if debug is ON
-    } else {
-        specificClass = name;
     }
     main.log.level = main.debug ? Logger.DEBUG : Logger.INFO;
     var self = this;
@@ -62,8 +60,9 @@ TestUi.prototype.newButton = function (name, label) {
 TestUi.prototype.createControls = function (parentDiv) {
     this.controls = Dome.newGroup();
     this.controlElt = parentDiv.newDiv('controls');
-    this.newButton('TestAll', 'Test All');
+    this.newButton('ALL', 'Test All');
     this.newButton('TestSpeed', 'Speed');
+    this.newButton('TestBreeder', 'Breeder');
     this.newButton('TestBoardAnalyser', 'Scoring');
     this.newButton('TestPotentialTerritory', 'Territory');
     this.newButton('TestAi', 'AI');
