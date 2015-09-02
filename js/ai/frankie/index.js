@@ -27,7 +27,7 @@ var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
  *  - foresee a poursuit = on attack/defense (and/or use a reverse-killer?)
  *  - an eye shape constructor
  */
-function Ai1Player(goban, color, genes) {
+function Frankie(goban, color, genes) {
     if (genes === undefined) genes = null;
     Player.call(this, false, goban);
     this.inf = new InfluenceMap(this.goban);
@@ -51,15 +51,15 @@ function Ai1Player(goban, color, genes) {
     // to keep things coherent
     this.prepareGame(this.genes);
 }
-inherits(Ai1Player, Player);
-module.exports = Ai1Player;
+inherits(Frankie, Player);
+module.exports = Frankie;
 
-Ai1Player.BoardAnalyser = BoardAnalyser;
-Ai1Player.PotentialTerritory = PotentialTerritory;
-Ai1Player.ZoneFiller = ZoneFiller;
+Frankie.BoardAnalyser = BoardAnalyser;
+Frankie.PotentialTerritory = PotentialTerritory;
+Frankie.ZoneFiller = ZoneFiller;
 
 
-Ai1Player.prototype.getHeuristic = function (heuristicName) {
+Frankie.prototype.getHeuristic = function (heuristicName) {
     for (var n = this.heuristics.length - 1; n >= 0; n--) {
         var h = this.heuristics[n];
         if (h.constructor.name === heuristicName) return h;
@@ -67,12 +67,12 @@ Ai1Player.prototype.getHeuristic = function (heuristicName) {
     throw new Error('Invalid heuristic name: ' + heuristicName);
 };
 
-Ai1Player.prototype.prepareGame = function (genes) {
+Frankie.prototype.prepareGame = function (genes) {
     this.genes = genes;
     this.numMoves = 0;
 };
 
-Ai1Player.prototype.setColor = function (color) {
+Frankie.prototype.setColor = function (color) {
     Player.prototype.setColor.call(this, color);
     this.enemyColor = 1 - color;
     for (var i = 0; i < this.heuristics.length; i++) {
@@ -80,7 +80,7 @@ Ai1Player.prototype.setColor = function (color) {
     }
 };
 
-Ai1Player.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
+Frankie.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
     if (lowLimit === undefined) lowLimit = null;
     if (highLimit === undefined) highLimit = null;
     return this.genes.get(this.constructor.name + '-' + name, defVal, lowLimit, highLimit);
@@ -90,7 +90,7 @@ function score2str(i, j, score) {
     return Grid.xy2move(i, j) + ':' + score.toFixed(3);
 }
 
-Ai1Player.prototype._foundSecondBestMove = function(i, j, score) {
+Frankie.prototype._foundSecondBestMove = function(i, j, score) {
     if (main.debug) {
         main.log.debug('=> ' + score2str(i,j,score) + ' becomes 2nd best move');
         if (this.secondBestI !== NO_MOVE) main.log.debug(' (replaces ' + score2str(this.secondBestI, this.secondBestJ, this.secondBestScore) + ')');
@@ -99,7 +99,7 @@ Ai1Player.prototype._foundSecondBestMove = function(i, j, score) {
     this.secondBestI = i; this.secondBestJ = j;
 };
 
-Ai1Player.prototype._foundBestMove = function(i, j, score) {
+Frankie.prototype._foundBestMove = function(i, j, score) {
     if (main.debug) {
         if (this.numBestTwins > 1) {
             main.log.debug('=> TWIN ' + score2str(i, j, score) + ' replaces equivalent best move ' + score2str(this.bestI, this.bestJ, this.bestScore));
@@ -114,7 +114,7 @@ Ai1Player.prototype._foundBestMove = function(i, j, score) {
     this.bestI = i; this.bestJ = j;
 };
 
-Ai1Player.prototype._keepBestMoves = function(i, j, score) {
+Frankie.prototype._keepBestMoves = function(i, j, score) {
     // Keep the best move and the 2nd best move
     if (score < this.bestScore) {
         this._foundSecondBestMove(i, j, score);
@@ -132,7 +132,7 @@ Ai1Player.prototype._keepBestMoves = function(i, j, score) {
 // You can also check:
 //   player.bestScore to see the score of the move returned
 //   player.secondBestScore
-Ai1Player.prototype.getMove = function () {
+Frankie.prototype.getMove = function () {
     this.numMoves++;
     if (this.numMoves >= this.gsize * this.gsize) { // force pass after too many moves
         main.log.error('Forcing AI pass since we already played ' + this.numMoves);
@@ -172,14 +172,14 @@ Ai1Player.prototype.getMove = function () {
     return Grid.xy2move(this.bestI, this.bestJ);
 };
 
-Ai1Player.prototype._collectGroupInfo = function () {
+Frankie.prototype._collectGroupInfo = function () {
     // var allGroups = this.ter.allGroups;
     // for (var ndx in allGroups) {
     //     var g = allGroups[ndx], gi = g._info;
     // }
 };
 
-Ai1Player.prototype._prepareEval = function () {
+Frankie.prototype._prepareEval = function () {
     this.currentMove = this.goban.moveNumber();
     this.bestScore = this.secondBestScore = this.minimumScore;
     this.bestI = this.secondBestI = NO_MOVE;
@@ -194,16 +194,16 @@ Ai1Player.prototype._prepareEval = function () {
 };
 
 /** Called by heuristics if they decide to stop looking further (rare cases) */
-Ai1Player.prototype.markMoveAsBlunder = function (i, j, reason) {
+Frankie.prototype.markMoveAsBlunder = function (i, j, reason) {
     this.stateGrid.yx[j][i] = sBLUNDER;
     main.log.debug(Grid.xy2move(i, j) + ' seen as blunder: ' + reason);
 };
-Ai1Player.prototype.isBlunderMove = function (i, j) {
+Frankie.prototype.isBlunderMove = function (i, j) {
     return this.stateGrid.yx[j][i] === sBLUNDER;
 };
 
 /** For tests */
-Ai1Player.prototype._testMoveEval = function (i, j) {
+Frankie.prototype._testMoveEval = function (i, j) {
     if (this.currentMove !== this.goban.moveNumber()) this.getMove();
     var stateYx = this.stateGrid.yx;
     var scoreYx = this.scoreGrid.yx;
@@ -223,7 +223,7 @@ Ai1Player.prototype._testMoveEval = function (i, j) {
 };
 
 /** For tests */
-Ai1Player.prototype.testMoveEval = function (i, j) {
+Frankie.prototype.testMoveEval = function (i, j) {
     var score = this._testMoveEval(i, j);
 
     this._foundBestMove(i, j, score);
@@ -232,7 +232,7 @@ Ai1Player.prototype.testMoveEval = function (i, j) {
 };
 
 /** For tests */
-Ai1Player.prototype.testHeuristic = function (i, j, heuristicName) {
+Frankie.prototype.testHeuristic = function (i, j, heuristicName) {
     if (this.currentMove !== this.goban.moveNumber()) this.getMove();
     var stateYx = this.stateGrid.yx;
     var scoreYx = this.scoreGrid.yx;
@@ -244,7 +244,7 @@ Ai1Player.prototype.testHeuristic = function (i, j, heuristicName) {
     return scoreYx[j][i];
 };
 
-Ai1Player.prototype.getMoveSurveyText = function (rank) {
+Frankie.prototype.getMoveSurveyText = function (rank) {
     var survey, score, move;
     switch (rank) {
     case 1:
