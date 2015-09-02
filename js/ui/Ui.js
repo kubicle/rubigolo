@@ -2,7 +2,6 @@
 
 var main = require('../main');
 
-var Ai1Player = require('../ai/Ai1Player');
 var Board = require('./Board');
 var Dome = require('./Dome');
 var GameLogic = require('../GameLogic');
@@ -161,18 +160,18 @@ Ui.prototype.createPlayers = function () {
     this.players = [];
     this.playerIsAi = [false, false];
     if (this.aiPlays === 'black' || this.aiPlays === 'both') {
-        this.players[BLACK] = new Ai1Player(this.game.goban, BLACK);
+        this.players[BLACK] = new main.defaultAi(this.game.goban, BLACK);
         this.playerIsAi[BLACK] = true;
     }
     if (this.aiPlays === 'white' || this.aiPlays === 'both') {
-        this.players[WHITE] = new Ai1Player(this.game.goban, WHITE);
+        this.players[WHITE] = new main.defaultAi(this.game.goban, WHITE);
         this.playerIsAi[WHITE] = true;
     }
 };
 
 Ui.prototype.getAiPlayer = function (color) {
     var player = this.players[color];
-    if (!player) player = this.players[color] = new Ai1Player(this.game.goban, color);
+    if (!player) player = this.players[color] = new main.defaultAi(this.game.goban, color);
     return player;
 };
 

@@ -6,7 +6,6 @@ var inherits = require('util').inherits;
 var Group = require('../Group');
 var assertEqual = main.assertEqual;
 var GameLogic = require('../GameLogic');
-var BoardAnalyser = require('../BoardAnalyser');
 
 var BLACK = main.BLACK, WHITE = main.WHITE;
 
@@ -33,7 +32,7 @@ TestBoardAnalyser.prototype.checkGame = function (moves, expScore, gsize, finalP
         this.game.loadMoves(moves);
     }
     if (finalPos) assertEqual(finalPos, this.goban.image());
-    this.boan = new BoardAnalyser();
+    this.boan = new main.defaultAi.BoardAnalyser();
     this.boan.countScore(this.goban);
 
     var score = this.goban.scoringGrid.image();

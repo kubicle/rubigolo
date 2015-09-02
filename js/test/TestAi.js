@@ -3,7 +3,6 @@
 
 var main = require('../main');
 
-var Ai1Player = require('../ai/Ai1Player');
 var GameLogic = require('../GameLogic');
 var Grid = require('../Grid');
 var inherits = require('util').inherits;
@@ -26,7 +25,10 @@ TestAi.prototype.initBoard = function (size, handicap) {
     this.game = new GameLogic();
     this.game.newGame(size, handicap || 0);
     this.goban = this.game.goban;
-    this.players = [new Ai1Player(this.goban, BLACK), new Ai1Player(this.goban, WHITE)];
+    this.players = [
+        new main.defaultAi(this.goban, BLACK),
+        new main.defaultAi(this.goban, WHITE)
+    ];
 };
 
 TestAi.prototype.showInUi = function (msg) {

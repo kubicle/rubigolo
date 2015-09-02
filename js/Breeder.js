@@ -6,7 +6,6 @@ var Genes = require('./Genes');
 var TimeKeeper = require('./TimeKeeper');
 var GameLogic = require('./GameLogic');
 var ScoreAnalyser = require('./ScoreAnalyser');
-var Ai1Player = require('./ai/Ai1Player');
 
 main.debugBreed = false; // TODO move me somewhere else?
 
@@ -21,7 +20,10 @@ function Breeder(gameSize) {
     this.game.setLogLevel('all=0');
     this.game.newGame(this.gsize);
     this.goban = this.game.goban;
-    this.players = [new Ai1Player(this.goban, main.BLACK), new Ai1Player(this.goban, main.WHITE)];
+    this.players = [
+        new main.defaultAi(this.goban, main.BLACK),
+        new main.defaultAi(this.goban, main.WHITE)
+    ];
     this.scorer = new ScoreAnalyser();
     this.genSize = Breeder.GENERATION_SIZE;
     return this.firstGeneration();

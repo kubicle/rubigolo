@@ -3,7 +3,6 @@
 
 var main = require('./main');
 var Grid = require('./Grid');
-var BoardAnalyser = require('./BoardAnalyser');
 
 var BLACK = main.BLACK, WHITE = main.WHITE;
 
@@ -11,7 +10,7 @@ var BLACK = main.BLACK, WHITE = main.WHITE;
 /** @class */
 function ScoreAnalyser() {
     this.goban = null;
-    this.analyser = new BoardAnalyser();
+    this.analyser = new main.defaultAi.BoardAnalyser();
 }
 module.exports = ScoreAnalyser;
 

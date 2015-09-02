@@ -12,6 +12,9 @@ require('./rb');
 // Include tests in main build
 require('./test/TestAll');
 
+// AI
+main.defaultAi = require('./ai/frankie');
+
 main.debug = false;
 
 var Ui = require('./ui/Ui');
