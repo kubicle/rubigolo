@@ -85,7 +85,8 @@ Dome.newInput = function (parent, name, label, init) {
  *  if (myCheckbox.isChecked()) ...
  */
 Dome.newCheckbox = function (parent, name, label, value, init) {
-    var input = new Dome(parent, 'input', name + 'ChkBox chkBox', name);
+    var div = new Dome(parent, 'div', name + 'Div');
+    var input = new Dome(div, 'input', name + 'ChkBox chkBox', name);
     var inp = input.elt;
     inp.type = 'checkbox';
     inp.name = name;
@@ -93,7 +94,7 @@ Dome.newCheckbox = function (parent, name, label, value, init) {
     inp.id = name + 'ChkBox' + value;
     if (init) inp.checked = true;
 
-    new Dome(parent, 'label', name + 'ChkLabel chkLbl', name)
+    new Dome(div, 'label', name + 'ChkLabel chkLbl', name)
         .setText(label)
         .setAttribute('for', inp.id);
     return input;
