@@ -32,8 +32,6 @@ function PotentialTerritory(goban) {
 }
 module.exports = PotentialTerritory;
 
-main.defaultAi.PotentialTerritory = PotentialTerritory;
-
 
 // Returns the matrix of potential territory.
 // +1: definitely white, -1: definitely black

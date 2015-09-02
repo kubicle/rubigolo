@@ -1,16 +1,18 @@
 //Translated from ai1_player.rb using babyruby2js
 'use strict';
 
-var inherits = require('util').inherits;
-var allHeuristics = require('./AllHeuristics');
 var main = require('../../main');
-var Grid = require('../../Grid');
-var Stone = require('../../Stone');
-var Player = require('../../Player');
-var InfluenceMap = require('./boan/InfluenceMap');
-var PotentialTerritory = require('./boan/PotentialTerritory');
+
+var allHeuristics = require('./AllHeuristics');
 var BoardAnalyser = require('./boan/BoardAnalyser');
+var inherits = require('util').inherits;
 var Genes = require('../../Genes');
+var Grid = require('../../Grid');
+var InfluenceMap = require('./boan/InfluenceMap');
+var Player = require('../../Player');
+var PotentialTerritory = require('./boan/PotentialTerritory');
+var Stone = require('../../Stone');
+var ZoneFiller = require('./boan/ZoneFiller');
 
 var sOK = main.sOK, sINVALID = main.sINVALID, sBLUNDER = main.sBLUNDER;
 
@@ -53,6 +55,8 @@ inherits(Ai1Player, Player);
 module.exports = Ai1Player;
 
 Ai1Player.BoardAnalyser = BoardAnalyser;
+Ai1Player.PotentialTerritory = PotentialTerritory;
+Ai1Player.ZoneFiller = ZoneFiller;
 
 
 Ai1Player.prototype.getHeuristic = function (heuristicName) {
