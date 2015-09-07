@@ -257,8 +257,7 @@ TestAi.prototype.testCornerKill = function () {
     // 5 ++O++++++
     // 4 +++++@+++
     //   abcdefghj
-    this.checkGame('j8,j9,d7,c5,f4,pass,g6,pass', 'c3>h9, c3', 9);
-    //this.checkMoveIsBetter('h8', 'h9'); // FIXME: h8 is better than killing in h9 (non trivial)
+    this.checkGame('j8,j9,d7,c5,f4,pass,g6,pass', 'c3>h9, h8>h9, c3', 9);
 };
 
 TestAi.prototype.testWrongAttack = function () {
