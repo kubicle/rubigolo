@@ -39,10 +39,6 @@ TestAi.prototype.playMoves = function (moves) {
     this.game.loadMoves(moves);
 };
 
-TestAi.prototype.checkTurn = function (expColor) {
-    assertEqual(Grid.colorName(expColor), Grid.colorName(this.game.curColor), 'Wrong player turn');
-};
-
 TestAi.prototype.logErrorContext = function (player) {
     main.log.error(this.goban.toString());
     main.log.error(player.getMoveSurveyText(1));
@@ -50,6 +46,7 @@ TestAi.prototype.logErrorContext = function (player) {
 };
 
 TestAi.prototype.checkScore = function(player, color, move, score, expScore, heuristic) {
+    main.tests.checkCount++;
     var range = Math.abs(expScore) > 2 ? 0.5 : Math.abs(expScore) / 5 + 0.1;
     if (Math.abs(score - expScore) <= range) return;
 
@@ -83,6 +80,7 @@ TestAi.prototype.checkEval = function (move, expEval, heuristic) {
 
 // Checks that move1 is better than move2
 TestAi.prototype.checkMoveIsBetter = function (move1, move2) {
+    main.tests.checkCount++;
     var s1 = this.checkEval(move1), s2 = this.checkEval(move2);
     if (s2 < s1) return;
     var msg = move1 + ' ranked lower than ' + move2 + ' (' + s1 + ' <= ' + s2 + ')';
@@ -114,11 +112,13 @@ TestAi.prototype.playAndCheck = function (expMove, expEval) {
         assertEqual(expMove, move, Grid.colorName(color)); // test aborts here
     }
     if (expEval) this.checkScore(player, color, move, score, expEval);
+    else main.tests.checkCount++;
 
     this.game.playOneMove(move);
 };
 
 TestAi.prototype.checkMovesAreEquivalent = function (moves) {
+    main.tests.checkCount++;
     var score0 = this.checkEval(moves[0]).toFixed(2);
     for (var m = 1; m < moves.length; m++) {
         var score = this.checkEval(moves[m]).toFixed(2);
@@ -138,6 +138,7 @@ TestAi.prototype.checkMovesAreEquivalent = function (moves) {
 TestAi.prototype.playAndCheckEquivalentMoves = function (moves) {
     if (!this.checkMovesAreEquivalent(moves)) return;
 
+    main.tests.checkCount++;
     var color = this.game.curColor;
     var player = this.players[color];
     var move = player.getMove();
@@ -150,6 +151,7 @@ TestAi.prototype.playAndCheckEquivalentMoves = function (moves) {
 };
 
 TestAi.prototype.checkMoveIsBad = function (move) {
+    main.tests.checkCount++;
     var score = this.checkEval(move);
     if (score <= 0.1) return;
 

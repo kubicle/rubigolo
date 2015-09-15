@@ -91,11 +91,10 @@ TestSeries.prototype.testOneClass = function (Klass, methodPattern) {
 
 TestSeries.prototype.run = function (logfunc, specificClass, methodPattern) {
   main.log.setLogFunc(logfunc);
-  main.assertCount = main.count = 0;
   var startTime = Date.now();
   var classCount = 0;
-  this.testCount = this.failedCount = this.errorCount = 0;
-  this.warningCount = 0;
+  this.testCount = this.checkCount = this.count = 0;
+  this.failedCount = this.errorCount = this.warningCount = 0;
   for (var t in this.testCases) {
     if (specificClass && t !== specificClass) continue;
     classCount++;
@@ -105,11 +104,11 @@ TestSeries.prototype.run = function (logfunc, specificClass, methodPattern) {
   var duration = ((Date.now() - startTime) / 1000).toFixed(2);
   var classes = specificClass ? 'class ' + specificClass : classCount + ' classes';
   var report = 'Completed tests. (' + classes + ', ' + this.testCount + ' tests, ' +
-    main.assertCount + ' assertions in ' + duration + 's)' +
+    this.checkCount + ' checks in ' + duration + 's)' +
     ', exceptions: ' + this.errorCount +
     ', failed: ' + this.failedCount +
     ', warnings: ' + this.warningCount;
-  if (main.count) report += ', generic count: ' + main.count;
+  if (this.count) report += ', generic count: ' + this.count;
   main.log.info(report);
   return report;
 };
@@ -140,6 +139,7 @@ function _valueCompareHint(expected, val) {
 }
 
 main.compareValue = function (expected, val) {
+  main.tests.checkCount++;
   if (main.isA(Array, expected)) {
     if (!main.isA(Array, val)) return 'Expected Array but got ' + val;
     if (val.length !== expected.length) {
@@ -156,7 +156,7 @@ main.compareValue = function (expected, val) {
 };
 
 main.assertEqual = function (expected, val, comment) {
-  main.assertCount++;
+  main.tests.checkCount++;
   var msg = main.compareValue(expected, val);
   if (msg === '') return;
   console.warn(msg);
@@ -164,7 +164,7 @@ main.assertEqual = function (expected, val, comment) {
 };
 
 main.assertInDelta = function (val, expected, delta, comment) {
-  main.assertCount++;
+  main.tests.checkCount++;
   if (Math.abs(val - expected) <= delta) return;
   _fail(val + ' is not in +/-' + delta + ' delta around ' + expected, comment);
 };
