@@ -124,7 +124,7 @@ Ui.prototype.createControls = function (parentDiv) {
     Dome.newButton(this.mainBtn, '#refuse', 'Refuse', function () { self.acceptScore(false); });
     Dome.newButton(this.mainBtn, '#newg', 'New game', function () { self.newGameDialog(); });
 
-    this.aiVsAiFlags = this.mainBtn.newDiv('aiVsAiFlags');
+    this.aiVsAiFlags = this.mainBtn.newDiv('aiVsAiFlags', '#aiVsAiFlags');
     this.animated = Dome.newCheckbox(this.aiVsAiFlags, 'animated', 'Animated');
 
     Dome.newButton(this.testBtn, '#evalMode', 'Eval mode', function () {
@@ -145,10 +145,9 @@ Ui.prototype.toggleControls = function () {
     this.controls.setVisible(['accept', 'refuse'], this.game.gameEnding);
     this.controls.setVisible(['undo'], inGame);
     this.controls.setVisible(['pass', 'resi'], inGame && !auto);
-    this.controls.setVisible(['next', 'next10', 'nextAll'], inGame && auto);
+    this.controls.setVisible(['next', 'next10', 'nextAll', 'aiVsAiFlags'], inGame && auto);
     this.controls.setVisible(['newg'], this.game.gameEnded);
     this.controls.setVisible(['evalMode', 'score', 'territory'], inGame);
-    this.aiVsAiFlags.setVisible(auto);
 };
 
 Ui.prototype.message = function (html, append) {
