@@ -210,6 +210,6 @@ Breeder.prototype.bwBalanceCheck = function (numGames /*, gsize*/) {
     }
     this.timer.stop(false); // gsize == 9) # if gsize is not 9 our perf numbers are of course meaningless
     main.log.debug('Average score of control against itself: ' + totalScore / numGames);
-    main.log.debug('Out of ' + numGames + ' games, black won ' + numWins + ' times');
+    main.log.info('Out of ' + numGames + ' games, black won ' + numWins + ' times');
     return numWins;
 };
