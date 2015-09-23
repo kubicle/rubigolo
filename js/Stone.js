@@ -5,7 +5,8 @@ var main = require('./main');
 var Grid = require('./Grid');
 var Group = require('./Group');
 
-var EMPTY = main.EMPTY;
+var EMPTY = main.EMPTY, DIR0 = main.DIR0, DIR3 = main.DIR3;
+
 
 /** @class A "stone" stores everything we want to keep track of regarding an intersection on the board.
  *  By extension, an empty intersection is also a stone, with a color attribute equals to EMPTY.
@@ -36,11 +37,16 @@ Stone.prototype.clear = function () {
 // NB: Stones next to side have only 3 neighbors, and the corner stones have 2
 Stone.prototype.findNeighbors = function () {
     var coords = Stone.XY_AROUND, diags = Stone.XY_DIAGONAL, stone;
-    for (var i = 0; i < 4; i++) {
+    // NB: order in which we push neighbors should be irrelevant but is not at this point.
+    // 2 places:
+    // - TestGroup looks at group merging numbers etc. (no worry here)
+    // - TestPotentialTerritory#testBigEmptySpace has a group that is seen dead or not depending on order.
+    // The latter one should be fixed one day.
+    for (var i = DIR3; i >= DIR0; i--) {
         stone = this.goban.stoneAt(this.i + coords[i][0], this.j + coords[i][1]);
         if (stone !== main.BORDER) this.neighbors.push(stone);
     }
-    for (i = 0; i < 4; i++) {
+    for (i = DIR0; i <= DIR3; i++) {
         stone = this.goban.stoneAt(this.i + coords[i][0], this.j + coords[i][1]);
         this.allNeighbors.push(stone);
         stone = this.goban.stoneAt(this.i + diags[i][0], this.j + diags[i][1]);
