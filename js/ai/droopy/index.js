@@ -166,31 +166,31 @@ Droopy.prototype.getMove = function () {
             }
         }
     }
-    if (this.bestScore <= this.minimumScore) {
+    if (this.bestScore < this.minimumScore) {
         return 'pass';
     }
     return Grid.xy2move(this.bestI, this.bestJ);
 };
 
-Droopy.prototype._collectGroupInfo = function () {
-    // var allGroups = this.ter.allGroups;
-    // for (var ndx in allGroups) {
-    //     var g = allGroups[ndx], gi = g._info;
-    // }
-};
-
 Droopy.prototype._prepareEval = function () {
     this.currentMove = this.goban.moveNumber();
-    this.bestScore = this.secondBestScore = this.minimumScore;
+    this.bestScore = this.secondBestScore = this.minimumScore - 0.001;
     this.bestI = this.secondBestI = NO_MOVE;
     this.survey = null;
 
     this.inf.buildMap();
     this.ter.guessTerritories();
-    this._collectGroupInfo();
 
     // get "raw" group info
-    this.boan.analyse(this.color, this.goban);
+    this.boan.analyse(this.goban);
+};
+
+Droopy.prototype._prepareTestEval = function () {
+    if (this.currentMove !== this.goban.moveNumber()) {
+        this.getMove();
+    } else if (this.boan.mode !== 'MOVE') { //still on the same move but we used the boan to investigate
+        this.boan.analyse(this.goban);
+    }
 };
 
 /** Called by heuristics if they decide to stop looking further (rare cases) */
@@ -204,7 +204,7 @@ Droopy.prototype.isBlunderMove = function (i, j) {
 
 /** For tests */
 Droopy.prototype._testMoveEval = function (i, j) {
-    if (this.currentMove !== this.goban.moveNumber()) this.getMove();
+    this._prepareTestEval();
     var stateYx = this.stateGrid.yx;
     var scoreYx = this.scoreGrid.yx;
     // to get eval "again", set the state back to OK even if it got marked invalid later
@@ -233,7 +233,7 @@ Droopy.prototype.testMoveEval = function (i, j) {
 
 /** For tests */
 Droopy.prototype.testHeuristic = function (i, j, heuristicName) {
-    if (this.currentMove !== this.goban.moveNumber()) this.getMove();
+    this._prepareTestEval();
     var stateYx = this.stateGrid.yx;
     var scoreYx = this.scoreGrid.yx;
     this.getMove();

@@ -23,6 +23,7 @@ function Heuristic(player, consultant) {
     this.ter = player.ter;
     this.boan = player.boan;
     this.scoreGrid = new Grid(this.gsize);
+    this.minimumScore = player.minimumScore;
 
     this.spaceInvasionCoeff = this.getGene('spaceInvasion', 2.0, 0.01, 4.0);
 }
