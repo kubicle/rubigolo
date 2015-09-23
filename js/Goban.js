@@ -18,6 +18,7 @@ var EMPTY = main.EMPTY, BORDER = main.BORDER;
  */
 function Goban(gsize) {
     if (gsize === undefined) gsize = 19;
+    if (gsize !== ~~gsize) throw new Error('Invalid goban size: ' + gsize);
     this.gsize = gsize;
     this.grid = new Grid(gsize);
     this.scoringGrid = new Grid(gsize);
