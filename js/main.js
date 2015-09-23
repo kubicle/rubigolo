@@ -95,7 +95,7 @@ TestSeries.prototype.run = function (logfunc, specificClass, methodPattern) {
   var startTime = Date.now();
   var classCount = 0;
   this.testCount = this.checkCount = this.count = 0;
-  this.failedCount = this.errorCount = this.warningCount = 0;
+  this.failedCount = this.errorCount = this.warningCount = this.fixmeCount = 0;
   for (var t in this.testCases) {
     if (specificClass && t !== specificClass) continue;
     classCount++;
@@ -108,7 +108,8 @@ TestSeries.prototype.run = function (logfunc, specificClass, methodPattern) {
     this.checkCount + ' checks in ' + duration + 's)' +
     ', exceptions: ' + this.errorCount +
     ', failed: ' + this.failedCount +
-    ', warnings: ' + this.warningCount;
+    ', warnings: ' + this.warningCount +
+    ', FIXMEs: ' + this.fixmeCount;
   if (this.count) report += ', generic count: ' + this.count;
   main.log.info(report);
   return report;
