@@ -16,20 +16,28 @@ inherits(Shaper, Heuristic);
 module.exports = Shaper;
 
 Shaper.prototype.evalBoard = function (stateYx, scoreYx) {
-    var myScoreYx = this.scoreGrid.yx;
     var allGroups = this.ter.allGroups;
     for (var ndx in allGroups) {
         var g = allGroups[ndx], gi = g._info;
-        if (g.isDead === ALWAYS || gi.eyeCount !== 1) continue;
-        var eye = gi.getSingleEye();
-        if (!eye) continue;
-        var coords = [];
-        var alive = Shaper.getEyeMakerMove(this.goban, eye.i, eye.j, eye.vcount, coords);
-        if (alive !== 1) continue;
-        var i = coords[0], j = coords[1];
-        var score = myScoreYx[j][i] = this.groupThreat(g, this.color === g.color);
-        scoreYx[j][i] += score;
+        if (g.isDead === ALWAYS) continue;
+
+        if (gi.eyeCount === 1) {
+            this._evalSingleEyeSplit(scoreYx, g, gi);
+        }
     }
+};
+
+Shaper.prototype._evalSingleEyeSplit = function (scoreYx, g, gi) {
+    var eye = gi.getSingleEye();
+    if (!eye) return;
+    var coords = [];
+    var alive = Shaper.getEyeMakerMove(this.goban, eye.i, eye.j, eye.vcount, coords);
+    if (alive !== 1) return;
+    var i = coords[0], j = coords[1];
+if (i===5 && j===2)
+Shaper=Shaper;
+    var score = this.scoreGrid.yx[j][i] = this.groupThreat(g, this.color === g.color);
+    scoreYx[j][i] += score;
 };
 
 // Decides if a "void" is good to make 2 eyes.
