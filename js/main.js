@@ -75,6 +75,7 @@ TestSeries.prototype.testOneClass = function (Klass, methodPattern) {
     if (methodPattern && method.indexOf(methodPattern) === -1) continue;
     this.testCount++;
     var test = new Klass(Klass.name + '#' + method);
+    test.series = this;
     try {
       test[method].call(test);
     } catch(e) {
@@ -116,12 +117,20 @@ TestSeries.prototype.run = function (logfunc, specificClass, methodPattern) {
 
 /** @class */
 function TestCase(name) {
-  this.name = name;
+    this.name = name;
+    this.series = null;
 }
 
+TestCase.prototype.check = function (result) {
+    this.series.checkCount++;
+    if (result) return true;
+    this.series.warningCount++;
+    return false;
+};
+
 function _fail(msg, comment) {
-  comment = comment ? comment + ': ' : '';
-  throw new Error(FAILED_ASSERTION_MSG + comment + msg);
+    comment = comment ? comment + ': ' : '';
+    throw new Error(FAILED_ASSERTION_MSG + comment + msg);
 }
 
 function _valueCompareHint(expected, val) {
@@ -153,6 +162,20 @@ main.compareValue = function (expected, val) {
   }
   if (val === expected) return '';
   return 'Expected:\n' + expected + '\nbut got:\n' + val + '\n' + _valueCompareHint(expected, val) + '\n';
+};
+
+TestCase.prototype.assertEqual = function (expected, val, comment) {
+    this.series.checkCount++;
+    var msg = main.compareValue(expected, val);
+    if (msg === '') return;
+    console.warn(msg);
+    _fail(msg, comment);
+};
+
+TestCase.prototype.assertInDelta = function (val, expected, delta, comment) {
+  this.series.checkCount++;
+  if (Math.abs(val - expected) <= delta) return;
+  _fail(val + ' is not in +/-' + delta + ' delta around ' + expected, comment);
 };
 
 main.assertEqual = function (expected, val, comment) {
