@@ -10,7 +10,7 @@ var inherits = require('util').inherits;
 function Spacer(player) {
     Heuristic.call(this, player);
     this.inflCoeff = this.getGene('infl', 1, 0.5, 3);
-    this.borderCoeff = this.getGene('border', 1, 0, 2);
+    this.borderCoeff = this.getGene('border', 10, 0, 20);
 }
 inherits(Spacer, Heuristic);
 module.exports = Spacer;
@@ -28,21 +28,21 @@ Spacer.prototype.evalMove = function (i, j) {
         enemyInf += inf[this.enemyColor];
         allyInf += inf[this.color];
     }
-    var totalInf = enemyInf + allyInf - 3;
-    if (totalInf < 0) totalInf = 0;
+    var totalInf = 1 + this.inflCoeff * Math.max(enemyInf + allyInf - 3, 0) * (this.gsize / 9);
 
     var dbX = this.distanceFromBorder(i);
     var dbY = this.distanceFromBorder(j);
-    var rowCoeff = [0, 0.1, 0.8, 1, 0.95, 0.8];
+    var rowCoeff = [0, 0.2, 0.8, 1, 0.95, 0.8];
     var border = rowCoeff.length - 1;
     if (dbX > border) dbX = border;
     if (dbY > border) dbY = border;
-    var db = rowCoeff[dbX] * rowCoeff[dbY];
+    var db = rowCoeff[dbX] * rowCoeff[dbY] * this.borderCoeff;
     
     // remove points only if we fill up our own territory
     var fillTer = this.territoryScore(i, j, this.color);
     if (fillTer > 0) fillTer = 0; // Pusher will count >0 scores
-    return fillTer + 10 * db * this.borderCoeff / (1 + totalInf * this.inflCoeff);
+
+    return fillTer + db / totalInf;
 };
 
 Spacer.prototype.distanceFromBorder = function (n) {
