@@ -17,7 +17,7 @@ main.ais = {
     Frankie: require('./ai/frankie'),
     Droopy: require('./ai/droopy')
 };
-main.defaultAi = main.ais.Droopy;
+main.defaultAi = main.latestAi = main.ais.Droopy;
 
 main.debug = false;
 
