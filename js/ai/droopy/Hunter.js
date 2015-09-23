@@ -15,6 +15,7 @@ var ALWAYS = main.ALWAYS;
  *  Ladder attack fits in here. */
 function Hunter(player) {
     Heuristic.call(this, player);
+    this.takeLifeCoeff = this.getGene('take-life', 1, 0.01, 2);
 }
 inherits(Hunter, Heuristic);
 module.exports = Hunter;
@@ -76,28 +77,26 @@ Hunter.prototype._killScore = function (empty, color) {
     return numKill + life + numAllies;
 };
 
-Hunter.prototype.evalMove = function (i, j, color, level) {
-    if (level === undefined) level = 1;
-    var stone = this.goban.stoneAt(i, j);
-    var empties = stone.empties();
-    var allies = stone.uniqueAllies(color);
-    var enemies = stone.uniqueEnemies(color);
-    var egroups = null, eg;
-    var threat1 = 0;
-    // first count groups already in atari
+Hunter.prototype._countAtariThreat = function (enemies, level) {
+    var atariThreat = 0, eg;
     for (var egNdx = enemies.length - 1; egNdx >= 0; egNdx--) {
         eg = enemies[egNdx];
         if (eg.lives !== 1) continue;
         // if we can take eg anytime later, no need to take it now
         //TODO also verify no group in "enemies" is strong
-        if (this._isAtariGroupCaught(eg) && !this._gotLivesFromKillingAround(eg, 1)) {
+        if (!level && this._isAtariGroupCaught(eg) && !this._gotLivesFromKillingAround(eg, 1)) {
             continue;
         }
-        threat1 += this.groupThreat(eg);
+        atariThreat += this.groupThreat(eg);
     }
-    var snapback = false;
+    return atariThreat;
+};
+
+Hunter.prototype._countPreAtariThreat = function (stone, enemies, empties, color, level, egroups) {
+    var snapback = false, eg;
+    var allies = stone.uniqueAllies(color);
     // now look for groups with 2 lives
-    for (egNdx = enemies.length - 1; egNdx >= 0; egNdx--) {
+    for (var egNdx = enemies.length - 1; egNdx >= 0; egNdx--) {
         eg = enemies[egNdx];
         if (eg.lives !== 2) continue;
         // no good if enemy can escape by killing one of our weak groups around
@@ -118,11 +117,37 @@ Hunter.prototype.evalMove = function (i, j, color, level) {
             snapback = true;
             if (main.debug) main.log.debug('Hunter ' + Grid.colorName(color) + ' sees a snapback in ' + stone);
         }
-        if (main.debug) main.log.debug('Hunter ' + Grid.colorName(color) + '(level ' + level + ') looking at ' + Grid.xy2move(i, j) + ' threat on ' + eg);
-        if (!egroups) egroups = [eg];
-        else egroups.push(eg);
+        if (main.debug) main.log.debug('Hunter ' + Grid.colorName(color) + '(level ' + level + ') looking at threat ' + stone + ' on ' + eg);
+        egroups.push(eg);
     }
-    if (!egroups) return threat1;
+    return snapback;
+};
+
+Hunter.prototype._countSimplePressure = function (enemies) {
+    var threat = 0;
+    for (var egNdx = enemies.length - 1; egNdx >= 0; egNdx--) {
+        var egl = enemies[egNdx].lives;
+        if (egl >= 2) threat += 1 / (egl + 1);
+    }
+    return threat * this.takeLifeCoeff;
+};
+
+Hunter.prototype.evalMove = function (i, j, color, level) {
+    level = level || 0;
+    var stone = this.goban.stoneAt(i, j);
+    var empties = stone.empties();
+    var enemies = stone.uniqueEnemies(color);
+
+    // count groups already in atari
+    var threat1 = this._countAtariThreat(enemies, level);
+    
+    // count some profit in removing enemy lives
+    if(!level) threat1 += this._countSimplePressure(enemies);
+
+    // now look for groups with 2 lives
+    var egroups = [];
+    var snapback = this._countPreAtariThreat(stone, enemies, empties, color, level, egroups);
+    if (!egroups.length) return threat1;
 
     // unless snapback, make sure our new stone's group can survive
     if (!snapback && empties.length <= 1) {
@@ -144,11 +169,11 @@ Hunter.prototype.evalMove = function (i, j, color, level) {
 
     Stone.undo(this.goban); // important to undo before, so we compute threat right
 
-    var threat = this._getMultipleChaseThreat(egroups, canEscape);
+    var threat2 = this._getMultipleChaseThreat(egroups, canEscape);
 
-    if (main.debug && (threat1 || threat)) main.log.debug('Hunter ' + Grid.colorName(color) +
-        ' found a threat of ' + threat1 + ' + ' + threat + ' at ' + Grid.xy2move(i, j));
-    return threat + threat1;
+    if (main.debug && (threat1 || threat2)) main.log.debug('Hunter ' + Grid.colorName(color) +
+        ' found a threat of ' + threat1 + ' + ' + threat2 + ' at ' + Grid.xy2move(i, j));
+    return threat1 + threat2;
 };
 
 /** Returns the maximum threat we can hope for when several groups can be chased.
@@ -177,13 +202,14 @@ Hunter.prototype._getMultipleChaseThreat = function (egroups, canEscape) {
     }
 };
 
+/** Evaluates if group g in atari (1 last escape move) can escape */
 Hunter.prototype._isAtariGroupCaught = function (g, level) {
     var allLives = g.allLives();
     if (allLives.length !== 1) throw new Error('Unexpected: hunter #1: ' + allLives.length);
 
     var lastLife = allLives[0];
     var stone = Stone.playAt(this.goban, lastLife.i, lastLife.j, g.color); // enemy's escape move
-    var isCaught = this.isEscapingAtariCaught(stone, level);
+    var isCaught = this._escapingAtariThreat(stone, level) >= g.stones.length;
     Stone.undo(this.goban);
     if (main.debug) main.log.debug('Hunter: group with last life ' + lastLife + ' would ' + (isCaught ? 'be caught: ' : 'escape: ') + g);
     return isCaught;
@@ -202,20 +228,20 @@ Hunter.prototype._isStoneCreatingAtari = function (stone) {
     return false;
 };
 
-/** @param stone is the enemy group's escape move (played)
+/** @param stone is the enemy group's escape move (just been played)
  *  @param [level] - just to keep track for logging purposes
- *  @return true if the group gets captured
+ *  @return the best score possible by chasing stone's group (could be the killing of a bystander though)
  */
-Hunter.prototype.isEscapingAtariCaught = function (stone, level) {
+Hunter.prototype._escapingAtariThreat = function (stone, level) {
     var g = stone.group;
-    if (g.lives <= 1) return true; // caught
+    if (g.lives <= 1) return this.groupThreat(g); // caught
     if (g.lives > 2) {
-        return false; //TODO look better
+        return 0; //TODO look better
     }
     // g.lives is 2
 
     // if escape move just put one of our groups in atari the chase fails
-    if (this._isStoneCreatingAtari(stone)) return false;
+    if (this._isStoneCreatingAtari(stone)) return 0;
 
     // get 2 possible escape moves
     var empties = stone.empties();
@@ -227,8 +253,15 @@ Hunter.prototype.isEscapingAtariCaught = function (stone, level) {
     var e2 = empties[1];
     if (main.debug) main.log.debug('Hunter: group has 2 lives left: ' + e1 + ' and ' + e2);
 
-    // play the 2 moves (recursive descent)
+    // try blocking the 2 moves (recursive descent)
     var color = 1 - g.color;
-    level = (level || 1) + 1;
-    return (this.evalMove(e1.i, e1.j, color, level) > 0 || this.evalMove(e2.i, e2.j, color, level) > 0);
+    level = (level || 0) + 1;
+    return Math.max(this.evalMove(e1.i, e1.j, color, level), this.evalMove(e2.i, e2.j, color, level));
+};
+
+/** @param stone is the enemy group's escape move (just been played)
+ *  @return true if the group gets captured
+ */
+Hunter.prototype.isEscapingAtariCaught = function (stone) {
+    return this._escapingAtariThreat(stone, 0) >= stone.group.stones.length;
 };
