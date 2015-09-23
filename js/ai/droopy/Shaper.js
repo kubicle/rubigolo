@@ -34,8 +34,6 @@ Shaper.prototype._evalSingleEyeSplit = function (scoreYx, g, gi) {
     var alive = Shaper.getEyeMakerMove(this.goban, eye.i, eye.j, eye.vcount, coords);
     if (alive !== 1) return;
     var i = coords[0], j = coords[1];
-if (i===5 && j===2)
-Shaper=Shaper;
     var score = this.scoreGrid.yx[j][i] = this.groupThreat(g, this.color === g.color);
     scoreYx[j][i] += score;
 };
