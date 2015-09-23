@@ -60,7 +60,7 @@ Ui.prototype.loadFromTest = function (parent, testName, msg) {
 };
 
 Ui.prototype.createGameUi = function (layout, parent, title, descr) {
-    var isCompact = layout === 'compact';
+    var isCompact = this.isCompactLayout = layout === 'compact';
     var gameDiv = this.gameDiv = Dome.newDiv(parent, 'gameUi');
 
     if (title) gameDiv.newDiv(isCompact ? 'testTitle' : 'pageTitle').setText(title);
@@ -146,7 +146,7 @@ Ui.prototype.toggleControls = function () {
     this.controls.setVisible(['undo'], inGame);
     this.controls.setVisible(['pass', 'resi'], inGame && !auto);
     this.controls.setVisible(['next', 'next10', 'nextAll', 'aiVsAiFlags'], inGame && auto);
-    this.controls.setVisible(['newg'], this.game.gameEnded);
+    this.controls.setVisible(['newg'], this.game.gameEnded && !this.isCompactLayout);
     this.controls.setVisible(['evalMode', 'score', 'territory'], inGame);
 };
 
@@ -159,18 +159,19 @@ Ui.prototype.createPlayers = function () {
     this.players = [];
     this.playerIsAi = [false, false];
     if (this.aiPlays === 'black' || this.aiPlays === 'both') {
-        this.players[BLACK] = new main.defaultAi(this.game.goban, BLACK);
+        this.getAiPlayer(BLACK);
         this.playerIsAi[BLACK] = true;
     }
     if (this.aiPlays === 'white' || this.aiPlays === 'both') {
-        this.players[WHITE] = new main.defaultAi(this.game.goban, WHITE);
+        this.getAiPlayer(WHITE);
         this.playerIsAi[WHITE] = true;
     }
 };
 
 Ui.prototype.getAiPlayer = function (color) {
     var player = this.players[color];
-    if (!player) player = this.players[color] = new main.defaultAi(this.game.goban, color);
+    var Ai = color === BLACK ? main.defaultAi : main.latestAi;
+    if (!player) player = this.players[color] = new Ai(this.game.goban, color);
     return player;
 };
 
@@ -301,6 +302,7 @@ Ui.prototype.playUndo = function () {
 };
 
 Ui.prototype.whoPlaysNow = function () {
+    this.board.setCurrentColor(this.game.curColor);
     var playerName = Grid.colorName(this.game.curColor);
     return '(' + playerName + '\'s turn)';
 };
@@ -311,7 +313,6 @@ Ui.prototype.letNextPlayerPlay = function (skipRefresh) {
     } else {
         if (!skipRefresh) this.message(' ' + this.whoPlaysNow(), true);
     }
-    if (!skipRefresh) this.board.setCurrentColor(this.game.curColor);
 };
 
 Ui.prototype.automaticAiPlay = function (turns) {
