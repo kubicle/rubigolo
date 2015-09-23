@@ -4,7 +4,6 @@
 var main = require('../main');
 var inherits = require('util').inherits;
 var Group = require('../Group');
-var assertEqual = main.assertEqual;
 var GameLogic = require('../GameLogic');
 
 var BLACK = main.BLACK, WHITE = main.WHITE;
@@ -17,6 +16,7 @@ function TestBoardAnalyser(testName) {
 }
 inherits(TestBoardAnalyser, main.TestCase);
 module.exports = main.tests.add(TestBoardAnalyser);
+
 
 TestBoardAnalyser.prototype.initBoard = function (gsize, handicap) {
     this.game = new GameLogic();
@@ -31,24 +31,24 @@ TestBoardAnalyser.prototype.checkGame = function (moves, expScore, gsize, finalP
     } else {
         this.game.loadMoves(moves);
     }
-    if (finalPos) assertEqual(finalPos, this.goban.image());
+    if (finalPos) this.assertEqual(finalPos, this.goban.image());
     this.boan = new main.defaultAi.BoardAnalyser();
     this.boan.countScore(this.goban);
 
     var score = this.goban.scoringGrid.image();
     if (score === expScore) return;
     this.showInUi('Expected scoring grid was:<br>' + expScore + ' but we got:<br>' + score);
-    assertEqual(expScore, score);
+    this.assertEqual(expScore, score);
 };
 
 TestBoardAnalyser.prototype.checkScore = function (prisoners, dead, score) {
-    assertEqual(prisoners, Group.countPrisoners(this.goban), 'already prisoners');
+    this.assertEqual(prisoners, Group.countPrisoners(this.goban), 'already prisoners');
     
     var futurePrisoners = this.boan.prisoners;
-    assertEqual(dead[BLACK], futurePrisoners[BLACK] - prisoners[BLACK], 'BLACK dead');
-    assertEqual(dead[WHITE], futurePrisoners[WHITE] - prisoners[WHITE], 'WHITE dead');
+    this.assertEqual(dead[BLACK], futurePrisoners[BLACK] - prisoners[BLACK], 'BLACK dead');
+    this.assertEqual(dead[WHITE], futurePrisoners[WHITE] - prisoners[WHITE], 'WHITE dead');
 
-    return assertEqual(score, this.boan.scores);
+    this.assertEqual(score, this.boan.scores);
 };
 
 TestBoardAnalyser.prototype.showInUi = function (msg) {

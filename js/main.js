@@ -147,15 +147,14 @@ function _valueCompareHint(expected, val) {
   return '';
 }
 
-main.compareValue = function (expected, val) {
-  main.tests.checkCount++;
+TestCase.prototype.compareValue = function (expected, val) {
   if (main.isA(Array, expected)) {
     if (!main.isA(Array, val)) return 'Expected Array but got ' + val;
     if (val.length !== expected.length) {
       return 'Expected Array of size ' + expected.length + ' but got size ' + val.length;
     }
     for (var i = 0; i < expected.length; i++) {
-      var msg = main.compareValue(expected[i], val[i]);
+      var msg = this.compareValue(expected[i], val[i]);
       if (msg) return msg;
     }
     return ''; // equal
@@ -166,30 +165,21 @@ main.compareValue = function (expected, val) {
 
 TestCase.prototype.assertEqual = function (expected, val, comment) {
     this.series.checkCount++;
-    var msg = main.compareValue(expected, val);
+    var msg = this.compareValue(expected, val);
     if (msg === '') return;
     console.warn(msg);
     _fail(msg, comment);
 };
 
 TestCase.prototype.assertInDelta = function (val, expected, delta, comment) {
-  this.series.checkCount++;
-  if (Math.abs(val - expected) <= delta) return;
-  _fail(val + ' is not in +/-' + delta + ' delta around ' + expected, comment);
+    this.series.checkCount++;
+    if (Math.abs(val - expected) <= delta) return;
+    _fail(val + ' is not in +/-' + delta + ' delta around ' + expected, comment);
 };
 
-main.assertEqual = function (expected, val, comment) {
-  main.tests.checkCount++;
-  var msg = main.compareValue(expected, val);
-  if (msg === '') return;
-  console.warn(msg);
-  _fail(msg, comment);
-};
-
-main.assertInDelta = function (val, expected, delta, comment) {
-  main.tests.checkCount++;
-  if (Math.abs(val - expected) <= delta) return;
-  _fail(val + ' is not in +/-' + delta + ' delta around ' + expected, comment);
+TestCase.prototype.fixMe = function (comment) {
+    this.series.fixmeCount++;
+    main.log.warn('FIXME: ' + comment);
 };
 
 main.tests = new TestSeries();

@@ -3,17 +3,18 @@
 
 var main = require('../main');
 var inherits = require('util').inherits;
-var assertEqual = main.assertEqual;
 var GameLogic = require('../GameLogic');
+
 
 /** @class TODO: very incomplete test
  */
 function TestGameLogic(testName) {
     main.TestCase.call(this, testName);
-    return this.initBoard();
+    this.initBoard();
 }
 inherits(TestGameLogic, main.TestCase);
 module.exports = main.tests.add(TestGameLogic);
+
 
 TestGameLogic.prototype.initBoard = function (size, handicap) {
     if (size === undefined) size = 5;
@@ -30,9 +31,9 @@ TestGameLogic.prototype.testHandicap = function () {
     var img = this.goban.image();
     this.game.newGame(19, 6);
     this.game.loadMoves('f3');
-    assertEqual(img, this.goban.image());
+    this.assertEqual(img, this.goban.image());
     // @game.goban.console_display
     this.game.newGame(19, 0);
     this.game.loadMoves('hand:6,f3');
-    return assertEqual(img, this.goban.image());
+    this.assertEqual(img, this.goban.image());
 };

@@ -5,7 +5,6 @@ var main = require('../main');
 var inherits = require('util').inherits;
 var Grid = require('../Grid');
 var Stone = require('../Stone');
-var assertEqual = main.assertEqual;
 var Goban = require('../Goban');
 var TimeKeeper = require('../TimeKeeper');
 
@@ -16,7 +15,7 @@ main.log.level = main.Logger.ERROR;
 /** @class */
 function TestSpeed(testName) {
     main.TestCase.call(this, testName);
-    return this.initBoard();
+    this.initBoard();
 }
 inherits(TestSpeed, main.TestCase);
 module.exports = main.tests.add(TestSpeed);
@@ -95,7 +94,7 @@ TestSpeed.prototype.testSpeed2 = function () {
     // validate the game once
     this.playMoves(game2MovesIj);
     var finalPos = '++O@@++++,+@OO@++@+,OOOO@@@++,++OOOOO@@,OO@@O@@@@,@@@+OOOO@,O@@@@@O+O,+++@OOO++,+++@@O+++';
-    assertEqual(finalPos, this.goban.image());
+    this.assertEqual(finalPos, this.goban.image());
     this.initBoard();
     t.start('63 move game, 2000 times and undo', 1.56, 3);
     for (var _i = 0; _i < 2000; _i++) {
@@ -136,7 +135,7 @@ TestSpeed.prototype.playGameAndClean = function (movesIj, cleanMode) {
     if (main.debug) {
         main.log.debug('About to play a game of ' + numMoves + ' moves');
     }
-    assertEqual(numMoves, this.playMoves(movesIj));
+    this.assertEqual(numMoves, this.playMoves(movesIj));
     switch (cleanMode) {
     case TestSpeed.CM_UNDO:
         for (var _i = 0; _i < numMoves; _i++) {
@@ -152,7 +151,7 @@ TestSpeed.prototype.playGameAndClean = function (movesIj, cleanMode) {
     default: 
         throw new Error('Invalid clean mode');
     }
-    return assertEqual(true, !this.goban.previousStone());
+    this.assertEqual(true, !this.goban.previousStone());
 };
 
 // Our first, basic test

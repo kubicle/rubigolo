@@ -7,7 +7,6 @@ var GameLogic = require('../GameLogic');
 var Grid = require('../Grid');
 var inherits = require('util').inherits;
 
-var assertEqual = main.assertEqual;
 var BLACK = main.BLACK, WHITE = main.WHITE;
 
 
@@ -102,7 +101,7 @@ TestAi.prototype.playAndCheck = function (expMove, expEval) {
 
     var move = player.getMove();
     var score = player.bestScore;
-    if (!this.check(move === expMove)) {
+    if (move !== expMove) {
         this.logErrorContext(player);
         // if expMove got a very close score, our test scenario bumps on twin moves
         if (expMove !== 'pass' && Math.abs(this.checkEval(expMove) - score) < 0.001) {
@@ -110,9 +109,10 @@ TestAi.prototype.playAndCheck = function (expMove, expEval) {
                 ' are twins or very close => consider modifying the test scenario');
         }
         this.showInUi('expected ' + Grid.colorName(color) + '-' + expMove + ' but got ' + move);
-        assertEqual(expMove, move, Grid.colorName(color)); // test aborts here
+        this.assertEqual(expMove, move, Grid.colorName(color)); // test aborts here
     }
     if (expEval) this.checkScore(player, color, move, score, expEval);
+    else this.check(true); // just counts the check
 
     this.game.playOneMove(move);
 };

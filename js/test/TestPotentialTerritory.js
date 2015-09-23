@@ -4,7 +4,6 @@
 
 var main = require('../main');
 var inherits = require('util').inherits;
-var assertEqual = main.assertEqual;
 var GameLogic = require('../GameLogic');
 
 
@@ -16,6 +15,7 @@ function TestPotentialTerritory(testName) {
 inherits(TestPotentialTerritory, main.TestCase);
 module.exports = main.tests.add(TestPotentialTerritory);
 
+
 TestPotentialTerritory.prototype.initBoard = function (size, handicap) {
     if (size === undefined) size = 5;
     if (handicap === undefined) handicap = 0;
@@ -26,19 +26,19 @@ TestPotentialTerritory.prototype.initBoard = function (size, handicap) {
 };
 
 TestPotentialTerritory.prototype.checkPotential = function (expected) {
-    assertEqual(expected, this.ter.image());
+    this.assertEqual(expected, this.ter.image());
 };
 
 TestPotentialTerritory.prototype.checkBasicGame = function (moves, expected, gsize, finalPos) {
     this.initBoard(gsize || 7);
     this.game.loadMoves(moves);
-    if (finalPos) assertEqual(finalPos, this.goban.image());
+    if (finalPos) this.assertEqual(finalPos, this.goban.image());
 
     this.ter.guessTerritories();
     var territory = this.ter.image();
     if (territory === expected) return;
     this.showInUi('Expected territory was<br>' + expected + ' but got<br>' + territory);
-    assertEqual(expected, territory);
+    this.assertEqual(expected, territory);
 };
 
 TestPotentialTerritory.prototype.showInUi = function (msg) {
@@ -48,7 +48,7 @@ TestPotentialTerritory.prototype.showInUi = function (msg) {
 
 TestPotentialTerritory.prototype.testBigEmptySpace = function () {
     /** 
-    Black should own the lower board. Top board is disputed
+    Black should own the lower board. Top board is disputed... or black too.
     ++O++++
     ++O@+++
     ++O++++
@@ -58,7 +58,8 @@ TestPotentialTerritory.prototype.testBigEmptySpace = function () {
     +++++++
     */
     this.checkBasicGame('d4,c5,d6,c7,c4,c6,b4',
-        '???????,???????,???????,-------,-------,-------,-------');
+        //'-------,-------,-------,-------,-------,-------,-------'); // if White group is seen dead
+        '???????,???????,???????,-------,-------,-------,-------'); // if White group is seen in dispute
 };
 
 TestPotentialTerritory.prototype.testInMidGame = function () {
