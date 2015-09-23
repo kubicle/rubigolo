@@ -19,7 +19,8 @@ function Stone(goban, i, j, color) {
     this.j = j;
     this.color = color;
     this.group = null;
-    this.neighbors = []; // neighboring stones (empty or not)
+    this.neighbors = []; // direct neighbors (top, right, bottom, left)
+    this.allNeighbors = []; // including diagonals - top, top-right, right, bottom-right, etc.
 }
 module.exports = Stone;
 
@@ -34,12 +35,16 @@ Stone.prototype.clear = function () {
 // Computes each stone's neighbors (called for each stone after init)
 // NB: Stones next to side have only 3 neighbors, and the corner stones have 2
 Stone.prototype.findNeighbors = function () {
-    var coords = Stone.XY_AROUND;
-    for (var i = coords.length - 1; i >= 0; i--) {
-        var stone = this.goban.stoneAt(this.i + coords[i][0], this.j + coords[i][1]);
-        if (stone !== main.BORDER) {
-            this.neighbors.push(stone);
-        }
+    var coords = Stone.XY_AROUND, diags = Stone.XY_DIAGONAL, stone;
+    for (var i = 0; i < 4; i++) {
+        stone = this.goban.stoneAt(this.i + coords[i][0], this.j + coords[i][1]);
+        if (stone !== main.BORDER) this.neighbors.push(stone);
+    }
+    for (i = 0; i < 4; i++) {
+        stone = this.goban.stoneAt(this.i + coords[i][0], this.j + coords[i][1]);
+        this.allNeighbors.push(stone);
+        stone = this.goban.stoneAt(this.i + diags[i][0], this.j + diags[i][1]);
+        this.allNeighbors.push(stone);
     }
 };
 
