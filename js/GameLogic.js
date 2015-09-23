@@ -111,11 +111,8 @@ GameLogic.prototype.playOneMove = function (move) {
 
 // Handles a new stone move (not special commands like "pass")
 GameLogic.prototype.playAStone = function (move) {
-    var i, j;
-    var _m = Grid.move2xy(move);
-    i = _m[0];
-    j = _m[1];
-    
+    var coords = Grid.move2xy(move);
+    var i = coords[0], j = coords[1];
     if (!Stone.validMove(this.goban, i, j, this.curColor)) {
         return this.errorMsg('Invalid move: ' + move);
     }
