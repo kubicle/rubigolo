@@ -9,6 +9,7 @@ var BoardAnalyser = require('./BoardAnalyser');
 var EMPTY = main.EMPTY, BLACK = main.BLACK, WHITE = main.WHITE;
 var NEVER = main.NEVER;
 var UP = main.UP, RIGHT = main.RIGHT, DOWN = main.DOWN, LEFT = main.LEFT;
+var DIR0 = main.DIR0, DIR3 = main.DIR3;
 
 var POT2CHAR = Grid.territory2char;
 var POT2OWNER = Grid.territory2owner;
@@ -81,7 +82,7 @@ PotentialTerritory.prototype._foresee = function (grid, first, second) {
 
     // passed grid will receive the result (scoring grid)
     this._connectThings(grid, first, second);
-    this.boan.analyse(first, this.goban, grid.initFromGoban(this.goban));
+    this.boan.analyse(this.goban, grid.initFromGoban(this.goban), first);
     this._collectGroupState();
 
     // restore goban
@@ -206,7 +207,7 @@ PotentialTerritory.prototype.addStone = function (yx, i, j, color, border) {
 // Returns the number of times we find "color" in contact with i,j
 PotentialTerritory.prototype.inContact = function (yx, i, j, color) {
     var num = 0;
-    for (var dir = UP; dir <= LEFT; dir++) {
+    for (var dir = DIR0; dir <= DIR3; dir++) {
         var vect = XY_AROUND[dir];
         if (yx[j + vect[1]][i + vect[0]] === color) {
             num++;
@@ -218,7 +219,7 @@ PotentialTerritory.prototype.inContact = function (yx, i, j, color) {
 // Authorises a diagonal move if first color is on a diagonal stone from i,j
 // AND if second color is not next to this diagonal stone
 PotentialTerritory.prototype.diagonalMoveOk = function (yx, i, j, first, second) {
-    for (var v = 0; v < 4; v++) {
+    for (var v = DIR0; v <= DIR3; v++) {
         var vect = XY_DIAGONAL[v];
         if (yx[j + vect[1]][i + vect[0]] !== first) continue;
         if (yx[j + vect[1]][i] === second || yx[j][i + vect[0]] === second) continue;
@@ -239,7 +240,7 @@ function borderPos(dir, n, gsize) {
 
 PotentialTerritory.prototype._prepareBorderConnect = function () {
     var points = [];
-    for (var dir = UP; dir <= LEFT; dir++) {
+    for (var dir = DIR0; dir <= DIR3; dir++) {
         var dx = XY_AROUND[dir][0], dy = XY_AROUND[dir][1];
         for (var n = this.gsize - 1; n >= 2; n--) {
             var p = borderPos(dir, n, this.gsize);

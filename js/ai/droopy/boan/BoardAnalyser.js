@@ -461,6 +461,7 @@ GroupInfo.prototype.checkLiveliness2 = function () {
 /** @class public read-only attribute: goban, scores, prisoners
  */
 function BoardAnalyser() {
+    this.mode = null;
     this.goban = null;
     this.allVoids = [];
     this.scores = [0, 0];
@@ -476,15 +477,16 @@ BoardAnalyser.prototype.countScore = function (goban) {
     this.scores[BLACK] = this.scores[WHITE] = 0;
     this.prisoners = Group.countPrisoners(goban);
 
-    if (!this._initAnalysis(goban)) return;
+    if (!this._initAnalysis('SCORE', goban)) return;
     this._runAnalysis();
     this._finalColoring();
     if (main.debug) main.log.debug(this.filler.grid.toText(function (c) { return Grid.colorToChar(c); }));
 };
 
 /** If grid is not given a new one will be created from goban */
-BoardAnalyser.prototype.analyse = function (first, goban, grid) {
-    if (!this._initAnalysis(goban, grid)) return;
+BoardAnalyser.prototype.analyse = function (goban, grid, first) {
+    var mode = first === undefined ? 'MOVE' : 'TERRITORY';
+    if (!this._initAnalysis(mode, goban, grid)) return;
     this._runAnalysis(first);
     this._finalColoring();
 };
@@ -516,7 +518,8 @@ BoardAnalyser.prototype.debugDump = function () {
     }
 };
 
-BoardAnalyser.prototype._initAnalysis = function (goban, grid) {
+BoardAnalyser.prototype._initAnalysis = function (mode, goban, grid) {
+    this.mode = mode;
     this.goban = goban;
     this.filler = new ZoneFiller(goban, grid);
     if (goban.moveNumber() === 0) return false;
@@ -629,6 +632,7 @@ BoardAnalyser.prototype._findBattleWinners = function () {
     }
 };
 
+// FIXME: order of group should not matter
 BoardAnalyser.prototype._reviewGroups = function (fn, stepNum, first) {
     var count = 0, reviewedCount = 0;
     for (var ndx in this.allGroups) {
@@ -651,8 +655,8 @@ var midGameLifeChecks = [
     GroupInfo.prototype.checkParents,
     GroupInfo.prototype.checkBrothers,
     GroupInfo.prototype.checkLiveliness1,
-    GroupInfo.prototype.checkSingleEye,
-    GroupInfo.prototype.checkLiveliness2 // REVIEW ME: can we really ask a final liveliness (2) in mid-game
+    GroupInfo.prototype.checkSingleEye // TODO: test if territory eval should make this check
+    // We don't expect a final liveliness (2) in mid-game
 ];
 var scoringLifeChecks = [
     GroupInfo.prototype.checkDoubleEye,
@@ -665,7 +669,7 @@ var scoringLifeChecks = [
 
 // Reviews the groups and declare "dead" the ones who do not own enough eyes or voids
 BoardAnalyser.prototype._lifeOrDeathLoop = function (first) {
-    var checks = first !== undefined ? midGameLifeChecks : scoringLifeChecks;
+    var checks = this.mode === 'SCORE' ? scoringLifeChecks : midGameLifeChecks;
     var stepNum = 0;
     while (stepNum < checks.length) {
         var count = this._reviewGroups(checks[stepNum], stepNum, first);
