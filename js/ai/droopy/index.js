@@ -178,11 +178,12 @@ Droopy.prototype._prepareEval = function () {
     this.bestI = this.secondBestI = NO_MOVE;
     this.survey = null;
 
-    this.inf.buildMap();
     this.ter.guessTerritories();
 
     // get "raw" group info
     this.boan.analyse(this.goban);
+
+    this.inf.buildMap();
 };
 
 Droopy.prototype._prepareTestEval = function () {

@@ -261,7 +261,7 @@ TestAi.prototype.testCornerKill = function () {
     // 5 ++O++++++
     // 4 +++++@+++
     //   abcdefghj
-    this.checkGame('j8,j9,d7,c5,f4,pass,g6,pass', 'c3>h9, h8>h9, c3', 9);
+    this.checkGame('j8,j9,d7,c5,f4,pass,g6,pass', '!h9, !h8, c3', 9);
 };
 
 TestAi.prototype.testWrongAttack = function () {
