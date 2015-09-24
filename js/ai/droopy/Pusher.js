@@ -39,7 +39,7 @@ Pusher.prototype.evalMove = function (i, j) {
     if (enemyInf === 0 || allyInf === 0) {
         return 0;
     }
-    // Pusher only push where we can connect to
+    // Only push where we can connect to
     if (!this.canConnect(i, j, this.color)) return 0;
     // Stones that would "fill a blank" are not for Pusher to evaluate
     if (this.goban.stoneAt(i, j).numEmpties() === 0) return 0;

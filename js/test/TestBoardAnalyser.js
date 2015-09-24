@@ -97,7 +97,7 @@ TestBoardAnalyser.prototype.testNoTwoEyes3_1 = function () {
         '--@##,' +
         '--@#-,' +
         '-@@#@,' +
-        '-@##-,');
+        '-@##-');
 };
 
 TestBoardAnalyser.prototype.testTwoEyes5_1 = function () {
