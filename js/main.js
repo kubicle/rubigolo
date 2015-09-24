@@ -95,7 +95,7 @@ TestSeries.prototype.run = function (logfunc, specificClass, methodPattern) {
   var startTime = Date.now();
   var classCount = 0;
   this.testCount = this.checkCount = this.count = 0;
-  this.failedCount = this.errorCount = this.warningCount = this.fixmeCount = 0;
+  this.failedCount = this.errorCount = this.warningCount = this.todoCount = 0;
   for (var t in this.testCases) {
     if (specificClass && t !== specificClass) continue;
     classCount++;
@@ -109,7 +109,7 @@ TestSeries.prototype.run = function (logfunc, specificClass, methodPattern) {
     ', exceptions: ' + this.errorCount +
     ', failed: ' + this.failedCount +
     ', warnings: ' + this.warningCount +
-    ', FIXMEs: ' + this.fixmeCount;
+    ', TODO: ' + this.todoCount;
   if (this.count) report += ', generic count: ' + this.count;
   main.log.info(report);
   return report;
@@ -178,9 +178,9 @@ TestCase.prototype.assertInDelta = function (val, expected, delta, comment) {
     _fail(val + ' is not in +/-' + delta + ' delta around ' + expected, comment);
 };
 
-TestCase.prototype.fixMe = function (comment) {
-    this.series.fixmeCount++;
-    main.log.warn('FIXME: ' + comment);
+TestCase.prototype.todo = function (comment) {
+    this.series.todoCount++;
+    main.log.warn('TODO: ' + comment);
 };
 
 main.tests = new TestSeries();

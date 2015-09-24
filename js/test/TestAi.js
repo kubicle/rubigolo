@@ -556,7 +556,7 @@ TestAi.prototype.testAnotherKillAfterKo = function () {
         'c7~20, #d8,' + // black goes for the kill in c7; too late for white now
         'e9~26', // should be 'd6~20, e9~26', // it seems that real score difference for e9 is 26 indeed :)
         9);
-    this.fixMe('Ko battle');
+    this.todo('One-eye group can survive if e9 + Ko battle');
 };
 
 TestAi.prototype.testSemi1 = function () {
