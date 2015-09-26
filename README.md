@@ -1,11 +1,9 @@
-rubigolo
-========
+# rubigolo
 
 Game of Go (weiqi, igo, baduk, etc.), originally started in Ruby (hence the name), then translated to Javascript... In development, of course. 
 
 - [run it](http://rawgit.com/kubicle/rubigolo/master/index.html) in your browser.
 - [unit tests](http://rawgit.com/kubicle/rubigolo/master/js/ui/tests.html)
-
 [![Code Climate](https://codeclimate.com/github/kubicle/rubigolo/badges/gpa.svg)](https://codeclimate.com/github/kubicle/rubigolo)
 
 Old Ruby version: check the [help page](http://htmlpreview.github.io/?https://github.com/kubicle/rubigolo/blob/master/help-index.html)
