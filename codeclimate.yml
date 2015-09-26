@@ -23,6 +23,15 @@ engines:
     enabled: true
   eslint:
     enabled: true
+    checks:
+      quotes:
+        enabled: false
+      camelcase:
+        enabled: false
+      curly:
+        enabled: false
+      no-underscore-dangle:
+        enabled: false
   csslint:
     enabled: true
 
