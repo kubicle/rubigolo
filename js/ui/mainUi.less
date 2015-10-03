@@ -1,9 +1,16 @@
 .gameUi {
+  .board {
+    width: 670px;
+    background-color: #402F23;
+    .wgo-board {
+      margin: 0 auto;
+    }
+  }
   .boardDesc {
     font-style: italic;
   }
   .resiButton {
-    margin-left: 160px;
+    margin-left: 170px;
   }
   .testControls button {
     height: 90px;
@@ -11,17 +18,16 @@
   }
   .logDiv {
     height: 100px;
-    width: 500px;
+    width: 670px;
+    display: flex;
 
     .outputBox {
       height: 100%;
-      width: 400px;
+      width: 410px;
       font-weight: bold;
     }
     .historyBox {
-      position: relative;
-      top: -112px;
-      left: 420px;
+      margin-left: 10px;
       height: 100%;
       width: 230px;
       font-family: "Courier";

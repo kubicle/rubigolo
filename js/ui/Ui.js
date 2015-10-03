@@ -75,7 +75,7 @@ Ui.prototype.createGameUi = function (layout, parent, title, descr) {
 
     // width adjustments
     var width = this.game.goban.gsize + 2; // width in stones
-    this.boardWidth = isCompact ? width * 28 : Math.min(width * 60, viewportWidth - 15);
+    this.boardWidth = isCompact ? width * 28 : Math.min(width * 60 + 10, viewportWidth - 15);
 
     var self = this;
     this.board = new Board();

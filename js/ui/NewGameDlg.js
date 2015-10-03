@@ -28,7 +28,7 @@ function NewGameDlg(options, cb) {
     var defaultAi = Dome.newDropdown(defAiDiv, 'defaultAi', Object.keys(main.ais), null, main.defaultAi.name);
     Dome.newLabel(defAiDiv, 'defAiInfo', 'Black AI uses default AI; White always uses latest AI version.');
 
-    var okBtn = Dome.newButton(form.newDiv('btnDiv'), 'start', 'OK', function (ev) {
+    var okBtn = Dome.newButton(form.newDiv('btnDiv'), 'start', 'Play', function (ev) {
         ev.preventDefault();
         options.gsize = ~~Dome.getRadioValue(sizeElt);
         options.handicap = ~~handicap.value();
