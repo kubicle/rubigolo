@@ -5,6 +5,10 @@ require('./ui/style.less');
 var main = require('./main');
 window.main = main;
 
+var pkg = require('../package.json');
+main.appName = pkg.name;
+main.appVersion = pkg.version;
+
 // Constants attached to main and extensions of common classes
 require('./constants');
 require('./rb');
