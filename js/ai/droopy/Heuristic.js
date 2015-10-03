@@ -115,7 +115,7 @@ Heuristic.prototype._invasionCost = function (i, j, dir, color, level) {
     return cost;
 };
 
-var INVASION_DEEPNESS = 3; // TODO: better algo for this
+var INVASION_DEEPNESS = 1; // TODO: better algo for this
 
 Heuristic.prototype.invasionCost = function (i, j, color) {
     var cost = Math.max(0, this.enemyTerritoryScore(i, j, color));
