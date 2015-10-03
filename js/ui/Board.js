@@ -145,9 +145,9 @@ Board.prototype.refresh = function () {
     }
 };
 
-Board.prototype.show = function (name, yx, fn) {
+Board.prototype.show = function (displayType, yx, fn) {
     this.refresh(); // the base is the up-to-date board
-    this.displayType = name;
+    this.displayType = displayType;
 
     for (var j = 0; j < this.gsize; j++) {
         for (var i = 0; i < this.gsize; i++) {
@@ -185,28 +185,38 @@ function scoringDisplay(cell) {
     }
 }
 
-var displayFunctions = {
-    territory: territoryDisplay,
-    scoring: scoringDisplay
+var valueFormatMinDec, valueFormatMaxDec;
+
+// Usually for debug/test
+Board.prototype.setValueFormat = function (minDecimals, maxDecimals) {
+    valueFormatMinDec = minDecimals;
+    valueFormatMaxDec = maxDecimals;
 };
 
-Board.prototype.showTerritory = function (yx) {
-    this.show('territory', yx, territoryDisplay);
+function valueDisplay(cell) {
+    var minDec = 0, maxDec = 1;
+    if (valueFormatMinDec !== undefined) minDec = valueFormatMinDec;
+    if (valueFormatMaxDec !== undefined) maxDec = valueFormatMaxDec;
+
+    var val = cell.toFixed(maxDec);
+    for (var i = minDec; i < maxDec; i++) val = val.chomp('0');
+    val = val.chomp('.');
+
+    return { type: 'LB', text: val };
+}
+
+var displayFunctions = {
+    territory: territoryDisplay,
+    scoring: scoringDisplay,
+    value: valueDisplay
+};
+
+Board.prototype.showSpecial = function (displayType, yx) {
+    var fn = displayFunctions[displayType];
+    if (!fn) { return console.error('invalid display type:', displayType); }
+    this.show(displayType, yx, fn);
 };
 
 Board.prototype.showScoring = function (yx) {
     this.show('scoring', yx, scoringDisplay);
-};
-
-Board.prototype.prepareSpecialDisplay = function (name) {
-    if (this.displayType !== name) return true;
-    // back to regular display
-    this.refresh();
-    return false;
-};
-
-Board.prototype.showSpecial = function (name, yx) {
-    var fn = displayFunctions[name];
-    if (!fn) { return console.error('invalid display type:', name); }
-    this.show(name, yx, fn);
 };
