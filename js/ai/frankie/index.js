@@ -9,7 +9,6 @@ var inherits = require('util').inherits;
 var Genes = require('../../Genes');
 var Grid = require('../../Grid');
 var InfluenceMap = require('./boan/InfluenceMap');
-var Player = require('../../Player');
 var PotentialTerritory = require('./boan/PotentialTerritory');
 var Stone = require('../../Stone');
 var ZoneFiller = require('./boan/ZoneFiller');
@@ -29,7 +28,7 @@ var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
  */
 function Frankie(goban, color, genes) {
     if (genes === undefined) genes = null;
-    Player.call(this, false, goban);
+    this.goban = goban;
     this.inf = new InfluenceMap(this.goban);
     this.ter = new PotentialTerritory(this.goban);
     this.boan = new BoardAnalyser();
@@ -51,7 +50,6 @@ function Frankie(goban, color, genes) {
     // to keep things coherent
     this.prepareGame(this.genes);
 }
-inherits(Frankie, Player);
 module.exports = Frankie;
 
 Frankie.BoardAnalyser = BoardAnalyser;
@@ -73,7 +71,7 @@ Frankie.prototype.prepareGame = function (genes) {
 };
 
 Frankie.prototype.setColor = function (color) {
-    Player.prototype.setColor.call(this, color);
+    this.color = color;
     this.enemyColor = 1 - color;
     for (var i = 0; i < this.heuristics.length; i++) {
         this.heuristics[i].initColor();
