@@ -8,7 +8,7 @@ var ZoneFiller = require('./ZoneFiller');
 var Shaper = require('../Shaper');
 
 var EMPTY = main.EMPTY, BLACK = main.BLACK, WHITE = main.WHITE;
-var ALIVE = 1000;
+var ALIVE = 1000; // any big enough liveliness to mean "alive for good"
 
 function grpNdx(g) { return '#' + g.ndx; }
 function giNdx(gi) { return '#' + gi.group.ndx; }
@@ -34,10 +34,10 @@ function Void(code, i, j, vcount, neighbors) {
 module.exports = Void;
 
 var vEYE = 1, vFAKE_EYE = 2, vDAME = 3;
-var vtypes = ['void', 'eye', 'fake-eye', 'dame'];
+var VTYPES = ['void', 'eye', 'fake-eye', 'dame'];
 
 function vtype2str(vtype) {
-    return vtype ? vtypes[vtype] : vtypes[0];
+    return vtype ? VTYPES[vtype] : VTYPES[0];
 }
 
 function isOneNotDead(groups) {
@@ -143,6 +143,11 @@ Void.prototype.getSingleOwner = function () {
     var groups = this.groups[this.owner];
     if (groups.length > 1) return null;
     return groups[0];
+};
+
+Void.prototype.isTouching = function (gi) {
+    var g = gi.group;
+    return this.groups[g.color].indexOf(g) > -1;
 };
 
 Void.prototype.toString = function () {
