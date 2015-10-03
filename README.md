@@ -17,10 +17,23 @@ Dependencies
 How to build
 ============
 
+```
 npm install
 npm start
+```
 
 =======
+
+## October 2015 Announcement
+Working on Go Text Protocol interface. Coming soon!
+
+## September 2015 News
+* As planned, failing unit tests now show with a mini UI so investigation is possible on the spot. This has been helping quite a lot already to fix and improve the AI.
+* The regular game UI has evolved quite a bit; playing on an Android phone screen is not too awkward. The look remains very basic as I am not planning to put much efforts in this area. Ah and we now use Less instead of old CSS.
+* Reorganized the AI files (now including the board analyser) to a separate directory. Will keep snapshots of the AI whenever meaningful evolutions occur. Named the current version "Frankie". I will use it as a baseline to measure the future versions. Next evolving version is called "Droopy" (the slow dog, you know...)
+* AI has made moderate progress in various areas, the main change being the decommission of "Executioner": Hunter is now in charge of the chases in general, so it can do it better. Some more improvements and refactoring in the pipe around group life&death evaluation.
+* Added the repo to CodeClimate, yay! Will adjust ESLint settings soon.
+* Test status: AI tests: 9 FIXME, 37 tests, 91 checks, exceptions: 0, failed: 1, warnings: 1
 
 ## July 2015 News
 * Brand new UI using [WGo.js](http://github.com/waltheri/wgo.js). I think around 30% of the UI work is done at this point.
@@ -30,7 +43,7 @@ npm start
 ## April 2015 News
 This project is still moving, on and off, depending how much time I can spend on it.
 
-* JavaScript: I diverted quite a bit of effort into "babyruby2js" (same repo). The result is now nearly working. At this point the JS code does exactly what the ruby code does - for the core of the game, since the UI in JS will bring a new load of fun here. It is time to say goodbye (or at least "see you later") to Ruby. The unit tests are now passing in JS (or failing at the same place the ruby ones are failing). The speed increased by a factor 2 to 10, depending on the test.
+* JavaScript: I diverted quite a bit of effort into [babyruby2js](http://rawgit.com/kubicle/babyruby2js). The result is now nearly working. At this point the JS code does exactly what the ruby code does - for the core of the game, since the UI in JS will bring a new load of fun here. It is time to say goodbye (or at least "see you later") to Ruby. The unit tests are now passing in JS (or failing at the same place the ruby ones are failing). The speed increased by a factor 2 to 10, depending on the test.
 * AI did not evolve at this point. Hopes are much lower than before but I did not give up yet and will not, at least until next time I manage to get another chunk of efforts at it.
 * Gave up the "more than 2 players" option. This made the code more complex and does not seem to make sense because the rules would have to be different for a balance/strategy to be possible and interesting.
 * No progress on the UI yet. Javascript is the way to go.
