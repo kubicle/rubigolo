@@ -194,6 +194,8 @@ Board.prototype.setValueFormat = function (minDecimals, maxDecimals) {
 };
 
 function valueDisplay(cell) {
+    if (cell === null) return null;
+
     var minDec = 0, maxDec = 1;
     if (valueFormatMinDec !== undefined) minDec = valueFormatMinDec;
     if (valueFormatMaxDec !== undefined) maxDec = valueFormatMaxDec;

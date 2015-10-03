@@ -62,7 +62,7 @@ Droopy.prototype.getHeuristic = function (heuristicName) {
         var h = this.heuristics[n];
         if (h.constructor.name === heuristicName) return h;
     }
-    throw new Error('Invalid heuristic name: ' + heuristicName);
+    return null;
 };
 
 Droopy.prototype.prepareGame = function (genes) {

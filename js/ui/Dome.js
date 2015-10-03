@@ -192,3 +192,14 @@ DomeGroup.prototype.setVisible = function (names, show, except) {
 Dome.setPageTitle = function (title) {
     document.head.getElementsByTagName('title')[0].textContent = title;
 };
+
+// Return the selected text if any - null if there is none
+Dome.getSelectedText = function () {
+    var selection = window.getSelection();
+    if (!selection.rangeCount) return null;
+    var range = selection.getRangeAt(0);
+    var text = range.startContainer.data;
+    if (!text) return null;
+
+    return text.substring(range.startOffset, range.endOffset);
+};

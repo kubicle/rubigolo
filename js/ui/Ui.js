@@ -137,6 +137,7 @@ Ui.prototype.createControls = function (parentDiv) {
     });
     Dome.newButton(this.testBtn, '#score', 'Score test', function () { self.scoreTest(); });
     Dome.newButton(this.testBtn, '#territory', 'Territory test', function () { self.territoryTest(); });
+    Dome.newButton(this.testBtn, '#heuristic', 'Heuristic test', function () { self.heuristicTest(); });
 };
 
 Ui.prototype.toggleControls = function () {
@@ -148,7 +149,7 @@ Ui.prototype.toggleControls = function () {
     this.controls.setVisible(['pass', 'resi'], inGame && !auto);
     this.controls.setVisible(['next', 'next10', 'nextAll', 'aiVsAiFlags'], inGame && auto);
     this.controls.setVisible(['newg'], this.game.gameEnded && !this.isCompactLayout);
-    this.controls.setVisible(['evalMode', 'score', 'territory'], inGame);
+    this.controls.setVisible(['evalMode', 'score', 'territory', 'heuristic'], inGame);
 };
 
 Ui.prototype.message = function (html, append) {
@@ -342,19 +343,34 @@ Ui.prototype.evalMove = function (move) {
     this.showAiMoveData(player, move);
 };
 
-Ui.prototype.scoreTest = function () {
-    if (!this.board.prepareSpecialDisplay('scoring')) return;
+Ui.prototype.toggleSpecialDisplay = function (displayType, fn) {
+    if (this.board.displayType === displayType) return this.board.refresh();
 
-    var score = this.scorer.computeScore(this.game.goban, this.game.komi);
-    this.message(score);
-    
-    var yx = this.game.goban.scoringGrid.yx;
-    this.board.showSpecial('scoring', yx);
+    this.board.showSpecial(displayType, fn());
+};
+
+Ui.prototype.scoreTest = function () {
+    this.toggleSpecialDisplay('scoring', function () {
+        var score = this.scorer.computeScore(this.game.goban, this.game.komi);
+        this.message(score);
+        return this.game.goban.scoringGrid.yx;
+    });
 };
 
 Ui.prototype.territoryTest = function () {
-    if (!this.board.prepareSpecialDisplay('territory')) return;
+    this.toggleSpecialDisplay('territory', function () {
+        return this.getAiPlayer(this.game.curColor).ter.guessTerritories();
+    });
+};
 
-    var yx = this.getAiPlayer(this.game.curColor).ter.guessTerritories();
-    this.board.showSpecial('territory', yx);
+Ui.prototype.heuristicTest = function () {
+    var name = Dome.getSelectedText();
+    if (!name) return;
+    var aiPlayer = this.getAiPlayer(1 - this.game.curColor); // AI played previous move
+    var heuristic = aiPlayer.getHeuristic(name);
+    if (!heuristic) return;
+
+    this.toggleSpecialDisplay('value', function () {
+        return heuristic.scoreGrid.yx;
+    });
 };
