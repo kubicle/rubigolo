@@ -203,19 +203,19 @@ Ui.prototype.startGame = function (firstMoves, isLoaded) {
 
 /** @return false if game goes on normally; true if special ending action was done */
 Ui.prototype.checkEnd = function () {
-  if (this.game.gameEnding) {
-    this.proposeScore();
-    return true;
-  }
-  if (this.game.gameEnded) {
-    this.showEnd(); // one resigned
-    return true;
-  }
-  return false;
+    if (this.game.gameEnding) {
+        this.proposeScore();
+        return true;
+    }
+    if (this.game.gameEnded) {
+        this.showEnd(); // one resigned
+        return true;
+    }
+    return false;
 };
 
 Ui.prototype.computeScore = function () {
-  this.scoreMsg = this.scorer.computeScore(this.game.goban, this.game.komi, this.game.whoResigned).join('<br>');
+    this.scoreMsg = this.scorer.computeScore(this.game.goban, this.game.komi, this.game.whoResigned).join('<br>');
 };
 
 Ui.prototype.proposeScore = function () {
