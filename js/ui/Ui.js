@@ -6,10 +6,10 @@ var Board = require('./Board');
 var Dome = require('./Dome');
 var GameLogic = require('../GameLogic');
 var Grid = require('../Grid');
-var gtp = require('../gtp');
+var gtp = require('../net/gtp');
 var NewGameDlg = require('./NewGameDlg');
 var ScoreAnalyser = require('../ScoreAnalyser');
-var UiEngine = require('../UiEngine');
+var UiEngine = require('../net/UiEngine');
 
 var WHITE = main.WHITE, BLACK = main.BLACK;
 
