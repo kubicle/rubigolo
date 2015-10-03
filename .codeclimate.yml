@@ -32,6 +32,8 @@ engines:
         enabled: false
       no-underscore-dangle:
         enabled: false
+      global-strict:
+        enabled: false
   csslint:
     enabled: true
 
