@@ -484,10 +484,10 @@ BoardAnalyser.prototype.countScore = function (goban) {
 };
 
 /** If grid is not given a new one will be created from goban */
-BoardAnalyser.prototype.analyse = function (goban, grid, first) {
-    var mode = first === undefined ? 'MOVE' : 'TERRITORY';
+BoardAnalyser.prototype.analyse = function (goban, grid, first2play) {
+    var mode = first2play === undefined ? 'MOVE' : 'TERRITORY';
     if (!this._initAnalysis(mode, goban, grid)) return;
-    this._runAnalysis(first);
+    this._runAnalysis(first2play);
     this._finalColoring();
 };
 
@@ -565,11 +565,11 @@ BoardAnalyser.prototype._initVoidsAndGroups = function () {
     }
 };
 
-BoardAnalyser.prototype._runAnalysis = function (first) {
+BoardAnalyser.prototype._runAnalysis = function (first2play) {
     this._findBrothers();
     this._findEyeOwners();
     this._findBattleWinners();
-    this._lifeOrDeathLoop(first);
+    this._lifeOrDeathLoop(first2play);
 };
 
 BoardAnalyser.prototype._findBrothers = function () {
@@ -593,7 +593,7 @@ function normalizeLiveliness(life) {
     return life;
 }
 
-function compareLivelines(life) {
+function compareLiveliness(life) {
     // make sure we have a winner, not a tie
     if (life[BLACK] === life[WHITE] || (life[BLACK] >= ALIVE && life[WHITE] >= ALIVE)) {
         return undefined;
@@ -617,7 +617,7 @@ BoardAnalyser.prototype._findBattleWinners = function () {
                     life[color] += gi.liveliness();
                 }
             }
-            var winner = compareLivelines(life);
+            var winner = compareLiveliness(life);
             // make sure we have a winner, not a tie
             if (winner === undefined) {
                 if (main.debug) main.log.debug('BATTLED EYE in dispute: ' + v);
