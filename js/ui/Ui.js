@@ -6,8 +6,10 @@ var Board = require('./Board');
 var Dome = require('./Dome');
 var GameLogic = require('../GameLogic');
 var Grid = require('../Grid');
+var gtp = require('../gtp');
 var NewGameDlg = require('./NewGameDlg');
 var ScoreAnalyser = require('../ScoreAnalyser');
+var UiEngine = require('../UiEngine');
 
 var WHITE = main.WHITE, BLACK = main.BLACK;
 
@@ -23,6 +25,9 @@ function Ui(game) {
     this.game = new GameLogic(game);
     this.scorer = new ScoreAnalyser();
     this.board = null;
+
+    // TMP
+    gtp.init(new UiEngine(this));
 }
 module.exports = Ui;
 
@@ -264,9 +269,10 @@ Ui.prototype.letAiPlay = function (skipRefresh) {
     this.game.playOneMove(move);
 
     // AI resigned or double-passed?
-    if (this.checkEnd()) return;
+    if (this.checkEnd()) return move;
 
     if (!skipRefresh) this.refreshBoard();
+    return move;
 };
 
 Ui.prototype.playerMove = function (move) {
@@ -350,16 +356,18 @@ Ui.prototype.toggleSpecialDisplay = function (displayType, fn) {
 };
 
 Ui.prototype.scoreTest = function () {
+    var self = this;
     this.toggleSpecialDisplay('scoring', function () {
-        var score = this.scorer.computeScore(this.game.goban, this.game.komi);
-        this.message(score);
-        return this.game.goban.scoringGrid.yx;
+        var score = self.scorer.computeScore(self.game.goban, self.game.komi);
+        self.message(score);
+        return self.game.goban.scoringGrid.yx;
     });
 };
 
 Ui.prototype.territoryTest = function () {
+    var self = this;
     this.toggleSpecialDisplay('territory', function () {
-        return this.getAiPlayer(this.game.curColor).ter.guessTerritories();
+        return self.getAiPlayer(self.game.curColor).ter.guessTerritories();
     });
 };
 
