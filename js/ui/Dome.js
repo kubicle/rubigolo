@@ -186,3 +186,9 @@ DomeGroup.prototype.setVisible = function (names, show, except) {
         this.ctrl[names[i]].setVisible(show);
     }
 };
+
+//---Misc
+
+Dome.setPageTitle = function (title) {
+    document.head.getElementsByTagName('title')[0].textContent = title;
+};

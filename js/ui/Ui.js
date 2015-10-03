@@ -93,6 +93,7 @@ Ui.prototype.resetUi = function () {
 };
 
 Ui.prototype.newGameDialog = function () {
+    Dome.setPageTitle(main.appName);
     this.resetUi();
     var options = {
         gsize: this.gsize,
@@ -186,7 +187,7 @@ Ui.prototype.startGame = function (firstMoves, isLoaded) {
     this.handicap = game.handicap;
 
     this.createPlayers();
-    if (!this.gameDiv) this.createGameUi('main', document.body, 'Rubigolo');
+    if (!this.gameDiv) this.createGameUi('main', document.body);
     this.toggleControls();
 
     var options = { coords: this.withCoords };

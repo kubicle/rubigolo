@@ -70,9 +70,11 @@ TestUi.prototype.createControls = function (parentDiv) {
 };
 
 TestUi.prototype.createUi = function () {
+    var title = main.appName + ' - Tests';
+    Dome.setPageTitle(title);
     var testDiv = Dome.newDiv(document.body, 'testUi');
     this.gameDiv = Dome.newDiv(document.body, 'gameDiv');
-    testDiv.newDiv('pageTitle').setText('Rubigolo - Tests');
+    testDiv.newDiv('pageTitle').setText(title);
     this.createControls(testDiv);
 
     var defAiDiv = testDiv.newDiv();
