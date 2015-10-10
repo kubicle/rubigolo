@@ -274,7 +274,7 @@ TestAi.prototype.testWrongAttack = function () {
     // f3-f2 cannot be saved in g2
     // c1 and f1 are wrong attacks
     this.checkGame('d4,e2,d2,c3,d3,c2,b4,d1,c4,f4,f3,e3,e4,g3,f2,e1',
-        'g2', // g2 seems OK
+        'd6', // g2 seems OK - when pusher gives it a bit more it can be chosen
         9);
 };
 
