@@ -72,7 +72,7 @@ TestPotentialTerritory.prototype.testInMidGame = function () {
     // 3 +@@+@+O++
     // 2 +++@O++++
     // 1 +++++++++
-    //   abcdefghi
+    //   abcdefghj
     this.checkBasicGame('c3,c6,e7,g3,g7,e2,d2,b4,b3,c7,g5,h4,h5,d8,e8,e5,c4,b5,e3',
         "::::-----,::::-----,:::?-----,:::???---,::????---,::-????::,-----?:::,----:::::,----:::::", 9);
 };
@@ -87,8 +87,8 @@ TestPotentialTerritory.prototype.testOnFinishedGame = function () {
     // 3 O@@@@@O+O
     // 2 +++@OOO++
     // 1 +++@@O+++
-    //   abcdefghi
-    this.checkBasicGame('c3,c6,e7,g3,g7,e2,d2,b4,b3,c7,g5,h4,h5,d8,e8,e5,c4,b5,e3,f2,c5,f6,f7,g6,h6,d7,a4,a5,b6,a3,a6,b7,a4,a7,d9,c9,b8,e6,d5,d6,e9,g4,f5,f4,e1,f1,d1,i5,i6,e4,i4,i3,h8,c8,d3,i5,f3,g2,i4,b5,b4,a5,i5',
+    //   abcdefghj
+    this.checkBasicGame('c3,c6,e7,g3,g7,e2,d2,b4,b3,c7,g5,h4,h5,d8,e8,e5,c4,b5,e3,f2,c5,f6,f7,g6,h6,d7,a4,a5,b6,a3,a6,b7,a4,a7,d9,c9,b8,e6,d5,d6,e9,g4,f5,f4,e1,f1,d1,j5,j6,e4,j4,j3,h8,c8,d3,j5,f3,g2,j4,b5,b4,a5,j5',
         ':::------,::::-----,::::-----,:::::::--,::--:----,---?::::-,------:::,----:::::,-----::::', 9,
         '++O@@++++,+@OO@++@+,OOOO@@@++,++OOOOO@@,OO@@O@@@@,@@@+OOOO@,O@@@@@O+O,+++@OOO++,+++@@O+++');
 };
