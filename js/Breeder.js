@@ -7,6 +7,8 @@ var TimeKeeper = require('./TimeKeeper');
 var GameLogic = require('./GameLogic');
 var ScoreAnalyser = require('./ScoreAnalyser');
 
+var BLACK = main.BLACK, WHITE = main.WHITE;
+
 main.debugBreed = false; // TODO move me somewhere else?
 
 
@@ -21,8 +23,8 @@ function Breeder(gameSize) {
     this.game.newGame(this.gsize);
     this.goban = this.game.goban;
     this.players = [
-        new main.ais.Frankie(this.goban, main.BLACK),
-        new main.defaultAi(this.goban, main.WHITE)
+        new main.ais.Frankie(this.goban, BLACK),
+        new main.defaultAi(this.goban, WHITE)
     ];
     this.scorer = new ScoreAnalyser();
     this.genSize = Breeder.GENERATION_SIZE;
@@ -210,6 +212,8 @@ Breeder.prototype.bwBalanceCheck = function (numGames /*, gsize*/) {
     }
     this.timer.stop(false); // gsize == 9) # if gsize is not 9 our perf numbers are of course meaningless
     main.log.debug('Average score of control against itself: ' + totalScore / numGames);
-    main.log.info('Out of ' + numGames + ' games, black won ' + numWins + ' times');
+    main.log.info('Out of ' + numGames + ' games, ' +
+        this.players[BLACK].version + ' (with black) won ' + numWins + ' times against ' +
+        this.players[WHITE].version);
     return numWins;
 };

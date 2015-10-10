@@ -5,7 +5,6 @@ var main = require('../../main');
 
 var allHeuristics = require('./AllHeuristics');
 var BoardAnalyser = require('./boan/BoardAnalyser');
-var inherits = require('util').inherits;
 var Genes = require('../../Genes');
 var Grid = require('../../Grid');
 var InfluenceMap = require('./boan/InfluenceMap');
@@ -28,6 +27,7 @@ var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
  */
 function Frankie(goban, color, genes) {
     if (genes === undefined) genes = null;
+    this.version = 'Frankie-1.0';
     this.goban = goban;
     this.inf = new InfluenceMap(this.goban);
     this.ter = new PotentialTerritory(this.goban);
