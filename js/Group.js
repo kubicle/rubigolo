@@ -26,6 +26,7 @@ function Group(goban, stone, lives, ndx) {
     this.mergedBy = null; // a stone
     this.killedBy = null; // a stone
     this.ndx = ndx; // unique index
+    this.isAlive = this.isDead = 0; // used by analysis
 }
 module.exports = Group;
 
