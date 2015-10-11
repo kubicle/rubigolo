@@ -250,7 +250,7 @@ TestGroup.prototype.testKo2 = function () {
 // Fixed. Bug was when undo was picking last group by "merged_with" (implemented merged_by)
 TestGroup.prototype.testBug2 = function () {
     this.initBoard(9, 5);
-    this.game.loadMoves('i1,d3,i3,d4,i5,d5,i7,d6,undo');
+    this.game.loadMoves('j1,d3,j3,d4,j5,d5,j7,d6,undo');
 };
 
 // At this moment this corresponds more or less to the speed test case too
