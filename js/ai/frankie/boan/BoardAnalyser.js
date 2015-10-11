@@ -7,6 +7,8 @@ var Group = require('../../../Group');
 var ZoneFiller = require('./ZoneFiller');
 var Shaper = require('../Shaper');
 
+var BOAN_VERSION = 'frankie';
+
 var EMPTY = main.EMPTY, BLACK = main.BLACK, WHITE = main.WHITE;
 var ALIVE = 1000;
 
@@ -224,6 +226,7 @@ Band.gather = function (groups) {
 
 /** @class Contains the analyse results that are attached to each group */
 function GroupInfo(group) {
+    this.version = BOAN_VERSION;
     this.voids = []; // empty zones next to a group
     this.dependsOn = [];
     this.deadEnemies = [];
@@ -461,6 +464,7 @@ GroupInfo.prototype.checkLiveliness2 = function () {
 /** @class public read-only attribute: goban, scores, prisoners
  */
 function BoardAnalyser() {
+    this.version = BOAN_VERSION;
     this.goban = null;
     this.allVoids = [];
     this.scores = [0, 0];
@@ -528,7 +532,7 @@ BoardAnalyser.prototype._initAnalysis = function (goban, grid) {
 BoardAnalyser.prototype._addGroup = function (g) {
     if (this.allGroups[g.ndx]) return;
     this.allGroups[g.ndx] = g;
-    if (!g._info) {
+    if (!g._info || g._info.version !== BOAN_VERSION) {
         g._info = new GroupInfo(g);
     } else {
         g._info.resetAnalysis(g);
