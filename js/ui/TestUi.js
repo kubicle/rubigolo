@@ -10,7 +10,7 @@ var Logger = main.Logger;
 function TestUi() {
     main.debug = false;
     main.log.level = Logger.INFO;
-    window.testUi = this;
+    main.testUi = this;
 }
 module.exports = TestUi;
 

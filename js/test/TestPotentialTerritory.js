@@ -42,7 +42,7 @@ TestPotentialTerritory.prototype.checkBasicGame = function (moves, expected, gsi
 };
 
 TestPotentialTerritory.prototype.showInUi = function (msg) {
-    window.testUi.showTestGame(this.name, msg, this.game);
+    if (main.testUi) main.testUi.showTestGame(this.name, msg, this.game);
 };
 
 

@@ -29,7 +29,7 @@ TestAi.prototype.initBoard = function (size, handicap) {
 };
 
 TestAi.prototype.showInUi = function (msg) {
-    window.testUi.showTestGame(this.name, msg, this.game);
+    if (main.testUi) main.testUi.showTestGame(this.name, msg, this.game);
 };
 
 TestAi.prototype.playMoves = function (moves) {

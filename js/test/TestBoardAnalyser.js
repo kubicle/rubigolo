@@ -52,7 +52,7 @@ TestBoardAnalyser.prototype.checkScore = function (prisoners, dead, score) {
 };
 
 TestBoardAnalyser.prototype.showInUi = function (msg) {
-    window.testUi.showTestGame(this.name, msg, this.game);
+    if (main.testUi) main.testUi.showTestGame(this.name, msg, this.game);
 };
 
 //---

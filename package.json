@@ -6,7 +6,7 @@
   "license": "MIT",
   "scripts": {
     "start": "watchify js/app.js -o js/build.js -t lessify -v",
-    "test": "python -m SimpleHTTPServer 8080"
+    "test": "node js/app.js"
   },
   "main": "js/app.js",
   "repository": {

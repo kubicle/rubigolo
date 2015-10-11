@@ -1,10 +1,10 @@
-//main class for babyruby2js
 'use strict';
 
-/** @class */
-function main() {
-}
-module.exports = main;
+/** Singleton "main" */
+var main = module.exports = {};
+
+main.debug = false;
+
 
 //--- Misc
 
@@ -90,6 +90,12 @@ TestSeries.prototype.testOneClass = function (Klass, methodPattern) {
     }
 };
 
+/** Runs the registered test cases
+ * @param {func} [logfunc] - logfn(level, msg) if not given or if it returns true, console will show the msg too.
+ * @param {string} [specificClass] - name of single class to test. E.g. "TestSpeed"
+ * @param {string} [methodPattern] - if given, only test names containing this pattern are run
+ * @return {number} - number of issues detected (exceptions + errors + warnings); 0 if all fine
+ */
 TestSeries.prototype.run = function (logfunc, specificClass, methodPattern) {
     main.log.setLogFunc(logfunc);
     var startTime = Date.now();
@@ -112,7 +118,7 @@ TestSeries.prototype.run = function (logfunc, specificClass, methodPattern) {
         ', TODO: ' + this.todoCount;
     if (this.count) report += ', generic count: ' + this.count;
     main.log.info(report);
-    return report;
+    return this.errorCount + this.failedCount + this.warningCount;
 };
 
 
@@ -185,6 +191,7 @@ TestCase.prototype.todo = function (comment) {
 
 main.tests = new TestSeries();
 main.TestCase = TestCase;
+
 
 //--- Logger
 
