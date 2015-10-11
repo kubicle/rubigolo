@@ -42,20 +42,22 @@ InfluenceMap.prototype.buildMap = function () {
             var stone = this.goban.stoneAt(i, j);
             var color = stone.color;
             if (color === EMPTY) continue;
-            if (stone.group.isDead === ALWAYS) continue;
+            // a dying group must have a much small influence (but maybe not 0)
+            var deadFactor = stone.group.isDead === ALWAYS ? 0.25 : 1;
 
-            this.map[j][i][color] += influence[0];
+            this.map[j][i][color] += influence[0] * deadFactor; // on the stone itself
+
             // Then we propagate it decreasingly with distance
             for (var n1, n1_array = stone.neighbors, n1_ndx = 0; n1=n1_array[n1_ndx], n1_ndx < n1_array.length; n1_ndx++) {
                 if (n1.color !== EMPTY) continue;
 
-                this.map[n1.j][n1.i][color] += influence[1];
-                // Second level
+                this.map[n1.j][n1.i][color] += influence[1] * deadFactor; // 2nd level
+
                 for (var n2, n2_array = n1.neighbors, n2_ndx = 0; n2=n2_array[n2_ndx], n2_ndx < n2_array.length; n2_ndx++) {
                     if (n2.color !== EMPTY) continue;
-                    if (n2 === stone) continue;
+                    if (n2 === stone) continue; // we are looking again at initial stone; skip it
 
-                    this.map[n2.j][n2.i][color] += influence[2]; // 3rd level // n2.neighbors.each do |n3| //   next if n3 == n1 //   @map[n3.j][n3.i][color] += influence[3] // end
+                    this.map[n2.j][n2.i][color] += influence[2] * deadFactor; // 3rd level
                 }
             }
         }
