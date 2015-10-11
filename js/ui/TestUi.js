@@ -38,7 +38,7 @@ TestUi.prototype.runTest = function (name) {
 };
 
 TestUi.prototype.initTest = function (name) {
-    this.output.setText('Running unit test "' + name + '"...');
+    this.output.setText('Running "' + name + '"...');
     this.errors.setText('');
     this.gameDiv.clear();
     this.controls.setEnabled('ALL', false);
