@@ -49,16 +49,18 @@ TestSeries.prototype.testOneClass = function (Klass, methodPattern) {
  */
 TestSeries.prototype.run = function (logfunc, specificClass, methodPattern) {
     main.log.setLogFunc(logfunc);
-    var startTime = Date.now();
+    var logLevel = main.log.level;
     var classCount = 0;
     this.testCount = this.checkCount = this.count = 0;
     this.failedCount = this.errorCount = this.warningCount = this.todoCount = 0;
+    var startTime = Date.now();
 
     for (var t in this.testCases) {
         if (specificClass && t !== specificClass) continue;
         classCount++;
         var Klass = this.testCases[t];
         this.testOneClass(Klass, methodPattern);
+        main.log.level = logLevel; // restored to initial level
     }
     var duration = ((Date.now() - startTime) / 1000).toFixed(2);
     return this._logReport(specificClass, classCount, duration);
