@@ -1,6 +1,7 @@
 # rubigolo
 [![Build Status](https://travis-ci.org/kubicle/rubigolo.svg?branch=develop)](https://travis-ci.org/kubicle/rubigolo)
 [![Code Climate](https://codeclimate.com/github/kubicle/rubigolo/badges/gpa.svg)](https://codeclimate.com/github/kubicle/rubigolo)
+[![Test Coverage](https://codeclimate.com/github/kubicle/rubigolo/badges/coverage.svg)](https://codeclimate.com/github/kubicle/rubigolo/coverage)
 
 Game of Go (weiqi, igo, baduk, etc.), originally started in Ruby (hence the name), then translated to Javascript... In development, of course. 
 
