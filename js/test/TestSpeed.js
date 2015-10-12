@@ -14,7 +14,6 @@ var TimeKeeper = require('../TimeKeeper');
 function TestSpeed(testName) {
     main.TestCase.call(this, testName);
     main.debug = false; // if true it takes forever...
-    main.log.level = Logger.ERROR;
     this.initBoard();
 }
 inherits(TestSpeed, main.TestCase);
