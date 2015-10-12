@@ -3,7 +3,7 @@
 
 /** @class */
 function Logger() {
-    this.level = Logger.ERROR;
+    this.level = Logger.INFO;
 
     Logger.prototype.debug = this._newLogFn(Logger.DEBUG, console.debug);
     Logger.prototype.info = this._newLogFn(Logger.INFO, console.info);
