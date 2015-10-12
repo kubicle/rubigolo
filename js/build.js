@@ -9053,26 +9053,21 @@ TestAi.prototype.testRaceWinOnKo = function () {
 };
 
 },{"../GameLogic":7,"../Grid":10,"../main":48,"util":4}],54:[function(require,module,exports){
-//Translated from test_all.rb using babyruby2js
 'use strict';
 
-var main = require('../main');
+require('./TestAi');
+require('./TestBoardAnalyser');
+require('./TestBreeder');
+require('./TestGameLogic');
+require('./TestGroup');
+require('./TestPotentialTerritory');
+require('./TestScoreAnalyser');
+require('./TestSgfReader');
+require('./TestSpeed');
+require('./TestStone');
+require('./TestZoneFiller');
 
-main.testAll = true;
-
-var TestAi = require('./TestAi');
-var TestBoardAnalyser = require('./TestBoardAnalyser');
-var TestBreeder = require('./TestBreeder');
-var TestGameLogic = require('./TestGameLogic');
-var TestGroup = require('./TestGroup');
-var TestPotentialTerritory = require('./TestPotentialTerritory');
-var TestScoreAnalyser = require('./TestScoreAnalyser');
-var TestSgfReader = require('./TestSgfReader');
-var TestSpeed = require('./TestSpeed');
-var TestStone = require('./TestStone');
-var TestZoneFiller = require('./TestZoneFiller');
-
-},{"../main":48,"./TestAi":53,"./TestBoardAnalyser":55,"./TestBreeder":56,"./TestGameLogic":58,"./TestGroup":59,"./TestPotentialTerritory":60,"./TestScoreAnalyser":61,"./TestSgfReader":63,"./TestSpeed":64,"./TestStone":65,"./TestZoneFiller":66}],55:[function(require,module,exports){
+},{"./TestAi":53,"./TestBoardAnalyser":55,"./TestBreeder":56,"./TestGameLogic":58,"./TestGroup":59,"./TestPotentialTerritory":60,"./TestScoreAnalyser":61,"./TestSgfReader":63,"./TestSpeed":64,"./TestStone":65,"./TestZoneFiller":66}],55:[function(require,module,exports){
 //Translated from test_board_analyser.rb using babyruby2js
 'use strict';
 
