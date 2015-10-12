@@ -102,6 +102,7 @@ TestSeries.prototype.run = function (logfunc, specificClass, methodPattern) {
     var classCount = 0;
     this.testCount = this.checkCount = this.count = 0;
     this.failedCount = this.errorCount = this.warningCount = this.todoCount = 0;
+
     for (var t in this.testCases) {
         if (specificClass && t !== specificClass) continue;
         classCount++;
@@ -109,16 +110,28 @@ TestSeries.prototype.run = function (logfunc, specificClass, methodPattern) {
         this.testOneClass(Klass, methodPattern);
     }
     var duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    return this._logReport(specificClass, classCount, duration);
+};
+
+TestSeries.prototype._logReport = function (specificClass, classCount, duration) {
+    var numIssues = this.errorCount + this.failedCount + this.warningCount;
     var classes = specificClass ? 'class ' + specificClass : classCount + ' classes';
+
     var report = 'Completed tests. (' + classes + ', ' + this.testCount + ' tests, ' +
-        this.checkCount + ' checks in ' + duration + 's)' +
-        ', exceptions: ' + this.errorCount +
-        ', failed: ' + this.failedCount +
-        ', warnings: ' + this.warningCount +
-        ', TODO: ' + this.todoCount;
-    if (this.count) report += ', generic count: ' + this.count;
-    main.log.info(report);
-    return this.errorCount + this.failedCount + this.warningCount;
+        this.checkCount + ' checks in ' + duration + 's)\n\n';
+    if (numIssues === 0) {
+        report += 'SUCCESS!';
+        // Less important test data
+        if (this.todoCount) report += '  (Todos: ' + this.todoCount + ')';
+        if (this.count) report += '\n(generic count: ' + this.count + ')';
+        main.log.info(report);
+    } else {
+        report += '*** ISSUES: exceptions: ' + this.errorCount +
+            ', failed: ' + this.failedCount +
+            ', warnings: ' + this.warningCount + ' ***';
+        main.log.error(report);
+    }
+    return numIssues;
 };
 
 

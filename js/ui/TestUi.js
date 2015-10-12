@@ -31,9 +31,11 @@ TestUi.prototype.runTest = function (name) {
     var self = this;
     var logfn = function (lvl, msg) { return self.logfn(lvl, msg); };
 
-    main.tests.run(logfn, specificClass, this.namePattern.value());
+    var numIssues = main.tests.run(logfn, specificClass, this.namePattern.value());
+    if (numIssues) logfn(Logger.INFO, '\n*** ' + numIssues + ' ISSUE' + (numIssues !== 1 ? 'S' : '') + ' - See below ***');
 
     this.output.scrollToBottom();
+    this.errors.scrollToBottom();
     this.controls.setEnabled('ALL', true);
 };
 
