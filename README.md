@@ -1,4 +1,5 @@
 # rubigolo
+[![Build Status](https://travis-ci.org/kubicle/rubigolo.svg?branch=develop)](https://travis-ci.org/kubicle/rubigolo)
 [![Code Climate](https://codeclimate.com/github/kubicle/rubigolo/badges/gpa.svg)](https://codeclimate.com/github/kubicle/rubigolo)
 
 Game of Go (weiqi, igo, baduk, etc.), originally started in Ruby (hence the name), then translated to Javascript... In development, of course. 
@@ -24,8 +25,12 @@ npm start
 
 =======
 
-## October 2015 Announcement
-Working on Go Text Protocol interface. Coming soon!
+## October 2015 News
+* Streamlined the tests and did the setup for [Travis CI](https://travis-ci.org/).
+* Could measure the improvement of the AI: no idea about the outside world yet, but the new AI beats the old one around 80 times out of 100 on a 9x9. Much more things I want to improve, including many not so difficult ones (before coding they all look like this, actually... haha)
+* Working on Go Text Protocol interface. Coming soon! I am impatient, see the 2 points below.
+* The great folks at [OGS](http://online-go.com) already game me an access (kudos!) for my yet-to-be-plugged-in bot. This is very exciting. Their site looks great BTW, the best place I saw so far. Their tutorial for beginner is super neat and it starts automatically when you create an account (and say you never played before). Check it out!
+* Found an online library of tests: the [Go Test Collection](https://webdocs.cs.ualberta.ca/~games/go/cgtc/). They can be run via GTP as well, so I cannot wait to plug them in... though I already have a very long list of improvements to do, even without finding how many of these tests the AI will happily fail!
 
 ## September 2015 News
 * As planned, failing unit tests now show with a mini UI so investigation is possible on the spot. This has been helping quite a lot already to fix and improve the AI.
