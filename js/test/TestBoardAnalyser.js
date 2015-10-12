@@ -100,6 +100,16 @@ TestBoardAnalyser.prototype.testNoTwoEyes3_1 = function () {
         '-@##-');
 };
 
+TestBoardAnalyser.prototype.testNoTwoEyesDeadEnemy = function () {
+    // Black group is dead - having a dead kamikaze should not change that
+    this.checkGame('c3,c4,b4,d4,c5,d3,d2,c2,b3,e2,b2,d1,d5,b1,e5,e4,b5,a1,a2,a4,c1,d2,a5,b1',
+        '&&&&&,' +
+        '#&OOO,' +
+        ':&&O:,' +
+        '&&OOO,' +
+        ':O:O:');
+};
+
 TestBoardAnalyser.prototype.testTwoEyes5_1 = function () {
     // 5 -----
     // 4 -----
