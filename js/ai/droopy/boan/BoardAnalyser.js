@@ -30,8 +30,9 @@ function Void(code, i, j, vcount, neighbors) {
     this.vcount = vcount;
     this.groups = neighbors; // neighboring groups (array of arrays; 1st index is color)
     this.vtype = undefined; // see vXXX contants below
-    this.owner = undefined; // BLACK or WHITE, or undefined if no clear owner
-    this.stolen = false;
+    this.color = undefined; // BLACK or WHITE, or undefined if no clear owner
+    this.owner = undefined; // GroupInfo or undefined; NB: fake eyes don't have owner
+    this.isInDeadGroup = false; // true when all groups around an eye are dead (e.g. one-eyed dead group)
 }
 module.exports = Void;
 
@@ -42,33 +43,34 @@ function vtype2str(vtype) {
     return vtype ? VTYPES[vtype] : VTYPES[0];
 }
 
-function isOneNotDead(groups) {
+function areGroupsAllDead(groups) {
     for (var i = groups.length - 1; i >= 0; i--) {
-        if (!groups[i]._info.isDead) return true;
+        if (!groups[i]._info.isDead) return false;
     }
-    return false;
+    return true;
 }
 
 Void.prototype.findOwner = function () {
     // see which color has yet-alive groups around this void
-    var hasBlack = isOneNotDead(this.groups[BLACK]);
-    var hasWhite = isOneNotDead(this.groups[WHITE]);
+    var allBlackDead = areGroupsAllDead(this.groups[BLACK]);
+    var allWhiteDead = areGroupsAllDead(this.groups[WHITE]);
 
-    // every group around now dead = eye stolen by who killed them
-    if (!hasBlack && !hasWhite) {
-        if (this.vtype && !this.stolen) this.wasJustStolen();
+    // every group around now dead = eye belongs to the killers
+    if (allBlackDead && allWhiteDead) {
+        if (this.vtype && !this.isInDeadGroup) this.setAsDeadGroupEye();
         return;
     }
 
-    if (hasBlack && hasWhite) return; // still undefined owner
-    var color = hasBlack ? BLACK : WHITE;
+    if (!allBlackDead && !allWhiteDead) return; // still undefined owner
+    var color = allBlackDead ? WHITE : BLACK;
     if (this.isFakeEye(color)) return;
-    return this.setEyeOwner(color);
+
+    this.setVoidOwner(color, vEYE);
 };
 
 // NB: groups around a fake-eye do not count it has an eye/void
 Void.prototype.isFakeEye = function (color) {
-    // Potential fake eyes are identified only once (when still "undefined")
+    // Potential fake eyes are identified only once (when vtype is still "undefined")
     // after which they can only lose this property
     if (this.vtype && this.vtype !== vFAKE_EYE) return false;
 
@@ -79,72 +81,74 @@ Void.prototype.isFakeEye = function (color) {
     var isFake = false;
     for (var i = groups.length - 1; i >= 0; i--) {
         var gi = groups[i]._info;
-        if (gi.numContactPoints === 1 && !gi.deadEnemies.length) {
+        // NB: see TestBoardAnalyser#testBigGame1 for why we test deadEnemies below
+        // Idea: with a dead enemy around, we are usually not forced to connect.
+        if (gi.numContactPoints === 1 && !gi.deadEnemies.length && gi.voids.length < 2) {
             if (main.debug && !isFake) main.log.debug('FAKE EYE: ' + this);
             isFake = true;
-            gi.makeDependOn(groups, this);
+            gi.makeDependOn(groups);
         }
     }
     if (!isFake) return false;
-    if (!this.vtype) {
+    if (this.vtype === undefined) {
+        if (this.owner) this.owner.removeVoid(this);
+        this.color = color;
         this.vtype = vFAKE_EYE;
-        this.owner = color;
     }
     return true;
 };
 
-Void.prototype.setEyeOwner = function (color) {
-    if (this.vtype === vEYE && color === this.owner) return;
-    if (main.debug) main.log.debug('EYE: ' + Grid.colorName(color) + ' owns ' + this);
-    this.vtype = vEYE;
-    this.owner = color;
+/** Called in 2 cases: 
+ * - sets the "stronger color" that will probably own a void - vtype == undefined
+ * - decides the void is an eye for given color - vtype == vEYE
+ */
+Void.prototype.setVoidOwner = function (color, vtype) {
+    if (vtype !== vEYE && vtype !== undefined) throw new Error('Invalid void owner vtype: ' + vtype);
+    if (vtype === this.vtype && this.owner && color === this.color) return;
+    if (main.debug) main.log.debug(vtype2str(vtype).toUpperCase() + ': ' + Grid.colorName(color) + ' owns ' + this);
+    var oldType = this.vtype;
+    this.vtype = vtype;
 
     // If more than 1 group and they were not brothers yet, they become brothers
     var groups = this.groups[color];
     if (groups.length > 1) Band.gather(groups);
 
-    // Now tell ONE of the groups about this void
-    groups[0]._info.addVoid(this);
+    if (this.color !== color) {
+        this.color = color;
+        // ONE of the groups now owns this void
+        groups[0]._info.takeVoid(this, oldType);
+    } else {
+        if (this.owner) this.owner.onVoidTypeChange(this, oldType);
+    }
 };
 
+// Called during final steps for voids that have both B&W groups alive close-by
 Void.prototype.setAsDame = function () {
     if (main.debug) main.log.debug('DAME: ' + this);
-    if (this.owner !== undefined) {
-        var groups = this.groups[this.owner];
-        for (var i = groups.length - 1; i >= 0; i--) {
-            groups[i]._info.removeVoid(this);
-        }
-        this.owner = undefined;
-    }
+    if (this.owner) this.owner.removeVoid(this);
+    this.color = undefined;
     this.vtype = vDAME;
 };
 
 // Called for eyes or fake eyes when their owner group is captured
-Void.prototype.wasJustStolen = function () {
-    if (this.owner === undefined) throw new Error('stolen eye of undefined owner');
-    if (main.debug) main.log.debug('STOLEN EYE: ' + this);
-    // remove eye from previous owners and build the list of killers
-    var groups = this.groups[this.owner];
-    var killers = [];
+Void.prototype.setAsDeadGroupEye = function () {
+    if (this.color === undefined) throw new Error('dead group\'s eye of undefined owner');
+    if (main.debug) main.log.debug('EYE-IN-DEAD-GROUP: ' + this);
+
+    this.isInDeadGroup = true;
+    var oldType = this.vtype;
+    this.vtype = vEYE; // it could have been a fake eye but now it is an eye
+
+    // give it to any of the killers
+    var groups = this.groups[this.color];
     for (var i = groups.length - 1; i >= 0; i--) {
         var gi = groups[i]._info;
-        gi.removeVoid(this);
-        killers.pushUnique(gi.killers);
+        if (gi.killers.length) {
+            this.color = 1 - this.color;
+            return gi.killers[0]._info.takeVoid(this, oldType);
+        }
     }
-    // we "add" the eye to each killer
-    this.stolen = true;
-    this.vtype = vEYE; // it could have been a fake eye but now it is an eye
-    this.owner = 1 - this.owner;
-    for (var k = killers.length - 1; k >= 0; k--) {
-        killers[k]._info.addVoid(this);
-    }
-};
-
-Void.prototype.getSingleOwner = function () {
-    if (this.owner === undefined) return null;
-    var groups = this.groups[this.owner];
-    if (groups.length > 1) return null;
-    return groups[0];
+    throw new Error('Found no killer');
 };
 
 Void.prototype.isTouching = function (gi) {
@@ -187,12 +191,14 @@ Band.prototype._add1 = function (gi) {
     gi.dependsOn.clear(); // does not depend on parents anymore
 
     if (!gi.band) {
+        if (main.debug) main.log.debug('BROTHERS: ' + gi + ' joins band: ' + this.toString());
         this.brothers.push(gi);
         gi.band = this;
         return;
     }
     if (gi.band.bandId === this.bandId) return; // gi uses same band
 
+    if (main.debug) main.log.debug('BROTHERS: band merge: ' + gi.band + ' merge with ' + this.toString());
     var brothers = gi.band.brothers;
     for (var n = brothers.length - 1; n >= 0; n--) {
         this.brothers.push(brothers[n]);
@@ -205,11 +211,11 @@ Band.prototype.remove = function (gi) {
     if (ndx < 0) throw new Error('Band.remove on wrong Band');
     this.brothers.splice(ndx, 1);
     gi.band = null;
+    if (main.debug) main.log.debug('un-BROTHERS: ' + gi + ' left band: ' + this.toString());
 };
 
 // groups contains the groups in the band
 Band.gather = function (groups) {
-    if (main.debug) main.log.debug('BROTHERS: ' + groups.length + ' groups: ' + groups);
     if (groups.length === 1) throw new Error('add Band of 1');
 
     // look if one of the group is already in a band
@@ -232,7 +238,8 @@ Band.gather = function (groups) {
 /** @class Contains the analyse results that are attached to each group */
 function GroupInfo(group) {
     this.version = BOAN_VERSION;
-    this.voids = []; // empty zones next to a group
+    this.voids = []; // voids owned by the group
+    this.nearVoids = []; // voids around, owned or not
     this.dependsOn = [];
     this.deadEnemies = [];
     this.killers = [];
@@ -245,6 +252,7 @@ GroupInfo.prototype.resetAnalysis = function (group) {
     this.group = group;
     this.eyeCount = 0;
     this.voids.clear();
+    this.nearVoids.clear();
     this.dependsOn.clear();
     this.band = null;
     this.isAlive = false;
@@ -263,32 +271,50 @@ GroupInfo.prototype.toString = function () {
         '] deadEnemies:[' + this.deadEnemies.map(giNdx) + '])';
 };
 
-// Adds a void or an eye to an owner-group
-GroupInfo.prototype.addVoid = function (v) {
+// Adds a void to an owner-group
+// Current v.vtype value is used
+GroupInfo.prototype._addVoid = function (v) {
     if (main.debug) main.log.debug('OWNED EYE: ' + v + ' owned by ' + this);
     this.voids.push(v);
+    v.owner = this;
     if (v.vtype === vEYE) this.eyeCount++;
 };
 
-// Removes given void from the group (if not owned, does nothing)
-GroupInfo.prototype.removeVoid = function (v) {
+// Removes a void from an owner-group
+// oldVtype value is used
+GroupInfo.prototype._removeVoid = function (v, oldVtype) {
     var ndx = this.voids.indexOf(v);
-    if (ndx === -1) return;
-    if (main.debug) main.log.debug('LOST EYE: ' + v + ' lost by ' + this);
+    if (ndx === -1) throw new Error('remove unknown void');
+    if (main.debug) main.log.debug('LOST: ' + v + ' lost by ' + this);
     this.voids.splice(ndx, 1);
-    if (v.vtype === vEYE) this.eyeCount--;
+    if (oldVtype === vEYE) this.eyeCount--;
+};
+
+GroupInfo.prototype.onVoidTypeChange = function (v, oldVtype) {
+    this.eyeCount += (v.vtype === vEYE ? +1 : (oldVtype === vEYE ? -1 : 0));
+    if (v.vtype === oldVtype || this.eyeCount < 0) throw new Error('Unexpected error vtype');
+};
+
+// Removes given void from the group
+GroupInfo.prototype.removeVoid = function (v) {
+    this._removeVoid(v, v.vtype);
+    v.owner = undefined;
+};
+
+GroupInfo.prototype.takeVoid = function (v, oldVtype) {
+    if (v.owner) v.owner._removeVoid(v, oldVtype);
+    this._addVoid(v);
 };
 
 GroupInfo.prototype.giveVoidsTo = function (gi) {
     var v;
     while ((v = this.voids[0])) {
-        this.removeVoid(v);
-        gi.addVoid(v);
+        this._removeVoid(v, v.vtype);
+        gi._addVoid(v);
     }
 };
 
 GroupInfo.prototype.makeDependOn = function (groups) {
-    if (main.debug) main.log.debug('DEPENDING group: ' + this);
     var band = this.band;
     if (band) band.remove(this);
     
@@ -300,7 +326,9 @@ GroupInfo.prototype.makeDependOn = function (groups) {
             this.dependsOn.push(gi);
         }
     }
-
+    // Giving its voids to parent is a bit weird; this makes counting OK for 
+    // 2 groups with 1 eye each, connectd by 1 fake eye (parent ends-up with 2 eyes).
+    // Reason we do it this way is we don't keep link parent->child (only child->parent).
     this.giveVoidsTo(this.dependsOn[0]);
 };
 
@@ -323,7 +351,7 @@ GroupInfo.prototype.findBrothers = function () {
     Band.gather(allAllies);
 };
 
-/** Returns the (first) single eye of a group */
+/** Returns the (first) single eye of a group (or null if no eye) */
 GroupInfo.prototype.getSingleEye = function () {
     for (var i = this.voids.length - 1; i >= 0; i--) {
         var eye = this.voids[i];
@@ -343,9 +371,8 @@ GroupInfo.prototype.considerDead = function (reason) {
 };
 
 /** Returns a number telling how "alive" a group is.
- *  NB: for end-game counting, this logic is enough because undetermined situations
- *  have usually all been resolved - otherwise it means both players cannot see it ;) */
-GroupInfo.prototype.liveliness = function (shallow) {
+ *  If >2 this should mean "alive for good" */
+GroupInfo.prototype.liveliness = function (strict, shallow) {
     if (this.isAlive || this.eyeCount >= 2) {
         return ALIVE;
     }
@@ -356,47 +383,112 @@ GroupInfo.prototype.liveliness = function (shallow) {
     var familyPoints = 0;
     if (!shallow) {
         for (var n = this.dependsOn.length - 1; n >= 0; n--) {
-            familyPoints += this.dependsOn[n].liveliness(true);
+            familyPoints += this.dependsOn[n].liveliness(strict, true);
         }
         if (this.band) {
             var brothers = this.band.brothers;
             for (n = brothers.length - 1; n >= 0; n--) {
                 if (brothers[n] === this) continue;
-                familyPoints += brothers[n].liveliness(true);
+                familyPoints += brothers[n].liveliness(strict, true);
             }
         }
     }
-    return this.voids.length + this.deadEnemies.length + familyPoints + racePoints;
+    var numEyes = strict ? this.eyeCount : this.voids.length;
+    var numDeadEnemies = strict ? this.countEyesFromDeadEnemy() : this.deadEnemies.length;
+    return numEyes + numDeadEnemies + familyPoints + racePoints;
 };
 
-GroupInfo.prototype.checkDoubleEye = function () {
-    if (this.voids.length + this.deadEnemies.length >= 2) {
-        if (main.debug) main.log.debug('ALIVE-doubleEye: ' + this);
-        this.isAlive = true;
-        return true;
+/** This group "is doomed by" gi if without gi there would be space for 2 eyes.
+ * WIP...
+3:  OXO   4-2: OXXO   4T: OXO   4x: OX
+                           O        XO
+                O
+5b: OXO    5+: OXO    6c: OXO
+    OO          O         OOO
+ */
+GroupInfo.prototype.isDoomedBy = function (gi) {
+    // this group must be surrounding gi, so it simply must have more stones
+    var enemySize = gi.group.stones.length;
+    if (this.group.stones.length <= enemySize) return false;
+
+    var numVoids = this.nearVoids.length;
+    if (numVoids < 2) return false; // TODO: 6c?
+
+    var sharedVoids = [];
+    for (var n = numVoids - 1; n >= 0; n--) {
+        var v = this.nearVoids[n];
+        if (v.isTouching(gi)) sharedVoids.push(v);
     }
-    return false;
+    switch (sharedVoids.length) {
+    case 2:
+        var v0 = sharedVoids[0], v1 = sharedVoids[1];
+        if (v0.vcount === 1 && v1.vcount === 1 && 
+            (enemySize === 1 || enemySize === 2)) break; // 3 and 4-2; TODO 4x?
+        return false;
+    case 3:
+        if (sharedVoids[0].vcount === 1 && sharedVoids[1].vcount === 1 &&
+            sharedVoids[2].vcount === 1 && enemySize === 1) break; // 4T - TODO enemySize=2?
+        //TODO: 5b 5+
+        return false;
+    default: return false;
+    }
+    gi.isAlive = true;
+    return true;
 };
 
+// TODO better algo
+// We would not need this if we connected as "brothers" 2 of our groups separated by 
+// a dead enemy. This is probably a better way to stop counting dead enemies to make up
+// for unaccounted eyes. See TestBoardAnalyser#testBigGame2 in h12 for an example.
+GroupInfo.prototype.countEyesFromDeadEnemy = function () {
+    var numDead = this.deadEnemies.length;
+    if (!numDead) return 0;
+
+    var eye = this.getSingleEye();
+    if (!eye) return numDead;
+
+    var count = 0;
+    for(var n = numDead - 1; n >= 0; n--) {
+        if (!eye.isTouching(this.deadEnemies[n])) count++;
+    }
+    return count;
+};
+
+// Result of a check on a group:
+var FAILS = -1, LIVES = 1, UNDECIDED = 0;
+
+// This just spots groups with 2 eyes to mark them "alive" (no kill check here)
+GroupInfo.prototype.checkDoubleEye = function () {
+    if (this.eyeCount + this.deadEnemies.length < 2) return UNDECIDED;
+    if (this.eyeCount < 2) {
+        if (this.eyeCount + this.countEyesFromDeadEnemy() < 2) return UNDECIDED;
+    }
+    // Group is alive
+    if (main.debug) main.log.debug('ALIVE-doubleEye: ' + this);
+    this.isAlive = true;
+    return LIVES;
+};
+
+// This checks if a group can survive from its parents
 GroupInfo.prototype.checkParents = function () {
-    if (!this.dependsOn.length) return false;
+    if (!this.dependsOn.length) return UNDECIDED;
     var allAreDead = true;
     for (var n = this.dependsOn.length - 1; n >= 0; n--) {
         var parent = this.dependsOn[n];
         if (parent.isAlive) {
             if (main.debug) main.log.debug('ALIVE-parents: ' + this);
             this.isAlive = true;
-            return true;
+            return LIVES;
         }
         if (!parent.isDead) allAreDead = false;
     }
-    if (!allAreDead) return false;
-    this.considerDead('parentsDead');
-    return true;
+    if (!allAreDead) return UNDECIDED;
+    return FAILS;
 };
 
+// This checks if a group can survive together with his brothers
 GroupInfo.prototype.checkBrothers = function () {
-    if (!this.band) return false;
+    if (!this.band) return UNDECIDED;
     var brothers = this.band.brothers;
     var numEyes = 0, oneIsAlive = false;
     for (var n = brothers.length - 1; n >= 0; n--) {
@@ -405,62 +497,58 @@ GroupInfo.prototype.checkBrothers = function () {
         if (oneIsAlive || gi.isAlive) {
             oneIsAlive = gi.isAlive = true;
         } else {
+            // gather the commonly owned eyes (2 one-eyed brothers are alive for good)
             numEyes += gi.eyeCount;
-            if (numEyes >= 2) { // checkLiveliness does that too; TODO: remove if useless
+            if (numEyes >= 2) {
                 oneIsAlive = gi.isAlive = true;
             }
         }
     }
-    if (!oneIsAlive) return false;
+    if (!oneIsAlive) return UNDECIDED;
     if (main.debug) main.log.debug('ALIVE-brothers: ' + this);
     this.isAlive = true;
-    return true;
+    return LIVES;
 };
 
-GroupInfo.prototype.checkSingleEye = function (first) {
-    if (this.eyeCount !== 1) return false;
+// This checks if a group can make 2 eyes from a single one
+GroupInfo.prototype.checkSingleEye = function (first2play) {
+    if (this.eyeCount !== 1) return UNDECIDED;
     var eye = this.getSingleEye();
     var coords = [];
     var alive = Shaper.getEyeMakerMove(this.group.goban, eye.i, eye.j, eye.vcount, coords);
     // if it depends which player plays first
     if (alive === 1) {
-        if (first === undefined) return false; // no idea who wins here
-        if (first !== this.group.color) {
+        if (first2play === undefined) return UNDECIDED; // no idea who wins here
+        if (first2play !== this.group.color) {
             alive = 0;
         }
     }
     if (alive === 0) {
         // yet we cannot say it is dead if there are brothers or dead enemies around
-        if (this.band || this.deadEnemies.length) return false;
-        this.considerDead('singleEyeShape');
-        return true;
+        if (this.band || this.deadEnemies.length) return UNDECIDED;
+        this._liveliness = this.liveliness();
+        return FAILS;
     }
 
     this.isAlive = true;
     if (main.debug) main.log.debug('ALIVE-singleEye-' + alive + ': ' + this);
-    return true;
+    return LIVES;
 };
 
-GroupInfo.prototype.checkLiveliness = function (minLife) {
-    var life = this.liveliness();
-    if (life >= ALIVE) {
+// This checks if a group has a minimum liveliness.
+// We call this several times, raising the bar progressively...
+GroupInfo.prototype.checkLiveliness = function (minLife, strict) {
+    var life = this.liveliness(strict);
+    if (life >= ALIVE || (strict && life >= 2)) {
         this.isAlive = true;
         if (main.debug) main.log.debug('ALIVE-liveliness ' + life + ': ' + this);
-        return true;
+        return LIVES;
     }
     if (life < minLife) {
-        this.considerDead('liveliness=' + life.toFixed(2));
-        return true;
+        this._liveliness = life;
+        return FAILS;
     }
-    return false;
-};
-
-GroupInfo.prototype.checkLiveliness1 = function () {
-    return this.checkLiveliness(1);
-};
-
-GroupInfo.prototype.checkLiveliness2 = function () {
-    return this.checkLiveliness(2);
+    return UNDECIDED;
 };
 
 
@@ -473,8 +561,10 @@ function BoardAnalyser() {
     this.mode = null;
     this.goban = null;
     this.allVoids = [];
+    this.allGroups = null;
     this.scores = [0, 0];
     this.prisoners = [0, 0];
+    this.filler = null;
 }
 module.exports = BoardAnalyser;
 
@@ -514,13 +604,13 @@ BoardAnalyser.prototype.debugDump = function () {
     if (this.scores) {
         var eyes = [[], [], []];
         for (var ndx in this.allGroups) {
-            var g = this.allGroups[ndx];
-            var numEyes = g._info.eyeCount;
-            eyes[numEyes >= 2 ? 2 : numEyes].push(g);
+            var gi = this.allGroups[ndx];
+            var numEyes = gi.eyeCount;
+            eyes[numEyes >= 2 ? 2 : numEyes].push(gi);
         }
-        console.log('\nGroups with 2 eyes or more: ' + eyes[2].map(grpNdx));
-        console.log('Groups with 1 eye: ' + eyes[1].map(grpNdx));
-        console.log('Groups with no eye: ' + eyes[0].map(grpNdx));
+        console.log('\nGroups with 2 eyes or more: ' + eyes[2].map(giNdx));
+        console.log('Groups with 1 eye: ' + eyes[1].map(giNdx));
+        console.log('Groups with no eye: ' + eyes[0].map(giNdx));
         console.log('Score:' + this.scores.map(function (s, i) {
             return ' player ' + i + ': ' + s + ' points';
         }));
@@ -537,14 +627,17 @@ BoardAnalyser.prototype._initAnalysis = function (mode, goban, grid) {
     return true;
 };
 
-BoardAnalyser.prototype._addGroup = function (g) {
-    if (this.allGroups[g.ndx]) return;
-    this.allGroups[g.ndx] = g;
-    if (!g._info || g._info.version !== BOAN_VERSION) {
-        g._info = new GroupInfo(g);
-    } else {
-        g._info.resetAnalysis(g);
+BoardAnalyser.prototype._addGroup = function (g, v) {
+    var gi = this.allGroups[g.ndx];
+    if (!gi) {
+        if (!g._info || g._info.version !== BOAN_VERSION) {
+            g._info = new GroupInfo(g);
+        } else {
+            g._info.resetAnalysis(g);
+        }
+        gi = this.allGroups[g.ndx] = g._info;
     }
+    gi.nearVoids.push(v);
 };
 
 /** Create the list of voids and groups.
@@ -555,20 +648,20 @@ BoardAnalyser.prototype._initVoidsAndGroups = function () {
     var voidCode = Grid.ZONE_CODE;
     this.allGroups = {};
     this.allVoids.clear();
-    var neighbors = [[], []];
+    var neighbors = [[], []], n, groups;
     for (var j = 1; j <= this.goban.gsize; j++) {
         for (var i = 1; i <= this.goban.gsize; i++) {
             var vcount = this.filler.fillWithColor(i, j, EMPTY, voidCode, neighbors);
             if (vcount === 0) continue;
-            this.allVoids.push(new Void(voidCode, i, j, vcount, neighbors));
-            voidCode++;
+            var v = new Void(voidCode++, i, j, vcount, neighbors);
+            this.allVoids.push(v);
+
             // keep all the groups
-            for (var color = BLACK; color <= WHITE; color++) {
-                var groups = neighbors[color];
-                for (var n = groups.length - 1; n >= 0; n--) {
-                    this._addGroup(groups[n]);
-                }
-            }
+            groups = neighbors[BLACK];
+            for (n = groups.length - 1; n >= 0; n--) this._addGroup(groups[n], v);
+            groups = neighbors[WHITE];
+            for (n = groups.length - 1; n >= 0; n--) this._addGroup(groups[n], v);
+
             neighbors = [[], []];
         }
     }
@@ -583,7 +676,7 @@ BoardAnalyser.prototype._runAnalysis = function (first2play) {
 
 BoardAnalyser.prototype._findBrothers = function () {
     for (var ndx in this.allGroups) {
-        this.allGroups[ndx]._info.findBrothers();
+        this.allGroups[ndx].findBrothers();
     }
 };
 
@@ -596,8 +689,9 @@ BoardAnalyser.prototype._findEyeOwners = function () {
 };
 
 function normalizeLiveliness(life) {
+    // Remove 1 if we have only 1 eye - a single-eye group is not more "resistant"
     if (life > 1 && life < 2) {
-        return life - 1 + 0.01; // TODO check in book if this is relevant enough
+        return life - 1;
     }
     return life;
 }
@@ -618,11 +712,11 @@ BoardAnalyser.prototype._findBattleWinners = function () {
         var foundOne = false;
         for (var i = this.allVoids.length - 1; i >= 0; i--) {
             var v = this.allVoids[i];
-            if (v.owner !== undefined) continue;
+            if (v.color !== undefined) continue;
             life[BLACK] = life[WHITE] = 0;
             for (var color = BLACK; color <= WHITE; color++) {
                 for (var n = v.groups[color].length - 1; n >= 0; n--) {
-                    var gi = v.groups[color][n]._info;
+                    var gi = v.groups[color][n]._info; // TODO: we could skip brothers to avoid counting twice; no issue noticed - see testUnconnectedBrothers / b4
                     life[color] += gi.liveliness();
                 }
             }
@@ -634,63 +728,134 @@ BoardAnalyser.prototype._findBattleWinners = function () {
             }
             if (main.debug) main.log.debug('BATTLED EYE: ' + Grid.colorName(winner) +
                 ' wins with ' + life[winner].toFixed(2) + ' VS ' + life[1 - winner].toFixed(2));
-            v.setEyeOwner(winner);
+            v.setVoidOwner(winner, undefined);
             foundOne = true;
         }
         if (!foundOne) break;
     }
 };
 
-// FIXME: order of group should not matter
-BoardAnalyser.prototype._reviewGroups = function (fn, stepNum, first) {
-    var count = 0, reviewedCount = 0;
-    for (var ndx in this.allGroups) {
-        var g = this.allGroups[ndx], gi = g._info;
-        if (gi.isAlive || gi.isDead) continue;
-        reviewedCount++;
-        if (fn.call(gi, first)) count++;
+// Review which groups are dead after a "liveliness" check
+function killWeakest(check, fails) {
+    // For all groups that failed the test, filter out these that have a weaker neighbor
+    for (var i = 0; i < fails.length; i++) {
+        var fail = fails[i];
+        var enemies = fail.group.allEnemies();
+        for (var e = 0; e < enemies.length; e++) {
+            var enemy = enemies[e]._info;
+            var cmp = fail._liveliness - enemy.liveliness();
+            if (cmp < 0) {
+                if (enemy.isDoomedBy(fail)) {
+                    fails[i] = null;
+                    break;
+                }
+            } else {
+                if (!fail.isDoomedBy(enemy)) {
+                    fails[i] = null;
+                    break;
+                }
+            }
+        }
     }
-    if (main.debug) {
-        var msg = 'REVIEWED ' + reviewedCount + ' groups for step ' + stepNum;
-        if (count) msg += ' => found ' + count + ' alive/dead groups';
-        main.log.debug(msg);
+    var count = 0;
+    for (i = 0; i < fails.length; i++) {
+        if (!fails[i]) continue;
+        fails[i].considerDead(check.name + ': liveliness=' + fails[i]._liveliness.toFixed(2));
+        count++;
     }
-    if (count === reviewedCount) return -1; // really finished
     return count;
+}
+
+function killAllFails(check, fails) {
+    for (var i = 0; i < fails.length; i++) {
+        fails[i].considerDead(check.name);
+    }
+    return fails.length;
+}
+
+var doubleEyeCheck =   { name: 'doubleEye',   run: function (gi) { return gi.checkDoubleEye(); } };
+var parentCheck =      { name: 'parents',     run: function (gi) { return gi.checkParents(); } };
+var brotherCheck =     { name: 'brothers',    run: function (gi) { return gi.checkBrothers(); } };
+var singleEyeCheck = {
+    name: 'singleEye',   
+    run: function (gi, first) { return gi.checkSingleEye(first); },
+    kill: killWeakest
 };
+var liveliness1Check = { name: 'liveliness1',
+    run: function (gi) { return gi.checkLiveliness(1); },
+    kill: killWeakest
+};
+var liveliness2Check = { name: 'liveliness2',
+    run: function (gi) { return gi.checkLiveliness(2); },
+    kill: killWeakest
+};
+var finalCheck = { name: 'final', run: function (gi) { return gi.checkLiveliness(2, true); } };
 
 var midGameLifeChecks = [
-    GroupInfo.prototype.checkDoubleEye,
-    GroupInfo.prototype.checkParents,
-    GroupInfo.prototype.checkBrothers,
-    GroupInfo.prototype.checkLiveliness1,
-    GroupInfo.prototype.checkSingleEye // TODO: test if territory eval should make this check
+    parentCheck,
+    brotherCheck,
+    liveliness1Check,
+    singleEyeCheck,
+    doubleEyeCheck
     // We don't expect a final liveliness (2) in mid-game
 ];
 var scoringLifeChecks = [
-    GroupInfo.prototype.checkDoubleEye,
-    GroupInfo.prototype.checkParents,
-    GroupInfo.prototype.checkBrothers,
-    GroupInfo.prototype.checkLiveliness1,
-    GroupInfo.prototype.checkSingleEye,
-    GroupInfo.prototype.checkLiveliness2
+    parentCheck,
+    brotherCheck,
+    liveliness1Check,
+    singleEyeCheck,
+    liveliness2Check,
+    doubleEyeCheck,
+    finalCheck
 ];
 
+// NB: order of group should not matter; we must remember this especially when killing some of them
+BoardAnalyser.prototype._reviewGroups = function (check, first2play) {
+    if (main.debug) main.log.debug('---REVIEWING groups for "' + check.name + '" checks');
+    var count = 0, reviewedCount = 0, fails = [];
+    for (var ndx in this.allGroups) {
+        var gi = this.allGroups[ndx];
+        if (gi.isAlive || gi.isDead) continue;
+        reviewedCount++;
+
+        switch (check.run(gi, first2play)) {
+        case FAILS:
+            fails.push(gi);
+            break;
+        case LIVES:
+            count++;
+            break;
+        }
+    }
+    if (fails.length) {
+        // if no dedicated method is given, simply kill them all
+        count += check.kill ? check.kill(check, fails) : killAllFails(check, fails);
+    }
+    if (main.debug && count) main.log.debug('==> "' + check.name + '" checks found ' +
+        count + '/' + reviewedCount + ' groups alive/dead');
+    if (count === reviewedCount) return 0; // really finished
+    if (count === 0) return reviewedCount; // remaining count
+    return -count; // processed count
+};
+
 // Reviews the groups and declare "dead" the ones who do not own enough eyes or voids
-BoardAnalyser.prototype._lifeOrDeathLoop = function (first) {
+BoardAnalyser.prototype._lifeOrDeathLoop = function (first2play) {
     var checks = this.mode === 'SCORE' ? scoringLifeChecks : midGameLifeChecks;
-    var stepNum = 0;
+    var stepNum = 0, count;
     while (stepNum < checks.length) {
-        var count = this._reviewGroups(checks[stepNum], stepNum, first);
+        count = this._reviewGroups(checks[stepNum++], first2play);
         if (count === 0) {
-            stepNum++;
+            this._findEyeOwners();
+            return;
+        }
+        if (count < 0) {
+            // we found dead/alive groups => rerun all the checks from start
+            stepNum = 0;
+            this._findEyeOwners();
             continue;
         }
-        // we found dead/alive groups => rerun all the checks from start
-        stepNum = 0;
-        this._findEyeOwners();
-        if (count < 0) return;
     }
+    if (main.debug && count > 0) main.log.debug('*** UNDECIDED groups after _lifeOrDeathLoop:' + count);
 };
 
 BoardAnalyser.prototype._finalColoring = function () {
@@ -724,9 +889,9 @@ BoardAnalyser.prototype._colorVoids = function () {
     var color;
     for (var i = this.allVoids.length - 1; i >= 0; i--) {
         var v = this.allVoids[i];
-        if (v.owner !== undefined && v.vtype !== vFAKE_EYE) {
-            this.scores[v.owner] += v.vcount;
-            color = Grid.TERRITORY_COLOR + v.owner;
+        if (v.color !== undefined && v.vtype !== vFAKE_EYE) {
+            this.scores[v.color] += v.vcount;
+            color = Grid.TERRITORY_COLOR + v.color;
         } else {
             color = Grid.DAME_COLOR;
         }
@@ -736,10 +901,10 @@ BoardAnalyser.prototype._colorVoids = function () {
 
 BoardAnalyser.prototype._colorDeadGroups = function () {
     for (var ndx in this.allGroups) {
-        var g = this.allGroups[ndx], gi = g._info;
+        var gi = this.allGroups[ndx];
         if (!gi.isDead) continue;
-        var color = g.color;
-        var stone = g.stones[0];
+        var color = gi.group.color;
+        var stone = gi.group.stones[0];
         var taken = this.filler.fillWithColor(stone.i, stone.j, color, Grid.DEAD_COLOR + color);
         this.prisoners[color] += taken;
         this.scores[1 - color] += taken;
