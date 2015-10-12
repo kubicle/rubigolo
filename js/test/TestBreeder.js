@@ -16,10 +16,12 @@ module.exports = main.tests.add(TestBreeder);
 
 
 TestBreeder.prototype.testBwBalance = function () {
-    var numGames = 200;
+    var numGames = 100;
+    var expectedWins = 81; // number going up shows new AI gets stronger compared to default AI
+    var tolerance = 10; // + or -; the more games you play the lower tolerance you can set
     var size = 9;
-    var tolerance = 0.15; // 0.10=>10% (+ or -); the more games you play the lower tolerance you can set (but it takes more time...)
-    var b = new Breeder(size);
-    var numWins = b.bwBalanceCheck(numGames, size);
-    this.assertInDelta(Math.abs(numWins / (numGames / 2)), 1, tolerance);
+
+    var breeder = new Breeder(size);
+    var numWins = breeder.bwBalanceCheck(numGames, size);
+    this.assertInDelta(numWins, expectedWins, tolerance);
 };
