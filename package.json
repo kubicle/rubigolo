@@ -24,6 +24,7 @@
   ],
   "devDependencies": {
     "istanbul": "~0.3.22",
+    "codeclimate-test-reporter": "~0.1.1",
     "browserify": "~10.2.4",
     "lessify": "~1.0.1",
     "watchify": "^3.2.2"
