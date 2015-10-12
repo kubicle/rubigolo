@@ -70,5 +70,5 @@ TestCase.prototype.assertInDelta = function (val, expected, delta, comment) {
 
 TestCase.prototype.todo = function (comment) {
     this.series.todoCount++;
-    main.log.warn('TODO: ' + comment);
+    main.log.info('TODO: ' + comment);
 };
