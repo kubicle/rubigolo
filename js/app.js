@@ -27,6 +27,7 @@ if (typeof window === 'undefined') {
     
     var failCount = main.tests.run(logfn);
     if (failCount === 0) process.exit(0);
+
     console.error('Unit tests failed: ' + failCount + ' issue(s)');
     process.exit(1); // code != 0 means error here
 }
