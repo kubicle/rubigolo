@@ -199,7 +199,7 @@ Breeder.prototype.bwBalanceCheck = function (numGames, gsize) {
         totalScore += score;
     }
 
-    this.timer.stop();
+    this.timer.stop(/*lenientIfSlow=*/true);
     main.log.info('Average score difference for Black (points per game): ' + totalScore / numGames);
     main.log.info('Out of ' + numGames + ' games, White-' + whiteAi +
         ' won ' + (numGames - numWins) + ' times, and Black-' + blackAi + ' won ' + numWins + ' times');
