@@ -156,13 +156,13 @@ Array.prototype.count = function (what) {
     case 'function':
         var count = 0;
         for (var i = this.length - 1; i >= 0; i--) {
-          if (what(this[i])) count++;
+            if (what(this[i])) count++;
         }
         return count;
     default:
         count = 0;
         for (i = this.length - 1; i >= 0; i--) {
-          if (this[i] === what) count++;
+            if (this[i] === what) count++;
         }
         return count;
     }

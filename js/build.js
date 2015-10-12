@@ -8433,13 +8433,13 @@ Array.prototype.count = function (what) {
     case 'function':
         var count = 0;
         for (var i = this.length - 1; i >= 0; i--) {
-          if (what(this[i])) count++;
+            if (what(this[i])) count++;
         }
         return count;
     default:
         count = 0;
         for (i = this.length - 1; i >= 0; i--) {
-          if (this[i] === what) count++;
+            if (this[i] === what) count++;
         }
         return count;
     }
@@ -9053,26 +9053,21 @@ TestAi.prototype.testRaceWinOnKo = function () {
 };
 
 },{"../GameLogic":7,"../Grid":10,"../main":48,"util":4}],54:[function(require,module,exports){
-//Translated from test_all.rb using babyruby2js
 'use strict';
 
-var main = require('../main');
+require('./TestAi');
+require('./TestBoardAnalyser');
+require('./TestBreeder');
+require('./TestGameLogic');
+require('./TestGroup');
+require('./TestPotentialTerritory');
+require('./TestScoreAnalyser');
+require('./TestSgfReader');
+require('./TestSpeed');
+require('./TestStone');
+require('./TestZoneFiller');
 
-main.testAll = true;
-
-var TestAi = require('./TestAi');
-var TestBoardAnalyser = require('./TestBoardAnalyser');
-var TestBreeder = require('./TestBreeder');
-var TestGameLogic = require('./TestGameLogic');
-var TestGroup = require('./TestGroup');
-var TestPotentialTerritory = require('./TestPotentialTerritory');
-var TestScoreAnalyser = require('./TestScoreAnalyser');
-var TestSgfReader = require('./TestSgfReader');
-var TestSpeed = require('./TestSpeed');
-var TestStone = require('./TestStone');
-var TestZoneFiller = require('./TestZoneFiller');
-
-},{"../main":48,"./TestAi":53,"./TestBoardAnalyser":55,"./TestBreeder":56,"./TestGameLogic":58,"./TestGroup":59,"./TestPotentialTerritory":60,"./TestScoreAnalyser":61,"./TestSgfReader":63,"./TestSpeed":64,"./TestStone":65,"./TestZoneFiller":66}],55:[function(require,module,exports){
+},{"./TestAi":53,"./TestBoardAnalyser":55,"./TestBreeder":56,"./TestGameLogic":58,"./TestGroup":59,"./TestPotentialTerritory":60,"./TestScoreAnalyser":61,"./TestSgfReader":63,"./TestSpeed":64,"./TestStone":65,"./TestZoneFiller":66}],55:[function(require,module,exports){
 //Translated from test_board_analyser.rb using babyruby2js
 'use strict';
 
@@ -10103,16 +10098,18 @@ TestSeries.prototype.testOneClass = function (Klass, methodPattern) {
  */
 TestSeries.prototype.run = function (logfunc, specificClass, methodPattern) {
     main.log.setLogFunc(logfunc);
-    var startTime = Date.now();
+    var logLevel = main.log.level;
     var classCount = 0;
     this.testCount = this.checkCount = this.count = 0;
     this.failedCount = this.errorCount = this.warningCount = this.todoCount = 0;
+    var startTime = Date.now();
 
     for (var t in this.testCases) {
         if (specificClass && t !== specificClass) continue;
         classCount++;
         var Klass = this.testCases[t];
         this.testOneClass(Klass, methodPattern);
+        main.log.level = logLevel; // restored to initial level
     }
     var duration = ((Date.now() - startTime) / 1000).toFixed(2);
     return this._logReport(specificClass, classCount, duration);
@@ -10197,7 +10194,6 @@ var TimeKeeper = require('../TimeKeeper');
 function TestSpeed(testName) {
     main.TestCase.call(this, testName);
     main.debug = false; // if true it takes forever...
-    main.log.level = Logger.ERROR;
     this.initBoard();
 }
 inherits(TestSpeed, main.TestCase);
