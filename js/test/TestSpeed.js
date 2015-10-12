@@ -6,15 +6,15 @@ var inherits = require('util').inherits;
 var Grid = require('../Grid');
 var Stone = require('../Stone');
 var Goban = require('../Goban');
+var Logger = require('../Logger');
 var TimeKeeper = require('../TimeKeeper');
-
-main.debug = false; // if true it takes forever...
-main.log.level = main.Logger.ERROR;
 
 
 /** @class */
 function TestSpeed(testName) {
     main.TestCase.call(this, testName);
+    main.debug = false; // if true it takes forever...
+    main.log.level = Logger.ERROR;
     this.initBoard();
 }
 inherits(TestSpeed, main.TestCase);
@@ -23,6 +23,7 @@ module.exports = main.tests.add(TestSpeed);
 TestSpeed.CM_UNDO = 0;
 TestSpeed.CM_CLEAR = 1;
 TestSpeed.CM_NEW = 2;
+
 
 TestSpeed.prototype.initBoard = function (size) {
     if (size === undefined) size = 9;

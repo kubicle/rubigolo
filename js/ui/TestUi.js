@@ -2,9 +2,8 @@
 
 var main = require('../main');
 var Dome = require('./Dome');
+var Logger = require('../Logger');
 var Ui = require('./Ui');
-
-var Logger = main.Logger;
 
 
 function TestUi() {

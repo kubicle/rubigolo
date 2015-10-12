@@ -7,6 +7,7 @@ var Dome = require('./Dome');
 var GameLogic = require('../GameLogic');
 var Grid = require('../Grid');
 var gtp = require('../net/gtp');
+var Logger = require('../Logger');
 var NewGameDlg = require('./NewGameDlg');
 var ScoreAnalyser = require('../ScoreAnalyser');
 var UiEngine = require('../net/UiEngine');
@@ -138,7 +139,7 @@ Ui.prototype.createControls = function (parentDiv) {
         self.controls.setEnabled('ALL', !self.inEvalMode, ['evalMode','undo','next','pass']);
         self.controls.get('evalMode').toggleClass('toggled', self.inEvalMode);
         main.debug = true;
-        main.log.level = main.Logger.DEBUG;
+        main.log.level = Logger.DEBUG;
     });
     Dome.newButton(this.testBtn, '#score', 'Score test', function () { self.scoreTest(); });
     Dome.newButton(this.testBtn, '#territory', 'Territory test', function () { self.territoryTest(); });
