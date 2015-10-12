@@ -20,7 +20,6 @@ TestUi.prototype.enableButtons = function (enabled) {
 };
 
 TestUi.prototype.runTest = function (name) {
-    this.output.setText('');
     main.defaultAi = main.ais[this.defaultAi.value()];
     main.debug = this.debug.isChecked();
 
@@ -34,16 +33,17 @@ TestUi.prototype.runTest = function (name) {
 
     main.tests.run(logfn, specificClass, this.namePattern.value());
 
+    this.output.scrollToBottom();
     this.controls.setEnabled('ALL', true);
 };
 
 TestUi.prototype.initTest = function (name) {
-    this.output.setText('Running "' + name + '"...');
+    this.output.setHtml('Running "' + name + '"...<br>');
     this.errors.setText('');
     this.gameDiv.clear();
     this.controls.setEnabled('ALL', false);
     var self = this;
-    return window.setTimeout(function () { self.runTest(name); }, 50);
+    window.setTimeout(function () { self.runTest(name); }, 50);
 };
 
 TestUi.prototype.logfn = function (lvl, msg) {

@@ -27,7 +27,6 @@ module.exports = Dome;
 
 // Setters
 
-Dome.prototype.clear = function () { this.elt.innerHTML = ''; };
 Dome.prototype.setText = function (text) { this.elt.textContent = text; return this; };
 Dome.prototype.setHtml = function (html) { this.elt.innerHTML = html; return this; };
 Dome.prototype.setAttribute = function (name, val) { this.elt.setAttribute(name, val); return this; };
@@ -42,6 +41,8 @@ Dome.prototype.value = function () { return this.elt.value; };
 Dome.prototype.isChecked = function () { return this.elt.checked; }; // for checkboxes
 Dome.prototype.getDomElt = function () { return this.elt; };
 
+Dome.prototype.clear = function () { this.elt.innerHTML = ''; };
+
 Dome.prototype.toggleClass = function (className, enable) {
     var elt = this.elt;
     var classes = elt.className.split(' ');
@@ -54,6 +55,10 @@ Dome.prototype.toggleClass = function (className, enable) {
         classes.splice(ndx, 1);
         elt.className = classes.join(' ');
     }
+};
+
+Dome.prototype.scrollToBottom = function () {
+    this.elt.scrollTop = this.elt.scrollHeight;
 };
 
 Dome.newDiv = function (parent, className, name) {

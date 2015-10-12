@@ -54,7 +54,7 @@ Ui.prototype.refreshHistory = function () {
         txt += num + ': ' + color + '-' + moves[i] + '<br>';
     }
     this.historyElt.setHtml(txt);
-    this.historyElt.elt.scrollTop = this.historyElt.elt.scrollHeight;
+    this.historyElt.scrollToBottom();
 };
 
 Ui.prototype.loadFromTest = function (parent, testName, msg) {
