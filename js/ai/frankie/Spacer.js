@@ -1,7 +1,7 @@
 //Translated from spacer.rb using babyruby2js
 'use strict';
 
-var main = require('../main');
+var main = require('../../main');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
 

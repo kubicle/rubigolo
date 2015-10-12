@@ -30,6 +30,7 @@ GameLogic.prototype.copy = function (src) {
 };
 
 // handicap and komi are optional (default is 0)
+// Returns true if size and handicap could be set to given values
 GameLogic.prototype.newGame = function (gsize, handicap, komi) {
     this.history.clear();
     this.errors.clear();
@@ -37,14 +38,19 @@ GameLogic.prototype.newGame = function (gsize, handicap, komi) {
     this.curColor = main.BLACK;
     this.gameEnded = this.gameEnding = false;
     this.whoResigned = null;
+
     if (!this.goban || gsize !== this.goban.gsize) {
-        if (gsize < 5) gsize = 5;
         this.goban = new Goban(gsize);
     } else {
         this.goban.clear();
     }
+
+    handicap = handicap !== undefined ? handicap : 0;
+    this.setHandicap(handicap);
+
     this.komi = komi !== undefined ? komi : (handicap ? 0.5 : 6.5);
-    return this.setHandicap(handicap || 0);
+
+    return this.goban.gsize === gsize && this.handicap === handicap;
 };
 
 // Initializes the handicap points
@@ -111,11 +117,8 @@ GameLogic.prototype.playOneMove = function (move) {
 
 // Handles a new stone move (not special commands like "pass")
 GameLogic.prototype.playAStone = function (move) {
-    var i, j;
-    var _m = Grid.move2xy(move);
-    i = _m[0];
-    j = _m[1];
-    
+    var coords = Grid.move2xy(move);
+    var i = coords[0], j = coords[1];
     if (!Stone.validMove(this.goban, i, j, this.curColor)) {
         return this.errorMsg('Invalid move: ' + move);
     }

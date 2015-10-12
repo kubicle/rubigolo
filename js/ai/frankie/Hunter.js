@@ -1,12 +1,12 @@
 //Translated from hunter.rb using babyruby2js
 'use strict';
 
-var main = require('../main');
+var main = require('../../main');
 
-var Grid = require('../Grid');
+var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
-var Stone = require('../Stone');
+var Stone = require('../../Stone');
 
 var ALWAYS = main.ALWAYS;
 

@@ -4,9 +4,7 @@
 var main = require('../main');
 var inherits = require('util').inherits;
 var Group = require('../Group');
-var assertEqual = main.assertEqual;
 var GameLogic = require('../GameLogic');
-var BoardAnalyser = require('../BoardAnalyser');
 
 var BLACK = main.BLACK, WHITE = main.WHITE;
 
@@ -18,6 +16,7 @@ function TestBoardAnalyser(testName) {
 }
 inherits(TestBoardAnalyser, main.TestCase);
 module.exports = main.tests.add(TestBoardAnalyser);
+
 
 TestBoardAnalyser.prototype.initBoard = function (gsize, handicap) {
     this.game = new GameLogic();
@@ -32,28 +31,28 @@ TestBoardAnalyser.prototype.checkGame = function (moves, expScore, gsize, finalP
     } else {
         this.game.loadMoves(moves);
     }
-    if (finalPos) assertEqual(finalPos, this.goban.image());
-    this.boan = new BoardAnalyser();
+    if (finalPos) this.assertEqual(finalPos, this.goban.image());
+    this.boan = new main.defaultAi.BoardAnalyser();
     this.boan.countScore(this.goban);
 
     var score = this.goban.scoringGrid.image();
     if (score === expScore) return;
     this.showInUi('Expected scoring grid was:<br>' + expScore + ' but we got:<br>' + score);
-    assertEqual(expScore, score);
+    this.assertEqual(expScore, score);
 };
 
 TestBoardAnalyser.prototype.checkScore = function (prisoners, dead, score) {
-    assertEqual(prisoners, Group.countPrisoners(this.goban), 'already prisoners');
+    this.assertEqual(prisoners, Group.countPrisoners(this.goban), 'already prisoners');
     
     var futurePrisoners = this.boan.prisoners;
-    assertEqual(dead[BLACK], futurePrisoners[BLACK] - prisoners[BLACK], 'BLACK dead');
-    assertEqual(dead[WHITE], futurePrisoners[WHITE] - prisoners[WHITE], 'WHITE dead');
+    this.assertEqual(dead[BLACK], futurePrisoners[BLACK] - prisoners[BLACK], 'BLACK dead');
+    this.assertEqual(dead[WHITE], futurePrisoners[WHITE] - prisoners[WHITE], 'WHITE dead');
 
-    return assertEqual(score, this.boan.scores);
+    this.assertEqual(score, this.boan.scores);
 };
 
 TestBoardAnalyser.prototype.showInUi = function (msg) {
-    window.testUi.showTestGame(this.name, msg, this.game);
+    if (main.testUi) main.testUi.showTestGame(this.name, msg, this.game);
 };
 
 //---
@@ -89,6 +88,26 @@ TestBoardAnalyser.prototype.testNoTwoEyes3_1 = function () {
     //   abcde
     this.checkGame('a3,a2,b3,b2,c3,c2,d3,d2,e2,d1,e1,pass,e3,pass,b1',
         '-----,-----,@@@@@,####@,-@-#@');
+};
+
+ TestBoardAnalyser.prototype.testNoTwoEyes3_2 = function () {
+    // White group is dead - having a dead kamikaze + an empty spot in NE corner should not change that
+    this.checkGame('c3,d3,c2,d2,c4,c1,b1,d1,b2,d4,d5,e4,e2,pass,c5',
+        '--@@-,' +
+        '--@##,' +
+        '--@#-,' +
+        '-@@#@,' +
+        '-@##-');
+};
+
+TestBoardAnalyser.prototype.testNoTwoEyesDeadEnemy = function () {
+    // Black group is dead - having a dead kamikaze should not change that
+    this.checkGame('c3,c4,b4,d4,c5,d3,d2,c2,b3,e2,b2,d1,d5,b1,e5,e4,b5,a1,a2,a4,c1,d2,a5,b1',
+        '&&&&&,' +
+        '#&OOO,' +
+        ':&&O:,' +
+        '&&OOO,' +
+        ':O:O:');
 };
 
 TestBoardAnalyser.prototype.testTwoEyes5_1 = function () {
@@ -128,8 +147,7 @@ TestBoardAnalyser.prototype.testNoTwoEyes4_2_UP = function () {
 // All white groups are soon dead but not yet; black should win easily
 TestBoardAnalyser.prototype.testRaceForLife = function () {
     this.checkGame('a3,a4,b3,b4,c4,c5,d4,pass,e4,pass,c3,a2,b2,c2,b1,c1,d2,d1,e2,pass,d3,pass,e3',
-        '::O??,OO@@@,@@@@@,#@#@@,-@##-'); //FIXME should be as below - white is dead
-        //'--#--,##@@@,@@@@@,#@#@@,-@##-');
+        '--#--,##@@@,@@@@@,#@#@@,-@##-');
 };
 
 TestBoardAnalyser.prototype.testDeadGroupSharingOneEye = function () {

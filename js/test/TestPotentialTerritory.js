@@ -4,9 +4,8 @@
 
 var main = require('../main');
 var inherits = require('util').inherits;
-var assertEqual = main.assertEqual;
 var GameLogic = require('../GameLogic');
-var PotentialTerritory = require('../PotentialTerritory');
+
 
 /** @class NB: for debugging think of using analyser.debug_dump
  */
@@ -16,39 +15,40 @@ function TestPotentialTerritory(testName) {
 inherits(TestPotentialTerritory, main.TestCase);
 module.exports = main.tests.add(TestPotentialTerritory);
 
+
 TestPotentialTerritory.prototype.initBoard = function (size, handicap) {
     if (size === undefined) size = 5;
     if (handicap === undefined) handicap = 0;
     this.game = new GameLogic();
     this.game.newGame(size, handicap);
     this.goban = this.game.goban;
-    this.ter = new PotentialTerritory(this.goban);
+    this.ter = new main.defaultAi.PotentialTerritory(this.goban);
 };
 
 TestPotentialTerritory.prototype.checkPotential = function (expected) {
-    assertEqual(expected, this.ter.image());
+    this.assertEqual(expected, this.ter.image());
 };
 
 TestPotentialTerritory.prototype.checkBasicGame = function (moves, expected, gsize, finalPos) {
     this.initBoard(gsize || 7);
     this.game.loadMoves(moves);
-    if (finalPos) assertEqual(finalPos, this.goban.image());
+    if (finalPos) this.assertEqual(finalPos, this.goban.image());
 
     this.ter.guessTerritories();
     var territory = this.ter.image();
     if (territory === expected) return;
     this.showInUi('Expected territory was<br>' + expected + ' but got<br>' + territory);
-    assertEqual(expected, territory);
+    this.assertEqual(expected, territory);
 };
 
 TestPotentialTerritory.prototype.showInUi = function (msg) {
-    window.testUi.showTestGame(this.name, msg, this.game);
+    if (main.testUi) main.testUi.showTestGame(this.name, msg, this.game);
 };
 
 
 TestPotentialTerritory.prototype.testBigEmptySpace = function () {
     /** 
-    Black should own the lower board. Top board is disputed
+    Black should own the lower board. Top board is disputed... or black too.
     ++O++++
     ++O@+++
     ++O++++
@@ -58,7 +58,8 @@ TestPotentialTerritory.prototype.testBigEmptySpace = function () {
     +++++++
     */
     this.checkBasicGame('d4,c5,d6,c7,c4,c6,b4',
-        '???????,???????,???????,-------,-------,-------,-------');
+        //'-------,-------,-------,-------,-------,-------,-------'); // if White group is seen dead
+        '???????,???????,???????,-------,-------,-------,-------'); // if White group is seen in dispute
 };
 
 TestPotentialTerritory.prototype.testInMidGame = function () {
@@ -71,7 +72,7 @@ TestPotentialTerritory.prototype.testInMidGame = function () {
     // 3 +@@+@+O++
     // 2 +++@O++++
     // 1 +++++++++
-    //   abcdefghi
+    //   abcdefghj
     this.checkBasicGame('c3,c6,e7,g3,g7,e2,d2,b4,b3,c7,g5,h4,h5,d8,e8,e5,c4,b5,e3',
         "::::-----,::::-----,:::?-----,:::???---,::????---,::-????::,-----?:::,----:::::,----:::::", 9);
 };
@@ -86,8 +87,8 @@ TestPotentialTerritory.prototype.testOnFinishedGame = function () {
     // 3 O@@@@@O+O
     // 2 +++@OOO++
     // 1 +++@@O+++
-    //   abcdefghi
-    this.checkBasicGame('c3,c6,e7,g3,g7,e2,d2,b4,b3,c7,g5,h4,h5,d8,e8,e5,c4,b5,e3,f2,c5,f6,f7,g6,h6,d7,a4,a5,b6,a3,a6,b7,a4,a7,d9,c9,b8,e6,d5,d6,e9,g4,f5,f4,e1,f1,d1,i5,i6,e4,i4,i3,h8,c8,d3,i5,f3,g2,i4,b5,b4,a5,i5',
+    //   abcdefghj
+    this.checkBasicGame('c3,c6,e7,g3,g7,e2,d2,b4,b3,c7,g5,h4,h5,d8,e8,e5,c4,b5,e3,f2,c5,f6,f7,g6,h6,d7,a4,a5,b6,a3,a6,b7,a4,a7,d9,c9,b8,e6,d5,d6,e9,g4,f5,f4,e1,f1,d1,j5,j6,e4,j4,j3,h8,c8,d3,j5,f3,g2,j4,b5,b4,a5,j5',
         ':::------,::::-----,::::-----,:::::::--,::--:----,---?::::-,------:::,----:::::,-----::::', 9,
         '++O@@++++,+@OO@++@+,OOOO@@@++,++OOOOO@@,OO@@O@@@@,@@@+OOOO@,O@@@@@O+O,+++@OOO++,+++@@O+++');
 };

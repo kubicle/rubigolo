@@ -1,0 +1,86 @@
+'use strict';
+
+var main = require('../main');
+
+
+/** @class */
+function TestSeries() {
+    this.testCases = {};
+    this.testCount = this.failedCount = this.errorCount = 0;
+    this.warningCount = 0;
+}
+module.exports = TestSeries;
+
+TestSeries.FAILED_ASSERTION_MSG = 'Failed assertion: ';
+
+
+TestSeries.prototype.add = function (klass) {
+    this.testCases[klass.name] = klass;
+    return klass;
+};
+
+TestSeries.prototype.testOneClass = function (Klass, methodPattern) {
+    for (var method in Klass.prototype) {
+        if (typeof Klass.prototype[method] !== 'function') continue;
+        if (method.substr(0,4) !== 'test') continue;
+        if (methodPattern && method.indexOf(methodPattern) === -1) continue;
+        this.testCount++;
+        var test = new Klass(Klass.name + '#' + method);
+        test.series = this;
+        try {
+            test[method].call(test);
+        } catch(e) {
+            if (e.message.startWith(TestSeries.FAILED_ASSERTION_MSG)) {
+                this.failedCount++;
+                main.log.error('Test failed: ' + test.name + ': ' + e.message + '\n');
+            } else {
+                this.errorCount++;
+                main.log.error('Exception during test: ' + test.name + ':\n' + e.stack + '\n');
+            }
+        }
+    }
+};
+
+/** Runs the registered test cases
+ * @param {func} [logfunc] - logfn(level, msg) if not given or if it returns true, console will show the msg too.
+ * @param {string} [specificClass] - name of single class to test. E.g. "TestSpeed"
+ * @param {string} [methodPattern] - if given, only test names containing this pattern are run
+ * @return {number} - number of issues detected (exceptions + errors + warnings); 0 if all fine
+ */
+TestSeries.prototype.run = function (logfunc, specificClass, methodPattern) {
+    main.log.setLogFunc(logfunc);
+    var startTime = Date.now();
+    var classCount = 0;
+    this.testCount = this.checkCount = this.count = 0;
+    this.failedCount = this.errorCount = this.warningCount = this.todoCount = 0;
+
+    for (var t in this.testCases) {
+        if (specificClass && t !== specificClass) continue;
+        classCount++;
+        var Klass = this.testCases[t];
+        this.testOneClass(Klass, methodPattern);
+    }
+    var duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    return this._logReport(specificClass, classCount, duration);
+};
+
+TestSeries.prototype._logReport = function (specificClass, classCount, duration) {
+    var numIssues = this.errorCount + this.failedCount + this.warningCount;
+    var classes = specificClass ? 'class ' + specificClass : classCount + ' classes';
+
+    var report = 'Completed tests. (' + classes + ', ' + this.testCount + ' tests, ' +
+        this.checkCount + ' checks in ' + duration + 's)\n\n';
+    if (numIssues === 0) {
+        report += 'SUCCESS!';
+        // Less important test data
+        if (this.todoCount) report += '  (Todos: ' + this.todoCount + ')';
+        if (this.count) report += '\n(generic count: ' + this.count + ')';
+        main.log.info(report);
+    } else {
+        report += '*** ISSUES: exceptions: ' + this.errorCount +
+            ', failed: ' + this.failedCount +
+            ', warnings: ' + this.warningCount + ' ***';
+        main.log.error(report);
+    }
+    return numIssues;
+};

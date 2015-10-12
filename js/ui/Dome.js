@@ -3,14 +3,22 @@
 var curGroup = null;
 
 
+// name starts with # so remove it from className and add this to current group
+
+/**
+ * @param {Dome|DOM} parent
+ * @param {string} type - e.g. "div" or "button"
+ * @param {className} className - class name for CSS; e.g. "mainDiv" or "logBox outputBox"
+ * @param {string} name - "nameBox" or "#nameBox"; if starts with "#" element is added to current DomeGroup
+ */
 function Dome(parent, type, className, name) {
     this.type = type;
     if (parent instanceof Dome) parent = parent.elt;
     var elt = this.elt = parent.appendChild(document.createElement(type));
     if (name && name[0] === '#') {
-        // name starts with # so remove it from className and add this to current group
-        className = className.substr(1);
         curGroup.add(name.substr(1), this);
+        // Some class names are built from name so "#" could be in className too
+        if (className[0] === '#') className = className.substr(1);
     }
     if (className) elt.className = className;
 }
@@ -19,7 +27,6 @@ module.exports = Dome;
 
 // Setters
 
-Dome.prototype.clear = function () { this.elt.innerHTML = ''; };
 Dome.prototype.setText = function (text) { this.elt.textContent = text; return this; };
 Dome.prototype.setHtml = function (html) { this.elt.innerHTML = html; return this; };
 Dome.prototype.setAttribute = function (name, val) { this.elt.setAttribute(name, val); return this; };
@@ -33,6 +40,8 @@ Dome.prototype.html = function () { return this.elt.innerHTML; };
 Dome.prototype.value = function () { return this.elt.value; };
 Dome.prototype.isChecked = function () { return this.elt.checked; }; // for checkboxes
 Dome.prototype.getDomElt = function () { return this.elt; };
+
+Dome.prototype.clear = function () { this.elt.innerHTML = ''; };
 
 Dome.prototype.toggleClass = function (className, enable) {
     var elt = this.elt;
@@ -48,10 +57,14 @@ Dome.prototype.toggleClass = function (className, enable) {
     }
 };
 
-Dome.newDiv = function (parent, className) {
-    return new Dome(parent, 'div', className);
+Dome.prototype.scrollToBottom = function () {
+    this.elt.scrollTop = this.elt.scrollHeight;
 };
-Dome.prototype.newDiv = function (className) { return new Dome(this, 'div', className); };
+
+Dome.newDiv = function (parent, className, name) {
+    return new Dome(parent, 'div', className, name);
+};
+Dome.prototype.newDiv = function (className, name) { return new Dome(this, 'div', className, name); };
 
 Dome.removeChild = function (parent, dome) {
     if (parent instanceof Dome) parent = parent.elt;
@@ -85,7 +98,8 @@ Dome.newInput = function (parent, name, label, init) {
  *  if (myCheckbox.isChecked()) ...
  */
 Dome.newCheckbox = function (parent, name, label, value, init) {
-    var input = new Dome(parent, 'input', name + 'ChkBox chkBox', name);
+    var div = new Dome(parent, 'div', name + 'Div');
+    var input = new Dome(div, 'input', name + 'ChkBox chkBox', name);
     var inp = input.elt;
     inp.type = 'checkbox';
     inp.name = name;
@@ -93,7 +107,7 @@ Dome.newCheckbox = function (parent, name, label, value, init) {
     inp.id = name + 'ChkBox' + value;
     if (init) inp.checked = true;
 
-    new Dome(parent, 'label', name + 'ChkLabel chkLbl', name)
+    new Dome(div, 'label', name + 'ChkLabel chkLbl', name)
         .setText(label)
         .setAttribute('for', inp.id);
     return input;
@@ -176,4 +190,21 @@ DomeGroup.prototype.setVisible = function (names, show, except) {
         if (except && except.indexOf(names[i]) !== -1) continue;
         this.ctrl[names[i]].setVisible(show);
     }
+};
+
+//---Misc
+
+Dome.setPageTitle = function (title) {
+    document.head.getElementsByTagName('title')[0].textContent = title;
+};
+
+// Return the selected text if any - null if there is none
+Dome.getSelectedText = function () {
+    var selection = window.getSelection();
+    if (!selection.rangeCount) return null;
+    var range = selection.getRangeAt(0);
+    var text = range.startContainer.data;
+    if (!text) return null;
+
+    return text.substring(range.startOffset, range.endOffset);
 };

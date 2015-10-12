@@ -1,12 +1,12 @@
 //Translated from savior.rb using babyruby2js
 'use strict';
 
-var main = require('../main');
+var main = require('../../main');
 
-var Grid = require('../Grid');
+var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
-var Stone = require('../Stone');
+var Stone = require('../../Stone');
 
 var sOK = main.sOK, ALWAYS = main.ALWAYS;
 
@@ -36,6 +36,16 @@ Savior.prototype.evalBoard = function (stateYx, scoreYx) {
     }
 };
 
+// NB: looks at stone which is one of the 2 lives left for g
+Savior.prototype._enemyThreat = function (g, stone) {
+    if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' asking hunter to look at ' +
+        stone + ' pre-atari on ' + g);
+    var threat = this.hunter.evalMove(stone.i, stone.j, this.enemyColor);
+    if (threat >= g.stones.length)
+        return threat;
+    return 0;
+};
+
 Savior.prototype._evalEscape = function (i, j, stone) {
     // look around stone for 2 things: threatened allies & strong allies
     var threat = 0, groups = [], livesAdded = 0;
@@ -47,8 +57,7 @@ Savior.prototype._evalEscape = function (i, j, stone) {
         } else if (g.lives === 2) {
             groups.push(g);
             if (hunterThreat !== null) continue;
-            if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' asking hunter to look at ' + Grid.xy2move(i, j) + ': pre-atari on ' + g);
-            hunterThreat = this.hunter.evalMove(i, j, this.enemyColor);
+            hunterThreat = this._enemyThreat(g, stone);
             threat += hunterThreat;
         } else if (g.isDead < ALWAYS) {
             livesAdded += g.lives - 1;

@@ -6,7 +6,8 @@ var Genes = require('./Genes');
 var TimeKeeper = require('./TimeKeeper');
 var GameLogic = require('./GameLogic');
 var ScoreAnalyser = require('./ScoreAnalyser');
-var Ai1Player = require('./ai/Ai1Player');
+
+var BLACK = main.BLACK, WHITE = main.WHITE;
 
 main.debugBreed = false; // TODO move me somewhere else?
 
@@ -21,7 +22,10 @@ function Breeder(gameSize) {
     this.game.setLogLevel('all=0');
     this.game.newGame(this.gsize);
     this.goban = this.game.goban;
-    this.players = [new Ai1Player(this.goban, main.BLACK), new Ai1Player(this.goban, main.WHITE)];
+    this.players = [
+        new main.ais.Frankie(this.goban, BLACK),
+        new main.defaultAi(this.goban, WHITE)
+    ];
     this.scorer = new ScoreAnalyser();
     this.genSize = Breeder.GENERATION_SIZE;
     return this.firstGeneration();
@@ -33,6 +37,8 @@ Breeder.MUTATION_RATE = 0.03; // e.g. 0.02 is 2%
 Breeder.WIDE_MUTATION_RATE = 0.1; // how often do we "widely" mutate
 Breeder.KOMI = 4.5;
 Breeder.TOO_SMALL_SCORE_DIFF = 3; // if final score is less that this, see it as a tie game
+
+
 Breeder.prototype.firstGeneration = function () {
     this.controlGenes = this.players[0].genes.clone();
     this.generation = [];
@@ -61,13 +67,11 @@ Breeder.prototype.playUntilGameEnds = function () {
 
 // Plays a game and returns the score difference in points
 Breeder.prototype.playGame = function (name1, name2, p1, p2) {
-    // @timer.start("AI VS AI game",0.5,3)
     this.game.newGame(this.gsize, 0, Breeder.KOMI);
     this.players[0].prepareGame(p1);
     this.players[1].prepareGame(p2);
     this.playUntilGameEnds();
     var scoreDiff = this.scorer.computeScoreDiff(this.goban, Breeder.KOMI);
-    // @timer.stop(false) # no exception if it takes longer but an error in the log
     if (main.debugBreed) {
         main.log.debug('\n#' + name1 + ':' + p1 + '\nagainst\n#' + name2 + ':' + p2);
         main.log.debug('Distance: ' + '%.02f'.format(p1.distance(p2)));
@@ -79,10 +83,12 @@ Breeder.prototype.playGame = function (name1, name2, p1, p2) {
 };
 
 Breeder.prototype.run = function (numTournaments, numMatchPerAi) {
-    for (var i = 0; i < numTournaments; i++) { // TODO: Find a way to appreciate the progress
-        this.timer.start('Breeding tournament ' + i + 1 + '/' + numTournaments + ': each of ' + this.genSize + ' AIs plays ' + numMatchPerAi + ' games', 5.5, 36);
+    for (var i = 1; i <= numTournaments; i++) { // TODO: Find a way to appreciate the progress
+        var tournamentDesc = 'Breeding tournament ' + i + '/' + numTournaments +
+            ': each of ' + this.genSize + ' AIs plays ' + numMatchPerAi + ' games';
+        this.timer.start(tournamentDesc, 5.5);
         this.oneTournament(numMatchPerAi);
-        this.timer.stop(false);
+        this.timer.stop(/*lenientIfSlow=*/true);
         this.reproduction();
         this.control();
     }
@@ -91,13 +97,12 @@ Breeder.prototype.run = function (numTournaments, numMatchPerAi) {
 // NB: we only update score for black so komi unbalance does not matter.
 // Sadly this costs us a lot: we need to play twice more games to get score data...
 Breeder.prototype.oneTournament = function (numMatchPerAi) {
-    if (main.debugBreed) {
-        main.log.debug('One tournament starts for ' + this.generation.length + ' AIs');
-    }
+    if (main.debugBreed) main.log.debug('One tournament starts for ' + this.generation.length + ' AIs');
+
     for (var p1 = 0; p1 < this.genSize; p1++) {
         this.scoreDiff[p1] = 0;
     }
-    for (var _i = 0; _i < numMatchPerAi; _i++) {
+    for (var i = 0; i < numMatchPerAi; i++) {
         for (p1 = 0; p1 < this.genSize; p1++) {
             var p2 = ~~(Math.random()*~~(this.genSize - 1));
             if (p2 === p1) {
@@ -111,18 +116,16 @@ Breeder.prototype.oneTournament = function (numMatchPerAi) {
             }
             // diff is now -1, 0 or +1
             this.scoreDiff[p1] += diff;
-            if (main.debugBreed) {
-                main.log.debug('Match #' + p1 + ' against #' + p2 + '; final scores #' + p1 + ':' + this.scoreDiff[p1] + ', #' + p2 + ':' + this.scoreDiff[p2]);
-            }
+            if (main.debugBreed) main.log.debug('Match #' + p1 + ' against #' + p2 + '; final scores #' +
+                p1 + ':' + this.scoreDiff[p1] + ', #' + p2 + ':' + this.scoreDiff[p2]);
         }
     }
     return this.rank;
 };
 
 Breeder.prototype.reproduction = function () {
-    if (main.debugBreed) {
-        main.log.debug('=== Reproduction time for ' + this.generation.length + ' AI');
-    }
+    if (main.debugBreed) main.log.debug('=== Reproduction time for ' + this.generation.length + ' AI');
+
     this.picked = Array.new(this.genSize, 0);
     this.maxScore = Math.max.apply(Math, this.scoreDiff);
     this.winner = this.generation[this.scoreDiff.indexOf(this.maxScore)];
@@ -145,11 +148,11 @@ Breeder.prototype.reproduction = function () {
 };
 
 Breeder.prototype.pickParent = function () {
-    while (true) {
+    for (;;) {
         var i = this.pickIndex;
         this.pickIndex = (this.pickIndex + 1) % this.genSize;
         if (Math.random() < this.scoreDiff[i] / this.maxScore) {
-            this.picked[i] += 1;
+            this.picked[i]++;
             // $log.debug("Picked parent #{i} (score #{@score_diff[i]})") if $debug_breed
             return this.generation[i];
         }
@@ -163,51 +166,42 @@ Breeder.prototype.control = function () {
     var numControlGames = 30;
     main.log.debug('Playing ' + numControlGames * 2 + ' games to measure the current winner against our control AI...');
     totalScore = numWins = numWinsW = 0;
-    for (var _i = 0; _i < numControlGames; _i++) {
+    for (var i = 0; i < numControlGames; i++) {
         var score = this.playGame('control', 'winner', this.controlGenes, this.winner);
         var scoreW = this.playGame('winner', 'control', this.winner, this.controlGenes);
-        if (score > 0) {
-            numWins += 1;
-        }
-        if (scoreW < 0) {
-            numWinsW += 1;
-        }
+        if (score > 0) numWins++;
+        if (scoreW < 0) numWinsW++;
         totalScore += score - scoreW;
     }
-    main.debugBreed = true;
-    if (main.debugBreed) {
-        main.log.debug('Average score: ' + totalScore / numControlGames);
-    }
-    if (main.debugBreed) {
-        main.log.debug('Winner genes: ' + this.winner);
-    }
-    if (main.debugBreed) {
-        main.log.debug('Distance between control and current winner genes: ' + '%.02f'.format(this.controlGenes.distance(this.winner)));
-    }
-    if (main.debugBreed) {
-        main.log.debug('Total score of control against current winner: ' + totalScore + ' (out of ' + numControlGames * 2 + ' games, control won ' + numWins + ' as black and ' + numWinsW + ' as white)');
-    }
+    if (main.debug) main.log.debug('Average score: ' + totalScore / numControlGames +
+        '\nWinner genes: ' + this.winner +
+        '\nDistance between control and current winner: ' + this.controlGenes.distance(this.winner).toFixed(2) +
+        '\nTotal score of control against current winner: ' + totalScore +
+        ' (out of ' + numControlGames * 2 + ' games, control won ' +
+        numWins + ' as black and ' + numWinsW + ' as white)');
     main.debugBreed = previous;
 };
 
 // Play many games AI VS AI to verify black/white balance
-Breeder.prototype.bwBalanceCheck = function (numGames /*, gsize*/) {
-    var totalScore, numWins;
-    this.timer.start('bw_balance_check', numGames / 1000.0 * 50, numGames / 1000.0 * 512);
-    main.log.debug('Checking black/white balance by playing ' + numGames + ' games (komi=' + Breeder.KOMI + ')...');
-    totalScore = numWins = 0;
-    for (var _i = 0; _i < numGames; _i++) {
+// Returns the number of games won by White
+Breeder.prototype.bwBalanceCheck = function (numGames, gsize) {
+    var blackAi = this.players[BLACK].version, whiteAi = this.players[WHITE].version;
+    var desc = numGames + ' games on ' + gsize + 'x' + gsize + ', komi=' + Breeder.KOMI + ', ' +
+        blackAi + ' VS ' + whiteAi;
+    var expectedDuration = gsize === 9 ? numGames * 0.05 : undefined;
+    this.timer.start(desc, expectedDuration);
+
+    var totalScore = 0, numWins = 0;
+    for (var i = 0; i < numGames; i++) {
         var score = this.playGame('control', 'control', this.controlGenes, this.controlGenes);
-        if (score > 0) {
-            numWins += 1;
-        }
-        if (score === 0) {
-            throw new Error('tie game?!');
-        }
+        if (score === 0) throw new Error('Unexpected tie game');
+        if (score > 0) numWins++; // Black won
         totalScore += score;
     }
-    this.timer.stop(false); // gsize == 9) # if gsize is not 9 our perf numbers are of course meaningless
-    main.log.debug('Average score of control against itself: ' + totalScore / numGames);
-    main.log.debug('Out of ' + numGames + ' games, black won ' + numWins + ' times');
-    return numWins;
+
+    this.timer.stop(/*lenientIfSlow=*/true);
+    main.log.info('Average score difference for Black (points per game): ' + totalScore / numGames);
+    main.log.info('Out of ' + numGames + ' games, White-' + whiteAi +
+        ' won ' + (numGames - numWins) + ' times, and Black-' + blackAi + ' won ' + numWins + ' times');
+    return numGames - numWins; // number of White's victory
 };
