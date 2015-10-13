@@ -37,3 +37,39 @@ TestGameLogic.prototype.testHandicap = function () {
     this.game.loadMoves('hand:6,f3');
     this.assertEqual(img, this.goban.image());
 };
+
+TestGameLogic.prototype.testMisc = function () {
+    this.game.newGame(19, 0);
+    this.game.loadMoves('hand:6,f3');
+    this.assertEqual('handicap:6,f3 (1 moves)', this.game.historyString());
+    this.assertEqual([0,0], this.game.prisoners());
+    this.assertEqual(true, this.game.playOneMove('resign'));
+};
+
+TestGameLogic.prototype.testEnding = function () {
+    this.game.newGame(19, 0);
+    this.game.loadMoves('load:f3,d4');
+    this.game.passOneMove();
+    this.assertEqual(false, this.game.gameEnding);
+    this.assertEqual(false, this.game.gameEnded);
+    this.game.passOneMove();
+    this.assertEqual(true, this.game.gameEnding);
+    this.assertEqual(false, this.game.gameEnded);
+    this.assertEqual(true, this.game.acceptEnding(false, main.WHITE));
+    this.assertEqual(false, this.game.gameEnding);
+    this.game.passOneMove();
+    this.assertEqual(true, this.game.gameEnding);
+    this.assertEqual(true, this.game.acceptEnding(true));
+    this.assertEqual(false, this.game.gameEnding);
+    this.assertEqual(true, this.game.gameEnded);
+    this.assertEqual(false, this.game.playOneMove('c5'));
+    this.assertEqual(['Game already ended'], this.game.getErrors());
+};
+
+TestGameLogic.prototype.testGetErrors = function () {
+    this.game.newGame(19, 0);
+    this.assertEqual([], this.game.getErrors());
+    this.assertEqual(false, this.game.acceptEnding(false));
+    this.assertEqual(['The game is not ending yet'], this.game.getErrors());
+    this.assertEqual([], this.game.getErrors());
+};
