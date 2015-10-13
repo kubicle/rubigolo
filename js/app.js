@@ -13,7 +13,7 @@ require('./constants');
 require('./rb');
 
 // Require scripts we want in main build
-require('./test/TestAll');
+require('./test/TestAll'); // one day this will only be in the testing build
 
 // Known AIs and default one
 main.ais = {
@@ -22,16 +22,14 @@ main.ais = {
 };
 main.defaultAi = main.latestAi = main.ais.Droopy;
 
-if (typeof window === 'undefined') {
-    var ciTest = require('./test/ciTestMain');
-    return ciTest();
+if (typeof window !== 'undefined') {
+    // In a browser: create the UI
+    require('./ui/style.less');
+    var Ui = require('./ui/Ui');
+    var TestUi = require('./ui/TestUi');
+    var ui = main.ui = window.testApp ? new TestUi() : new Ui();
+    ui.createUi();
+
+    window.main = main; // just for helping console debugging
 }
 
-// Create the UI
-require('./ui/style.less');
-var Ui = require('./ui/Ui');
-var TestUi = require('./ui/TestUi');
-var ui = main.ui = window.testApp ? new TestUi() : new Ui();
-ui.createUi();
-
-window.main = main; // just for helping console debugging
