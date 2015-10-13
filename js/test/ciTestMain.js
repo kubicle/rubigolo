@@ -5,6 +5,9 @@ var Logger = require('../Logger');
 
 
 function run() {
+    var param1 = process.argv[2];
+    if (param1 == '--cover') main.isCoverTest = true;
+
     main.log.level = Logger.WARN;
     var logfn = function (/*lvl, msg*/) { return true; }; // all goes to console
 
