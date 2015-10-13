@@ -21,7 +21,11 @@ TestBreeder.prototype.testBwBalance = function () {
     var tolerance = 10; // + or -; the more games you play the lower tolerance you can set
     var size = 9;
 
+    // For coverage tests no need to run many games
+    if (main.isCoverTest) numGames = 1;
+
     var breeder = new Breeder(size);
     var numWins = breeder.bwBalanceCheck(numGames, size);
-    this.assertInDelta(numWins, expectedWins, tolerance);
+
+    if (!main.isCoverTest) this.assertInDelta(numWins, expectedWins, tolerance);
 };

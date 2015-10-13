@@ -21,13 +21,16 @@ module.exports = TimeKeeper;
 // NB: measures will always vary a bit unless we find the perfect calibration code (utopia)
 TimeKeeper.prototype.calibrate = function (expected) {
     var t0 = Date.now();
-    for (var i = 0; i < 2000; i++) {
+    var count1 = 2000, count2 = 100;
+    if (main.isCoverTest) count1 = count2 = 1;
+
+    for (var i = 0; i < count1; i++) {
         var m = {};
-        for (var n = 0; n < 100; n++) {
+        for (var n = 0; n < count2; n++) {
             m[n.toString()] = n;
         }
-        for (n = 0; n < 1000; n++) {
-            m[(n % 100).toString()] += 1;
+        for (n = 0; n < 10 * count2; n++) {
+            m[(n % count2).toString()] += 1;
         }
     }
     var duration = (Date.now() - t0) / 1000;
@@ -68,7 +71,7 @@ TimeKeeper.prototype.resultReport = function () {
 };
 
 TimeKeeper.prototype._checkLimits = function (lenientIfSlow) {
-    if (!this.expectedTime) return '';
+    if (!this.expectedTime || main.isCoverTest) return '';
     if (this.duration <= this.expectedTime * this.tolerance) return '';
 
     var msg = 'Duration over limit: ' + this.duration.toFixed(2) +

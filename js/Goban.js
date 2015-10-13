@@ -115,11 +115,12 @@ Goban.prototype.getAllGroups = function () {
 
 // For debugging only
 Goban.prototype.debugDisplay = function () {
-    console.log('Board:');
-    console.log(this.grid.toText(function (s) { return Grid.colorToChar(s.color); }));
-    console.log('Groups:');
-    console.log(this.grid.toText(function (s) { return s.group ? '' + s.group.ndx : '.'; }));
-    console.log('Full info on groups and stones:');
+    if (!main.debug) return;
+    main.log.debug('Board:');
+    main.log.debug(this.grid.toText(function (s) { return Grid.colorToChar(s.color); }));
+    main.log.debug('Groups:');
+    main.log.debug(this.grid.toText(function (s) { return s.group ? '' + s.group.ndx : '.'; }));
+    main.log.debug('Full info on groups and stones:');
     var groups = {};
     for (var row, row_array = this.grid.yx, row_ndx = 0; row=row_array[row_ndx], row_ndx < row_array.length; row_ndx++) {
         for (var s, s_array = row, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
@@ -127,7 +128,7 @@ Goban.prototype.debugDisplay = function () {
         }
     }
     for (var ndx = 1; ndx <= this.numGroups; ndx++) {
-        if (groups[ndx]) console.log(groups[ndx].debugDump());
+        if (groups[ndx]) main.log.debug(groups[ndx].debugDump());
     }
 };
 
