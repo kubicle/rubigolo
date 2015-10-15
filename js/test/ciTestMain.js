@@ -7,7 +7,8 @@ var Logger = require('../Logger');
 
 
 function run() {
-    main.isCoverTest = parseInt(process.env.CoverageTest) === 1;
+    // First see if this is a coverage or regular CI test run
+    main.isCoverTest = process.argv[2] === '--cover' || parseInt(process.env.CoverageTest) === 1;
     if (main.isCoverTest) console.info('Running coverage tests...');
     else console.info('Running tests...');
 
