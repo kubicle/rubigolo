@@ -132,23 +132,25 @@ Void.prototype.setAsDame = function () {
 
 // Called for eyes or fake eyes when their owner group is captured
 Void.prototype.setAsDeadGroupEye = function () {
-    if (this.color === undefined) throw new Error('dead group\'s eye of undefined owner');
     if (main.debug) main.log.debug('EYE-IN-DEAD-GROUP: ' + this);
+    var color = this.color;
+    if (color === undefined) throw new Error('dead group\'s eye of undefined owner');
 
     this.isInDeadGroup = true;
     var oldType = this.vtype;
     this.vtype = vEYE; // it could have been a fake eye but now it is an eye
+    this.color = 1 - color;
 
     // give it to any of the killers
-    var groups = this.groups[this.color];
+    var groups = this.groups[color];
     for (var i = groups.length - 1; i >= 0; i--) {
         var gi = groups[i]._info;
         if (gi.killers.length) {
-            this.color = 1 - this.color;
             return gi.killers[0]._info.takeVoid(this, oldType);
         }
     }
-    throw new Error('Found no killer');
+    // Found no killer; happens for eye inside dead group lost inside enemy zone.
+    // We should leave the eye inside its possibly dead group. See TestBoardAnalyser#testDoomedGivesEye2
 };
 
 Void.prototype.isTouching = function (gi) {
