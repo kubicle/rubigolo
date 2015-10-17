@@ -6,7 +6,7 @@ var inherits = require('util').inherits;
 var Grid = require('../Grid');
 var Stone = require('../Stone');
 var Goban = require('../Goban');
-var TimeKeeper = require('../TimeKeeper');
+var TimeKeeper = require('./TimeKeeper');
 
 
 /** @class */

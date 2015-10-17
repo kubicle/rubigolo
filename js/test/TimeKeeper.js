@@ -1,7 +1,7 @@
 //Translated from time_keeper.rb using babyruby2js
 'use strict';
 
-var main = require('./main');
+var main = require('../main');
 
 var systemPerf = null;
 

@@ -3,7 +3,7 @@
 
 var main = require('./main');
 var Genes = require('./Genes');
-var TimeKeeper = require('./TimeKeeper');
+var TimeKeeper = require('./test/TimeKeeper');
 var GameLogic = require('./GameLogic');
 var ScoreAnalyser = require('./ScoreAnalyser');
 
