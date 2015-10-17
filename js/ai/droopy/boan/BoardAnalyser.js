@@ -523,7 +523,7 @@ GroupInfo.prototype.checkSingleEye = function (first2play) {
     }
     if (alive === 0) {
         // yet we cannot say it is dead if there are brothers or dead enemies around
-        if (this.band || this.deadEnemies.length) return UNDECIDED;
+        if (this.band || this.dependsOn.length || this.deadEnemies.length) return UNDECIDED;
         this._liveliness = this.liveliness();
         return FAILS;
     }
