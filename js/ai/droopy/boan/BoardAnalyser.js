@@ -308,13 +308,13 @@ GroupInfo.prototype.takeVoid = function (v, oldVtype) {
     this._addVoid(v);
 };
 
-GroupInfo.prototype.giveVoidsTo = function (gi) {
-    var v;
-    while ((v = this.voids[0])) {
-        this._removeVoid(v, v.vtype);
-        gi._addVoid(v);
-    }
-};
+// GroupInfo.prototype.giveVoidsTo = function (gi) {
+//     var v;
+//     while ((v = this.voids[0])) {
+//         this._removeVoid(v, v.vtype);
+//         gi._addVoid(v);
+//     }
+// };
 
 GroupInfo.prototype.makeDependOn = function (groups) {
     var band = this.band;
@@ -323,15 +323,11 @@ GroupInfo.prototype.makeDependOn = function (groups) {
     for (var n = groups.length - 1; n >= 0; n--) {
         var gi = groups[n]._info;
         if (gi === this) continue; // this group itself
-        if(this.dependsOn.indexOf(gi) < 0) {
-            if (main.debug) main.log.debug('DEPENDS: ' + this + ' depends on ' + gi);
-            this.dependsOn.push(gi);
-        }
+        if(this.dependsOn.indexOf(gi) >= 0) continue; // already depending on this one
+
+        if (main.debug) main.log.debug('DEPENDS: ' + this + ' depends on ' + gi);
+        this.dependsOn.push(gi);
     }
-    // Giving its voids to parent is a bit weird; this makes counting OK for 
-    // 2 groups with 1 eye each, connectd by 1 fake eye (parent ends-up with 2 eyes).
-    // Reason we do it this way is we don't keep link parent->child (only child->parent).
-    this.giveVoidsTo(this.dependsOn[0]);
 };
 
 // NB: if we had another way to get the numContactPoints info, we could do this
