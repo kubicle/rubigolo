@@ -14,7 +14,7 @@ var sOK = main.sOK, ALWAYS = main.ALWAYS;
 /** @class Saviors rescue ally groups in atari */
 function Savior(player) {
     Heuristic.call(this, player);
-    this.hunter = null;
+    this.hunter = null; // cannot call getHeuristic here because Hunter is after Savior
 }
 inherits(Savior, Heuristic);
 module.exports = Savior;

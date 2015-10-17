@@ -26,7 +26,7 @@ Grid.DEAD_CHARS = '&#';
 Grid.TERRITORY_CHARS = '-:';
 Grid.COLOR_CHARS = Grid.STONE_CHARS + Grid.DEAD_CHARS + Grid.TERRITORY_CHARS + Grid.DAME_CHAR + Grid.EMPTY_CHAR;
 Grid.CIRCULAR_COLOR_CHARS = Grid.DAME_CHAR + Grid.EMPTY_CHAR + Grid.COLOR_CHARS;
-Grid.ZONE_CODE = 100; // used for zones (100, 101, etc.); must be > COLOR_CHARS.size
+Grid.ZONE_CODE = 100; // used for zones (100, 101, etc.); must be > COLOR_CHARS.length
 
 // Possible values of a color (beside BLACK & WHITE)
 Grid.EMPTY_COLOR = -1; // this is same as EMPTY, conveniently

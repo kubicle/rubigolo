@@ -21,16 +21,6 @@ function Pusher(player) {
 inherits(Pusher, Heuristic);
 module.exports = Pusher;
 
-Pusher.prototype.evalBoard = function (stateYx, scoreYx) {
-    var myScoreYx = this.scoreGrid.yx;
-    for (var j = 1; j <= this.gsize; j++) {
-        for (var i = 1; i <= this.gsize; i++) {
-            if (stateYx[j][i] < sOK) continue;
-            var score = myScoreYx[j][i] = this.evalMove(i, j);
-            scoreYx[j][i] += score;
-        }
-    }
-};
 
 Pusher.prototype.evalMove = function (i, j) {
     var inf = this.inf.map[j][i];
