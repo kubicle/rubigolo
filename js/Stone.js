@@ -232,7 +232,7 @@ Stone.prototype.uniqueAllies = function (color) {
     var neighbors = this.neighbors;
     for (var i = neighbors.length - 1; i >= 0; i--) {
         var s = neighbors[i];
-        if (s.color === color && !allies.contains(s.group)) {
+        if (s.color === color && allies.indexOf(s.group) < 0) {
             allies.push(s.group);
         }
     }
