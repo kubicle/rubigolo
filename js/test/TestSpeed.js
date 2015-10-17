@@ -29,12 +29,10 @@ TestSpeed.prototype.initBoard = function (size) {
 };
 
 TestSpeed.prototype.testSpeed1 = function () {
-    var tolerance = 1.2;
-    var t = new TimeKeeper(tolerance);
-    t.calibrate(0.3);
+    var t = new TimeKeeper();
     // Basic test
     var count = main.isCoverTest ? 1 : 10000;
-    t.start('Basic (no move validation) ' + 10 * count + ' stones and undo', 2.8);
+    t.start('Basic (no move validation) ' + 10 * count + ' stones and undo', 0.06);
     for (var i = count; i >=0; i--) {
         this.play10Stones();
     }
@@ -55,21 +53,21 @@ TestSpeed.prototype.testSpeed1 = function () {
     var game1 = 'c3,f3,d7,e5,c5,f7,e2,e8,d8,f2,f1,g1,e1,h2,e3,d4,e4,f4,d5,d3,d2,c2,c4,d6,e7,e6,c6,f8,e9,f9,d9,c7,c8,b8,b7';
     var game1MovesIj = this.movesIj(game1);
     count = main.isCoverTest ? 1 : 2000;
-    t.start('35 move game, ' + count + ' times and undo', 3.4);
+    t.start('35 move game, ' + count + ' times and undo', 0.05);
     for (i = 0; i < count; i++) {
         this.playGameAndClean(game1MovesIj, TestSpeed.CM_UNDO);
     }
     t.stop();
     // The idea here is to verify that undoing things is cheaper than throwing it all to GC
     // In a tree exploration strategy the undo should be the only way (otherwise we quickly hog all memory)
-    t.start('35 move game, ' + count + ' times new board each time', 4.87);
+    t.start('35 move game, ' + count + ' times new board each time', 0.16);
     for (i = 0; i < count; i++) {
         this.playGameAndClean(game1MovesIj, TestSpeed.CM_NEW);
     }
     t.stop();
     // And here we see that the "clear" is the faster way to restart a game 
     // (and that it does not "leak" anything to GC)
-    t.start('35 move game, ' + count + ' times, clear board each time', 2.5);
+    t.start('35 move game, ' + count + ' times, clear board each time', 0.04);
     for (i = 0; i < count; i++) {
         this.playGameAndClean(game1MovesIj, TestSpeed.CM_CLEAR);
     }
@@ -77,9 +75,7 @@ TestSpeed.prototype.testSpeed1 = function () {
 };
 
 TestSpeed.prototype.testSpeed2 = function () {
-    var tolerance = 1.1;
-    var t = new TimeKeeper(tolerance);
-    t.calibrate(0.3);
+    var t = new TimeKeeper();
     // 9 ++O@@++++
     // 8 +@OO@++@+
     // 7 OOOO@@@++
@@ -98,7 +94,7 @@ TestSpeed.prototype.testSpeed2 = function () {
     this.assertEqual(finalPos, this.goban.image());
     this.initBoard();
     var count = main.isCoverTest ? 1 : 2000;
-    t.start('63 move game, ' + count + ' times and undo', 1.56);
+    t.start('63 move game, ' + count + ' times and undo', 0.1);
     for (var i = 0; i < count; i++) {
         this.playGameAndClean(game2MovesIj, TestSpeed.CM_UNDO);
     }

@@ -3,50 +3,79 @@
 
 var main = require('./main');
 
+var systemPerf = null;
 
-/** @class tolerance allows you to ignore a bad performance to some extent. E.g 1.05 gives you 5% tolerance up
- *  ratio allows you to adapt to slower or faster system. E.g 1.0 if your system is as slow as mine :(
+
+/** @class
+ * @param {number} tolerance - allows to ignore bad performance. E.g 1.05 gives you 5% tolerance up
  */
-function TimeKeeper(tolerance, ratio) {
-    this.tolerance = tolerance !== undefined ? tolerance : 1.15;
-    this.ratio = ratio !== undefined ? ratio : 1.0;
+function TimeKeeper(tolerance) {
+    this.tolerance = tolerance || 1.15;
     this.log = main.log;
 
-    this.duration = this.taskName = this.expectedTime = this.t0 = undefined;
+    this.ratio = this.duration = this.taskName = this.expectedTime = this.t0 = undefined;
 }
 module.exports = TimeKeeper;
 
 
 // Call this before start() if you want to compute the ratio automatically
 // NB: measures will always vary a bit unless we find the perfect calibration code (utopia)
-TimeKeeper.prototype.calibrate = function (expected) {
-    var t0 = Date.now();
-    var count1 = 2000, count2 = 100;
+TimeKeeper.prototype._calibrate = function (expected) {
+    var count1 = 10000, count2 = 1000;
     if (main.isCoverTest) count1 = count2 = 1;
 
-    for (var i = 0; i < count1; i++) {
-        var m = {};
-        for (var n = 0; n < count2; n++) {
-            m[n.toString()] = n;
+    var t0 = Date.now();
+
+    for (var i = count1; i>= 0; i--) {
+        var ar = {}, mapNum = {}, mapAlpha = {};
+        var m = { v1: 10, v2: 20, ar1: [], ar2: [] };
+
+        // Seldom used operations
+        for (var n = count2 / 100 - 1; n >= 0; n--) {
+            mapAlpha['key' + n] = [n, n+1];
+            mapNum[n] = n;
         }
-        for (n = 0; n < 10 * count2; n++) {
-            m[(n % count2).toString()] += 1;
+        for (var key in mapAlpha) {
+            mapAlpha[key].sort();
+        }
+        for (n in mapNum) {
+            mapNum[~~n] = mapNum[~~n] + 99;
+        }
+        // Often used operations
+        for (n = count2 / 10 - 1; n >= 0; n--) {
+            ar[n] = 'value' + n;
+            mapNum[ndx]= n + mapNum[n % 10];
+            m.ar1[n] = new TimeKeeper(n);
+            m.ar2.push(m.v1 + (m.v2 === 0 ? 1 : 2));
+        }
+        // Very often used operations
+        for (n = count2 - 1; n >= 0; n--) {
+            var ndx = n % (count2 / 10);
+            if (ar[ndx].length < 5) ar[ndx] += 'X';
+            var obj = m.ar1[ndx];
+            obj._calibrateTest(obj.tolerance, 2);
         }
     }
+
     var duration = (Date.now() - t0) / 1000;
-    this.ratio = duration / expected;
+    systemPerf = duration / expected;
 
-    // TODO: re-estimate decent numbers for JS. The lines above are MUCH faster in JS/Chrome
-    // than Ruby used to be (on same machine). But the speed tests we have are not always that 
-    // much faster, hence if we accept the ratio we computed here we would fail many of them.
-
-    this.log.info('TimeKeeper calibrated at ratio=' + this.ratio.toFixed(2) +
+    this.log.info('TimeKeeper calibrated at ratio=' + systemPerf.toFixed(2) +
         ' (ran calibration in ' + duration.toFixed(2) + ' instead of ' + expected + ')');
+    return systemPerf;
+};
+
+TimeKeeper.prototype._calibrateTest = function (tolerance, n) {
+    if (n > 0) this._calibrateTest(tolerance, n - 1);
+    tolerance = this.tolerance ;
+    if (this.ratio === this.ratio) this.tolerance = Math.max(-100, tolerance);
 };
 
 // Starts timing
 // the expected time given will be adjusted according to the current calibration
 TimeKeeper.prototype.start = function (taskName, expectedInSec) {
+    this.ratio = systemPerf || this._calibrate(0.42);
+
     this.taskName = taskName;
     this.expectedTime = expectedInSec ? expectedInSec * this.ratio : undefined;
     this.log.info('Started "' + taskName + '"...');
