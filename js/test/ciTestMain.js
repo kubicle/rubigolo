@@ -12,7 +12,7 @@ function run() {
     if (main.isCoverTest) console.info('Running coverage tests...');
     else console.info('Running tests...');
 
-    main.log.level = Logger.WARN;
+    main.log.level = Logger.INFO;
     var logfn = function (/*lvl, msg*/) { return true; }; // all goes to console
 
     var failCount = main.tests.run(logfn);
