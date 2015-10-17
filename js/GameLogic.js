@@ -107,7 +107,7 @@ GameLogic.prototype.playOneMove = function (move) {
     } else if (move.startWith('hand')) {
         return this.setHandicap(move.split(':')[1]);
     } else if (move.startWith('load:')) {
-        return this.loadMoves(move.range(5, -1));
+        return this.loadMoves(move.slice(5));
     } else if (move.startWith('log')) {
         return this.setLogLevel(move.split(':')[1]);
     } else {
