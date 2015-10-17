@@ -152,7 +152,7 @@ Hunter.prototype.evalMove = function (i, j, color, level) {
     // unless snapback, make sure our new stone's group can survive
     if (!snapback && empties.length <= 1) {
         var killScore = this._killScore(stone, color);
-        if (killScore !== KO_KILL_SCORE && killScore < 1.01) {
+        if (killScore !== KO_KILL_SCORE && killScore < 0.02) {
             return 0; // REVIEW ME: return threat1 does not penalize snapback victim enough
         }
     }
