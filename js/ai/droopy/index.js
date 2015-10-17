@@ -90,7 +90,7 @@ function score2str(i, j, score) {
 
 Droopy.prototype._foundSecondBestMove = function(i, j, score) {
     if (main.debug) {
-        main.log.debug('=> ' + score2str(i,j,score) + ' becomes 2nd best move');
+        if (i !== NO_MOVE) main.log.debug('=> ' + score2str(i,j,score) + ' becomes 2nd best move');
         if (this.secondBestI !== NO_MOVE) main.log.debug(' (replaces ' + score2str(this.secondBestI, this.secondBestJ, this.secondBestScore) + ')');
     }
     this.secondBestScore = score;
