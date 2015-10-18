@@ -14,9 +14,8 @@ var DIR0 = main.DIR0, DIR3 = main.DIR3;
 /** @class Base class for all heuristics.
  *  Anything useful for all of them should be stored as data member here.
  */
-function Heuristic(player, consultant) {
+function Heuristic(player) {
     this.player = player;
-    this.consultant = !!consultant;
     this.goban = player.goban;
     this.gsize = player.goban.gsize;
     this.inf = player.inf;
@@ -32,14 +31,8 @@ function Heuristic(player, consultant) {
 module.exports = Heuristic;
 
 Heuristic.prototype.initColor = function () {
-    // For consultant heuristics we reverse the colors
-    if (this.consultant) {
-        this.color = this.player.enemyColor;
-        this.enemyColor = this.player.color;
-    } else {
-        this.color = this.player.color;
-        this.enemyColor = this.player.enemyColor;
-    }
+    this.color = this.player.color;
+    this.enemyColor = this.player.enemyColor;
 };
 
 // For heuristics which do not handle evalBoard (but evalMove)
