@@ -80,9 +80,9 @@ Heuristic.prototype.groupThreat = function (g, saved) {
 
 // Count indirectly saved groups
 Heuristic.prototype._countSavedAllies = function (killedEnemyGroup) {
-    // do not count any saved allies if we gave them a single life along border TODO: improve later
+    // do not count any saved allies if we gave them a single life in corner
     if (killedEnemyGroup.stones.length === 1 &&
-        this.distanceFromStoneToBorder(killedEnemyGroup.stones[0]) === 0) {
+        this.distanceFromStoneToCorner(killedEnemyGroup.stones[0]) === 0) {
         return 0;
     }
     var saving = 0;
@@ -128,6 +128,12 @@ Heuristic.prototype.distanceFromStoneToBorder = function (stone) {
     var gsize = this.gsize;
     var i = stone.i, j = stone.j;
     return Math.min(Math.min(i - 1, gsize - i), Math.min(j - 1, gsize - j));
+};
+
+Heuristic.prototype.distanceFromStoneToCorner = function (stone) {
+    var gsize = this.gsize;
+    var i = stone.i, j = stone.j;
+    return Math.min(i - 1, gsize - i) + Math.min(j - 1, gsize - j);
 };
 
 Heuristic.prototype.diagonalStones = function (s1, s2) {
