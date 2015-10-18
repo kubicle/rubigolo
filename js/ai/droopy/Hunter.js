@@ -176,6 +176,8 @@ Hunter.prototype.evalMove = function (i, j, color, level) {
     return threat1 + threat2;
 };
 
+function basicSort(a, b) { return a - b; }
+
 /** Returns the maximum threat we can hope for when several groups can be chased.
  *  Some of these chases might fail, but even so, the enemy can only defend one.
  *  Rule of thumb:
@@ -193,7 +195,7 @@ Hunter.prototype._getMultipleChaseThreat = function (egroups, canEscape) {
     case 3:
         var threats = [this.groupThreat(egroups[0]), this.groupThreat(egroups[1]), this.groupThreat(egroups[2])];
         if (!canEscape[0] && !canEscape[1] && !canEscape[2]) return Math.max(threats[0], threats[1], threats[2]);
-        var sortedThreats = threats.concat().sort(function (a,b) { return a<b; });
+        var sortedThreats = threats.concat().sort(basicSort);
         var bigger = threats.indexOf(sortedThreats[0]);
         if (!canEscape[bigger]) return threats[bigger];
         var secondBigger = threats.indexOf(sortedThreats[1]);
