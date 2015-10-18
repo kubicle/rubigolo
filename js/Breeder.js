@@ -17,7 +17,7 @@ function Breeder(gameSize) {
     this.gsize = gameSize;
     this.timer = new TimeKeeper();
     this.game = new GameLogic();
-    this.game.messagesToConsole(true);
+    this.game.switchConsoleMode(true);
     this.game.setLogLevel('all=0');
     this.game.newGame(this.gsize);
     this.goban = this.game.goban;

@@ -13,12 +13,14 @@ var HandicapSetter = require('./HandicapSetter');
  *  public read-only attribute: goban, komi, curColor, gameEnded, gameEnding, whoResigned
  */
 function GameLogic(src) {
-    this.console = false;
+    this.inConsole = false;
     this.history = [];
     this.errors = [];
-    this.handicap = 0;
-    this.whoResigned = null;
+
     this.goban = null;
+    this.handicap = this.komi = this.numPass = this.curColor = 0;
+    this.whoResigned = this.gameEnding = this.gameEnded = null;
+
     if (src) this.copy(src);
 }
 module.exports = GameLogic;
@@ -72,7 +74,7 @@ GameLogic.prototype.setHandicap = function (h) {
 GameLogic.prototype.loadMoves = function (game) {
     try {
         if (!game) return true;
-        game = this.sgfToGame(game);
+        game = this._sgfToGame(game);
         for (var move, move_array = game.split(','), move_ndx = 0; move=move_array[move_ndx], move_ndx < move_array.length; move_ndx++) {
             if (!this.playOneMove(move)) {
                 throw new Error('Failed playing the loaded move: ' + move);
@@ -80,8 +82,8 @@ GameLogic.prototype.loadMoves = function (game) {
         }
         return true;
     } catch (err) {
-        this.errorMsg('Failed loading moves. Please double check the format of your input.');
-        this.errorMsg('Error: ' + err.message + ' (' + err.constructor.name + ')');
+        this._errorMsg('Failed loading moves. Please double check the format of your input.');
+        this._errorMsg('Error: ' + err.message + ' (' + err.constructor.name + ')');
         main.log.error('Error while loading moves:\n' + err + '\n' + err.stack);
         return false;
     }
@@ -91,15 +93,15 @@ GameLogic.prototype.loadMoves = function (game) {
 // Returns false if a problem occured. In this case the error message is available.
 GameLogic.prototype.playOneMove = function (move) {
     if (this.gameEnded) {
-        return this.errorMsg('Game already ended');
+        return this._errorMsg('Game already ended');
     }
     // $log.debug("GameLogic playing #{Grid.color_name(@cur_color)}: #{move}") if $debug
     if (/^[a-z][1-2]?[0-9]$/.test(move)) {
         return this.playAStone(move);
     } else if (move === 'undo') {
-        return this.requestUndo();
+        return this._requestUndo();
     } else if (move === 'half_undo') {
-        return this.requestUndo(true);
+        return this._requestUndo(true);
     } else if (move.startWith('resi')) {
         return this.resign();
     } else if (move === 'pass') {
@@ -111,7 +113,7 @@ GameLogic.prototype.playOneMove = function (move) {
     } else if (move.startWith('log')) {
         return this.setLogLevel(move.split(':')[1]);
     } else {
-        return this.errorMsg('Invalid command: ' + move);
+        return this._errorMsg('Invalid command: ' + move);
     }
 };
 
@@ -120,18 +122,18 @@ GameLogic.prototype.playAStone = function (move) {
     var coords = Grid.move2xy(move);
     var i = coords[0], j = coords[1];
     if (!Stone.validMove(this.goban, i, j, this.curColor)) {
-        return this.errorMsg('Invalid move: ' + move);
+        return this._errorMsg('Invalid move: ' + move);
     }
     Stone.playAt(this.goban, i, j, this.curColor);
-    this.storeMoveInHistory(move);
-    this.nextPlayer();
+    this._storeMoveInHistory(move);
+    this._nextPlayer();
     this.numPass = 0;
     return true;
 };
 
 // One player resigns.
 GameLogic.prototype.resign = function () {
-    this.storeMoveInHistory('resign');
+    this._storeMoveInHistory('resign');
     this.whoResigned = this.curColor;
     this.gameEnded = true;
     return true;
@@ -142,12 +144,12 @@ GameLogic.prototype.resign = function () {
 // Caller is responsible of checking the GameLogic#game_ending flag:
 // If the flag goes to true, the method accept_ending (below) should be called next.
 GameLogic.prototype.passOneMove = function () {
-    this.storeMoveInHistory('pass');
+    this._storeMoveInHistory('pass');
     this.numPass += 1;
     if (this.numPass >= 2) {
         this.gameEnding = true;
     }
-    this.nextPlayer();
+    this._nextPlayer();
     return true;
 };
 
@@ -158,7 +160,7 @@ GameLogic.prototype.passOneMove = function () {
 // If accept=false, this means a player refuses to end here
 // => the game should continue until the next time all players pass.
 GameLogic.prototype.acceptEnding = function (accept, whoRefused) {
-    if (!this.gameEnding) return this.errorMsg('The game is not ending yet');
+    if (!this.gameEnding) return this._errorMsg('The game is not ending yet');
     this.gameEnding = false;
     if (accept) {
         this.gameEnded = true; // ending accepted. Game is finished.
@@ -168,7 +170,7 @@ GameLogic.prototype.acceptEnding = function (accept, whoRefused) {
     // if the player who refused just played, we give the turn back to him
     if (whoRefused !== this.curColor) {
         this.history.pop(); // remove last "pass"
-        this.nextPlayer();
+        this._nextPlayer();
     }
     return true;
 };
@@ -192,11 +194,22 @@ GameLogic.prototype.prisoners = function () {
     return Group.countPrisoners(this.goban);
 };
 
-// If called with on=true, error messages will be directly displayed on the console.
-// If not called, the default behavior needs the caller to use get_errors method.
-GameLogic.prototype.messagesToConsole = function (on) {
+// If not called, getErrors() has to be called to retrieve recent errors.
+// If called with on=true (or no param), error messages will logged directly.
+GameLogic.prototype.switchConsoleMode = function (on) {
     if (on === undefined) on = true;
-    this.console = on;
+    this.inConsole = on;
+};
+
+// Stores or log a new error message (see also switchConsoleMode).
+// Always returns false.
+GameLogic.prototype._errorMsg = function (msg) {
+    if (this.inConsole) {
+        main.log.error(msg);
+    } else {
+        this.errors.push(msg);
+    }
+    return false;
 };
 
 // Returns the error messages noticed until now and clears the list.
@@ -227,37 +240,24 @@ GameLogic.prototype.setLogLevel = function (cmd) {
             throw new Error(1);
         }
         return true;
-    } catch (_exc) {
-        return this.errorMsg('Invalid log command: ' + cmd);
+    } catch (exc) {
+        return this._errorMsg('Invalid log command: ' + cmd);
     }
 };
 
-// ===============================================================================
-//private;
-// ===============================================================================
-GameLogic.prototype.nextPlayer = function () {
+GameLogic.prototype._nextPlayer = function () {
     this.curColor = 1 - this.curColor;
 };
 
-// Always returns false
-GameLogic.prototype.errorMsg = function (msg) {
-    if (!this.console) {
-        this.errors.push(msg);
-    } else {
-        console.log(msg);
-    }
-    return false;
-};
-
-GameLogic.prototype.storeMoveInHistory = function (move) {
+GameLogic.prototype._storeMoveInHistory = function (move) {
     return this.history.push(move);
 };
 
 // undo one full game turn (e.g. one black move and one white)
-GameLogic.prototype.requestUndo = function (halfMove) {
+GameLogic.prototype._requestUndo = function (halfMove) {
     var count = halfMove ? 1 : 2;
     if (this.history.length < count) {
-        return this.errorMsg('Nothing to undo');
+        return this._errorMsg('Nothing to undo');
     }
     for (var i = count; i >= 1; i--) {
         if (!this.history[this.history.length-1].endWith('pass')) { // no stone to remove for a pass
@@ -265,7 +265,7 @@ GameLogic.prototype.requestUndo = function (halfMove) {
         }
         this.history.pop();
     }
-    if (halfMove) this.nextPlayer();
+    if (halfMove) this._nextPlayer();
     this.numPass = 0;
     return true;
 };
@@ -273,7 +273,7 @@ GameLogic.prototype.requestUndo = function (halfMove) {
 // Converts a game (list of moves) from SGF format to our internal format.
 // Returns the game unchanged if it is not an SGF one.
 // Returns an empty move list if nothing should be played (a game is pending).
-GameLogic.prototype.sgfToGame = function (game) {
+GameLogic.prototype._sgfToGame = function (game) {
     if (!game.startWith('(;FF')) { // are they are always the 1st characters?
         return game;
     }
