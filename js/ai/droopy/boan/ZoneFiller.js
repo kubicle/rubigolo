@@ -16,6 +16,8 @@ function ZoneFiller(goban, grid) {
     this.grid = grid;
     this.yx = grid.yx;
     this.groups = null;
+
+    this.toReplace = this.groups = null;
 }
 module.exports = ZoneFiller;
 

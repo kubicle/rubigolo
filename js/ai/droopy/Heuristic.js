@@ -26,6 +26,8 @@ function Heuristic(player, consultant) {
     this.minimumScore = player.minimumScore;
 
     this.spaceInvasionCoeff = this.getGene('spaceInvasion', 2.0, 0.01, 4.0);
+
+    this.color = this.enemyColor = null;
 }
 module.exports = Heuristic;
 
