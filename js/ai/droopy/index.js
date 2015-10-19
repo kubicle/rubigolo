@@ -18,7 +18,7 @@ var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
 
 
 /** @class
- *  public read-only attribute: goban, inf, ter, enemyColor, genes
+ *  public read-only attribute: goban, inf, pot, enemyColor, genes
  *  TODO: 
  *  - do not fill my own territory (potential territory recognition will use analyser.enlarge method)
  *  - identify all foolish moves (like NoEasyPrisoner but once for all) in a map that all heuristics can use
@@ -30,7 +30,7 @@ function Droopy(goban, color, genes) {
     this.version = 'Droopy-1.0';
     this.goban = goban;
     this.inf = new InfluenceMap(this.goban);
-    this.ter = new PotentialTerritory(this.goban);
+    this.pot = new PotentialTerritory(this.goban);
     this.boan = new BoardAnalyser();
     this.gsize = this.goban.gsize;
     this.stateGrid = new Grid(this.gsize);
@@ -170,13 +170,17 @@ Droopy.prototype.getMove = function () {
     return Grid.xy2move(this.bestI, this.bestJ);
 };
 
+Droopy.prototype.guessTerritories = function () {
+    return this.pot.guessTerritories();
+};
+
 Droopy.prototype._prepareEval = function () {
     this.currentMove = this.goban.moveNumber();
     this.bestScore = this.secondBestScore = this.minimumScore - 0.001;
     this.bestI = this.secondBestI = NO_MOVE;
     this.survey = null;
 
-    this.ter.guessTerritories();
+    this.pot.guessTerritories();
 
     // get "raw" group info
     this.boan.analyse(this.goban);

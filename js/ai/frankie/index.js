@@ -170,11 +170,8 @@ Frankie.prototype.getMove = function () {
     return Grid.xy2move(this.bestI, this.bestJ);
 };
 
-Frankie.prototype._collectGroupInfo = function () {
-    // var allGroups = this.ter.allGroups;
-    // for (var ndx in allGroups) {
-    //     var g = allGroups[ndx], gi = g._info;
-    // }
+Frankie.prototype.guessTerritories = function () {
+    return this.ter.guessTerritories();
 };
 
 Frankie.prototype._prepareEval = function () {
@@ -185,7 +182,6 @@ Frankie.prototype._prepareEval = function () {
 
     this.inf.buildMap();
     this.ter.guessTerritories();
-    this._collectGroupInfo();
 
     // get "raw" group info
     this.boan.analyse(this.color, this.goban);

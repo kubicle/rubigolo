@@ -19,7 +19,7 @@ function Heuristic(player) {
     this.goban = player.goban;
     this.gsize = player.goban.gsize;
     this.inf = player.inf;
-    this.ter = player.ter;
+    this.pot = player.pot;
     this.boan = player.boan;
     this.scoreGrid = new Grid(this.gsize);
     this.minimumScore = player.minimumScore;
@@ -57,12 +57,12 @@ Heuristic.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
 };
 
 Heuristic.prototype.territoryScore = function (i, j, color) {
-    var ter = this.ter.potential().yx;
-    return ter[j][i] * ( color === main.BLACK ? 1 : -1);
+    var ter = this.pot.territory.yx;
+    return ter[j][i] * (color === main.BLACK ? 1 : -1);
 };
 
 Heuristic.prototype.enemyTerritoryScore = function (i, j, color) {
-    var score = Grid.territory2owner[2 + this.ter.grids[1 - color].yx[j][i]];
+    var score = Grid.territory2owner[2 + this.pot.grids[1 - color].yx[j][i]];
     return score * (color === main.BLACK ? 1 : -1);
 };
 

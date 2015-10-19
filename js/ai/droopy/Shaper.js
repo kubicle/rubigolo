@@ -15,8 +15,9 @@ function Shaper(player) {
 inherits(Shaper, Heuristic);
 module.exports = Shaper;
 
+
 Shaper.prototype.evalBoard = function (stateYx, scoreYx) {
-    var allGroups = this.ter.allGroups;
+    var allGroups = this.pot.allGroups;
     for (var ndx in allGroups) {
         var g = allGroups[ndx], gi = g._info;
         if (g.isDead === ALWAYS) continue;

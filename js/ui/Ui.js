@@ -368,7 +368,7 @@ Ui.prototype.scoreTest = function () {
 Ui.prototype.territoryTest = function () {
     var self = this;
     this.toggleSpecialDisplay('territory', function () {
-        return self.getAiPlayer(self.game.curColor).ter.guessTerritories();
+        return self.getAiPlayer(self.game.curColor).guessTerritories();
     });
 };
 

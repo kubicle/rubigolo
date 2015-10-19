@@ -58,10 +58,6 @@ PotentialTerritory.prototype.guessTerritories = function () {
     return resultYx;
 };
 
-PotentialTerritory.prototype.potential = function () {
-    return this.territory;
-};
-
 PotentialTerritory.prototype.toString = function () {
     return '\n+1=white, -1=black, 0=no one\n' +
         this.territory.toText(function (v) { return v === 0 ? '    0' : '%+.1f'.format(v); }) +
