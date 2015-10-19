@@ -30,19 +30,23 @@ function Heuristic(player) {
 }
 module.exports = Heuristic;
 
+
 Heuristic.prototype.initColor = function () {
     this.color = this.player.color;
     this.enemyColor = this.player.enemyColor;
 };
 
-// For heuristics which do not handle evalBoard (but evalMove)
+// For heuristics which do not handle evalBoard (but _evalMove)
+// NB: _evalMove is "private": only called from here (base class), and from inside a heuristic
 Heuristic.prototype.evalBoard = function (stateYx, scoreYx) {
+    if (this._beforeEvalBoard) this._beforeEvalBoard();
+
     var color = this.player.color;
     var myScoreYx = this.scoreGrid.yx;
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
             if (stateYx[j][i] < sOK) continue;
-            var score = myScoreYx[j][i] = this.evalMove(i, j, color);
+            var score = myScoreYx[j][i] = this._evalMove(i, j, color);
             scoreYx[j][i] += score;
         }
     }
