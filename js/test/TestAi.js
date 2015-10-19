@@ -209,6 +209,11 @@ TestAi.prototype.testEyeMaking = function () {
     this.checkGame('b3,d3,b2,c3,c2,d2,c4,c1,b1,d1,b4,d4,d5,pass,e5,e4,c5', 'e2');
 };
 
+TestAi.prototype.testEyeClosing = function () {
+    // a4 saves or kills white group
+    this.checkGame('a2,b4,b2,c4,c2,d4,d2,e4,e2,b5,a3,c5', 'a4>99, #pass, a4>99');
+};
+
 TestAi.prototype.testAiClosesItsTerritory = function () {
     // ++@@+
     // ++@O+
@@ -219,13 +224,23 @@ TestAi.prototype.testAiClosesItsTerritory = function () {
     this.checkGame('c3,d3,c2,d2,c4,c1,b1,d1,b2,d4,d5', 'e4<b4, b4~0.2'); // FIXME e4 should be big!
 };
 
-TestAi.prototype.testCornerEyeMaking = function () {
+TestAi.prototype.testEyeMaking_3inCorner = function () {
     // OOO+*
     // @@OO+
     // +@@OO
     // ++@@O
     // +++@@
     this.checkGame('b3,d3,c3,d4,c2,c4,d2,e2,b4,b5,d1,a5,a4,c5,e1,e3,pass', 'e5');
+};
+
+TestAi.prototype.testEyeMaking_3withPrisoners = function () {
+    this.checkGame('c4,b4,d4,b3,a2,b5,b2,c5,c2,c3,d2,d3,b1,e3,d1', 'e5>20'); //FIXME, e5 is not good
+};
+
+TestAi.prototype.testEyeMaking_5 = function () {
+    this.todo('Handle single-eye of size 5 & 6'); // see in Shaper
+    this.checkGame('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,d3,e5,c1,c4,c5,c4,e4,c5,b2,a2,pass,a1,b1',
+        'e2~=0'); //TODO e2 > 21
 };
 
 TestAi.prototype.testNoPushFromDeadGroup = function () {
@@ -297,6 +312,11 @@ TestAi.prototype.testHunter1 = function () {
         'h6=h7, h6~=12.3,' + // h7 is OK too but capturing same 2 stones in a ladder
         '#h6, #h7, g7', // force black in h6 - choice between h6 and h7 may vary due to smaller differences
         9);
+};
+
+TestAi.prototype.testHunterCountsSavedGroupsToo = function () {
+    this.checkGame('a2,a3,b2,b3,c2,a4,b1,a5,c3,b6,b4,a6,b5,c6,c5,d6,d5,e6,e5,f6,f5,g5,f4,g4,f3,g3,d4,f2,e3,e2,pass,d2,pass,d3,g2',
+        'g1>g6, g1', 7);
 };
 
 TestAi.prototype.testLadder = function () {
