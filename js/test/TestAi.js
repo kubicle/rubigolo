@@ -502,7 +502,7 @@ TestAi.prototype.testPusher1 = function () {
     // 1 +++++++
     //   abcdefg
     this.checkGame('d4,c5,d6,c7,c4,c6,b3,b4,c3,b5,a3',
-        '!e7, e5~=0.5, e3~=1.3, d5~2.5', // cannot connect if e7 or e5
+        '!e7, e5~=0.5, e3~=1.3, d5>6, d5', // cannot connect if e7 or e5
         7);
 };
 
@@ -528,6 +528,24 @@ TestAi.prototype.testPusherInC = function () {
 
 TestAi.prototype.testConnectOnBorder = function () {
     this.checkGame('b4,b3,c4,c3,d4,d3,e4,e3,b2,c2,b1,d1', 'a3>2, a3'); //FIXME a3 should be >4
+};
+
+TestAi.prototype.testBigConnectScore = function () {
+    // ideal score is 48 actually because c3 kills or save everyone
+    this.checkGame('a4,b2,b4,b3,b5,a3,c4,d4,c2,d3,d2,b1,c1,e3,e2,d5', 'c3>19, c3');
+};
+
+TestAi.prototype.testConnect = function () {
+    this.checkGame('a2,a6,b2,b6,b1,b7,c2,f1,d2,f2,d1,g2,g6,g3,f6,f3,e6,e3,d6,d4,d7,b5,f7,d5,c6,a5,c3,a4,c4',
+        'c5>12, #pass, c5>12', 7);
+    // see comments at top of file:
+    this.todo('Better evaluation of connection for brothers + critical stone');
+};
+
+TestAi.prototype.testUselessConnect = function () {
+    this.checkGame('a2,a6,b2,b6,b1,b7,c2,f1,d2,f2,d1,g2,g6,f3,f6,f4,e6,g4,d6,b5,d7,b4,f7,a4,d3,e4,d5,c4',
+        'd4<1', // TODO one day: d4, pass, pass - see that all the space between live groups is waste
+        7);
 };
 
 TestAi.prototype.testSemiAndEndGame = function () {

@@ -23,22 +23,26 @@ TODO: fix under-evaluation in cases we could handle better:
  */
 function Connector(player) {
     Heuristic.call(this, player);
+
     this.inflCoeff = this.getGene('infl', 0.07, 0.01, 0.5);
     this.riskCoeff = this.getGene('risk', 1, 0.1, 4.0);
-    this.noEasyPrisoner = this.player.getHeuristic('NoEasyPrisoner');
+
+    this.noEasyPrisonerYx = player.getHeuristic('NoEasyPrisoner').scoreGrid.yx;
+    this.hunter = player.getHeuristic('Hunter');
 }
 inherits(Connector, Heuristic);
 module.exports = Connector;
 
-Connector.prototype.evalMove = function (i, j) {
-    // Score for connecting our groups
-    var score = this.connectsMyGroups(i, j, this.color);
 
-    // If our cutting stone would not simply be captured, score the cut too
-    if (this.noEasyPrisoner.scoreGrid.yx[j][i] >= 0) {
-        score += this.connectsMyGroups(i, j, 1 - this.color);
+Connector.prototype._evalMove = function (i, j, color) {
+    // If our stone would simply be captured, no luck
+    var stone = this.goban.stoneAt(i, j);
+    if (this.noEasyPrisonerYx[j][i] < 0 && !this.hunter.isSnapback(stone)) {
+        return 0;
     }
-    return score;
+    // Score for connecting our groups + cutting enemies
+    return this._connectsMyGroups(stone, color) +
+           this._connectsMyGroups(stone, 1 - color);
 };
 
 function groupNeedsToConnect(g) {
@@ -46,8 +50,7 @@ function groupNeedsToConnect(g) {
     return gi.eyeCount === 0 && gi.numContactPoints === 1;
 }
 
-Connector.prototype._diagonalConnect = function (i, j, color) {
-    var stone = this.goban.stoneAt(i, j);
+Connector.prototype._diagonalConnect = function (stone, color) {
     var diag = true, grp1 = null, grp2 = null, nonDiagGrp1 = null;
     var isDiagCon = false;
     var numEnemies = 0;
@@ -78,11 +81,10 @@ Connector.prototype._diagonalConnect = function (i, j, color) {
         return 0;
     if (numEnemies >= 3)
         return 0; //TODO improve this
-    return this._computeScore(i, j, color, [grp1, grp2]/*REVIEW THIS*/, numEnemies);
+    return this._computeScore(stone, color, [grp1, grp2]/*REVIEW THIS*/, numEnemies, 'diagonal');
 };
 
-Connector.prototype._directConnect = function (i, j, color) {
-    var stone = this.goban.stoneAt(i, j);
+Connector.prototype._directConnect = function (stone, color) {
     var s1, s1b, s2, s2b, s3;
     var numStones = 0, numEnemies = 0;
     for (var n = stone.neighbors.length - 1; n >= 0; n--) {
@@ -129,13 +131,13 @@ Connector.prototype._directConnect = function (i, j, color) {
         // We count the cutting stone as enemy (we did not "see" it above because it's diagonal)
         numEnemies++;
     }
-    return this._computeScore(i, j, color, groups, numEnemies);
+    return this._computeScore(stone, color, groups, numEnemies, 'direct');
 };
 
-Connector.prototype._computeScore = function (i, j, color, groups, numEnemies) {
+Connector.prototype._computeScore = function (stone, color, groups, numEnemies, desc) {
     var score = 0;
     if (numEnemies === 0) {
-        score = this.inflCoeff / this.inf.map[j][i][color];
+        score = this.inflCoeff / this.inf.map[stone.j][stone.i][color];
     } else {
         var someAlive = false, g;
         for (var n = groups.length - 1; n >= 0; n--) {
@@ -153,14 +155,15 @@ Connector.prototype._computeScore = function (i, j, color, groups, numEnemies) {
         }
         score *= this.riskCoeff;
     }
-    if (main.debug) main.log.debug('Connector for ' + Grid.colorName(color) + ' gives ' + score.toFixed(3) + ' to ' + i + ',' + j +
-        ' (allies:' + groups.length + ' enemies: ' + numEnemies + ')');
+    if (main.debug) main.log.debug('Connector ' + desc + ' for ' + Grid.colorName(color) + ' gives ' +
+        score.toFixed(3) + ' to ' + stone + ' (allies:' + groups.length + ' enemies: ' + numEnemies + ')');
     return score;
 };
 
-Connector.prototype.connectsMyGroups = function (i, j, color) {
+Connector.prototype._connectsMyGroups = function (stone, color) {
+    // TODO: merge "direct" and "diagonal" algos to do it right
     // TODO: one other way to connect 2 groups is to "protect" the cutting point; handle this here
-    var score = this._directConnect(i, j, color);
+    var score = this._directConnect(stone, color);
     if (score) return score;
-    return this._diagonalConnect(i, j, color);
+    return this._diagonalConnect(stone, color);
 };
