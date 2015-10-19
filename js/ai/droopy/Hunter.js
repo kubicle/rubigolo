@@ -15,7 +15,10 @@ var ALWAYS = main.ALWAYS;
  *  Ladder attack fits in here. */
 function Hunter(player) {
     Heuristic.call(this, player);
+
     this.takeLifeCoeff = this.getGene('take-life', 1, 0.01, 2);
+
+    this.snapbacks = null;
 }
 inherits(Hunter, Heuristic);
 module.exports = Hunter;
@@ -84,7 +87,7 @@ Hunter.prototype._countAtariThreat = function (enemies, level) {
         if (eg.lives !== 1) continue;
         // if we can take eg anytime later, no need to take it now
         //TODO also verify no group in "enemies" is strong
-        if (!level && this._isAtariGroupCaught(eg) && !this._gotLivesFromKillingAround(eg, 1)) {
+        if (!level && this._isAtariGroupCaught(eg, level) && !this._gotLivesFromKillingAround(eg, 1)) {
             continue;
         }
         atariThreat += this.groupThreat(eg);
@@ -132,7 +135,11 @@ Hunter.prototype._countSimplePressure = function (enemies) {
     return threat * this.takeLifeCoeff;
 };
 
-Hunter.prototype.evalMove = function (i, j, color, level) {
+Hunter.prototype._beforeEvalBoard = function () {
+    this.snapbacks = [];
+};
+
+Hunter.prototype._evalMove = function (i, j, color, level) {
     level = level || 0;
     var stone = this.goban.stoneAt(i, j);
     var empties = stone.empties();
@@ -142,20 +149,23 @@ Hunter.prototype.evalMove = function (i, j, color, level) {
     var threat1 = this._countAtariThreat(enemies, level);
     
     // count some profit in removing enemy lives
-    if(!level) threat1 += this._countSimplePressure(enemies);
+    if(level === 0) threat1 += this._countSimplePressure(enemies);
 
     // now look for groups with 2 lives
     var egroups = [];
     var snapback = this._countPreAtariThreat(stone, enemies, empties, color, level, egroups);
-    if (!egroups.length) return threat1;
-
+    if (level === 0 && snapback) {
+        this.snapbacks.push(stone); // for other heuristics to look at...
+    }
     // unless snapback, make sure our new stone's group can survive
     if (!snapback && empties.length <= 1) {
-        var killScore = this._killScore(stone, color);
-        if (killScore !== KO_KILL_SCORE && killScore < 0.02) {
+        var killScore = this._killScore(stone, color); //TODO: make this easier!
+        if (killScore !== KO_KILL_SCORE &&
+            (killScore < 0.02 || (killScore > 1 && killScore < 1.01))) {
             return 0; // REVIEW ME: return threat1 does not penalize snapback victim enough
         }
     }
+    if (!egroups.length) return threat1;
 
     Stone.playAt(this.goban, i, j, color); // our attack takes one of the 2 last lives (the one in i,j)
 
@@ -211,7 +221,7 @@ Hunter.prototype._isAtariGroupCaught = function (g, level) {
 
     var lastLife = allLives[0];
     var stone = Stone.playAt(this.goban, lastLife.i, lastLife.j, g.color); // enemy's escape move
-    var isCaught = this._escapingAtariThreat(stone, level) >= g.stones.length;
+    var isCaught = this._escapingAtariThreat(stone, level) > 0;
     Stone.undo(this.goban);
     if (main.debug) main.log.debug('Hunter: group with last life ' + lastLife + ' would ' + (isCaught ? 'be caught: ' : 'escape: ') + g);
     return isCaught;
@@ -258,12 +268,21 @@ Hunter.prototype._escapingAtariThreat = function (stone, level) {
     // try blocking the 2 moves (recursive descent)
     var color = 1 - g.color;
     level = (level || 0) + 1;
-    return Math.max(this.evalMove(e1.i, e1.j, color, level), this.evalMove(e2.i, e2.j, color, level));
+    return Math.max(this._evalMove(e1.i, e1.j, color, level), this._evalMove(e2.i, e2.j, color, level));
 };
 
 /** @param stone is the enemy group's escape move (just been played)
  *  @return true if the group gets captured
  */
 Hunter.prototype.isEscapingAtariCaught = function (stone) {
-    return this._escapingAtariThreat(stone, 0) >= stone.group.stones.length;
+    return this._escapingAtariThreat(stone, 1);
+};
+
+Hunter.prototype.catchThreat = function (i, j, color) {
+    return this._evalMove(i, j, color, 1);
+};
+
+/** Called by other heuristics to know if a stone is a snapback for current move */
+Hunter.prototype.isSnapback = function (stone) {
+    return this.snapbacks.indexOf(stone) !== -1;
 };

@@ -36,28 +36,22 @@ Savior.prototype.evalBoard = function (stateYx, scoreYx) {
     }
 };
 
-// NB: looks at stone which is one of the 2 lives left for g
-Savior.prototype._enemyThreat = function (g, stone) {
-    if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' asking hunter to look at ' +
-        stone + ' pre-atari on ' + g);
-    var threat = this.hunter.evalMove(stone.i, stone.j, this.enemyColor);
-    if (threat >= g.stones.length)
-        return threat;
-    return 0;
-};
-
 Savior.prototype._evalEscape = function (i, j, stone) {
     // look around stone for 2 things: threatened allies & strong allies
     var threat = 0, groups = [], livesAdded = 0;
-    var hunterThreat = null;
+    var hunterThreat = null; // we only get once the eval from hunter in i,j
     for (var g, g_array = stone.uniqueAllies(this.color), g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
         if (g.lives === 1) {
             groups.push(g);
             threat += this.groupThreat(g, true);
         } else if (g.lives === 2) {
+            if (hunterThreat === 0) continue;
             groups.push(g);
             if (hunterThreat !== null) continue;
-            hunterThreat = this._enemyThreat(g, stone);
+            // No really intuitive: we check if enemy could chase us starting in i,j
+            if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' asking hunter to look at ' +
+                stone + ' pre-atari on ' + g);
+            hunterThreat = this.hunter.catchThreat(i, j, this.enemyColor);
             threat += hunterThreat;
         } else if (g.isDead < ALWAYS) {
             livesAdded += g.lives - 1;
