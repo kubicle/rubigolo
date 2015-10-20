@@ -18,7 +18,7 @@ function Heuristic(player) {
     this.player = player;
     this.goban = player.goban;
     this.gsize = player.goban.gsize;
-    this.inf = player.inf;
+    this.infl = player.inf.map;
     this.pot = player.pot;
     this.boan = player.boan;
     this.scoreGrid = new Grid(this.gsize);

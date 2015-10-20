@@ -137,7 +137,7 @@ Connector.prototype._directConnect = function (stone, color) {
 Connector.prototype._computeScore = function (stone, color, groups, numEnemies, desc) {
     var score = 0;
     if (numEnemies === 0) {
-        score = this.inflCoeff / this.inf.map[stone.j][stone.i][color];
+        score = this.inflCoeff / this.infl[stone.j][stone.i][color];
     } else {
         var someAlive = false, g;
         for (var n = groups.length - 1; n >= 0; n--) {

@@ -22,7 +22,7 @@ module.exports = Pusher;
 
 
 Pusher.prototype._evalMove = function (i, j, color) {
-    var inf = this.inf.map[j][i];
+    var inf = this.infl[j][i];
     var enemyInf = inf[this.enemyColor];
     var allyInf = inf[color];
     if (enemyInf === 0 || allyInf === 0) {
