@@ -134,21 +134,24 @@ Ui.prototype.createControls = function (parentDiv) {
     this.aiVsAiFlags = this.mainBtn.newDiv('aiVsAiFlags', '#aiVsAiFlags');
     this.animated = Dome.newCheckbox(this.aiVsAiFlags, 'animated', 'Animated');
 
-    Dome.newButton(this.testBtn, '#evalMode', 'Eval mode', function () {
-        self.inEvalMode = !self.inEvalMode;
-        self.controls.setEnabled('ALL', !self.inEvalMode, ['evalMode','undo','next','pass']);
-        self.controls.get('evalMode').toggleClass('toggled', self.inEvalMode);
-        main.debug = true;
-        main.log.level = Logger.DEBUG;
-    });
+    Dome.newButton(this.testBtn, '#evalMode', 'Eval mode', function () { self.setEvalMode(!self.inEvalMode); });
     Dome.newButton(this.testBtn, '#score', 'Score test', function () { self.scoreTest(); });
     Dome.newButton(this.testBtn, '#territory', 'Territory test', function () { self.territoryTest(); });
     Dome.newButton(this.testBtn, '#heuristic', 'Heuristic test', function () { self.heuristicTest(); });
 };
 
+Ui.prototype.setEvalMode = function (enabled) {
+    this.inEvalMode = enabled;
+    this.controls.setEnabled('ALL', !this.inEvalMode, ['evalMode','undo','next','pass']);
+    this.controls.get('evalMode').toggleClass('toggled', enabled);
+    main.debug = true;
+    main.log.level = Logger.DEBUG;
+};
+
 Ui.prototype.toggleControls = function () {
     var inGame = !(this.game.gameEnded || this.game.gameEnding);
     var auto = this.aiPlays === 'both';
+    if (!inGame) this.setEvalMode(false);
 
     this.controls.setVisible(['accept', 'refuse'], this.game.gameEnding);
     this.controls.setVisible(['undo'], inGame);
