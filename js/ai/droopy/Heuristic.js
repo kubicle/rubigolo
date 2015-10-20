@@ -5,8 +5,8 @@ var main = require('../../main');
 var Grid = require('../../Grid');
 var Stone = require('../../Stone');
 
+var BLACK = main.BLACK, WHITE = main.WHITE, EMPTY = main.EMPTY, BORDER = main.BORDER;
 var sOK = main.sOK, ALWAYS = main.ALWAYS;
-var EMPTY = main.EMPTY, BORDER = main.BORDER;
 var XY_AROUND = Stone.XY_AROUND;
 var DIR0 = main.DIR0, DIR3 = main.DIR3;
 
@@ -55,10 +55,19 @@ Heuristic.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
 };
 
 Heuristic.prototype.territoryScore = function (i, j, color) {
-    var ter = this.pot.territory.yx;
-    return ter[j][i] * (color === main.BLACK ? 1 : -1);
+    return this.pot.territory.yx[j][i] * (color === main.BLACK ? 1 : -1);
 };
 
+/** Returns NEVER, SOMETIMES, ALWAYS */
+Heuristic.prototype.isOwned = function (i, j, color) {
+    var myColor = color === main.BLACK ? -1 : +1;
+    var score = 0;
+    if (Grid.territory2owner[2 + this.pot.grids[BLACK].yx[j][i]] === myColor) score++;
+    if (Grid.territory2owner[2 + this.pot.grids[WHITE].yx[j][i]] === myColor) score++;
+    return score;
+};
+
+//TODO review this - why 1-color and not both grids?
 Heuristic.prototype.enemyTerritoryScore = function (i, j, color) {
     var score = Grid.territory2owner[2 + this.pot.grids[1 - color].yx[j][i]];
     return score * (color === main.BLACK ? 1 : -1);
