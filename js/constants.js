@@ -14,7 +14,7 @@ main.sINVALID = -1;
 main.sBLUNDER = -2;
 
 main.NEVER = 0;
-main.DEPENDS = 1; // depends who plays first
+main.SOMETIMES = 1; // e.g. depends who plays first
 main.ALWAYS = 2;
 
 main.DIR0 = 0;
