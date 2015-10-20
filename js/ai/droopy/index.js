@@ -154,7 +154,9 @@ Droopy.prototype.getMove = function () {
     }
     // do eval using each heuristic (NB: order is important)
     for (var n = 0; n < this.heuristics.length; n++) {
-        this.heuristics[n].evalBoard(stateYx, scoreYx);
+        var h = this.heuristics[n];
+        if (h._beforeEvalBoard) h._beforeEvalBoard();
+        h.evalBoard(stateYx, scoreYx);
     }
     // now collect best score (and 2nd best)
     for (j = 1; j <= this.gsize; j++) {
@@ -216,6 +218,7 @@ Droopy.prototype._testMoveEval = function (i, j) {
     for (var n = 0; n < this.heuristics.length; n++) {
         var h = this.heuristics[n];
         scoreYx[j][i] = 0;
+        if (h._beforeEvalBoard) h._beforeEvalBoard();
         h.evalBoard(stateYx, scoreYx);
         var s = scoreYx[j][i];
         if (s) survey[h.constructor.name] = s;
@@ -243,6 +246,7 @@ Droopy.prototype.testHeuristic = function (i, j, heuristicName) {
     stateYx[j][i] = sOK;
     scoreYx[j][i] = 0;
     var h = this.getHeuristic(heuristicName);
+    if (h._beforeEvalBoard) h._beforeEvalBoard();
     h.evalBoard(stateYx, scoreYx);
     return scoreYx[j][i];
 };
