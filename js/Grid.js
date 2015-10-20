@@ -35,7 +35,7 @@ Grid.DEAD_COLOR = 2; // 2 and 3
 Grid.TERRITORY_COLOR = 4; // 4 and 5
 
 // Converts a "territory" character into an owner score (-1= black, +1= white)
-// dame, empty, live*2, dead*2, terr*2
+// dame,empty, liveB,liveW deadB,deadW, terrB,terrW
 Grid.territory2owner = [0,0, -1,+1, +1,-1, -1,+1];
 // Converts potential territory number to a char (-1, -0.5, 0, +0.5, +1) -> char
 Grid.territory2char = '-\'?.:';
