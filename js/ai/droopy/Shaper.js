@@ -29,7 +29,7 @@ Shaper.prototype.evalBoard = function (stateYx, scoreYx) {
 };
 
 Shaper.prototype._evalSingleEyeSplit = function (scoreYx, g, gi) {
-    var eye = gi.getSingleEye();
+    var eye = gi.getSingleEye(); // TODO: if depending group is on a side of eye, 1 vertex will be lost
     if (!eye) return;
     var coords = [];
     var alive = Shaper.getEyeMakerMove(this.goban, eye.i, eye.j, eye.vcount, coords);
