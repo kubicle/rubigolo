@@ -31,7 +31,13 @@ Dome.prototype.setText = function (text) { this.elt.textContent = text; return t
 Dome.prototype.setHtml = function (html) { this.elt.innerHTML = html; return this; };
 Dome.prototype.setAttribute = function (name, val) { this.elt.setAttribute(name, val); return this; };
 Dome.prototype.setEnabled = function (enable) { this.elt.disabled = !enable; return this; };
-Dome.prototype.setVisible = function (show) { this.elt.hidden = !show; return this; };
+Dome.prototype.setStyle = function (prop, value) { this.elt.style[prop] = value; return this; };
+
+Dome.prototype.setVisible = function (show) {
+    if (this.type === 'div') return this.setStyle('display', show ? 'auto' : 'none');
+    this.elt.hidden = !show;
+    return this;
+};
 
 // Getters
 
@@ -42,6 +48,11 @@ Dome.prototype.isChecked = function () { return this.elt.checked; }; // for chec
 Dome.prototype.getDomElt = function () { return this.elt; };
 
 Dome.prototype.clear = function () { this.elt.innerHTML = ''; };
+
+Dome.prototype.on = function (eventName, fn) {
+    var self = this;
+    this.elt.addEventListener(eventName, function (ev) { fn.call(self, ev); });
+};
 
 Dome.prototype.toggleClass = function (className, enable) {
     var elt = this.elt;
@@ -62,9 +73,11 @@ Dome.prototype.scrollToBottom = function () {
 };
 
 Dome.newDiv = function (parent, className, name) {
-    return new Dome(parent, 'div', className, name);
+    return new Dome(parent, 'div', className, name || className);
 };
-Dome.prototype.newDiv = function (className, name) { return new Dome(this, 'div', className, name); };
+Dome.prototype.newDiv = function (className, name) {
+    return new Dome(this, 'div', className, name || className);
+};
 
 Dome.removeChild = function (parent, dome) {
     if (parent instanceof Dome) parent = parent.elt;
@@ -149,7 +162,7 @@ Dome.getRadioValue = function (opts) {
  */
 Dome.newDropdown = function (parent, name, labels, values, init) {
     if (!values) values = labels;
-    var select = new Dome(parent, 'select', name + 'DropDwn dropDwn');
+    var select = new Dome(parent, 'select', name + 'DropDwn dropDwn', name);
     var cur = 0;
     for (var i = 0; i < labels.length; i++) {
         var opt = new Dome(select, 'option').elt;
@@ -180,7 +193,9 @@ DomeGroup.prototype.setEnabled = function (names, enabled, except) {
     if (names === 'ALL') names = Object.keys(this.ctrl);
     for (var i = 0; i < names.length; i++) {
         if (except && except.indexOf(names[i]) !== -1) continue;
-        this.ctrl[names[i]].setEnabled(enabled);
+        var elt = this.ctrl[names[i]];
+        if (!elt) { console.error('Invalid control name:', names[i]); continue; }
+        elt.setEnabled(enabled);
     }
 };
 
@@ -188,7 +203,9 @@ DomeGroup.prototype.setVisible = function (names, show, except) {
     if (names === 'ALL') names = Object.keys(this.ctrl);
     for (var i = 0; i < names.length; i++) {
         if (except && except.indexOf(names[i]) !== -1) continue;
-        this.ctrl[names[i]].setVisible(show);
+        var elt = this.ctrl[names[i]];
+        if (!elt) { console.error('Invalid control name:', names[i]); continue; }
+        elt.setVisible(show);
     }
 };
 

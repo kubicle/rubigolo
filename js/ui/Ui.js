@@ -8,6 +8,7 @@ var GameLogic = require('../GameLogic');
 var Grid = require('../Grid');
 var gtp = require('../net/gtp');
 var Logger = require('../Logger');
+var ogsApi = require('../net/ogsApi');
 var NewGameDlg = require('./NewGameDlg');
 var ScoreAnalyser = require('../ScoreAnalyser');
 var UiEngine = require('../net/UiEngine');
@@ -29,6 +30,7 @@ function Ui(game) {
 
     // TMP
     gtp.init(new UiEngine(this));
+//    ogsApi.init();
 }
 module.exports = Ui;
 
@@ -39,23 +41,7 @@ Ui.prototype.createUi = function () {
 };
 
 Ui.prototype.refreshBoard = function () {
-    this.refreshHistory();
     this.board.refresh();
-};
-
-Ui.prototype.refreshHistory = function () {
-    if (!this.historyElt) return;
-    var moves = this.game.history;
-    var black = !this.handicap;
-    var txt = '';
-    if (this.handicap) txt += 'Handicap: ' + this.handicap + '<br>';
-    for (var i = 0; i < moves.length; i++, black = !black) {
-        var num = '%3d'.format(i + 1).replace(/ /g, '&nbsp;');
-        var color = black ? 'B' : 'W';
-        txt += num + ': ' + color + '-' + moves[i] + '<br>';
-    }
-    this.historyElt.setHtml(txt);
-    this.historyElt.scrollToBottom();
 };
 
 Ui.prototype.loadFromTest = function (parent, testName, msg) {
@@ -74,10 +60,8 @@ Ui.prototype.createGameUi = function (layout, parent, title, descr) {
     if (descr) this.boardDesc = gameDiv.newDiv('boardDesc').setHtml(descr);
     this.createControls(gameDiv);
 
-    var logDiv = gameDiv.newDiv('logDiv');
-    this.output = logDiv.newDiv('logBox outputBox');
-    if (!isCompact) this.historyElt = logDiv.newDiv('logBox historyBox');
-    else this.output.setAttribute('style', 'width:100%');
+    var devDiv = gameDiv.newDiv('#devDiv');
+    this.createDevControls(devDiv);
 
     // width adjustments
     var width = this.game.goban.gsize + 2; // width in stones
@@ -115,37 +99,23 @@ Ui.prototype.newGameDialog = function () {
     });
 };
 
-Ui.prototype.createControls = function (parentDiv) {
+Ui.prototype.createControls = function (gameDiv) {
     this.controls = Dome.newGroup();
-    this.controlElt = parentDiv.newDiv('controls');
-    this.mainBtn = this.controlElt.newDiv('mainControls');
-    this.testBtn = this.controlElt.newDiv('testControls');
+    var mainDiv = gameDiv.newDiv('mainControls');
     var self = this;
-    Dome.newButton(this.mainBtn, '#pass', 'Pass', function () { self.playerMove('pass'); });
-    Dome.newButton(this.mainBtn, '#next', 'Next', function () { self.automaticAiPlay(1); });
-    Dome.newButton(this.mainBtn, '#next10', 'Next 10', function () { self.automaticAiPlay(10); });
-    Dome.newButton(this.mainBtn, '#nextAll', 'Finish', function () { self.automaticAiPlay(); });
-    Dome.newButton(this.mainBtn, '#undo', 'Undo', function () { self.playUndo(); });
-    Dome.newButton(this.mainBtn, '#resi', 'Resign', function () { self.playerResigns(); });
-    Dome.newButton(this.mainBtn, '#accept', 'Accept', function () { self.acceptScore(true); });
-    Dome.newButton(this.mainBtn, '#refuse', 'Refuse', function () { self.acceptScore(false); });
-    Dome.newButton(this.mainBtn, '#newg', 'New game', function () { self.newGameDialog(); });
+    Dome.newButton(mainDiv, '#pass', 'Pass', function () { self.playerMove('pass'); });
+    Dome.newButton(mainDiv, '#next', 'Next', function () { self.automaticAiPlay(1); });
+    Dome.newButton(mainDiv, '#next10', 'Next 10', function () { self.automaticAiPlay(10); });
+    Dome.newButton(mainDiv, '#nextAll', 'Finish', function () { self.automaticAiPlay(); });
+    Dome.newButton(mainDiv, '#undo', 'Undo', function () { self.playUndo(); });
+    Dome.newButton(mainDiv, '#accept', 'Accept', function () { self.acceptScore(true); });
+    Dome.newButton(mainDiv, '#refuse', 'Refuse', function () { self.acceptScore(false); });
+    Dome.newButton(mainDiv, '#newg', 'New game', function () { self.newGameDialog(); });
+    this.output = mainDiv.newDiv('logBox outputBox');
+    Dome.newButton(mainDiv, '#resi', 'Resign', function () { self.playerResigns(); });
 
-    this.aiVsAiFlags = this.mainBtn.newDiv('aiVsAiFlags', '#aiVsAiFlags');
+    this.aiVsAiFlags = mainDiv.newDiv('#aiVsAiFlags');
     this.animated = Dome.newCheckbox(this.aiVsAiFlags, 'animated', 'Animated');
-
-    Dome.newButton(this.testBtn, '#evalMode', 'Eval mode', function () { self.setEvalMode(!self.inEvalMode); });
-    Dome.newButton(this.testBtn, '#score', 'Score test', function () { self.scoreTest(); });
-    Dome.newButton(this.testBtn, '#territory', 'Territory test', function () { self.territoryTest(); });
-    Dome.newButton(this.testBtn, '#heuristic', 'Heuristic test', function () { self.heuristicTest(); });
-};
-
-Ui.prototype.setEvalMode = function (enabled) {
-    this.inEvalMode = enabled;
-    this.controls.setEnabled('ALL', !this.inEvalMode, ['evalMode','undo','next','pass']);
-    this.controls.get('evalMode').toggleClass('toggled', enabled);
-    main.debug = true;
-    main.log.level = Logger.DEBUG;
 };
 
 Ui.prototype.toggleControls = function () {
@@ -158,13 +128,18 @@ Ui.prototype.toggleControls = function () {
     this.controls.setVisible(['pass', 'resi'], inGame && !auto);
     this.controls.setVisible(['next', 'next10', 'nextAll', 'aiVsAiFlags'], inGame && auto);
     this.controls.setVisible(['newg'], this.game.gameEnded && !this.isCompactLayout);
-    this.controls.setVisible(['evalMode', 'score', 'territory', 'heuristic'], inGame);
+
+    // Dev controls
+    this.controls.setVisible(['devDiv'], inGame);
 };
 
 Ui.prototype.message = function (html, append) {
     if (append) html = this.output.html() + html;
     this.output.setHtml(html);
 };
+
+
+//--- GAME LOGIC
 
 Ui.prototype.createPlayers = function () {
     this.players = [];
@@ -233,7 +208,6 @@ Ui.prototype.proposeScore = function () {
     this.message(this.scoreMsg);
     this.message('<br><br>Do you accept this score?', true);
     this.toggleControls();
-    this.refreshHistory();
     this.board.showScoring(this.game.goban.scoringGrid.yx);
 };
 
@@ -253,17 +227,18 @@ Ui.prototype.acceptScore = function (acceptEnd) {
 };
 
 Ui.prototype.showEnd = function () {
-    this.message('Game ended.<br>' + this.scoreMsg + '<br>' + this.game.historyString());
-    this.refreshHistory();
+    this.message(this.scoreMsg + '<br><br>' + this.game.historyString());
     this.toggleControls();
 };
 
 Ui.prototype.showAiMoveData = function (aiPlayer, move) {
     var playerName = Grid.colorName(aiPlayer.color);
-    var txt = playerName + ' (AI): ' + move + '<br>';
-    txt += aiPlayer.getMoveSurveyText(1).replace(/\n/g, '<br>');
-    txt += aiPlayer.getMoveSurveyText(2).replace(/\n/g, '<br>');
-    this.message(txt);
+    this.message(playerName + ' (AI ' + aiPlayer.version + '): ' + move);
+
+    var txt = aiPlayer.getMoveSurveyText(1, /*withDetails=*/true);
+    txt = txt.replace(/\n/, '&nbsp;&nbsp; > ' + aiPlayer.getMoveSurveyText(2) + '<br>');
+    txt = txt.replace(/\n/g, '<br>');
+    this.devMessage(txt);
 };
 
 Ui.prototype.letAiPlay = function (skipRefresh) {
@@ -344,7 +319,20 @@ Ui.prototype.automaticAiPlay = function (turns) {
     }, animated ? 100 : 0);
 };
 
-//---
+
+//--- DEV UI
+
+Ui.prototype.devMessage = function (html, append) {
+    if (append) html = this.devOutput.html() + html;
+    this.devOutput.setHtml(html);
+};
+
+Ui.prototype.setEvalMode = function (enabled) {
+    if (enabled === this.inEvalMode) return;
+    this.inEvalMode = enabled;
+    this.controls.setEnabled('ALL', !this.inEvalMode, ['evalMode','undo','next','pass']);
+    this.controls.get('evalMode').toggleClass('toggled', enabled);
+};
 
 Ui.prototype.evalMove = function (move) {
     var player = this.getAiPlayer(this.game.curColor);
@@ -353,36 +341,70 @@ Ui.prototype.evalMove = function (move) {
     this.showAiMoveData(player, move);
 };
 
-Ui.prototype.toggleSpecialDisplay = function (displayType, fn) {
-    if (this.board.displayType === displayType) return this.board.refresh();
-
-    this.board.showSpecial(displayType, fn());
-};
-
 Ui.prototype.scoreTest = function () {
-    var self = this;
-    this.toggleSpecialDisplay('scoring', function () {
-        var score = self.scorer.computeScore(self.game.goban, self.game.komi);
-        self.message(score);
-        return self.game.goban.scoringGrid.yx;
-    });
+    var score = this.scorer.computeScore(this.game.goban, this.game.komi);
+    this.message(score);
+    this.board.showSpecial('scoring', this.game.goban.scoringGrid.yx);
 };
 
 Ui.prototype.territoryTest = function () {
-    var self = this;
-    this.toggleSpecialDisplay('territory', function () {
-        return self.getAiPlayer(self.game.curColor).guessTerritories();
-    });
+    this.board.showSpecial('territory', this.getAiPlayer(this.game.curColor).guessTerritories());
 };
 
-Ui.prototype.heuristicTest = function () {
-    var name = Dome.getSelectedText();
-    if (!name) return;
+Ui.prototype.heuristicTest = function (name) {
     var aiPlayer = this.getAiPlayer(1 - this.game.curColor); // AI played previous move
     var heuristic = aiPlayer.getHeuristic(name);
     if (!heuristic) return;
+    this.board.showSpecial('value', heuristic.scoreGrid.yx);
+};
 
-    this.toggleSpecialDisplay('value', function () {
-        return heuristic.scoreGrid.yx;
+Ui.prototype.influenceTest = function () {
+    var color = 1 - this.game.curColor;
+    var infl = this.getAiPlayer(color).inf.map;
+    var yx = new Grid(this.gsize).yx; // TODO: covert infl to 2 grids one day?
+    for (var j = 1; j <= this.gsize; j++) {
+        for (var i = 1; i <= this.gsize; i++) {
+            yx[j][i] = infl[j][i][color];
+        }
+    }
+    this.board.showSpecial('value', yx);
+};
+
+var heuristics = [
+    '-',
+    'NoEasyPrisoner',
+    'Hunter',
+    'Savior',
+    'Connector',
+    'Spacer',
+    'Pusher',
+    'Shaper'
+];
+
+Ui.prototype.createDevControls = function (devDiv) {
+    var self = this;
+    var devCtrls = devDiv.newDiv('devControls');
+
+    Dome.newButton(devCtrls, '#evalMode', 'Eval mode', function () { self.setEvalMode(!self.inEvalMode); });
+
+    var col2 = devCtrls.newDiv('col2');
+    Dome.newCheckbox(col2, 'debug', 'Debug').on('change', function () {
+        main.debug = this.isChecked();
+        main.log.level = main.debug ? Logger.DEBUG : Logger.INFO;
     });
+    Dome.newDropdown(col2, '#evalTest', ['-', 'Score', 'Territory', 'Influence'], null, '').on('change', function () {
+        switch (this.value()) {
+        case '-': return self.board.refresh();
+        case 'Score': return self.scoreTest();
+        case 'Territory': return self.territoryTest();
+        case 'Influence': return self.influenceTest();
+        }
+    });
+    Dome.newDropdown(col2, '#heuristicTest', heuristics, null, '').on('change', function () {
+        var name = this.value();
+        if (name === '-') return self.board.refresh();
+        return self.heuristicTest(name);
+    });
+
+    this.devOutput = devDiv.newDiv('logBox devLogBox');
 };
