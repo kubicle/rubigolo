@@ -251,7 +251,11 @@ Droopy.prototype.testHeuristic = function (i, j, heuristicName) {
     return scoreYx[j][i];
 };
 
-Droopy.prototype.getMoveSurveyText = function (rank) {
+function surveySort(h1, h2) {
+    return h2[1] - h1[1];
+}
+
+Droopy.prototype.getMoveSurveyText = function (rank, withDetails) {
     var survey, score, move;
     switch (rank) {
     case 1:
@@ -268,10 +272,19 @@ Droopy.prototype.getMoveSurveyText = function (rank) {
         break;
     }
     if (!survey) return '';
-    var txt = 'Stats of ' + move + ' (' + score.toFixed(3) + '):\n';
+    var txt = move + ' (' + score.toFixed(2) + ')';
+    if (!withDetails) return txt;
+
+    var sortedSurvey = [];
     for (var h in survey) {
         if (survey[h] === 0) continue;
-        txt += '- ' + h + ': ' + survey[h].toFixed(3) + '\n';
+        sortedSurvey.push([h, survey[h]]);
+    }
+    sortedSurvey.sort(surveySort);
+
+    txt += '\n';
+    for (var i = 0; i < sortedSurvey.length; i++) {
+        txt += '- ' + sortedSurvey[i][0] + ': ' + sortedSurvey[i][1].toFixed(2) + '\n';
     }
     return txt;
 };

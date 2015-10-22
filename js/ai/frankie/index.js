@@ -238,7 +238,7 @@ Frankie.prototype.testHeuristic = function (i, j, heuristicName) {
     return scoreYx[j][i];
 };
 
-Frankie.prototype.getMoveSurveyText = function (rank) {
+Frankie.prototype.getMoveSurveyText = function (rank, withDetails) {
     var survey, score, move;
     switch (rank) {
     case 1:
@@ -255,11 +255,12 @@ Frankie.prototype.getMoveSurveyText = function (rank) {
         break;
     }
     if (!survey) return '';
-    var txt = 'Stats of ' + move + ' (' + score.toFixed(3) + '):\n';
+    var txt = move + ' (' + score.toFixed(2) + ')';
+    if (!withDetails) return txt;
+    txt += '\n';
     for (var h in survey) {
         if (survey[h] === 0) continue;
-        txt += '- ' + h + ': ' + survey[h].toFixed(3) + '\n';
+        txt += '- ' + h + ': ' + survey[h].toFixed(2) + '\n';
     }
     return txt;
 };
-
