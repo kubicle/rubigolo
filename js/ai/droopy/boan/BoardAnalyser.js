@@ -200,7 +200,7 @@ Band.prototype._add1 = function (gi) {
     }
     if (gi.band.bandId === this.bandId) return; // gi uses same band
 
-    if (main.debug) main.log.debug('BROTHERS: band merge: ' + gi.band + ' merge with ' + this.toString());
+    if (main.debug) main.log.debug('BROTHERS: band merge: ' + gi.band.toString() + ' merge with ' + this.toString());
     var brothers = gi.band.brothers;
     for (var n = brothers.length - 1; n >= 0; n--) {
         this.brothers.push(brothers[n]);
