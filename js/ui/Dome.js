@@ -98,7 +98,7 @@ Dome.newInput = function (parent, name, label, init) {
  *  if (myCheckbox.isChecked()) ...
  */
 Dome.newCheckbox = function (parent, name, label, value, init) {
-    var div = new Dome(parent, 'div', name + 'Div');
+    var div = new Dome(parent, 'div', name + 'Div chkBoxDiv');
     var input = new Dome(div, 'input', name + 'ChkBox chkBox', name);
     var inp = input.elt;
     inp.type = 'checkbox';
