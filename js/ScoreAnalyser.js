@@ -76,10 +76,10 @@ ScoreAnalyser.prototype.scoreInfoToS = function (info) {
         throw new Error('Invalid score info');
     }
     var s = [];
-    var diff = totals[0] - totals[1];
+    var diff = totals[BLACK] - totals[WHITE];
     s.push(this.scoreDiffToS(diff));
 
-    for (var c = 0; c < 2; c++) {
+    for (var c = BLACK; c <= WHITE; c++) {
         var detail = details[c];
         if (detail === null) {
             s.push(Grid.colorName(c) + ' resigned');
@@ -92,7 +92,7 @@ ScoreAnalyser.prototype.scoreInfoToS = function (info) {
         var pris = detail[1];
         var komi = detail[2];
         var komiStr = (( komi > 0 ? ' + ' + komi + ' komi' : '' ));
-        s.push(Grid.colorName(c) + ' (' + Grid.colorToChar(c) + '): ' +
+        s.push(Grid.colorName(c) + ': ' +
             pointsToString(totals[c]) + ' (' + score + ' ' +
             ( pris < 0 ? '-' : '+' ) + ' ' + Math.abs(pris) + ' prisoners' +
             komiStr + ')');
