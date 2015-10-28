@@ -24,10 +24,14 @@ NoEasyPrisoner.prototype._beforeEvalBoard = function () {
     if (!this.hunter) this.hunter = this.player.getHeuristic('Hunter');
 };
 
-NoEasyPrisoner.prototype._evalMove = function (i, j) {
+NoEasyPrisoner.prototype._evalMove = function (i, j, color) {
     // NB: snapback is handled in hunter; here we just notice the sacrifice of a stone, which will
     // be balanced by the profit measured by hunter (e.g. lose 1 but kill 3).
-    var stone = Stone.playAt(this.goban, i, j, this.color);
+
+    // Skip places where no influence around
+    if (this.infl[j][i][1 - color] < 2 && this.infl[j][i][color] < 2) return 0;
+
+    var stone = Stone.playAt(this.goban, i, j, color);
     var g = stone.group;
     var score = 0, move;
     if (main.debug) move = Grid.xy2move(i, j);
