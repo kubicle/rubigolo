@@ -602,7 +602,7 @@ BoardAnalyser.prototype.debugDump = function () {
     if (this.scores) {
         var eyes = [[], [], []];
         for (var ndx in this.allGroups) {
-            var gi = this.allGroups[ndx];
+            var gi = this.allGroups[~~ndx];
             var numEyes = gi.eyeCount;
             eyes[numEyes >= 2 ? 2 : numEyes].push(gi);
         }
@@ -615,6 +615,7 @@ BoardAnalyser.prototype.debugDump = function () {
     }
 };
 
+// grid is optional
 BoardAnalyser.prototype._initAnalysis = function (mode, goban, grid) {
     this.mode = mode;
     this.goban = goban;
@@ -639,8 +640,8 @@ BoardAnalyser.prototype._addGroup = function (g, v) {
 };
 
 /** Create the list of voids and groups.
- *  The voids know which groups are around them
- *  but the groups do not own any void yet. */
+ * Voids know which groups are around them, but groups do not own any void yet.
+ */
 BoardAnalyser.prototype._initVoidsAndGroups = function () {
     if (main.debug) main.log.debug('---Initialising voids & groups...');
     var voidCode = Grid.ZONE_CODE;
@@ -674,7 +675,7 @@ BoardAnalyser.prototype._runAnalysis = function (first2play) {
 
 BoardAnalyser.prototype._findBrothers = function () {
     for (var ndx in this.allGroups) {
-        this.allGroups[ndx].findBrothers();
+        this.allGroups[~~ndx].findBrothers();
     }
 };
 
@@ -812,7 +813,7 @@ BoardAnalyser.prototype._reviewGroups = function (check, first2play) {
     if (main.debug) main.log.debug('---REVIEWING groups for "' + check.name + '" checks');
     var count = 0, reviewedCount = 0, fails = [];
     for (var ndx in this.allGroups) {
-        var gi = this.allGroups[ndx];
+        var gi = this.allGroups[~~ndx];
         if (gi.isAlive || gi.isDead) continue;
         reviewedCount++;
 
@@ -899,7 +900,7 @@ BoardAnalyser.prototype._colorVoids = function () {
 
 BoardAnalyser.prototype._colorDeadGroups = function () {
     for (var ndx in this.allGroups) {
-        var gi = this.allGroups[ndx];
+        var gi = this.allGroups[~~ndx];
         if (!gi.isDead) continue;
         var color = gi.group.color;
         var stone = gi.group.stones[0];
