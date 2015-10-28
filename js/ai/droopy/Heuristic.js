@@ -6,7 +6,8 @@ var Grid = require('../../Grid');
 var Stone = require('../../Stone');
 
 var BLACK = main.BLACK, WHITE = main.WHITE, EMPTY = main.EMPTY, BORDER = main.BORDER;
-var sOK = main.sOK, ALWAYS = main.ALWAYS;
+var sOK = main.sOK, sDEBUG = main.sDEBUG;
+var NEVER = main.NEVER, ALWAYS = main.ALWAYS;
 var XY_AROUND = Stone.XY_AROUND;
 var DIR0 = main.DIR0, DIR3 = main.DIR3;
 
@@ -16,6 +17,7 @@ var DIR0 = main.DIR0, DIR3 = main.DIR3;
  */
 function Heuristic(player) {
     this.player = player;
+    this.name = this.constructor.name;
     this.goban = player.goban;
     this.gsize = player.goban.gsize;
     this.infl = player.inf.map;
@@ -31,9 +33,9 @@ function Heuristic(player) {
 module.exports = Heuristic;
 
 
-Heuristic.prototype.initColor = function () {
-    this.color = this.player.color;
-    this.enemyColor = this.player.enemyColor;
+Heuristic.prototype.initColor = function (color) {
+    this.color = color;
+    this.enemyColor = 1 - color;
 };
 
 // For heuristics which do not handle evalBoard (but _evalMove)
@@ -43,15 +45,22 @@ Heuristic.prototype.evalBoard = function (stateYx, scoreYx) {
     var myScoreYx = this.scoreGrid.yx;
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
-            if (stateYx[j][i] < sOK) continue;
+            var state = stateYx[j][i];
+            if (state < sOK) continue;
+            if (state === sDEBUG && this.name === this.player.debugHeuristic)
+                main.debug = true;
+
             var score = myScoreYx[j][i] = this._evalMove(i, j, color);
             scoreYx[j][i] += score;
+
+            if (state === sDEBUG)
+                main.debug = false;
         }
     }
 };
 
 Heuristic.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
-    return this.player.genes.get(this.constructor.name + '-' + name, defVal, lowLimit, highLimit);
+    return this.player.genes.get(this.name + '-' + name, defVal, lowLimit, highLimit);
 };
 
 Heuristic.prototype.territoryScore = function (i, j, color) {
@@ -132,7 +141,7 @@ Heuristic.prototype.invasionCost = function (i, j, color) {
 };
 
 Heuristic.prototype.markMoveAsBlunder = function (i, j, reason) {
-    this.player.markMoveAsBlunder(i, j, this.constructor.name + ':' + reason);
+    this.player.markMoveAsBlunder(i, j, this.name + ':' + reason);
 };
 
 Heuristic.prototype.distanceFromStoneToBorder = function (stone) {
