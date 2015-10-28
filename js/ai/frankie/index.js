@@ -238,29 +238,27 @@ Frankie.prototype.testHeuristic = function (i, j, heuristicName) {
     return scoreYx[j][i];
 };
 
-Frankie.prototype.getMoveSurveyText = function (rank, withDetails) {
-    var survey, score, move;
-    switch (rank) {
-    case 1:
-        if (this.bestI === NO_MOVE) break;
-        this._testMoveEval(this.bestI, this.bestJ);
-        survey = this.survey; score = this.bestScore;
-        move = Grid.xy2move(this.bestI, this.bestJ);
-        break;
-    case 2:
-        if (this.secondBestI === NO_MOVE) break;
-        this._testMoveEval(this.secondBestI, this.secondBestJ);
-        survey = this.survey; score = this.secondBestScore;
-        move = Grid.xy2move(this.secondBestI, this.secondBestJ);
-        break;
-    }
+function surveySort(h1, h2) { return h2[1] - h1[1]; }
+
+Frankie.prototype.getMoveSurveyText = function (move) {
+    if (this.bestI === NO_MOVE) return '';
+    if (move !== Grid.xy2move(this.bestI, this.bestJ)) return '';
+
+    this._testMoveEval(this.bestI, this.bestJ);
+    var survey = this.survey;
+    var score = this.bestScore;
     if (!survey) return '';
-    var txt = move + ' (' + score.toFixed(2) + ')';
-    if (!withDetails) return txt;
-    txt += '\n';
+
+    var sortedSurvey = [];
     for (var h in survey) {
         if (survey[h] === 0) continue;
-        txt += '- ' + h + ': ' + survey[h].toFixed(2) + '\n';
+        sortedSurvey.push([h, survey[h]]);
+    }
+    sortedSurvey.sort(surveySort);
+
+    var txt = move + ' (' + score.toFixed(2) + ')\n';
+    for (var n = 0; n < sortedSurvey.length; n++) {
+        txt += '- ' + sortedSurvey[n][0] + ': ' + sortedSurvey[n][1].toFixed(2) + '\n';
     }
     return txt;
 };
