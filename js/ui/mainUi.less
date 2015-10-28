@@ -5,6 +5,9 @@
 
     .wgo-board {
       margin: 0 auto;
+      /* Below avoid issues when tap-hold on mobile */
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
     }
   }
   .boardDesc {
@@ -34,6 +37,7 @@
 
   .devDiv {
     display: flex;
+    min-width: 600px;
     border: #755;
     border-width: 1px 2px 2px 1px;
     border-style: solid;
