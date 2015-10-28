@@ -36,10 +36,9 @@ TestAi.prototype.playMoves = function (moves) {
     this.game.loadMoves(moves);
 };
 
-TestAi.prototype.logErrorContext = function (player) {
+TestAi.prototype.logErrorContext = function (player, move) {
     main.log.error(this.goban.toString());
-    main.log.error(player.getMoveSurveyText(1));
-    main.log.error(player.getMoveSurveyText(2));
+    main.log.error(player.getMoveSurveyText(move));
 };
 
 TestAi.prototype.checkScore = function(player, color, move, score, expScore, heuristic) {
@@ -51,7 +50,7 @@ TestAi.prototype.checkScore = function(player, color, move, score, expScore, heu
         (heuristic ? ' for ' + heuristic : '');
     main.log.warn('Discrepancy in ' + this.name + ': ' + msg);
     this.showInUi(msg);
-    this.logErrorContext(player);
+    this.logErrorContext(player, move);
 };
 
 // if expEval is null there is not check: value is returned
@@ -74,10 +73,13 @@ TestAi.prototype.checkEval = function (move, expEval, heuristic) {
 };
 
 TestAi.prototype._moveOrValue = function (mv) {
-    var isMove = mv[0] > '9';
-    var score = isMove ? this.checkEval(mv) : parseFloat(mv);
-    var desc = isMove ? mv + '/' + score.toFixed(2) : mv;
-    return [score, desc];
+    if (mv[0] > '9') {
+        var player = Grid.colorName(this.game.curColor);
+        var score = this.checkEval(mv);
+        return [score, player + '-' + mv + '/' + score.toFixed(2)];
+    } else {
+        return [parseFloat(mv), mv];
+    }
 };
 
 // Checks that move1 is better than move2|value
@@ -102,7 +104,7 @@ TestAi.prototype.playAndCheck = function (expMove, expEval) {
     var move = player.getMove();
     var score = player.bestScore;
     if (move !== expMove) {
-        this.logErrorContext(player);
+        this.logErrorContext(player, move);
         // if expMove got a very close score, our test scenario bumps on twin moves
         if (expMove !== 'pass' && Math.abs(this.checkEval(expMove) - score) < 0.001) {
             main.log.error('CAUTION: ' + expMove + ' and ' + move + 
@@ -211,7 +213,7 @@ TestAi.prototype.testEyeMaking = function () {
 
 TestAi.prototype.testEyeClosing = function () {
     // a4 saves or kills white group
-    this.checkGame('a2,b4,b2,c4,c2,d4,d2,e4,e2,b5,a3,c5', 'a4>99, #pass, a4>99');
+    this.checkGame('a2,b4,b2,c4,c2,d4,d2,e4,e2,b5,a3,c5', 'a4>30, #pass, a4>30, a4');
 };
 
 TestAi.prototype.testAiClosesItsTerritory = function () {
@@ -317,6 +319,13 @@ TestAi.prototype.testHunter1 = function () {
 TestAi.prototype.testHunterCountsSavedGroupsToo = function () {
     this.checkGame('a2,a3,b2,b3,c2,a4,b1,a5,c3,b6,b4,a6,b5,c6,c5,d6,d5,e6,e5,f6,f5,g5,f4,g4,f3,g3,d4,f2,e3,e2,pass,d2,pass,d3,g2',
         'g1>g6, g1', 7);
+};
+
+TestAi.prototype.testHunterDoubleAttack = function () {
+    this.checkGame('d4,d6,f5,g7,g5,g3,e5,d2,c3,c5,c2,d3,c4,f4,d5,e7,e6,c6,f6,f7,h6,e4,g4,h4,h5,h3',
+        'e3<1, #e3, e2, f3, f2', // TODO 'e3>10, pass, e3>10',
+        9);
+    this.todo('Hunter must see double threat');
 };
 
 TestAi.prototype.testLadder = function () {
