@@ -163,6 +163,7 @@ Dome.getRadioValue = function (opts) {
 Dome.newDropdown = function (parent, name, labels, values, init) {
     if (!values) values = labels;
     var select = new Dome(parent, 'select', name + 'DropDwn dropDwn', name);
+    select.values = values;
     var cur = 0;
     for (var i = 0; i < labels.length; i++) {
         var opt = new Dome(select, 'option').elt;
@@ -174,6 +175,10 @@ Dome.newDropdown = function (parent, name, labels, values, init) {
     return select;
 };
 
+Dome.prototype.select = function (value) {
+    var ndx = this.values.indexOf(value);
+    if (ndx !== -1) this.elt.selectedIndex = ndx;
+};
 
 //---Group helpers
 
