@@ -22,7 +22,6 @@ function Ui(game) {
     this.gsize = 9;
     this.handicap = 0;
     this.aiPlays = 'white';
-    this.withCoords = true;
 
     this.game = new GameLogic(game);
     this.scorer = new ScoreAnalyser();
@@ -175,8 +174,7 @@ Ui.prototype.startGame = function (firstMoves, isLoaded) {
     if (!this.gameDiv) this.createGameUi('main', document.body);
     this.toggleControls();
 
-    var options = { coords: this.withCoords };
-    this.board.create(this.boardElt, this.boardWidth, this.game.goban, options);
+    this.board.create(this.boardElt, this.boardWidth, this.game.goban);
     this.refreshBoard();
 
     if (isLoaded) return;

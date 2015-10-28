@@ -10,7 +10,6 @@ var WGo = window.WGo;
 var WHITE = main.WHITE, BLACK = main.BLACK, EMPTY = main.EMPTY;
 
 var pixelRatio = window.devicePixelRatio || 1;
-var finger2cursorInPx = 60 * pixelRatio;
 
 // Color codes conversions from WGo
 var fromWgoColor = {};
@@ -40,10 +39,20 @@ Board.prototype.create = function (parent, width, goban, options) {
     this.goban = goban;
     if (this.board && this.gsize === gsize) return; // already have the right board
     this.gsize = gsize;
+    options = options || {};
+    var margin = options.noCoords ? 0 : -0.23;
+    var config = {
+        size: gsize,
+        width: width,
+        section: { top: margin, left: margin, right: margin, bottom: margin },
+        coordFontSize: 0.6
+    };
+
     parent.clear();
-    var config = { size: gsize, width: width, section: { top: -0.5, left: -0.5, right: -0.5, bottom: -0.5 } };
     this.board = new WGo.Board(parent.getDomElt(), config);
-    if (options.coords) this.board.addCustomObject(WGo.Board.coordinates);
+    this.distCursorFromFinger = 60 + this.board.stoneRadius;
+
+    if (!options.noCoords) this.board.addCustomObject(WGo.Board.coordinates);
     this.setEventListeners();
 };
 
@@ -52,7 +61,7 @@ Board.prototype.setEventListeners = function () {
     touchManager.listenOn(this.board.element, function (evName, x, y) {
         if (evName === 'dragCancel') return self.moveCursor(-1, -1);
         if (evName.substr(0, 4) === 'drag') {
-            y -= finger2cursorInPx;
+            y -= self.distCursorFromFinger;
         }
         var vertex = self.canvas2grid(x, y);
         x = vertex[0]; y = vertex[1];
