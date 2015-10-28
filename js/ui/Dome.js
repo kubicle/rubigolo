@@ -34,7 +34,7 @@ Dome.prototype.setEnabled = function (enable) { this.elt.disabled = !enable; ret
 Dome.prototype.setStyle = function (prop, value) { this.elt.style[prop] = value; return this; };
 
 Dome.prototype.setVisible = function (show) {
-    if (this.type === 'div') return this.setStyle('display', show ? 'auto' : 'none');
+    if (this.type === 'div') return this.setStyle('display', show ? '' : 'none');
     this.elt.hidden = !show;
     return this;
 };
