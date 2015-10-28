@@ -19,7 +19,7 @@ function TouchManager() {
     this.multiTouch = false;
 }
 
-module.exports = new TouchManager();
+var tm = module.exports = new TouchManager();
 
 
 TouchManager.prototype.listenOn = function (elt, handlerFn) {
@@ -37,21 +37,6 @@ TouchManager.prototype.listenOn = function (elt, handlerFn) {
     elt.addEventListener('mousedown', function (e) {
         if (e.button !== 0) return;
         self.onTouchStart(e, elt);
-    });
-
-    elt.addEventListener('touchmove', function (e) {
-        if (!self.holding) return; // drag cancelled
-        if (e.changedTouches.length > 1) return self.cancelDrag(elt);
-
-        if (self.onTouchMove(e.changedTouches[0], elt)) {
-            e.preventDefault();
-        }
-    });
-    elt.addEventListener('mousemove', function (e) {
-        if (!self.holding) return; // drag cancelled or mouse button is up
-        if (self.onTouchMove(e, elt)) {
-            e.preventDefault();
-        }
     });
 
     elt.addEventListener('touchend', function (e) {
@@ -77,7 +62,37 @@ TouchManager.prototype.listenOn = function (elt, handlerFn) {
     });
 };
 
+
+TouchManager.prototype.onTouchMove = function (ev) {
+    var target = this;
+    if (ev.changedTouches.length > 1) return tm.cancelDrag(target);
+
+    if (tm.onTouchMove(ev.changedTouches[0], target)) {
+        ev.preventDefault();
+    }
+};
+
+TouchManager.prototype.onMouseMove = function (ev) {
+    var target = this;
+    if (tm.onTouchMove(ev, target)) {
+        ev.preventDefault();
+    }
+};
+
+TouchManager.prototype.listenMoves = function (target, on) {
+    if (on) {
+        this.holding = true;
+        target.addEventListener('touchmove', this.onTouchMove);
+        target.addEventListener('mousemove', this.onMouseMove);
+    } else {
+        this.holding = false;
+        target.removeEventListener('touchmove', this.onTouchMove);
+        target.removeEventListener('mousemove', this.onMouseMove);
+    }
+};
+
 TouchManager.prototype.onTouchStart = function (ev, target) {
+    this.listenMoves(target, true);
     this.holding = true;
     this.startX = ev.clientX;
     this.startY = ev.clientY;
@@ -97,7 +112,7 @@ TouchManager.prototype.startDrag = function (ev, target) {
 };
 
 TouchManager.prototype.cancelDrag = function (target) {
-    this.holding = false;
+    this.listenMoves(target, false);
     if (this.dragging) {
         this.dragging = false;
         target.touchHandlerFn('dragCancel');
@@ -115,7 +130,7 @@ TouchManager.prototype.onTouchMove = function (ev, target) {
             return false;
         }
         if (now - this.startTime < HOLD_TIME_THRESHOLD) {
-            this.holding = false;
+            this.listenMoves(target, false);
             return false;
         }
         return this.startDrag(ev, target);
@@ -131,7 +146,7 @@ TouchManager.prototype.onTouchEnd = function (ev, target) {
 
     var eventName = this.dragging ? 'dragEnd' : 'tap';
     target.touchHandlerFn(eventName, ev.pageX - target.offsetLeft, ev.pageY - target.offsetTop);
-    this.holding = false;
+    this.listenMoves(target, false);
     this.dragging = false;
     return true;
 };
