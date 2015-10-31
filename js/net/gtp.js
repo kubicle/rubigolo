@@ -9,17 +9,17 @@ function Gtp() {
 var gtp = new Gtp();
 module.exports = gtp;
 
-window.main.gtp = gtp //TMP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+window.gtp = gtp //TMP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 Gtp.prototype.init = function (engine) {
     this.engine = engine;
 };
 
-Gtp.prototype.parseLine = function (input) {
+Gtp.prototype._parseRawLine = function (rawline) {
     var line = '';
-    for (var i = 0; i < input.length; i++) {
-        var c = input[i];
+    for (var i = 0; i < rawline.length; i++) {
+        var c = rawline[i];
         if (c === '#') break;
         switch (c) {
         case '\t':
@@ -33,9 +33,9 @@ Gtp.prototype.parseLine = function (input) {
     return line;
 };
 
-Gtp.prototype.parseCommand = function (line) {
+Gtp.prototype._parseCommand = function (rawline) {
     var cmd = {};
-    var w = line.split(' ');
+    var w = this._parseRawLine(rawline).split(' ');
     var i = 0;
 
     if (~~w[i] || w[i][0] === '0') {
@@ -48,7 +48,8 @@ Gtp.prototype.parseCommand = function (line) {
     return cmd;
 };
 
-Gtp.prototype.runCommand = function (cmd) {
+Gtp.prototype.runCommand = function (line) {
+    var cmd = this._parseCommand(line);
     var fn = gtp.commands[cmd.command];
     if (!fn) return this.fail('unknown command');
 
@@ -56,16 +57,20 @@ Gtp.prototype.runCommand = function (cmd) {
     fn.call(this, cmd);
 };
 
+Gtp.prototype._send = function (msg) {
+    console.info('GTP sends: [' + msg + ']');
+};
+
 Gtp.prototype.success = function (response) {
     var msg = '=' + this.cmd.id;
-    if (response.length) msg += ' ' + response;
+    if (response) msg += ' ' + response;
     msg += '\n\n';
-    send(msg);
+    this._send(msg);
 };
 
 Gtp.prototype.fail = function (errorMsg) {
     var msg = '?' + this.cmd.id + ' ' + errorMsg + '\n\n';
-    send(msg);
+    this._send(msg);
 };
 
 function commandHandler(cmdName, fn) {
@@ -85,7 +90,7 @@ commandHandler('version', function () {
 });
 
 commandHandler('known_command', function (cmd) {
-    return this.success(this.commands[cmd.command] ? 'true' : 'false');
+    return this.success(this.commands[cmd.args[0]] ? 'true' : 'false');
 });
 
 commandHandler('list_commands', function () {
@@ -120,6 +125,7 @@ commandHandler('komi', function (cmd) {
 });
 
 function parseColor(color) {
+    if (typeof color !== 'string') return null;
     switch (color.toLowerCase()) {
     case 'b': case 'black': return 'b';
     case 'w': case 'white': return 'w';
@@ -127,16 +133,24 @@ function parseColor(color) {
     }
 }
 
-function parseMove(colorAndVertex) {
-    var parts = colorAndVertex.toLowerCase().split(' ');
-    if (parts.length !== 2) return null;
-    var color = parseColor(parts[0]);
+function parseMove(color, vertex) {
+    color = parseColor(color);
     if (!color) return null;
-    return { color: color, vertex: parts[1] };
+
+    if (typeof vertex !== 'string' || vertex.length < 2) return null;
+    vertex = vertex.toLowerCase();
+    if (vertex !== 'pass') {
+        var col = vertex[0];
+        if (col < 'a' || col > 'z' || col === 'i') return null;
+        var row = parseInt(vertex.substr(1));
+        if (row < 1 || row > 25) return null;
+        vertex = col + row;
+    }
+    return { color: color, vertex: vertex };
 }
 
 commandHandler('play', function (cmd) {
-    var move = parseMove(cmd.args[0]);
+    var move = parseMove(cmd.args[0], cmd.args[1]);
     if (!move) return this.fail('syntax error');
 
     if (!this.engine.playMove(move.color, move.vertex)) {
@@ -168,3 +182,5 @@ commandHandler('final_score', function () {
     }
     return this.success(score); // e.g. W+2.5 or B+31 or 0
 });
+
+// TODO: final_status_list
