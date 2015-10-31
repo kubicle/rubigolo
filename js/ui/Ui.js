@@ -27,11 +27,7 @@ function Ui(game) {
     this.scorer = new ScoreAnalyser();
     this.board = null;
 
-    this.debugHeuristic = null;
-
-    // TMP
-    gtp.init(new UiEngine(this));
-//    ogsApi.init();
+    this.initDev();
 }
 module.exports = Ui;
 
@@ -61,9 +57,7 @@ Ui.prototype.createGameUi = function (layout, parent, title, descr) {
     this.boardElt = gameDiv.newDiv('board');
     if (descr) this.boardDesc = gameDiv.newDiv('boardDesc').setHtml(descr);
     this.createControls(gameDiv);
-
-    var devDiv = gameDiv.newDiv('#devDiv');
-    this.createDevControls(devDiv);
+    this.createDevControls();
 
     // width adjustments
     var width = this.game.goban.gsize + 2; // width in stones
@@ -72,6 +66,7 @@ Ui.prototype.createGameUi = function (layout, parent, title, descr) {
     var self = this;
     this.board = new Board();
     this.board.setTapHandler(function (move) {
+        if (move[0] === '!') return self.onDevKey(move.substr(1));
         if (self.inEvalMode) return self.evalMove(move);
         self.playerMove(move);
     });
@@ -132,7 +127,7 @@ Ui.prototype.toggleControls = function () {
     this.controls.setVisible(['newg'], this.game.gameEnded && !this.isCompactLayout);
 
     // Dev controls
-    this.controls.setVisible(['devDiv'], inGame);
+    this.controls.setVisible(['devDiv'], inGame && this.inDevMode);
 };
 
 Ui.prototype.message = function (html, append) {
@@ -327,6 +322,26 @@ Ui.prototype.automaticAiPlay = function (turns) {
 
 //--- DEV UI
 
+Ui.prototype.initDev = function () {
+    this.inDevMode = false;
+    this.debugHeuristic = null;
+    this.inEvalMode = false;
+    this.devKeys = '';
+};
+
+Ui.prototype.onDevKey = function (key) {
+    this.devKeys = this.devKeys.slice(-9) + key;
+    if (this.devKeys.slice(-3) === 'dbg') {
+        this.inDevMode = !this.inDevMode;
+        return this.toggleControls();
+    }
+    if (this.devKeys.slice(-3) === 'ggg') {
+        gtp.init(new UiEngine(this));
+        this.ogsApi = ogsApi;
+        return ogsApi.init();
+    }
+};
+
 Ui.prototype.devMessage = function (html, append) {
     if (append) html = this.devOutput.html() + html;
     this.devOutput.setHtml(html);
@@ -390,8 +405,9 @@ var evalTests = [
     'Influence W',
 ];
 
-Ui.prototype.createDevControls = function (devDiv) {
+Ui.prototype.createDevControls = function () {
     var self = this;
+    var devDiv = this.gameDiv.newDiv('#devDiv');
     var devCtrls = devDiv.newDiv('devControls');
 
     Dome.newButton(devCtrls, '#evalMode', 'Eval mode', function () { self.setEvalMode(!self.inEvalMode); });

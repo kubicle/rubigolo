@@ -109,10 +109,13 @@ Board.prototype.isValidCoords = function (x, y) {
 
 // x & y are WGo coordinates (origin 0,0 in top-left corner)
 Board.prototype.onTap = function (x, y) {
-    if (!this.isValidCoords(x, y)) return;
     // convert to goban coordinates (origin 1,1 in bottom-left corner)
     var i = x + 1;
     var j = this.gsize - y;
+    // for invalid taps, send some info anyway but starting with "!"
+    if (!this.isValidCoords(x, y)) {
+        return this.tapHandlerFn('!' + (i >= 1 && i <= this.gsize ? Grid.xLabel(i) : j));
+    }
 
     if (this.goban.color(i, j) !== EMPTY) return;
     var move = Grid.xy2move(i, j);
