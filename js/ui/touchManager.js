@@ -11,6 +11,8 @@ var HOLD_TIME_THRESHOLD = 300; // how long you must hold before dragging
  */
 var MIN_DRAG_TIME = 500;
 
+var MOUSE_BTN_MAIN = 0;
+
 
 function TouchManager() {
     this.startX = this.startY = 0;
@@ -23,7 +25,6 @@ var tm = module.exports = new TouchManager();
 
 
 function touchstartHandler(ev) {
-    console.debug('HERE touch Start', ev, tm.touchCount)
     var target = ev.currentTarget;
     tm.touchCount += ev.changedTouches.length;
     if (tm.touchCount > 1) {
@@ -33,7 +34,6 @@ function touchstartHandler(ev) {
 }
 
 function touchendHandler(ev) {
-    console.debug('HERE touchend', ev, tm.touchCount)
     tm.touchCount -= ev.changedTouches.length;
     if (tm.touchCount > 0) return console.warn('Extra touchend count?', ev);
 
@@ -43,7 +43,6 @@ function touchendHandler(ev) {
 }
 
 function touchmoveHandler(ev) {
-    console.debug('HERE touchmove', ev, tm.touchCount)
     if (ev.changedTouches.length > 1) return tm._cancelDrag(tm.target);
 
     if (tm._onTouchMove(ev.changedTouches[0], tm.target)) {
@@ -52,26 +51,23 @@ function touchmoveHandler(ev) {
 }
 
 function touchcancelHandler(ev) {
-    console.debug('HERE touchCXL', ev, tm.touchCount)
     tm.touchCount -= ev.changedTouches.length;
     tm._cancelDrag(tm.target);
 }
 
 function mousedownHandler(ev) {
-    if (ev.button !== 0) return;
+    if (ev.button !== MOUSE_BTN_MAIN) return;
     tm._onTouchStart(ev, ev.currentTarget);
 }
 
 function mouseupHandler(ev) {
-console.debug('HERE mouseup', ev)
-    if (ev.button !== 0) return;
+    if (ev.button !== MOUSE_BTN_MAIN) return;
     if (tm._onTouchEnd(ev, tm.target)) {
         ev.preventDefault();
     }
 }
 
 function mousemoveHandler(ev) {
-console.debug('HERE mousemove', ev)
     if (tm._onTouchMove(ev, tm.target)) {
         ev.preventDefault();
     }
@@ -120,7 +116,6 @@ TouchManager.prototype._startDrag = function (ev, target) {
 };
 
 TouchManager.prototype._cancelDrag = function (target) {
-    console.error('CANCEL Drag', target)
     this.touchCount = 0;
     this._listen(target, false);
     if (this.dragging) {
