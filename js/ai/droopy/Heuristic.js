@@ -67,13 +67,26 @@ Heuristic.prototype.territoryScore = function (i, j, color) {
     return this.pot.territory.yx[j][i] * (color === main.BLACK ? 1 : -1);
 };
 
-/** Returns NEVER, SOMETIMES, ALWAYS */
+/** @return {number} - NEVER, SOMETIMES, ALWAYS */
 Heuristic.prototype.isOwned = function (i, j, color) {
     var myColor = color === main.BLACK ? -1 : +1;
     var score = 0;
     if (Grid.territory2owner[2 + this.pot.grids[BLACK].yx[j][i]] === myColor) score++;
     if (Grid.territory2owner[2 + this.pot.grids[WHITE].yx[j][i]] === myColor) score++;
     return score;
+};
+
+/** @return {color|null} - null if no chance to make an eye here */
+Heuristic.prototype.eyePotential = function (i, j) {
+    var infl = this.infl[j][i];
+    var color = infl[BLACK] > infl[WHITE] ? BLACK : WHITE;
+    var allyInf = infl[color], enemyInf = infl[1 - color];
+
+    if (enemyInf > 1) return null; // enemy stone closer than 2 vertexes
+    var cornerPoints = 0, gsize = this.gsize;
+    if (i === 1 || i === gsize || j === 1 || j === gsize) cornerPoints++;
+    if (allyInf + cornerPoints - 3 - enemyInf < 0) return null;
+    return color;
 };
 
 //TODO review this - why 1-color and not both grids?
