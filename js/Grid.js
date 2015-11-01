@@ -41,14 +41,23 @@ Grid.territory2owner = [0,0, -1,+1, +1,-1, -1,+1];
 Grid.territory2char = '-\'?.:';
 
 
-Grid.prototype.copy = function (sourceGrid) {
-    if (sourceGrid.gsize !== this.gsize) {
-        throw new Error('Cannot copy between different sized grids');
+Grid.prototype.init = function (initValue) {
+    if (initValue === undefined) initValue = main.EMPTY;
+    for (var j = this.gsize; j >= 1; j--) {
+        var yxj = this.yx[j];
+        for (var i = this.gsize; i >= 1; i--) {
+            yxj[i] = initValue;
+        }
     }
-    var srcYx = sourceGrid.yx;
-    for (var j = 1; j <= this.gsize; j++) {
-        for (var i = 1; i <= this.gsize; i++) {
-            this.yx[j][i] = srcYx[j][i];
+};
+
+Grid.prototype.copy = function (sourceGrid) {
+    if (sourceGrid.gsize !== this.gsize) throw new Error('Cannot copy between different sized grids');
+
+    for (var j = this.gsize; j >= 1; j--) {
+        var yxj = this.yx[j], srcYxj = sourceGrid.yx[j];
+        for (var i = this.gsize; i >= 1; i--) {
+            yxj[i] = srcYxj[i];
         }
     }
     return this;
