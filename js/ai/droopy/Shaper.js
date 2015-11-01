@@ -26,6 +26,9 @@ Shaper.prototype.evalBoard = function (stateYx, scoreYx) {
     this.potEyeGrid.init();
     this._findPotentialEyes(stateYx);
 
+    // Call _evalMove for each vertex and init this.scoreGrid
+    Heuristic.prototype.evalBoard.call(this, stateYx, scoreYx);
+
     var allGroups = this.pot.allGroups;
     for (var ndx in allGroups) {
         var g = allGroups[~~ndx];
@@ -33,7 +36,6 @@ Shaper.prototype.evalBoard = function (stateYx, scoreYx) {
 
         this._evalSingleEyeSplit(scoreYx, g);
     }
-    Heuristic.prototype.evalBoard.call(this, stateYx, scoreYx);
 };
 
 Shaper.prototype._findPotentialEyes = function (stateYx) {
@@ -73,7 +75,8 @@ Shaper.prototype._evalSingleEyeSplit = function (scoreYx, g) {
     var alive = Shaper.getEyeMakerMove(this.goban, eye.i, eye.j, eye.vcount, coords);
     if (alive !== 1) return;
     var i = coords[0], j = coords[1];
-    var score = this.scoreGrid.yx[j][i] = this.groupThreat(g, this.color === g.color);
+    var score = this.groupThreat(g, this.color === g.color);
+    this.scoreGrid.yx[j][i] += score;
     scoreYx[j][i] += score;
 };
 
