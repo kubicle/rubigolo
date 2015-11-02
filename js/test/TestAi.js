@@ -223,7 +223,7 @@ TestAi.prototype.testAiClosesItsTerritory = function () {
     // +@@O+
     // +@OO+
     // e4 might seem to AI like filling up its own space; but it is mandatory here
-    this.checkGame('c3,d3,c2,d2,c4,c1,b1,d1,b2,d4,d5', 'e4<b4, b4~0.2'); // FIXME e4 should be big!
+    this.checkGame('c3,d3,c2,d2,c4,c1,b1,d1,b2,d4,d5', 'e4'); // FIXME e4 should be big!
 };
 
 TestAi.prototype.testEyeMaking_3inCorner = function () {
@@ -531,7 +531,7 @@ TestAi.prototype.testPusher1 = function () {
     // 1 +++++++
     //   abcdefg
     this.checkGame('d4,c5,d6,c7,c4,c6,b3,b4,c3,b5,a3',
-        '!e7, e5~=0.5, e3~=1.3, d5>6, d5', // cannot connect if e7 or e5
+        '!e7, e5~=0.5, e3~=1.3, a4, d5>6, #pass, d5>6, d5', // cannot connect if e7 or e5
         7);
 };
 
