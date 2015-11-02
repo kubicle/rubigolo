@@ -16,6 +16,7 @@ function GroupInfo(group, version) {
     this.dependsOn = [];
     this.deadEnemies = [];
     this.killers = [];
+    this.potentialEyes = [];
 
     this.resetAnalysis(group);
 }
@@ -41,6 +42,7 @@ GroupInfo.prototype.resetAnalysis = function (group) {
     this.isDead = false;
     this.deadEnemies.clear();
     this.killers.clear();
+    this.potentialEyes.clear();
     this.numContactPoints = 0;
 };
 
@@ -318,4 +320,30 @@ GroupInfo.prototype.checkLiveliness = function (minLife, strict) {
         return FAILS;
     }
     return UNDECIDED;
+};
+
+GroupInfo.prototype._count = function (method) {
+    var count = method.call(this), n;
+    if (this.band) {
+        var brothers = this.band.brothers;
+        for (n = brothers.length - 1; n >= 0; n--) {
+            if (brothers[n] === this) continue;
+            count += method.call(brothers[n]);
+        }
+    } else {
+        for (n = this.dependsOn.length - 1; n >= 0; n--) {
+            count += method.call(this.dependsOn[n]); //TODO do we need to run on brothers of parents?
+        }
+    }
+    return count;
+};
+
+GroupInfo.prototype.addPotentialEye = function (stone) {
+    this.potentialEyes.push(stone);
+};
+
+GroupInfo.prototype._countPotEyes = function () { return this.potentialEyes.length; };
+
+GroupInfo.prototype.countPotentialEyes = function () {
+    return this._count(this._countPotEyes);
 };
