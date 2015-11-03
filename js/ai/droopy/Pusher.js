@@ -16,6 +16,8 @@ function Pusher(player) {
 
     this.allyCoeff = this.getGene('ally-infl', 0.03, 0.01, 1.0);
     this.enemyCoeff = this.getGene('enemy-infl', 0.13, 0.01, 1.0);
+
+    this.noEasyPrisonerYx = player.getHeuristic('NoEasyPrisoner').scoreGrid.yx;
 }
 inherits(Pusher, Heuristic);
 module.exports = Pusher;
@@ -26,6 +28,9 @@ Pusher.prototype._evalMove = function (i, j, color) {
     var enemyInf = inf[this.enemyColor];
     var allyInf = inf[color];
     if (enemyInf === 0 || allyInf === 0) {
+        return 0;
+    }
+    if (this.noEasyPrisonerYx[j][i] < 0) {
         return 0;
     }
     // Only push where we can connect to
