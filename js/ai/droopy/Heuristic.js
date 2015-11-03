@@ -258,23 +258,54 @@ Heuristic.prototype.canConnect = function (i, j, color) {
     return null;
 };
 
-// Cannot start from corner!
-Heuristic.prototype.canConnectAlongBorder = function (i, j, color) {
+/**
+ * Checks if an escape along border can succeed.
+ * group escapes toward i,j, the proposed 1st escape move
+ * @return {Group|null|undefined} - group we connect to, null if fails, undefined if we cannot say
+ */
+Heuristic.prototype.canEscapeAlongBorder = function (group, i, j) {
     // decide direction
-    var gsize = this.gsize;
-    var dx = 0, dy = 0;
+    var dx = 0, dy = 0, gsize = this.gsize;
     if (i === 1 || i === gsize) dy = 1;
     else if (j === 1 || j === gsize) dx = 1;
-    else return null;
-    // check 1 stone to see if we should reverse direction
+    else throw new Error('not along border');
+
+    // get direction to second row (next to the border we run on)
+    var secondRowDx = dy, secondRowDy = dx;
+    if (this.goban.stoneAt(i + secondRowDx, j + secondRowDy) === BORDER) {
+        secondRowDx = -secondRowDx; secondRowDy = -secondRowDy;
+    }
+    // don't handle case of group running toward the border here
+    if (this.goban.stoneAt(i + secondRowDx, j + secondRowDy).group === group) {
+        return undefined;
+    }
+    // check 1 stone to see if we should run the other way
+    var color = group.color;
     var s = this.goban.stoneAt(i + dx, j + dy);
-    if (s === BORDER) return null;
-    if (s.color !== EMPTY) { dx = -dx; dy = -dy; }
+    if (s !== BORDER && s.group === group) {
+        dx = -dx; dy = -dy;
+    }
 
     for(;;) {
         i += dx; j += dy;
         s = this.goban.stoneAt(i, j);
-        if (s === BORDER) return null;
-        if (s.color === color && s.group.lives > 2) return s.group;
+        if (s === BORDER) {
+            return null;
+        }
+        switch (s.color) {
+        case color:
+            if (s.group.lives > 2) return s.group;
+            return null;
+        case EMPTY:
+            var secondRow = this.goban.stoneAt(i + secondRowDx, j + secondRowDy);
+            if (secondRow.color === EMPTY) continue;
+            if (secondRow.color === 1 - color) {
+                return null;
+            }
+            if (secondRow.group.lives > 2) return secondRow.group;
+            return null;
+        default: //enemy
+            return null;
+        }
     }
 };

@@ -239,6 +239,12 @@ TestAi.prototype.testEyeMaking_3withPrisoners = function () {
     this.checkGame('c4,b4,d4,b3,a2,b5,b2,c5,c2,c3,d2,d3,b1,e3,d1', 'e5>20'); //FIXME, e5 is not good
 };
 
+TestAi.prototype.testEyeMaking_4inCorner = function () {
+    this.todo('Eye making for 4 vertexes in corner');
+    // this.checkGame('b2,a2,b3,a3,c2,b5,b1,d4,d2,c4,a1,d3,e2,e3,d1,b4,a4,a5,a3',
+    //     'd5>17, e5>17, #pass, !e5, d5>17, d5, c5, e5');
+};
+
 TestAi.prototype.testEyeMaking_5 = function () {
     this.todo('Handle single-eye of size 5 & 6'); // see in Shaper
     this.checkGame('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,d3,e5,c1,c4,c5,c4,e4,c5,b2,a2,pass,a1,b1',
@@ -556,7 +562,21 @@ TestAi.prototype.testPusherInC = function () {
 };
 
 TestAi.prototype.testConnectOnBorder = function () {
-    this.checkGame('b4,b3,c4,c3,d4,d3,e4,e3,b2,c2,b1,d1', 'a3>2, a3'); //FIXME a3 should be >4
+    this.checkGame('b4,b3,c4,c3,d4,d3,e4,e3,b2,c2,b1,d1', 'a3>6, a3');
+};
+
+TestAi.prototype.testConnectOnBorderFails = function () {
+    this.checkGame('b2,a2,b3,a3,c2,b5,b1,d4,d2,c4,a1,d3,e2,e3,d1', '!a4');
+};
+
+TestAi.prototype.testConnectOnBorderSaves = function () {
+    this.checkGame('b2,a2,b3,a3,c2,b5,b1,d4,d2,c4,e2,d3,d1', 'a4~=6~Savior, a4'); // should be b4 here
+    this.todo('Connector should not count same group saved by Savior');
+};
+
+TestAi.prototype.testConnectOnBorderSaves2 = function () {
+    this.checkGame('d6,f6,d4,g3,f4,e5,g5,e4,e7,f3,g4,e3,c3,b6,g7,g6,f7,h6,d5,d3,c7,c6,e6,f5,h4,h5,h3,j4,h2,g2,d2,e2,c5,c2,b2,d1,h7,b7,j6,j3,b8,j5,j7,h1,a7,b5,a6,b4,b3,b1,c4,c8,d7,d8,a5,b9,a4,e8,f8,b6,b7,h8,c6,j8,e9,g8,d9,a1,a2',
+        'c1~8', 9); // should be c1~5
 };
 
 TestAi.prototype.testBigConnectScore = function () {
