@@ -57,39 +57,35 @@ GroupInfo.prototype.toString = function () {
         '] deadEnemies:[' + this.deadEnemies.map(GroupInfo.giNdx) + '])';
 };
 
-// Adds a void to an owner-group
-// Current v.vtype value is used
-GroupInfo.prototype._addVoid = function (v) {
+/** Adds a void to an owner-group.
+ * @param {Void} v
+ * @param {Array} [groups] - array of co-owner groups (they become brothers)
+ * @return {GroupInfo} - "this"
+ */
+GroupInfo.prototype.addVoid = function (v, groups) {
     if (main.debug) main.log.debug('OWNED EYE: ' + v + ' owned by ' + this);
     this.voids.push(v);
-    v.owner = this;
     if (v.vtype === vEYE) this.eyeCount++;
+
+    // an eye between several groups makes them brothers
+    if (groups && groups.length > 1) Band.gather(groups);
+    return this;
 };
 
-// Removes a void from an owner-group
-// oldVtype value is used
-GroupInfo.prototype._removeVoid = function (v, oldVtype) {
+/** Removes a void from an owner-group */
+GroupInfo.prototype.removeVoid = function (v) {
     var ndx = this.voids.indexOf(v);
     if (ndx === -1) throw new Error('remove unknown void');
     if (main.debug) main.log.debug('LOST: ' + v + ' lost by ' + this);
     this.voids.splice(ndx, 1);
-    if (oldVtype === vEYE) this.eyeCount--;
+    if (v.vtype === vEYE) this.eyeCount--;
 };
 
-GroupInfo.prototype.onVoidTypeChange = function (v, oldVtype) {
-    this.eyeCount += (v.vtype === vEYE ? +1 : (oldVtype === vEYE ? -1 : 0));
-    if (v.vtype === oldVtype || this.eyeCount < 0) throw new Error('Unexpected error vtype');
-};
-
-// Removes given void from the group
-GroupInfo.prototype.removeVoid = function (v) {
-    this._removeVoid(v, v.vtype);
-    v.owner = undefined;
-};
-
-GroupInfo.prototype.takeVoid = function (v, oldVtype) {
-    if (v.owner) v.owner._removeVoid(v, oldVtype);
-    this._addVoid(v);
+/** Called by an owned void when it is about to change type to newVtype */
+GroupInfo.prototype.onVoidTypeChange = function (v, newVtype) {
+    if (newVtype === vEYE) this.eyeCount++;
+    else if (v.vtype === vEYE) this.eyeCount--;
+    if (v.vtype === newVtype || this.eyeCount < 0) throw new Error('Unexpected vtype error');
 };
 
 GroupInfo.prototype.makeDependOn = function (groups) {

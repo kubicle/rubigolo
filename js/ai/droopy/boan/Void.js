@@ -1,7 +1,6 @@
 'use strict';
 
 var main = require('../../../main');
-var Band = require('./Band');
 var Grid = require('../../../Grid');
 
 var BLACK = main.BLACK, WHITE = main.WHITE;
@@ -86,9 +85,9 @@ Void.prototype.isFakeEye = function (color) {
     }
     if (!isFake) return false;
     if (this.vtype === undefined) {
-        if (this.owner) this.owner.removeVoid(this);
-        this.color = color;
+        if (this.owner) { this.owner.removeVoid(this); this.owner = null; }
         this.vtype = vFAKE_EYE;
+        this.color = color;
     }
     return true;
 };
@@ -101,28 +100,26 @@ Void.prototype.setVoidOwner = function (color, vtype) {
     if (vtype !== vEYE && vtype !== undefined) throw new Error('Invalid void owner vtype: ' + vtype);
     if (vtype === this.vtype && this.owner && color === this.color) return;
     if (main.debug) main.log.debug(vtype2str(vtype).toUpperCase() + ': ' + Grid.colorName(color) + ' owns ' + this);
-    var oldType = this.vtype;
-    this.vtype = vtype;
-
-    // If more than 1 group and they were not brothers yet, they become brothers
-    var groups = this.groups[color];
-    if (groups.length > 1) Band.gather(groups); // TODO: should be GroupInfo's responsibility
 
     if (this.color !== color) {
+        if (this.owner) this.owner.removeVoid(this);
+        this.vtype = vtype;
         this.color = color;
         // ONE of the groups now owns this void
-        groups[0]._info.takeVoid(this, oldType);
+        var groups = this.groups[color];
+        this.owner = groups[0]._info.addVoid(this, groups);
     } else {
-        if (this.owner) this.owner.onVoidTypeChange(this, oldType);
+        if (this.owner) this.owner.onVoidTypeChange(this, vtype);
+        this.vtype = vtype;
     }
 };
 
 // Called during final steps for voids that have both B&W groups alive close-by
 Void.prototype.setAsDame = function () {
     if (main.debug) main.log.debug('DAME: ' + this);
-    if (this.owner) this.owner.removeVoid(this);
-    this.color = undefined;
+    if (this.owner) { this.owner.removeVoid(this); this.owner = null; }
     this.vtype = vDAME;
+    this.color = undefined;
 };
 
 // Called for eyes or fake eyes when their owner group is captured
@@ -132,7 +129,7 @@ Void.prototype.setAsDeadGroupEye = function () {
     if (color === undefined) throw new Error('dead group\'s eye of undefined owner');
 
     this.isInDeadGroup = true;
-    var oldType = this.vtype;
+    if (this.owner) { this.owner.removeVoid(this); this.owner = null; }
     this.vtype = vEYE; // it could have been a fake eye but now it is an eye
     this.color = 1 - color;
 
@@ -141,7 +138,8 @@ Void.prototype.setAsDeadGroupEye = function () {
     for (var i = groups.length - 1; i >= 0; i--) {
         var gi = groups[i]._info;
         if (gi.killers.length) {
-            return gi.killers[0]._info.takeVoid(this, oldType);
+            this.owner = gi.killers[0]._info.addVoid(this);
+            return;
         }
     }
     // Found no killer; happens for eye inside dead group lost inside enemy zone.
