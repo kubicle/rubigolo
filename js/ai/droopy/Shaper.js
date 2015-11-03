@@ -99,7 +99,6 @@ Shaper.getEyeMakerMove = function (goban, i, j, vcount, coords) {
         return 1;
     }
     if (vcount === 4) {
-        // verify the 4 empties are not a "square" shape (anything else works)
         if (empties.length === 3) { // "T" shape - s1 is at center
             coords[0] = s1.i; coords[1] = s1.j;
             return 1;
@@ -109,12 +108,14 @@ Shaper.getEyeMakerMove = function (goban, i, j, vcount, coords) {
                 coords[0] = empties[0].i; coords[1] = empties[0].j;
                 return 1;
             }
+            // FIXME: if one empty is board corner return 1 (move = next to corner)
             return 2; // "Z" shape - s1 is one extremity
         }
         // s1 has 2 empty neighbors
         if (empties[0].numEmpties() === 2 && empties[1].numEmpties() === 2) {
             return 0; // square shape - each empty has 2 neighbors
         }
+        // FIXME: if one empty is board corner return 1 (move = next to corner)
         return 2; // "Z" shape - s1 is one of the 2 at "center"
     }
     if (vcount === 5) {
