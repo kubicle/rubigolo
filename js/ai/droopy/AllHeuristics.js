@@ -14,8 +14,8 @@ var Shaper = require('./Shaper');
 var allHeuristics = function () {
     return [
         NoEasyPrisoner,
-        Savior,
         Hunter,
+        Savior,
         Connector,
         Spacer,
         Pusher,

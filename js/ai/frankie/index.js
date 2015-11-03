@@ -170,11 +170,8 @@ Frankie.prototype.getMove = function () {
     return Grid.xy2move(this.bestI, this.bestJ);
 };
 
-Frankie.prototype._collectGroupInfo = function () {
-    // var allGroups = this.ter.allGroups;
-    // for (var ndx in allGroups) {
-    //     var g = allGroups[ndx], gi = g._info;
-    // }
+Frankie.prototype.guessTerritories = function () {
+    return this.ter.guessTerritories();
 };
 
 Frankie.prototype._prepareEval = function () {
@@ -185,7 +182,6 @@ Frankie.prototype._prepareEval = function () {
 
     this.inf.buildMap();
     this.ter.guessTerritories();
-    this._collectGroupInfo();
 
     // get "raw" group info
     this.boan.analyse(this.color, this.goban);
@@ -242,28 +238,27 @@ Frankie.prototype.testHeuristic = function (i, j, heuristicName) {
     return scoreYx[j][i];
 };
 
-Frankie.prototype.getMoveSurveyText = function (rank) {
-    var survey, score, move;
-    switch (rank) {
-    case 1:
-        if (this.bestI === NO_MOVE) break;
-        this._testMoveEval(this.bestI, this.bestJ);
-        survey = this.survey; score = this.bestScore;
-        move = Grid.xy2move(this.bestI, this.bestJ);
-        break;
-    case 2:
-        if (this.secondBestI === NO_MOVE) break;
-        this._testMoveEval(this.secondBestI, this.secondBestJ);
-        survey = this.survey; score = this.secondBestScore;
-        move = Grid.xy2move(this.secondBestI, this.secondBestJ);
-        break;
-    }
+function surveySort(h1, h2) { return h2[1] - h1[1]; }
+
+Frankie.prototype.getMoveSurveyText = function (move) {
+    if (this.bestI === NO_MOVE) return '';
+    if (move !== Grid.xy2move(this.bestI, this.bestJ)) return '';
+
+    this._testMoveEval(this.bestI, this.bestJ);
+    var survey = this.survey;
+    var score = this.bestScore;
     if (!survey) return '';
-    var txt = 'Stats of ' + move + ' (' + score.toFixed(3) + '):\n';
+
+    var sortedSurvey = [];
     for (var h in survey) {
         if (survey[h] === 0) continue;
-        txt += '- ' + h + ': ' + survey[h].toFixed(3) + '\n';
+        sortedSurvey.push([h, survey[h]]);
+    }
+    sortedSurvey.sort(surveySort);
+
+    var txt = move + ' (' + score.toFixed(2) + ')\n';
+    for (var n = 0; n < sortedSurvey.length; n++) {
+        txt += '- ' + sortedSurvey[n][0] + ': ' + sortedSurvey[n][1].toFixed(2) + '\n';
     }
     return txt;
 };
-

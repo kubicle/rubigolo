@@ -5,8 +5,9 @@ var main = require('../../main');
 var Grid = require('../../Grid');
 var Stone = require('../../Stone');
 
-var sOK = main.sOK, ALWAYS = main.ALWAYS;
-var EMPTY = main.EMPTY, BORDER = main.BORDER;
+var BLACK = main.BLACK, WHITE = main.WHITE, EMPTY = main.EMPTY, BORDER = main.BORDER;
+var sOK = main.sOK, sDEBUG = main.sDEBUG;
+var ALWAYS = main.ALWAYS;
 var XY_AROUND = Stone.XY_AROUND;
 var DIR0 = main.DIR0, DIR3 = main.DIR3;
 
@@ -14,56 +15,83 @@ var DIR0 = main.DIR0, DIR3 = main.DIR3;
 /** @class Base class for all heuristics.
  *  Anything useful for all of them should be stored as data member here.
  */
-function Heuristic(player, consultant) {
+function Heuristic(player) {
     this.player = player;
-    this.consultant = !!consultant;
+    this.name = this.constructor.name;
     this.goban = player.goban;
     this.gsize = player.goban.gsize;
-    this.inf = player.inf;
-    this.ter = player.ter;
+    this.infl = player.inf.map;
+    this.pot = player.pot;
     this.boan = player.boan;
     this.scoreGrid = new Grid(this.gsize);
     this.minimumScore = player.minimumScore;
 
     this.spaceInvasionCoeff = this.getGene('spaceInvasion', 2.0, 0.01, 4.0);
+
+    this.color = this.enemyColor = null;
 }
 module.exports = Heuristic;
 
-Heuristic.prototype.initColor = function () {
-    // For consultant heuristics we reverse the colors
-    if (this.consultant) {
-        this.color = this.player.enemyColor;
-        this.enemyColor = this.player.color;
-    } else {
-        this.color = this.player.color;
-        this.enemyColor = this.player.enemyColor;
-    }
+
+Heuristic.prototype.initColor = function (color) {
+    this.color = color;
+    this.enemyColor = 1 - color;
 };
 
-// For heuristics which do not handle evalBoard (but evalMove)
+// For heuristics which do not handle evalBoard (but _evalMove)
+// NB: _evalMove is "private": only called from here (base class), and from inside a heuristic
 Heuristic.prototype.evalBoard = function (stateYx, scoreYx) {
     var color = this.player.color;
     var myScoreYx = this.scoreGrid.yx;
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
-            if (stateYx[j][i] < sOK) continue;
-            var score = myScoreYx[j][i] = this.evalMove(i, j, color);
+            var state = stateYx[j][i];
+            if (state < sOK) continue;
+            if (state === sDEBUG && this.name === this.player.debugHeuristic)
+                main.debug = true;
+
+            var score = myScoreYx[j][i] = this._evalMove(i, j, color);
             scoreYx[j][i] += score;
+
+            if (state === sDEBUG)
+                main.debug = false;
         }
     }
 };
 
 Heuristic.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
-    return this.player.genes.get(this.constructor.name + '-' + name, defVal, lowLimit, highLimit);
+    return this.player.genes.get(this.name + '-' + name, defVal, lowLimit, highLimit);
 };
 
 Heuristic.prototype.territoryScore = function (i, j, color) {
-    var ter = this.ter.potential().yx;
-    return ter[j][i] * ( color === main.BLACK ? 1 : -1);
+    return this.pot.territory.yx[j][i] * (color === main.BLACK ? 1 : -1);
 };
 
+/** @return {number} - NEVER, SOMETIMES, ALWAYS */
+Heuristic.prototype.isOwned = function (i, j, color) {
+    var myColor = color === main.BLACK ? -1 : +1;
+    var score = 0;
+    if (Grid.territory2owner[2 + this.pot.grids[BLACK].yx[j][i]] === myColor) score++;
+    if (Grid.territory2owner[2 + this.pot.grids[WHITE].yx[j][i]] === myColor) score++;
+    return score;
+};
+
+/** @return {color|null} - null if no chance to make an eye here */
+Heuristic.prototype.eyePotential = function (i, j) {
+    var infl = this.infl[j][i];
+    var color = infl[BLACK] > infl[WHITE] ? BLACK : WHITE;
+    var allyInf = infl[color], enemyInf = infl[1 - color];
+
+    if (enemyInf > 1) return null; // enemy stone closer than 2 vertexes
+    var cornerPoints = 0, gsize = this.gsize;
+    if (i === 1 || i === gsize || j === 1 || j === gsize) cornerPoints++;
+    if (allyInf + cornerPoints - 3 - enemyInf < 0) return null;
+    return color;
+};
+
+//TODO review this - why 1-color and not both grids?
 Heuristic.prototype.enemyTerritoryScore = function (i, j, color) {
-    var score = Grid.territory2owner[2 + this.ter.grids[1 - color].yx[j][i]];
+    var score = Grid.territory2owner[2 + this.pot.grids[1 - color].yx[j][i]];
     return score * (color === main.BLACK ? 1 : -1);
 };
 
@@ -85,9 +113,9 @@ Heuristic.prototype.groupThreat = function (g, saved) {
 
 // Count indirectly saved groups
 Heuristic.prototype._countSavedAllies = function (killedEnemyGroup) {
-    // do not count any saved allies if we gave them a single life along border TODO: improve later
+    // do not count any saved allies if we gave them a single life in corner
     if (killedEnemyGroup.stones.length === 1 &&
-        this.distanceFromStoneToBorder(killedEnemyGroup.stones[0]) === 0) {
+        this.distanceFromStoneToCorner(killedEnemyGroup.stones[0]) === 0) {
         return 0;
     }
     var saving = 0;
@@ -126,13 +154,19 @@ Heuristic.prototype.invasionCost = function (i, j, color) {
 };
 
 Heuristic.prototype.markMoveAsBlunder = function (i, j, reason) {
-    this.player.markMoveAsBlunder(i, j, this.constructor.name + ':' + reason);
+    this.player.markMoveAsBlunder(i, j, this.name + ':' + reason);
 };
 
 Heuristic.prototype.distanceFromStoneToBorder = function (stone) {
     var gsize = this.gsize;
     var i = stone.i, j = stone.j;
     return Math.min(Math.min(i - 1, gsize - i), Math.min(j - 1, gsize - j));
+};
+
+Heuristic.prototype.distanceFromStoneToCorner = function (stone) {
+    var gsize = this.gsize;
+    var i = stone.i, j = stone.j;
+    return Math.min(i - 1, gsize - i) + Math.min(j - 1, gsize - j);
 };
 
 Heuristic.prototype.diagonalStones = function (s1, s2) {
@@ -224,23 +258,54 @@ Heuristic.prototype.canConnect = function (i, j, color) {
     return null;
 };
 
-// Cannot start from corner!
-Heuristic.prototype.canConnectAlongBorder = function (i, j, color) {
+/**
+ * Checks if an escape along border can succeed.
+ * group escapes toward i,j, the proposed 1st escape move
+ * @return {Group|null|undefined} - group we connect to, null if fails, undefined if we cannot say
+ */
+Heuristic.prototype.canEscapeAlongBorder = function (group, i, j) {
     // decide direction
-    var gsize = this.gsize;
-    var dx = 0, dy = 0;
+    var dx = 0, dy = 0, gsize = this.gsize;
     if (i === 1 || i === gsize) dy = 1;
     else if (j === 1 || j === gsize) dx = 1;
-    else return null;
-    // check 1 stone to see if we should reverse direction
+    else throw new Error('not along border');
+
+    // get direction to second row (next to the border we run on)
+    var secondRowDx = dy, secondRowDy = dx;
+    if (this.goban.stoneAt(i + secondRowDx, j + secondRowDy) === BORDER) {
+        secondRowDx = -secondRowDx; secondRowDy = -secondRowDy;
+    }
+    // don't handle case of group running toward the border here
+    if (this.goban.stoneAt(i + secondRowDx, j + secondRowDy).group === group) {
+        return undefined;
+    }
+    // check 1 stone to see if we should run the other way
+    var color = group.color;
     var s = this.goban.stoneAt(i + dx, j + dy);
-    if (s === BORDER) return null;
-    if (s.color !== EMPTY) { dx = -dx; dy = -dy; }
+    if (s !== BORDER && s.group === group) {
+        dx = -dx; dy = -dy;
+    }
 
     for(;;) {
         i += dx; j += dy;
         s = this.goban.stoneAt(i, j);
-        if (s === BORDER) return null;
-        if (s.color === color && s.group.lives > 2) return s.group;
+        if (s === BORDER) {
+            return null;
+        }
+        switch (s.color) {
+        case color:
+            if (s.group.lives > 2) return s.group;
+            return null;
+        case EMPTY:
+            var secondRow = this.goban.stoneAt(i + secondRowDx, j + secondRowDy);
+            if (secondRow.color === EMPTY) continue;
+            if (secondRow.color === 1 - color) {
+                return null;
+            }
+            if (secondRow.group.lives > 2) return secondRow.group;
+            return null;
+        default: //enemy
+            return null;
+        }
     }
 };

@@ -93,5 +93,6 @@ TestUi.prototype.createUi = function () {
 
 TestUi.prototype.showTestGame = function (title, msg, game) {
     var ui = new Ui(game);
+    ui.inDevMode = true;
     ui.loadFromTest(this.gameDiv, title, msg);
 };

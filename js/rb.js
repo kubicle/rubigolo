@@ -114,10 +114,6 @@ Array.new = function (size, init) {
     return a;
 };
 
-Array.prototype.contains = function (e) {
-    return this.indexOf(e) !== -1;
-};
-
 /** Push onto this array the items from array2 that are not yet in it.
  *  Returns the count of items added. */
 Array.prototype.pushUnique = function (array2) {
@@ -140,15 +136,9 @@ Array.prototype.find = function (e) {
     return undefined;
 };
 
-Array.prototype.size = function () {
-    return this.length;
-};
-
 Array.prototype.clear = function () {
     this.length = 0;
 };
-
-Array.prototype.select = Array.prototype.filter;
 
 Array.prototype.count = function (what) {
     switch (typeof what) {

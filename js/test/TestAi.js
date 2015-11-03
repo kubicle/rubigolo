@@ -36,10 +36,9 @@ TestAi.prototype.playMoves = function (moves) {
     this.game.loadMoves(moves);
 };
 
-TestAi.prototype.logErrorContext = function (player) {
+TestAi.prototype.logErrorContext = function (player, move) {
     main.log.error(this.goban.toString());
-    main.log.error(player.getMoveSurveyText(1));
-    main.log.error(player.getMoveSurveyText(2));
+    main.log.error(player.getMoveSurveyText(move));
 };
 
 TestAi.prototype.checkScore = function(player, color, move, score, expScore, heuristic) {
@@ -51,7 +50,7 @@ TestAi.prototype.checkScore = function(player, color, move, score, expScore, heu
         (heuristic ? ' for ' + heuristic : '');
     main.log.warn('Discrepancy in ' + this.name + ': ' + msg);
     this.showInUi(msg);
-    this.logErrorContext(player);
+    this.logErrorContext(player, move);
 };
 
 // if expEval is null there is not check: value is returned
@@ -74,10 +73,13 @@ TestAi.prototype.checkEval = function (move, expEval, heuristic) {
 };
 
 TestAi.prototype._moveOrValue = function (mv) {
-    var isMove = mv[0] > '9';
-    var score = isMove ? this.checkEval(mv) : parseFloat(mv);
-    var desc = isMove ? mv + '/' + score.toFixed(2) : mv;
-    return [score, desc];
+    if (mv[0] > '9') {
+        var player = Grid.colorName(this.game.curColor);
+        var score = this.checkEval(mv);
+        return [score, player + '-' + mv + '/' + score.toFixed(2)];
+    } else {
+        return [parseFloat(mv), mv];
+    }
 };
 
 // Checks that move1 is better than move2|value
@@ -102,7 +104,7 @@ TestAi.prototype.playAndCheck = function (expMove, expEval) {
     var move = player.getMove();
     var score = player.bestScore;
     if (move !== expMove) {
-        this.logErrorContext(player);
+        this.logErrorContext(player, move);
         // if expMove got a very close score, our test scenario bumps on twin moves
         if (expMove !== 'pass' && Math.abs(this.checkEval(expMove) - score) < 0.001) {
             main.log.error('CAUTION: ' + expMove + ' and ' + move + 
@@ -209,6 +211,11 @@ TestAi.prototype.testEyeMaking = function () {
     this.checkGame('b3,d3,b2,c3,c2,d2,c4,c1,b1,d1,b4,d4,d5,pass,e5,e4,c5', 'e2');
 };
 
+TestAi.prototype.testEyeClosing = function () {
+    // a4 saves or kills white group
+    this.checkGame('a2,b4,b2,c4,c2,d4,d2,e4,e2,b5,a3,c5', 'a4>30, #pass, a4>30, a4');
+};
+
 TestAi.prototype.testAiClosesItsTerritory = function () {
     // ++@@+
     // ++@O+
@@ -216,16 +223,32 @@ TestAi.prototype.testAiClosesItsTerritory = function () {
     // +@@O+
     // +@OO+
     // e4 might seem to AI like filling up its own space; but it is mandatory here
-    this.checkGame('c3,d3,c2,d2,c4,c1,b1,d1,b2,d4,d5', 'e4<b4, b4~0.2'); // FIXME e4 should be big!
+    this.checkGame('c3,d3,c2,d2,c4,c1,b1,d1,b2,d4,d5', 'e4'); // FIXME e4 should be big!
 };
 
-TestAi.prototype.testCornerEyeMaking = function () {
+TestAi.prototype.testEyeMaking_3inCorner = function () {
     // OOO+*
     // @@OO+
     // +@@OO
     // ++@@O
     // +++@@
     this.checkGame('b3,d3,c3,d4,c2,c4,d2,e2,b4,b5,d1,a5,a4,c5,e1,e3,pass', 'e5');
+};
+
+TestAi.prototype.testEyeMaking_3withPrisoners = function () {
+    this.checkGame('c4,b4,d4,b3,a2,b5,b2,c5,c2,c3,d2,d3,b1,e3,d1', 'e5>20'); //FIXME, e5 is not good
+};
+
+TestAi.prototype.testEyeMaking_4inCorner = function () {
+    this.todo('Eye making for 4 vertexes in corner');
+    // this.checkGame('b2,a2,b3,a3,c2,b5,b1,d4,d2,c4,a1,d3,e2,e3,d1,b4,a4,a5,a3',
+    //     'd5>17, e5>17, #pass, !e5, d5>17, d5, c5, e5');
+};
+
+TestAi.prototype.testEyeMaking_5 = function () {
+    this.todo('Handle single-eye of size 5 & 6'); // see in Shaper
+    this.checkGame('b5,a5,b4,a4,c3,b3,c2,a3,d4,d5,d3,e5,c1,c4,c5,c4,e4,c5,b2,a2,pass,a1,b1',
+        'e2~=0'); //TODO e2 > 21
 };
 
 TestAi.prototype.testNoPushFromDeadGroup = function () {
@@ -297,6 +320,18 @@ TestAi.prototype.testHunter1 = function () {
         'h6=h7, h6~=12.3,' + // h7 is OK too but capturing same 2 stones in a ladder
         '#h6, #h7, g7', // force black in h6 - choice between h6 and h7 may vary due to smaller differences
         9);
+};
+
+TestAi.prototype.testHunterCountsSavedGroupsToo = function () {
+    this.checkGame('a2,a3,b2,b3,c2,a4,b1,a5,c3,b6,b4,a6,b5,c6,c5,d6,d5,e6,e5,f6,f5,g5,f4,g4,f3,g3,d4,f2,e3,e2,pass,d2,pass,d3,g2',
+        'g1>g6, g1', 7);
+};
+
+TestAi.prototype.testHunterDoubleAttack = function () {
+    this.checkGame('d4,d6,f5,g7,g5,g3,e5,d2,c3,c5,c2,d3,c4,f4,d5,e7,e6,c6,f6,f7,h6,e4,g4,h4,h5,h3',
+        'e3<1, #e3, e2, f3, f2', // TODO 'e3>10, pass, e3>10',
+        9);
+    this.todo('Hunter must see double threat');
 };
 
 TestAi.prototype.testLadder = function () {
@@ -502,7 +537,7 @@ TestAi.prototype.testPusher1 = function () {
     // 1 +++++++
     //   abcdefg
     this.checkGame('d4,c5,d6,c7,c4,c6,b3,b4,c3,b5,a3',
-        '!e7, e5~=0.5, e3~=1.3, d5~2.5', // cannot connect if e7 or e5
+        '!e7, e5~=0.5, e3~=1.3, a4, d5>6, #pass, d5>6, d5', // cannot connect if e7 or e5
         7);
 };
 
@@ -527,7 +562,39 @@ TestAi.prototype.testPusherInC = function () {
 };
 
 TestAi.prototype.testConnectOnBorder = function () {
-    this.checkGame('b4,b3,c4,c3,d4,d3,e4,e3,b2,c2,b1,d1', 'a3>2, a3'); //FIXME a3 should be >4
+    this.checkGame('b4,b3,c4,c3,d4,d3,e4,e3,b2,c2,b1,d1', 'a3>6, a3');
+};
+
+TestAi.prototype.testConnectOnBorderFails = function () {
+    this.checkGame('b2,a2,b3,a3,c2,b5,b1,d4,d2,c4,a1,d3,e2,e3,d1', '!a4');
+};
+
+TestAi.prototype.testConnectOnBorderSaves = function () {
+    this.checkGame('b2,a2,b3,a3,c2,b5,b1,d4,d2,c4,e2,d3,d1', 'a4~=6~Savior, a4'); // should be b4 here
+    this.todo('Connector should not count same group saved by Savior');
+};
+
+TestAi.prototype.testConnectOnBorderSaves2 = function () {
+    this.checkGame('d6,f6,d4,g3,f4,e5,g5,e4,e7,f3,g4,e3,c3,b6,g7,g6,f7,h6,d5,d3,c7,c6,e6,f5,h4,h5,h3,j4,h2,g2,d2,e2,c5,c2,b2,d1,h7,b7,j6,j3,b8,j5,j7,h1,a7,b5,a6,b4,b3,b1,c4,c8,d7,d8,a5,b9,a4,e8,f8,b6,b7,h8,c6,j8,e9,g8,d9,a1,a2',
+        'c1~8', 9); // should be c1~5
+};
+
+TestAi.prototype.testBigConnectScore = function () {
+    // ideal score is 48 actually because c3 kills or save everyone
+    this.checkGame('a4,b2,b4,b3,b5,a3,c4,d4,c2,d3,d2,b1,c1,e3,e2,d5', 'c3>19, c3');
+};
+
+TestAi.prototype.testConnect = function () {
+    this.checkGame('a2,a6,b2,b6,b1,b7,c2,f1,d2,f2,d1,g2,g6,g3,f6,f3,e6,e3,d6,d4,d7,b5,f7,d5,c6,a5,c3,a4,c4',
+        'c5>12, #pass, c5>12', 7);
+    // see comments at top of file:
+    this.todo('Better evaluation of connection for brothers + critical stone');
+};
+
+TestAi.prototype.testUselessConnect = function () {
+    this.checkGame('a2,a6,b2,b6,b1,b7,c2,f1,d2,f2,d1,g2,g6,f3,f6,f4,e6,g4,d6,b5,d7,b4,f7,a4,d3,e4,d5,c4',
+        'd4<1', // TODO one day: d4, pass, pass - see that all the space between live groups is waste
+        7);
 };
 
 TestAi.prototype.testSemiAndEndGame = function () {

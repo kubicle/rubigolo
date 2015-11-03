@@ -9,22 +9,23 @@ var inherits = require('util').inherits;
 /** @class Tries to occupy empty space + counts when filling up territory */
 function Spacer(player) {
     Heuristic.call(this, player);
+
     this.inflCoeff = this.getGene('infl', 1, 0.5, 3);
     this.borderCoeff = this.getGene('border', 10, 0, 20);
 }
 inherits(Spacer, Heuristic);
 module.exports = Spacer;
 
-Spacer.prototype.evalMove = function (i, j) {
+Spacer.prototype._evalMove = function (i, j) {
     var enemyInf = 0, allyInf = 0;
     var stone = this.goban.stoneAt(i, j);
-    var inf = this.inf.map[j][i];
+    var inf = this.infl[j][i];
     enemyInf += inf[this.enemyColor];
     allyInf += inf[this.color];
     for (var n = stone.neighbors.length - 1; n >= 0; n--) {
         var s = stone.neighbors[n];
         if (s.color !== main.EMPTY) return 0;
-        inf = this.inf.map[s.j][s.i];
+        inf = this.infl[s.j][s.i];
         enemyInf += inf[this.enemyColor];
         allyInf += inf[this.color];
     }

@@ -22,6 +22,9 @@
     "igo",
     "weiqi"
   ],
+  "dependencies": {
+    "socket.io-client": "=1.2.1"
+  },
   "devDependencies": {
     "istanbul": "~0.3.22",
     "codeclimate-test-reporter": "~0.1.1",

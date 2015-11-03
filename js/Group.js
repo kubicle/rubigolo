@@ -79,35 +79,31 @@ Group.prototype.stonesDump = function () {
 // Builds a list of all lives of the group (empty stones around)
 // Costly!
 Group.prototype.allLives = function () {
-    var _allLives = [];
+    var lives = [];
     for (var s, s_array = this.stones, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
         for (var life, life_array = s.neighbors, life_ndx = 0; life=life_array[life_ndx], life_ndx < life_array.length; life_ndx++) {
             if (life.color !== EMPTY) continue;
 
-            if (!_allLives.contains(life)) {
-                _allLives.push(life);
-            }
+            if (lives.indexOf(life) < 0) lives.push(life);
         }
     }
-    return _allLives;
+    return lives;
 };
 
 // Builds a list of all enemies of the group
 // Costly!
 Group.prototype.allEnemies = function () {
-    var _allEnemies = [];
+    var enemies = [];
     var enemyColor = 1 - this.color;
     for (var s, s_array = this.stones, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
         for (var en, en_array = s.neighbors, en_ndx = 0; en=en_array[en_ndx], en_ndx < en_array.length; en_ndx++) {
             if (en.color !== enemyColor) continue;
 
-            if (!_allEnemies.contains(en.group)) {
-                _allEnemies.push(en.group);
-            }
+            if (enemies.indexOf(en.group) < 0) enemies.push(en.group);
         }
     }
-    if (main.debugGroup) main.log.debug(this + ' has ' + _allEnemies.length + ' enemies');
-    return _allEnemies;
+    if (main.debugGroup) main.log.debug(this + ' has ' + enemies.length + ' enemies');
+    return enemies;
 };
 
 // Counts the lives of a stone that are not already in the group

@@ -41,8 +41,8 @@ TestScoreAnalyser.prototype.testComputeScore = function () {
     var whoResigned = null;
     var s = this.sa.computeScore(this.goban, 1.5, whoResigned);
     this.assertEqual('white wins by 6.5 points', s.shift());
-    this.assertEqual('black (@): 12 points (12 + 0 prisoners)', s.shift());
-    this.assertEqual('white (O): 18.5 points (14 + 3 prisoners + 1.5 komi)', s.shift());
+    this.assertEqual('black: 12 points (12 + 0 prisoners)', s.shift());
+    this.assertEqual('white: 18.5 points (14 + 3 prisoners + 1.5 komi)', s.shift());
     this.assertEqual(undefined, s.shift());
     // test message when someone resigns
     s = this.sa.computeScore(this.goban, 1.5, main.BLACK);
@@ -77,8 +77,8 @@ TestScoreAnalyser.prototype.testScoreInfoToS = function () {
     var info = [[10, 12], [[1, 2, 3], [4, 5, 6]]];
     var s = this.sa.scoreInfoToS(info);
     this.assertEqual('white wins by 2 points', s.shift());
-    this.assertEqual('black (@): 10 points (1 + 2 prisoners + 3 komi)', s.shift());
-    this.assertEqual('white (O): 12 points (4 + 5 prisoners + 6 komi)', s.shift());
+    this.assertEqual('black: 10 points (1 + 2 prisoners + 3 komi)', s.shift());
+    this.assertEqual('white: 12 points (4 + 5 prisoners + 6 komi)', s.shift());
     this.assertEqual(undefined, s.shift());
 };
 

@@ -22,11 +22,11 @@ TestPotentialTerritory.prototype.initBoard = function (size, handicap) {
     this.game = new GameLogic();
     this.game.newGame(size, handicap);
     this.goban = this.game.goban;
-    this.ter = new main.defaultAi.PotentialTerritory(this.goban);
+    this.pot = new main.defaultAi.PotentialTerritory(this.goban);
 };
 
 TestPotentialTerritory.prototype.checkPotential = function (expected) {
-    this.assertEqual(expected, this.ter.image());
+    this.assertEqual(expected, this.pot.image());
 };
 
 TestPotentialTerritory.prototype.checkBasicGame = function (moves, expected, gsize, finalPos) {
@@ -34,8 +34,8 @@ TestPotentialTerritory.prototype.checkBasicGame = function (moves, expected, gsi
     this.game.loadMoves(moves);
     if (finalPos) this.assertEqual(finalPos, this.goban.image());
 
-    this.ter.guessTerritories();
-    var territory = this.ter.image();
+    this.pot.guessTerritories();
+    var territory = this.pot.image();
     if (territory === expected) return;
     this.showInUi('Expected territory was<br>' + expected + ' but got<br>' + territory);
     this.assertEqual(expected, territory);
@@ -102,10 +102,10 @@ TestPotentialTerritory.prototype.testMessyBoard = function () {
     // @@OOOO+
     // ++++@@+
     this.checkBasicGame('d4,d2,e3,b4,e1,c5,d6,d5,c3,e5,d3,b3,b2,c2,a2,e2,f1,f2,b6,c6,f6,e6,f4,d7,f5,f3',
-        '?????--,' +
-        '?????--,' +
-        '?????--,' +
-        '?????--,' +
+        '???????,' +
+        '???????,' +
+        '???????,' +
+        '???????,' +
         '?????::,' +
         '??:::::,' +
         '??:::::');

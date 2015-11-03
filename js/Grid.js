@@ -26,7 +26,7 @@ Grid.DEAD_CHARS = '&#';
 Grid.TERRITORY_CHARS = '-:';
 Grid.COLOR_CHARS = Grid.STONE_CHARS + Grid.DEAD_CHARS + Grid.TERRITORY_CHARS + Grid.DAME_CHAR + Grid.EMPTY_CHAR;
 Grid.CIRCULAR_COLOR_CHARS = Grid.DAME_CHAR + Grid.EMPTY_CHAR + Grid.COLOR_CHARS;
-Grid.ZONE_CODE = 100; // used for zones (100, 101, etc.); must be > COLOR_CHARS.size
+Grid.ZONE_CODE = 100; // used for zones (100, 101, etc.); must be > COLOR_CHARS.length
 
 // Possible values of a color (beside BLACK & WHITE)
 Grid.EMPTY_COLOR = -1; // this is same as EMPTY, conveniently
@@ -35,20 +35,29 @@ Grid.DEAD_COLOR = 2; // 2 and 3
 Grid.TERRITORY_COLOR = 4; // 4 and 5
 
 // Converts a "territory" character into an owner score (-1= black, +1= white)
-// dame, empty, live*2, dead*2, terr*2
+// dame,empty, liveB,liveW deadB,deadW, terrB,terrW
 Grid.territory2owner = [0,0, -1,+1, +1,-1, -1,+1];
 // Converts potential territory number to a char (-1, -0.5, 0, +0.5, +1) -> char
 Grid.territory2char = '-\'?.:';
 
 
-Grid.prototype.copy = function (sourceGrid) {
-    if (sourceGrid.gsize !== this.gsize) {
-        throw new Error('Cannot copy between different sized grids');
+Grid.prototype.init = function (initValue) {
+    if (initValue === undefined) initValue = main.EMPTY;
+    for (var j = this.gsize; j >= 1; j--) {
+        var yxj = this.yx[j];
+        for (var i = this.gsize; i >= 1; i--) {
+            yxj[i] = initValue;
+        }
     }
-    var srcYx = sourceGrid.yx;
-    for (var j = 1; j <= this.gsize; j++) {
-        for (var i = 1; i <= this.gsize; i++) {
-            this.yx[j][i] = srcYx[j][i];
+};
+
+Grid.prototype.copy = function (sourceGrid) {
+    if (sourceGrid.gsize !== this.gsize) throw new Error('Cannot copy between different sized grids');
+
+    for (var j = this.gsize; j >= 1; j--) {
+        var yxj = this.yx[j], srcYxj = sourceGrid.yx[j];
+        for (var i = this.gsize; i >= 1; i--) {
+            yxj[i] = srcYxj[i];
         }
     }
     return this;

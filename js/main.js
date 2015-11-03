@@ -11,7 +11,6 @@ main.debug = false;
 main.TestCase = TestCase; // could be refactored - each test can require TestCase now
 main.tests = new TestSeries();
 main.log = new Logger();
-main.Logger = Logger;
 
 
 //--- Misc Helpers

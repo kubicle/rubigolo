@@ -1,37 +1,68 @@
 .gameUi {
   .board {
-    width: 670px;
     background-color: #402F23;
+    border-radius: 7px;
+
     .wgo-board {
       margin: 0 auto;
+      /* Below avoid issues when tap-hold on mobile */
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
     }
   }
   .boardDesc {
+    margin-top: 3px;
+    font-weight: bold;
     font-style: italic;
   }
-  .resiButton {
-    margin-left: 170px;
+
+  button {
+    min-width: 160px;
   }
-  .testControls button {
-    height: 90px;
-    font-size: 24px;
-  }
-  .logDiv {
-    height: 100px;
-    width: 670px;
+
+  .mainControls {
+    margin-top: 10px;
     display: flex;
 
+
     .outputBox {
-      height: 100%;
       width: 410px;
+      min-width: 200px;
+      font-size: 22px;
       font-weight: bold;
+      margin-right: 10px;
       margin-bottom: 10px;
     }
-    .historyBox {
-      margin-left: 10px;
-      height: 100%;
-      width: 230px;
-      font-family: "Courier";
+  }
+
+  .devDiv {
+    display: flex;
+    min-width: 600px;
+    border: #755;
+    border-width: 1px 2px 2px 1px;
+    border-style: solid;
+    border-radius: 10px;
+    background-color: #FAEBD7;
+    padding: 7px;
+
+    .devControls {
+      display: flex;
+
+      button {
+        height: 90px;
+        font-size: 24px;
+      }
+      .dropDwn {
+        font-size: 24px;
+        margin: 0px 10px 5px 0px;
+      }
+    }
+
+    .devLogBox {
+      height: 102px;
+      width: 460px;
+      min-width: 200px;
+      font-size: 20px;
       font-weight: bold;
     }
   }

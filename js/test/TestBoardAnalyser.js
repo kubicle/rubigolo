@@ -57,6 +57,56 @@ TestBoardAnalyser.prototype.showInUi = function (msg) {
 
 //---
 
+
+TestBoardAnalyser.prototype.testWeirdEmptyBoard = function () {
+    // Just makes sure the analyser does not crash on empty boards.
+    // Note that scoring these boards makes little sense so the 
+    // result scoring grid is not really important.
+    this.checkGame('', '+++++,+++++,+++++,+++++,+++++');
+    this.checkGame('c3', '-----,-----,--@--,-----,-----');
+    this.checkGame('c3,d5', '---#-,-----,--@--,-----,-----');
+    this.checkGame('c3,d4', '?????,???#?,??&??,?????,?????');
+};
+
+TestBoardAnalyser.prototype.testDoomedGivesEye1 = function () {
+    // White group is doomed; verify its eye is counted right
+    this.checkGame('a2,b4,b2,c4,c2,d4,d2,e4,e2,b5,a3,c5,a4',
+        '-##--,@####,@----,@@@@@,-----');
+};
+
+TestBoardAnalyser.prototype.testDoomedGivesEye2 = function () {
+    // Same as above test but white's dead group does not "touch" black.
+    // This triggers a special case in analyser (white is dead without "killer")
+    this.checkGame('a2,a4,b2,b4,c2,b5,b1,c5,d2,c4,d1',
+        '-##--,' +
+        '###--,' +
+        '-----,' +
+        '@@@@-,' +
+        '-@-@-');
+};
+
+TestBoardAnalyser.prototype.testDoomedGivesEye3 = function () {
+    // Same as above but both groups have a single eye - they both die
+    this.todo('Handle seki'); // both should stay alive instead
+    this.checkGame('a2,a4,b2,b4,c2,b5,c3,pass,d3,pass,d4,pass,d5,pass,a1,pass,b1,pass,c1,pass,e3,pass,e4,pass,e5',
+        '-#-&&,##-&&,--&&&,&&&::,&&&::');
+};
+
+TestBoardAnalyser.prototype.testTwoSigleEyeConnectedByFakeEye = function () {
+    // Black SW and center groups survive depending on each other
+    this.checkGame('a2,a3,b2,b3,c2,a4,b1,a5,c3,b6,b4,a6,b5,c6,c5,d6,d5,e6,e5,f6,f5,g5,f4,g4,f3,g3,d4,f2,e3,e2,pass,d2,pass,d3,d1,e1,c1,g1',
+        ':::::::,' +
+        'OOOOOO:,' +
+        'O@@@@@O,' +
+        'O@?@-@O,' +
+        'OO@O@@O,' +
+        '@@@OOO:,' +
+        '-@@@O:O', 7);
+    // and a variation that triggered a bug:
+    this.checkGame('a2,a3,b2,b3,c2,a4,b1,a5,c3,b6,b4,a6,b5,c6,c5,d6,d5,e6,e5,f6,f5,g5,f4,g4,f3,g3,d4,f2,e3,e2,pass,d2,pass,d3,pass,g2',
+        ':::::::,OOOOOO:,O@@@@@O,O@?@-@O,OO@O@@O,@@@OOOO,-@?????', 7);
+};
+
 TestBoardAnalyser.prototype.testUnconnectedBrothers = function () {
     this.checkGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b5,b3,c4,a4,a5,a3,g6,pass,g4,g3,g5',
         '-------,---@@@@,@@-@OO@,O?@@O@@,OOOO?OO,::O&O::,:::::::', 7);

@@ -58,10 +58,6 @@ PotentialTerritory.prototype.guessTerritories = function () {
     return resultYx;
 };
 
-PotentialTerritory.prototype.potential = function () {
-    return this.territory;
-};
-
 PotentialTerritory.prototype.toString = function () {
     return '\n+1=white, -1=black, 0=no one\n' +
         this.territory.toText(function (v) { return v === 0 ? '    0' : '%+.1f'.format(v); }) +
@@ -271,6 +267,9 @@ PotentialTerritory.prototype.connectToBorders = function (yx) {
         if (color !== EMPTY) {
             l0 = yx[gj-dx][gi-dy]; r0 = yx[gj+dx][gi+dy];
             if (l0 === color || r0 === color) continue; // no need for goal if s0 or r0
+            // special case: we don't want to split a 3 vertex eye into 2 eyes here
+            l1 = yx[s1j-dx][s1i-dy]; r1 = yx[s1j+dx][s1i+dy];
+            if (l0 === EMPTY && r0 === EMPTY && l1 === color && r1 === color) continue;
             this.addStone(yx, gi, gj, color, true);
             continue;
         }

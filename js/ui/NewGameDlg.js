@@ -24,9 +24,9 @@ function NewGameDlg(options, cb) {
     var moves = Dome.newInput(form, 'moves', 'Moves to load:');
 
     var defAiDiv = form.newDiv();
-    Dome.newLabel(defAiDiv, 'inputLbl', 'Default AI:');
+    Dome.newLabel(defAiDiv, 'inputLbl', 'Black AI:');
     var defaultAi = Dome.newDropdown(defAiDiv, 'defaultAi', Object.keys(main.ais), null, main.defaultAi.name);
-    Dome.newLabel(defAiDiv, 'defAiInfo', 'Black AI uses default AI; White always uses latest AI version.');
+    Dome.newLabel(defAiDiv, 'defAiInfo', '(White AI always uses latest AI version)');
 
     var okBtn = Dome.newButton(form.newDiv('btnDiv'), 'start', 'Play', function (ev) {
         ev.preventDefault();
