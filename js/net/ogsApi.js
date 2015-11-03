@@ -4,9 +4,8 @@ var io = require('socket.io-client');
 
 var cfg = require('../../config/ogs.json');
 
-var PROD_URL = 'http://ggs.online-go.com:80';
-var BETA_URL = 'http://ggsbeta.online-go.com:80';
-var MOCK_URL = 'http://private-anon-01be17d5c-ogs.apiary-mock.com';
+var PROD_URL = 'ggs.online-go.com';
+var BETA_URL = 'ggsbeta.online-go.com';
 
 var ignorable_notifications = {
     'gameStarted': true,
@@ -19,13 +18,11 @@ var ignorable_notifications = {
 
 
 function Connection() {
-    var url;
-    switch (cfg.server) {
-    case 'prod': url = PROD_URL; break;
-    case 'beta': url = BETA_URL; break;
-    case 'mock': url = MOCK_URL; break;
-    default: throw new Error('Define entry "server" in your config to be prod, beta or mock');
-    }
+    var protocol = cfg.useSsl ? 'https' : 'http';
+    var host = cfg.server === 'prod' ? PROD_URL : BETA_URL;
+    var port = cfg.useSsl ? 443 : 80;
+    var url = protocol + '://' + host + ':' + port;
+
     var socket = this.socket = io(url, { timeout: 5000 });
     socket.io.skipReconnect = true;
 
@@ -33,25 +30,28 @@ function Connection() {
     this.connected_game_timeouts = {};
     this.connected = false;
 
+    this.botId = cfg.accountName;
+
     var self = this;
+    setTimeout(function () {
+        self.disconnect();
+    }, 60000);
+
     socket.on('connect', function() {
         self.connected = true;
-        console.debug('Connected to', url);
+        console.info('Connected to', url);
 
-    socket.emit('bot/connect', self.auth({}), function (x) {
-        console.debug(x);
-    });
-        socket.emit('bot/id', {'id': cfg.accountName}, function (id) {
-            if (!id) {
-                return self.disconnect('Error: unknown bot account: ' + cfg.accountName);
-            }
-            console.debug('Bot is user id:', id);
-            self.botId = id;
+        socket.emit('bot/id', { 'id': cfg.accountName }, function (id) {
+            // if (!id) {
+            //     return self.disconnect('Error: unknown bot account: ' + cfg.accountName);
+            // }
+            console.info('Bot is user id:', id);
+            //self.botId = id;
             socket.emit('notification/connect', self.auth({}), function (x) {
-                console.debug(x);
+                console.info(x);
             });
             socket.emit('bot/connect', self.auth({}), function (x) {
-                console.debug(x);
+                console.info(x);
             });
         });
     });
@@ -62,7 +62,7 @@ function Connection() {
     });
 
     socket.on('event', function(data) {
-        self.log(data);
+        self.log('socket.on event:', data);
     });
 
     socket.on('disconnect', function() {
@@ -112,8 +112,4 @@ module.exports = ogsApi;
 
 OgsApi.prototype.init = function () {
     this.conn = new Connection();
-    var self = this;
-    window.setTimeout(function () {
-        self.conn.disconnect();
-    }, 10000);
 };
