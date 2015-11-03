@@ -331,11 +331,11 @@ Ui.prototype.initDev = function () {
 
 Ui.prototype.onDevKey = function (key) {
     this.devKeys = this.devKeys.slice(-9) + key;
-    if (this.devKeys.slice(-3) === 'dbg') {
+    if (this.devKeys.slice(-2) === 'db') {
         this.inDevMode = !this.inDevMode;
         return this.toggleControls();
     }
-    if (this.devKeys.slice(-3) === 'ggg') {
+    if (this.devKeys.slice(-2) === '0g') {
         gtp.init(new UiEngine(this));
         this.ogsApi = ogsApi;
         return ogsApi.init();
