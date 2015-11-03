@@ -155,10 +155,14 @@ Droopy.prototype._runHeuristics = function (stateYx, scoreYx) {
     for (var n = 0; n < this.heuristics.length; n++) {
         var h = this.heuristics[n];
         var t0 = Date.now();
+
         if (h._beforeEvalBoard) h._beforeEvalBoard();
         h.evalBoard(stateYx, scoreYx);
+
         var time = Date.now() - t0;
-        if (time > 1) main.log.warn('Slowness: ' + h.name + ' took ' + time + 'ms');
+        if (time > 1 && !main.isCoverTest) {
+            main.log.warn('Slowness: ' + h.name + ' took ' + time + 'ms');
+        }
     }
 };
 

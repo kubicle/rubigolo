@@ -22,7 +22,7 @@ module.exports = TimeKeeper;
 // NB: measures will always vary a bit unless we find the perfect calibration code (utopia)
 TimeKeeper.prototype._calibrate = function (expected) {
     var count1 = 10000, count2 = 1000;
-    if (main.isCoverTest) count1 = count2 = 1;
+    if (main.isCoverTest) { count1 = 1; count2 = 100; }
 
     var t0 = Date.now();
 
@@ -60,7 +60,7 @@ TimeKeeper.prototype._calibrate = function (expected) {
     var duration = (Date.now() - t0) / 1000;
     systemPerf = duration / expected;
 
-    this.log.info('TimeKeeper calibrated at ratio=' + systemPerf.toFixed(2) +
+    if (!main.isCoverTest) this.log.info('TimeKeeper calibrated at ratio=' + systemPerf.toFixed(2) +
         ' (ran calibration in ' + duration.toFixed(2) + ' instead of ' + expected + ')');
     return systemPerf;
 };
@@ -86,7 +86,7 @@ TimeKeeper.prototype.start = function (taskName, expectedInSec) {
 // If lenientIfSlow is true, the warning is not counted (still displayed)
 TimeKeeper.prototype.stop = function (lenientIfSlow) {
     this.duration = (Date.now() - this.t0) / 1000;
-    this.log.info(' => ' + this.resultReport());
+    if (!main.isCoverTest) this.log.info(' => ' + this.resultReport());
     return this._checkLimits(lenientIfSlow);
 };
 
