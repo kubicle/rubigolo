@@ -56,7 +56,7 @@ BoardAnalyser.prototype.image = function () {
 };
 
 BoardAnalyser.prototype.debugDump = function () {
-    console.log(this.filler.grid.toText(function (c) {
+    main.log.debug(this.filler.grid.toText(function (c) {
         return Grid.colorToChar(c);
     }));
     for (var v, v_array = this.allVoids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
@@ -69,10 +69,10 @@ BoardAnalyser.prototype.debugDump = function () {
             var numEyes = gi.eyeCount;
             eyes[numEyes >= 2 ? 2 : numEyes].push(gi);
         }
-        console.log('\nGroups with 2 eyes or more: ' + eyes[2].map(GroupInfo.giNdx));
-        console.log('Groups with 1 eye: ' + eyes[1].map(GroupInfo.giNdx));
-        console.log('Groups with no eye: ' + eyes[0].map(GroupInfo.giNdx));
-        console.log('Score:' + this.scores.map(function (s, i) {
+        main.log.debug('\nGroups with 2 eyes or more: ' + eyes[2].map(GroupInfo.giNdx));
+        main.log.debug('Groups with 1 eye: ' + eyes[1].map(GroupInfo.giNdx));
+        main.log.debug('Groups with no eye: ' + eyes[0].map(GroupInfo.giNdx));
+        main.log.debug('Score:' + this.scores.map(function (s, i) {
             return ' player ' + i + ': ' + s + ' points';
         }));
     }

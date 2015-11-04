@@ -227,7 +227,7 @@ var displayFunctions = {
 
 Board.prototype.showSpecial = function (displayType, yx) {
     var fn = displayFunctions[displayType];
-    if (!fn) { return console.error('invalid display type:', displayType); }
+    if (!fn) { return main.log.error('invalid display type:', displayType); }
     this.show(displayType, yx, fn);
 };
 

@@ -169,9 +169,7 @@ Void.prototype.toString = function () {
 function grpNdx(g) { return '#' + g.ndx; }
 
 Void.prototype.debugDump = function () {
-    console.log(this.toString());
-    for (var color = 0; color < this.groups.length; color++) {
-        console.log('    Color ' + color + ' (' + Grid.colorToChar(color) + '): ' +
-            this.groups[color].map(grpNdx));
-    }
+    main.log.debug(this.toString());
+    main.log.debug('   black: ' + this.groups[BLACK].map(grpNdx));
+    main.log.debug('   white: ' + this.groups[WHITE].map(grpNdx));
 };
