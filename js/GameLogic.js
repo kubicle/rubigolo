@@ -70,32 +70,36 @@ GameLogic.prototype.setHandicap = function (h) {
     return true;
 };
 
+GameLogic.prototype._failLoad = function (msg, errors) {
+    main.log.error(msg);
+    if (!errors) throw new Error(msg);
+    errors.push(msg);
+    return false;
+};
+
 // game is a series of moves, e.g. "c2,b2,pass,b4,b3,undo,b4,pass,b3"
-GameLogic.prototype.loadMoves = function (game) {
+GameLogic.prototype.loadMoves = function (game, errors) {
+    if (!game) return true;
     try {
-        if (!game) return true;
         game = this._sgfToGame(game);
-        for (var move, move_array = game.split(','), move_ndx = 0; move=move_array[move_ndx], move_ndx < move_array.length; move_ndx++) {
-            if (!this.playOneMove(move)) {
-                throw new Error('Failed playing the loaded move: ' + move);
-            }
-        }
-        return true;
     } catch (err) {
-        this._errorMsg('Failed loading moves. Please double check the format of your input.');
-        this._errorMsg('Error: ' + err.message + ' (' + err.constructor.name + ')');
-        main.log.error('Error while loading moves:\n' + err + '\n' + err.stack);
-        return false;
+        return this._failLoad('Failed loading SGF moves:\n' + err, errors);
     }
+
+    var moves = game.split(',');
+    for (var i = 0; i < moves.length; i++) {
+        if (!this.playOneMove(moves[i])) {
+            return this._failLoad('Failed playing loaded move #' + (i + 1) + ':\n' + this.getErrors(), errors);
+        }
+    }
+    return true;
 };
 
 // Handles a regular move + the special commands (pass, resign, undo, load, hand, log)
 // Returns false if a problem occured. In this case the error message is available.
 GameLogic.prototype.playOneMove = function (move) {
-    if (this.gameEnded) {
-        return this._errorMsg('Game already ended');
-    }
-    // $log.debug("GameLogic playing #{Grid.color_name(@cur_color)}: #{move}") if $debug
+    if (this.gameEnded) return this._errorMsg('Game already ended');
+
     if (/^[a-z][1-2]?[0-9]$/.test(move)) {
         return this.playAStone(move);
     } else if (move === 'undo') {
@@ -220,29 +224,22 @@ GameLogic.prototype.getErrors = function () {
 };
 
 GameLogic.prototype.setLogLevel = function (cmd) {
-    try {
-        var a = cmd.split('=');
-        var flag = parseInt(a[1]) !== 0;
-        if (!flag && a[1] !== '0') {
-            throw new Error(0);
-        }
-        switch (a[0]) {
-        case 'group':
-            main.debugGroup = flag;
-            break;
-        case 'ai':
-            main.debugAi = flag;
-            break;
-        case 'all':
-            main.debug = main.debugGroup = main.debugAi = flag;
-            break;
-        default: 
-            throw new Error(1);
-        }
-        return true;
-    } catch (exc) {
+    var args = cmd.split('=');
+    var flag = parseInt(args[1]) !== 0;
+    switch (args[0]) {
+    case 'group':
+        main.debugGroup = flag;
+        break;
+    case 'ai':
+        main.debugAi = flag;
+        break;
+    case 'all':
+        main.debug = main.debugGroup = main.debugAi = flag;
+        break;
+    default: 
         return this._errorMsg('Invalid log command: ' + cmd);
     }
+    return true;
 };
 
 GameLogic.prototype._nextPlayer = function () {
@@ -274,7 +271,7 @@ GameLogic.prototype._requestUndo = function (halfMove) {
 // Returns the game unchanged if it is not an SGF one.
 // Returns an empty move list if nothing should be played (a game is pending).
 GameLogic.prototype._sgfToGame = function (game) {
-    if (!game.startWith('(;FF')) { // are they are always the 1st characters?
+    if (!game.startWith('(;FF')) { // are they always the fist characters?
         return game;
     }
     var reader = new SgfReader(game);
