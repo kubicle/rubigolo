@@ -1,10 +1,11 @@
 'use strict';
 
-var Dome = require('./Dome');
 var main = require('../main');
+var Dome = require('./Dome');
+var PopupDlg = require('./PopupDlg');
 
 
-function NewGameDlg(options, cb) {
+function NewGameDlg(options, validateFn) {
     var dialog = Dome.newDiv(document.body, 'newGameBackground');
     var frame = dialog.newDiv('newGameDialog dialog');
     frame.newDiv('dialogTitle').setText('Start a new game');
@@ -35,8 +36,7 @@ function NewGameDlg(options, cb) {
         options.aiPlays = Dome.getRadioValue(aiColor);
         options.moves = moves.value();
         main.defaultAi = main.ais[defaultAi.value()];
-        Dome.removeChild(document.body, dialog);
-        cb(options);
+        if (validateFn(options)) return Dome.removeChild(document.body, dialog);
     });
     okBtn.setAttribute('type','submit');
 }

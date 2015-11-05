@@ -10,6 +10,7 @@ var gtp = require('../net/gtp');
 var Logger = require('../Logger');
 var ogsApi = require('../net/ogsApi');
 var NewGameDlg = require('./NewGameDlg');
+var PopupDlg = require('./PopupDlg');
 var ScoreAnalyser = require('../ScoreAnalyser');
 var UiEngine = require('../net/UiEngine');
 
@@ -88,11 +89,11 @@ Ui.prototype.newGameDialog = function () {
         aiPlays: this.aiPlays
     };
     var self = this;
-    new NewGameDlg(options, function (options) {
+    new NewGameDlg(options, function validate(options) {
         self.gsize = options.gsize;
         self.handicap = options.handicap;
         self.aiPlays = options.aiPlays;
-        self.startGame(options.moves);
+        return self.startGame(options.moves);
     });
 };
 
@@ -162,7 +163,11 @@ Ui.prototype.startGame = function (firstMoves, isLoaded) {
     var game = this.game;
     if (!isLoaded) game.newGame(this.gsize, this.handicap);
     if (firstMoves) {
-        game.loadMoves(firstMoves);
+        var errors = [];
+        if (!game.loadMoves(firstMoves, errors)) {
+            new PopupDlg(errors.join('\n'));
+            return false;
+        }
     }
     // read values from game to make sure they are valid and match loaded game
     this.gsize = game.goban.gsize;
@@ -175,11 +180,12 @@ Ui.prototype.startGame = function (firstMoves, isLoaded) {
     this.board.create(this.boardElt, this.boardWidth, this.game.goban);
     this.refreshBoard();
 
-    if (isLoaded) return;
-    if (firstMoves && this.checkEnd()) return;
+    if (isLoaded) return true;
+    if (firstMoves && this.checkEnd()) return true;
 
     this.message('Game started. Your turn...'); // erased if a move is played below
     this.letNextPlayerPlay();
+    return true;
 };
 
 /** @return false if game goes on normally; true if special ending action was done */
@@ -268,9 +274,14 @@ Ui.prototype.playerMove = function (move) {
 };
 
 Ui.prototype.playerResigns = function () {
-    this.game.playOneMove('resi');
-    this.computeScore();
-    this.checkEnd();
+    var self = this;
+    var options = { buttons: ['YES', 'NO'] };
+    new PopupDlg('Do you really want to resign?', 'Confirm', options, function (options) {
+        if (options.choice !== 0) return;
+        self.game.playOneMove('resi');
+        self.computeScore();
+        self.checkEnd();
+    });
 };
 
 Ui.prototype.playUndo = function () {
