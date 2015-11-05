@@ -98,6 +98,37 @@ button {
   margin-bottom: 15px;
   padding: 10px 0px 10px 12px;
 }
+.popupBackground {
+  z-index: 2000;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+}
+.popupDlg {
+  position: relative;
+  top: 150px;
+  margin: 0 auto;
+  width: 50%;
+  .content {
+    padding: 20px;
+    white-space: pre-wrap;
+  }
+  .btnDiv {
+    width: 100%;
+    height: 80px;
+    .popupDlgButton {
+      width: 220px;
+      height: 100%;
+      font-size: 30px;
+      float: right;
+      margin-right: 0;
+      margin-left: 10px;
+    }
+  }
+}
 
 @import "mainUi";
 @import "testUi";
