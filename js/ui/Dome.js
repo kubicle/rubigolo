@@ -87,9 +87,8 @@ Dome.prototype.removeChild = function (child) { this.elt.removeChild(child.elt);
 
 Dome.newButton = function (parent, name, label, action) {
     var button = new Dome(parent, 'button', name + 'Button', name);
-    var btn = button.elt;
-    btn.innerText = label;
-    btn.addEventListener('click', action);
+    button.elt.innerText = label;
+    button.on('click', action);
     return button;
 };
 
