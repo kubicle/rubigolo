@@ -78,6 +78,8 @@ Shaper.prototype._evalSingleEyeSplit = function (scoreYx, g) {
     var score = this.groupThreat(g, this.color === g.color);
     this.scoreGrid.yx[j][i] += score;
     scoreYx[j][i] += score;
+    if (main.debug) main.log.debug('Shaper ' + Grid.colorName(this.color) + ' sees single eye split  at' +
+        i + ',' + j + ' score: ' + score);
 };
 
 // Decides if a "void" is good to make 2 eyes.
