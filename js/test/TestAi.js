@@ -32,10 +32,6 @@ TestAi.prototype.showInUi = function (msg) {
     if (main.testUi) main.testUi.showTestGame(this.name, msg, this.game);
 };
 
-TestAi.prototype.playMoves = function (moves) {
-    this.game.loadMoves(moves);
-};
-
 TestAi.prototype.logErrorContext = function (player, move) {
     main.log.error(this.goban.toString());
     main.log.error(player.getMoveSurveyText(move));
@@ -195,7 +191,7 @@ TestAi.prototype.runChecks = function (checkString) {
 
 TestAi.prototype.checkGame = function (moves, checks, gsize) {
     this.initBoard(gsize || 5);
-    this.playMoves(moves);
+    this.game.loadMoves(moves);
     this.runChecks(checks);
 };
 
@@ -223,7 +219,7 @@ TestAi.prototype.testAiClosesItsTerritory = function () {
     // +@@O+
     // +@OO+
     // e4 might seem to AI like filling up its own space; but it is mandatory here
-    this.checkGame('c3,d3,c2,d2,c4,c1,b1,d1,b2,d4,d5', 'e4'); // FIXME e4 should be big!
+    this.checkGame('c3,d3,c2,d2,c4,c1,b1,d1,b2,d4,d5', 'e4~1'); // FIXME e4 should be big (but will not save white)
 };
 
 TestAi.prototype.testEyeMaking_3inCorner = function () {
@@ -236,7 +232,7 @@ TestAi.prototype.testEyeMaking_3inCorner = function () {
 };
 
 TestAi.prototype.testEyeMaking_3withPrisoners = function () {
-    this.checkGame('c4,b4,d4,b3,a2,b5,b2,c5,c2,c3,d2,d3,b1,e3,d1', 'e5>20'); //FIXME, e5 is not good
+    this.checkGame('c4,b4,d4,b3,a2,b5,b2,c5,c2,c3,d2,d3,b1,e3,d1', 'e5<2,e4|d5'); //a3 would be even better
 };
 
 TestAi.prototype.testEyeMaking_4inCorner = function () {
@@ -624,6 +620,12 @@ TestAi.prototype.testAnotherKillAfterKo = function () {
         'e9~26', // should be 'd6~20, e9~26', // it seems that real score difference for e9 is 26 indeed :)
         9);
     this.todo('One-eye group can survive if e9 + Ko battle');
+};
+
+TestAi.prototype.testBattledEyeNotSplit = function () {
+    // We may see a 3 vertex eye for Black in SW corner, but white stone is next to it
+    // so White should not jump on a1
+    this.checkGame('d4,d2,c3,d6,e5,c5,e3,c4,d5,b3,c2,c1,b2,b4,a3', '!a1,a4~1.5', 7);
 };
 
 TestAi.prototype.testSemi1 = function () {
