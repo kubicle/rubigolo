@@ -7,7 +7,6 @@ var allHeuristics = require('./AllHeuristics');
 var BoardAnalyser = require('./boan/BoardAnalyser');
 var Genes = require('../../Genes');
 var Grid = require('../../Grid');
-var InfluenceMap = require('./boan/InfluenceMap');
 var PotentialTerritory = require('./boan/PotentialTerritory');
 var Stone = require('../../Stone');
 var ZoneFiller = require('./boan/ZoneFiller');
@@ -22,7 +21,6 @@ function Droopy(goban, color, genes) {
     this.version = 'Droopy-1.0';
     this.goban = goban;
     this.genes = genes || new Genes();
-    this.inf = new InfluenceMap(this.goban);
     this.pot = new PotentialTerritory(this.goban);
     this.boan = new BoardAnalyser();
     this.gsize = this.goban.gsize;
@@ -129,8 +127,6 @@ Droopy.prototype._prepareEval = function () {
 
     // get "raw" group info
     this.boan.analyse(this.goban);
-
-    this.inf.buildMap();
 };
 
 /** Init grids (and mark invalid moves) */

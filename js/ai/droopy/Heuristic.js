@@ -20,7 +20,7 @@ function Heuristic(player) {
     this.name = this.constructor.name;
     this.goban = player.goban;
     this.gsize = player.goban.gsize;
-    this.infl = player.inf.map;
+    this.infl = player.infl;
     this.pot = player.pot;
     this.boan = player.boan;
     this.scoreGrid = new Grid(this.gsize);

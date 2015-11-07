@@ -387,7 +387,7 @@ Ui.prototype.heuristicTest = function (name) {
 };
 
 Ui.prototype.influenceTest = function (color) {
-    var infl = this.getAiPlayer(1 - this.game.curColor).inf.map;
+    var infl = this.getAiPlayer(1 - this.game.curColor).infl;
     var yx = new Grid(this.gsize).yx; // TODO: covert infl to 2 grids one day?
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
@@ -399,6 +399,7 @@ Ui.prototype.influenceTest = function (color) {
 
 var heuristics = [
     '-',
+    'Influence',
     'NoEasyPrisoner',
     'Hunter',
     'Savior',
