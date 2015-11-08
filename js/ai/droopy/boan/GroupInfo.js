@@ -224,18 +224,6 @@ GroupInfo.prototype.countEyesFromDeadEnemy = function () {
     return count;
 };
 
-// This just spots groups with 2 eyes to mark them "alive" (no kill check here)
-GroupInfo.prototype.checkDoubleEye = function () {
-    if (this.eyeCount + this.deadEnemies.length < 2) return UNDECIDED;
-    if (this.eyeCount < 2) {
-        if (this.eyeCount + this.countEyesFromDeadEnemy() < 2) return UNDECIDED;
-    }
-    // Group is alive
-    if (main.debug) main.log.debug('ALIVE-doubleEye: ' + this);
-    this.isAlive = true;
-    return LIVES;
-};
-
 // This checks if a group can survive from its parents
 GroupInfo.prototype.checkParents = function () {
     if (!this.dependsOn.length) return UNDECIDED;
