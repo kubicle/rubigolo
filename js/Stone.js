@@ -56,9 +56,9 @@ Stone.prototype.findNeighbors = function () {
 
 Stone.prototype.toString = function () {
     if (this.color === EMPTY) {
-        return 'empty:' + this.asMove();
+        return this.asMove();
     } else {
-        return 'stone' + Grid.colorToChar(this.color) + ':' + this.asMove();
+        return (this.color ? 'W' : 'B') + '-' + this.asMove();
     }
 };
 
