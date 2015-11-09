@@ -38,6 +38,7 @@ Connector.prototype._evalMove = function (i, j, color) {
     // If our stone would simply be captured, no luck
     var stone = this.goban.stoneAt(i, j);
     if (this.noEasyPrisonerYx[j][i] < 0 && !this.hunter.isSnapback(stone)) {
+        if (main.debug) main.log.debug('Connector ' + Grid.colorName(color) + ' skips ' + stone + ' (trusting NoEasyPrisoner)');
         return 0;
     }
     // Score for connecting our groups + cutting enemies
@@ -124,6 +125,7 @@ Connector.prototype._directConnect = function (stone, color) {
     if (s1.i !== s2.i && s1.j !== s2.j) {
         // no need to connect now if connection is granted
         if (this.distanceBetweenStones(s1, s2, color) === 0) {
+            if (main.debug) main.log.debug('Connector ' + Grid.colorName(color) + ' sees no hurry to connect ' + s1 + ' and ' + s2);
             if (groupNeedsToConnect(s1.group) || groupNeedsToConnect(s2.group))
                 return this.minimumScore;
             return 0;
