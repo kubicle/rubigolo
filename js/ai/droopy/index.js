@@ -104,7 +104,7 @@ Droopy.prototype.getMove = function () {
         main.log.error('Forcing AI pass since we already played ' + this.numMoves);
         return 'pass';
     }
-    var saveDebug = main.debug;
+    this.debugMode = main.debug;
     main.debug = false;
 
     var stateYx = this.stateGrid.yx;
@@ -115,7 +115,7 @@ Droopy.prototype.getMove = function () {
     this._runHeuristics(stateYx, scoreYx);
     var move = this._collectBestMove(stateYx, scoreYx);
 
-    main.debug = saveDebug;
+    main.debug = this.debugMode;
     return move;
 };
 
@@ -150,6 +150,7 @@ Droopy.prototype._initScoringGrid = function (stateYx, scoreYx) {
 Droopy.prototype._runHeuristics = function (stateYx, scoreYx) {
     for (var n = 0; n < this.heuristics.length; n++) {
         var h = this.heuristics[n];
+        main.debug = this.debugMode && this.debugHeuristic === h.name;
         var t0 = Date.now();
 
         if (h._beforeEvalBoard) h._beforeEvalBoard();
@@ -187,7 +188,7 @@ Droopy.prototype.guessTerritories = function () {
     return this.pot.guessTerritories();
 };
 
-Droopy.prototype._prepareTestEval = function (i, j) {
+Droopy.prototype._getMoveForTest = function (i, j) {
     this.testI = i;
     this.testJ = j;
 
@@ -208,13 +209,13 @@ Droopy.prototype._getMoveSurvey = function (i, j) {
 
 /** For tests */
 Droopy.prototype.testMoveEval = function (i, j) {
-    this._prepareTestEval(i, j);
+    this._getMoveForTest(i, j);
     return this.scoreGrid.yx[j][i];
 };
 
 /** For tests */
 Droopy.prototype.testHeuristic = function (i, j, heuristicName) {
-    this._prepareTestEval(i, j);
+    this._getMoveForTest(i, j);
     var h = this.getHeuristic(heuristicName);
     return h.scoreGrid.yx[j][i];
 };
@@ -229,7 +230,7 @@ function surveySort(h1, h2) { return h2[1] - h1[1]; }
 Droopy.prototype.getMoveSurveyText = function (move, isTest) {
     if (move[1] > '9') return '';
     var coords = Grid.move2xy(move), i = coords[0], j = coords[1];
-    if (isTest) this._prepareTestEval(i, j);
+    if (isTest) this._getMoveForTest(i, j);
     var survey = this._getMoveSurvey(i, j);
     var score = this.scoreGrid.yx[j][i];
 

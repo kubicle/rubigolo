@@ -208,13 +208,15 @@ Board.prototype.setValueFormat = function (minDecimals, maxDecimals) {
 function valueDisplay(cell) {
     if (cell === null) return null;
 
-    var minDec = 0, maxDec = 1;
+    var minDec = 0, maxDec = 2;
     if (valueFormatMinDec !== undefined) minDec = valueFormatMinDec;
     if (valueFormatMaxDec !== undefined) maxDec = valueFormatMaxDec;
 
     var val = cell.toFixed(maxDec);
     for (var i = minDec; i < maxDec; i++) val = val.chomp('0');
     val = val.chomp('.');
+    if (val === '0') return null;
+    if (val.substr(0, 2) === '0.') val = val.slice(1);
 
     return { type: 'LB', text: val };
 }
