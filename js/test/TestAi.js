@@ -323,6 +323,11 @@ TestAi.prototype.testHunterCountsSavedGroupsToo = function () {
         'g1>g6, g1', 7);
 };
 
+TestAi.prototype.testHunterCountsSavedGroupsToo2 = function () {
+    this.checkGame('e5,c6,d3,g4,g3,f7,c4,e4,e3,d5,f3,f4,c5,e6,g5,f5,h4,b5,g6,b4,b3,g7,h7,h8,h6,j7,d4,j6,f6',
+        'h5>e5, h5', 9); // killing in h5 saves too
+};
+
 TestAi.prototype.testHunterDoubleAttack = function () {
     this.checkGame('d4,d6,f5,g7,g5,g3,e5,d2,c3,c5,c2,d3,c4,f4,d5,e7,e6,c6,f6,f7,h6,e4,g4,h4,h5,h3',
         'e3<1, #e3, e2, f3, f2', // TODO 'e3>10, pass, e3>10',
