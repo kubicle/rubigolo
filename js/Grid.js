@@ -192,9 +192,7 @@ Grid.prototype.loadImage = function (image) {
     }
     for (var j = this.gsize; j >= 1; j--) {
         var row = rows[this.gsize - j];
-        if (row.length !== this.gsize) {
-            throw new Error('Invalid image: row ' + row);
-        }
+        if (row.length !== this.gsize) throw new Error('Invalid image: row ' + row);
         for (var i = 1; i <= this.gsize; i++) {
             this.yx[j][i] = Grid.charToColor(row[i - 1]);
         }
