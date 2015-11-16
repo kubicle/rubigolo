@@ -87,6 +87,7 @@ Group.prototype.allLives = function () {
             if (lives.indexOf(life) < 0) lives.push(life);
         }
     }
+    if (lives.length !== this.lives) throw new Error('Wrong life count for group');
     return lives;
 };
 
