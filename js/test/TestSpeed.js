@@ -4,9 +4,10 @@
 var main = require('../main');
 var inherits = require('util').inherits;
 var Grid = require('../Grid');
-var Stone = require('../Stone');
 var Goban = require('../Goban');
 var TimeKeeper = require('./TimeKeeper');
+
+var BLACK = main.BLACK, WHITE = main.WHITE;
 
 
 /** @class */
@@ -114,14 +115,14 @@ TestSpeed.prototype.movesIj = function (game) {
 
 TestSpeed.prototype.playMoves = function (movesIj) {
     var moveCount = 0;
-    var curColor = main.BLACK;
+    var curColor = BLACK;
     for (var n = 0; n <= movesIj.length - 2; n += 2) {
         var i = movesIj[n];
         var j = movesIj[n + 1];
-        if (!Stone.validMove(this.goban, i, j, curColor)) {
+        if (!this.goban.isValidMove(i, j, curColor)) {
             throw new Error('Invalid move: ' + i + ',' + j);
         }
-        Stone.playAt(this.goban, i, j, curColor);
+        this.goban.playAt(i, j, curColor);
         moveCount += 1;
         curColor = (curColor + 1) % 2;
     }
@@ -135,7 +136,7 @@ TestSpeed.prototype.playGameAndClean = function (movesIj, cleanMode) {
     switch (cleanMode) {
     case TestSpeed.CM_UNDO:
         for (var i = 0; i < numMoves; i++) {
-            Stone.undo(this.goban);
+            this.goban.undo();
         }
         break;
     case TestSpeed.CM_CLEAR:
@@ -152,17 +153,17 @@ TestSpeed.prototype.playGameAndClean = function (movesIj, cleanMode) {
 
 // Our first, basic test
 TestSpeed.prototype.play10Stones = function () {
-    Stone.playAt(this.goban, 2, 2, main.WHITE);
-    Stone.playAt(this.goban, 1, 2, main.BLACK);
-    Stone.playAt(this.goban, 1, 3, main.WHITE);
-    Stone.playAt(this.goban, 2, 1, main.BLACK);
-    Stone.playAt(this.goban, 1, 1, main.WHITE);
-    Stone.playAt(this.goban, 4, 4, main.BLACK);
-    Stone.playAt(this.goban, 4, 5, main.WHITE);
-    Stone.playAt(this.goban, 1, 2, main.BLACK);
-    Stone.playAt(this.goban, 5, 5, main.WHITE);
-    Stone.playAt(this.goban, 5, 4, main.BLACK);
+    this.goban.playAt(2, 2, WHITE);
+    this.goban.playAt(1, 2, BLACK);
+    this.goban.playAt(1, 3, WHITE);
+    this.goban.playAt(2, 1, BLACK);
+    this.goban.playAt(1, 1, WHITE);
+    this.goban.playAt(4, 4, BLACK);
+    this.goban.playAt(4, 5, WHITE);
+    this.goban.playAt(1, 2, BLACK);
+    this.goban.playAt(5, 5, WHITE);
+    this.goban.playAt(5, 4, BLACK);
     for (var i = 0; i < 10; i++) {
-        Stone.undo(this.goban);
+        this.goban.undo();
     }
 };

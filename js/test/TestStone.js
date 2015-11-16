@@ -6,9 +6,10 @@ var inherits = require('util').inherits;
 var Stone = require('../Stone');
 var Goban = require('../Goban');
 
+var BLACK = main.BLACK, WHITE = main.WHITE;
 
-/** @class NB: for debugging think of using @goban.console_display
- */
+
+/** @class */
 function TestStone(testName) {
     main.TestCase.call(this, testName);
     this.initBoard();
@@ -25,10 +26,10 @@ TestStone.prototype.howManyLives = function (i, j) {
     var s = this.goban.stoneAt(i, j);
     var livesBefore = s.empties().length;
     // we test the play/undo too
-    s = Stone.playAt(this.goban, i, j, main.WHITE);
+    s = this.goban.playAt(i, j, WHITE);
     var lives = s.empties().length;
     this.assertEqual(livesBefore, lives);
-    Stone.undo(this.goban);
+    this.goban.undo();
     var livesAfter = s.empties().length;
     this.assertEqual(livesAfter, lives);
     return lives;
@@ -42,7 +43,7 @@ TestStone.prototype.testHowManyLives = function () {
     this.assertEqual(2, this.howManyLives(this.goban.gsize, 1));
     this.assertEqual(4, this.howManyLives(2, 2));
     this.assertEqual(4, this.howManyLives(this.goban.gsize - 1, this.goban.gsize - 1));
-    var s = Stone.playAt(this.goban, 2, 2, main.BLACK); // we will try white stones around this one
+    var s = this.goban.playAt(2, 2, BLACK); // we will try white stones around this one
     var g = s.group;
     this.assertEqual(2, this.howManyLives(1, 1));
     this.assertEqual(4, g.lives);
@@ -56,43 +57,43 @@ TestStone.prototype.testHowManyLives = function () {
 
 TestStone.prototype.testPlayAt = function () {
     // single stone
-    var s = Stone.playAt(this.goban, 5, 4, main.BLACK);
+    var s = this.goban.playAt(5, 4, BLACK);
     this.assertEqual(s, this.goban.stoneAt(5, 4));
     this.assertEqual(this.goban, s.goban);
-    this.assertEqual(main.BLACK, s.color);
+    this.assertEqual(BLACK, s.color);
     this.assertEqual(5, s.i);
     this.assertEqual(4, s.j);
 };
 
 TestStone.prototype.testSuicide = function () {
     // a2 b2 b1 a3 pass c1
-    Stone.playAt(this.goban, 1, 2, main.BLACK);
-    Stone.playAt(this.goban, 2, 2, main.WHITE);
-    Stone.playAt(this.goban, 2, 1, main.BLACK);
-    this.assertEqual(false, Stone.validMove(this.goban, 1, 1, main.WHITE)); // suicide invalid
-    Stone.playAt(this.goban, 1, 3, main.WHITE);
-    this.assertEqual(true, Stone.validMove(this.goban, 1, 1, main.WHITE)); // now this would be a kill
-    this.assertEqual(true, Stone.validMove(this.goban, 1, 1, main.BLACK)); // black could a1 too (merge)
-    Stone.playAt(this.goban, 3, 1, main.WHITE); // now 2 black stones share a last life
-    this.assertEqual(false, Stone.validMove(this.goban, 1, 1, main.BLACK)); // so this would be a suicide with merge
+    this.goban.playAt(1, 2, BLACK);
+    this.goban.playAt(2, 2, WHITE);
+    this.goban.playAt(2, 1, BLACK);
+    this.assertEqual(false, this.goban.isValidMove(1, 1, WHITE)); // suicide invalid
+    this.goban.playAt(1, 3, WHITE);
+    this.assertEqual(true, this.goban.isValidMove(1, 1, WHITE)); // now this would be a kill
+    this.assertEqual(true, this.goban.isValidMove(1, 1, BLACK)); // black could a1 too (merge)
+    this.goban.playAt(3, 1, WHITE); // now 2 black stones share a last life
+    this.assertEqual(false, this.goban.isValidMove(1, 1, BLACK)); // so this would be a suicide with merge
 };
 
 TestStone.prototype.testKo = function () {
     // pass b2 a2 a3 b1 a1
-    Stone.playAt(this.goban, 2, 2, main.WHITE);
-    Stone.playAt(this.goban, 1, 2, main.BLACK);
-    Stone.playAt(this.goban, 1, 3, main.WHITE);
-    Stone.playAt(this.goban, 2, 1, main.BLACK);
-    Stone.playAt(this.goban, 1, 1, main.WHITE); // kill!
-    this.assertEqual(false, Stone.validMove(this.goban, 1, 2, main.BLACK)); // now this is a ko
-    Stone.playAt(this.goban, 4, 4, main.BLACK); // play once anywhere else
-    Stone.playAt(this.goban, 4, 5, main.WHITE);
-    this.assertEqual(true, Stone.validMove(this.goban, 1, 2, main.BLACK)); // ko can be taken by black
-    Stone.playAt(this.goban, 1, 2, main.BLACK); // black takes the ko
-    this.assertEqual(false, Stone.validMove(this.goban, 1, 1, main.WHITE)); // white cannot take the ko
-    Stone.playAt(this.goban, 5, 5, main.WHITE); // play once anywhere else
-    Stone.playAt(this.goban, 5, 4, main.BLACK);
-    this.assertEqual(true, Stone.validMove(this.goban, 1, 1, main.WHITE)); // ko can be taken back by white
-    Stone.playAt(this.goban, 1, 1, main.WHITE); // white takes the ko
-    this.assertEqual(false, Stone.validMove(this.goban, 1, 2, main.BLACK)); // and black cannot take it now
+    this.goban.playAt(2, 2, WHITE);
+    this.goban.playAt(1, 2, BLACK);
+    this.goban.playAt(1, 3, WHITE);
+    this.goban.playAt(2, 1, BLACK);
+    this.goban.playAt(1, 1, WHITE); // kill!
+    this.assertEqual(false, this.goban.isValidMove(1, 2, BLACK)); // now this is a ko
+    this.goban.playAt(4, 4, BLACK); // play once anywhere else
+    this.goban.playAt(4, 5, WHITE);
+    this.assertEqual(true, this.goban.isValidMove(1, 2, BLACK)); // ko can be taken by black
+    this.goban.playAt(1, 2, BLACK); // black takes the ko
+    this.assertEqual(false, this.goban.isValidMove(1, 1, WHITE)); // white cannot take the ko
+    this.goban.playAt(5, 5, WHITE); // play once anywhere else
+    this.goban.playAt(5, 4, BLACK);
+    this.assertEqual(true, this.goban.isValidMove(1, 1, WHITE)); // ko can be taken back by white
+    this.goban.playAt(1, 1, WHITE); // white takes the ko
+    this.assertEqual(false, this.goban.isValidMove(1, 2, BLACK)); // and black cannot take it now
 };
