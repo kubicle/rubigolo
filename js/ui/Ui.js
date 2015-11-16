@@ -419,7 +419,6 @@ Ui.prototype.devDisplay = function () {
 
 var heuristics = [
     NO_HEURISTIC,
-    'Influence',
     'NoEasyPrisoner',
     'Hunter',
     'Savior',
