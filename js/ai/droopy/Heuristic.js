@@ -7,7 +7,7 @@ var Stone = require('../../Stone');
 
 var BLACK = main.BLACK, WHITE = main.WHITE, EMPTY = main.EMPTY, BORDER = main.BORDER;
 var sOK = main.sOK, sDEBUG = main.sDEBUG;
-var ALWAYS = main.ALWAYS;
+var ALWAYS = main.ALWAYS, NEVER = main.NEVER;
 var XY_AROUND = Stone.XY_AROUND;
 var DIR0 = main.DIR0, DIR3 = main.DIR3;
 
@@ -69,7 +69,7 @@ Heuristic.prototype.territoryScore = function (i, j, color) {
 /** @return {number} - NEVER, SOMETIMES, ALWAYS */
 Heuristic.prototype.isOwned = function (i, j, color) {
     var myColor = color === main.BLACK ? -1 : +1;
-    var score = 0;
+    var score = NEVER;
     if (Grid.territory2owner[2 + this.pot.grids[BLACK].yx[j][i]] === myColor) score++;
     if (Grid.territory2owner[2 + this.pot.grids[WHITE].yx[j][i]] === myColor) score++;
     return score;
