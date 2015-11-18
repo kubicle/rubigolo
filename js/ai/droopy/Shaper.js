@@ -14,7 +14,7 @@ var SOMETIMES = main.SOMETIMES, ALWAYS = main.ALWAYS;
 function Shaper(player) {
     Heuristic.call(this, player);
 
-    this.eyeCloserCoeff = this.getGene('eye-closer', 1, 0.01, 1);
+    this.eyeCloserCoeff = this.getGene('eyeCloser', 1, 0.01, 1);
 
     this.potEyeGrid = new Grid(this.gsize);
 }

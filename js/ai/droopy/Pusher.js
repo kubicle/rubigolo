@@ -14,8 +14,8 @@ var inherits = require('util').inherits;
 function Pusher(player) {
     Heuristic.call(this, player);
 
-    this.allyCoeff = this.getGene('ally-infl', 0.03, 0.01, 1.0);
-    this.enemyCoeff = this.getGene('enemy-infl', 0.13, 0.01, 1.0);
+    this.allyCoeff = this.getGene('allyInfl', 0.03, 0.01, 1.0);
+    this.enemyCoeff = this.getGene('enemyInfl', 0.13, 0.01, 1.0);
 
     this.noEasyPrisonerYx = player.getHeuristic('NoEasyPrisoner').scoreGrid.yx;
 }

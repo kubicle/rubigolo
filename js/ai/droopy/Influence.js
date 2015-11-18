@@ -14,7 +14,7 @@ var ALWAYS = main.ALWAYS;
 function Influence(player) {
     Heuristic.call(this, player);
 
-    this.deadFactor = this.getGene('dead-factor', 0.25, 0.01, 1);
+    this.deadFactor = this.getGene('deadFactor', 0.23, 0.01, 1);
 
     var size = this.gsize + 1;
     this.map = Array.new(size, function () {

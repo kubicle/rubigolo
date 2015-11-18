@@ -25,7 +25,7 @@ function Droopy(goban, color, genes) {
     this.scoreGrid = new Grid(this.gsize);
 
     // genes need to exist before we create heuristics
-    this.minimumScore = this.getGene('smaller-move', 0.03, 0.01, 0.1);
+    this.minimumScore = this.getGene('smallerMove', 0.03, 0.01, 0.1);
 
     this._createHeuristics();
     this.setColor(color);
