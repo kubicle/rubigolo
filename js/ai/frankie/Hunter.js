@@ -6,7 +6,6 @@ var main = require('../../main');
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
-var Stone = require('../../Stone');
 
 var ALWAYS = main.ALWAYS;
 
@@ -132,7 +131,7 @@ Hunter.prototype.evalMove = function (i, j, color, level) {
         }
     }
 
-    Stone.playAt(this.goban, i, j, color); // our attack takes one of the 2 last lives (the one in i,j)
+    this.goban.tryAt(i, j, color); // our attack takes one of the 2 last lives (the one in i,j)
 
     // see attacks that fail
     var canEscape = [false, false, false];
@@ -142,7 +141,7 @@ Hunter.prototype.evalMove = function (i, j, color, level) {
         canEscape[g] = true;
     }
 
-    Stone.undo(this.goban); // important to undo before, so we compute threat right
+    this.goban.untry(); // important to undo before, so we compute threat right
 
     var threat = this._getMultipleChaseThreat(egroups, canEscape);
 
@@ -182,9 +181,9 @@ Hunter.prototype._isAtariGroupCaught = function (g, level) {
     if (allLives.length !== 1) throw new Error('Unexpected: hunter #1: ' + allLives.length);
 
     var lastLife = allLives[0];
-    var stone = Stone.playAt(this.goban, lastLife.i, lastLife.j, g.color); // enemy's escape move
+    var stone = this.goban.tryAt(lastLife.i, lastLife.j, g.color); // enemy's escape move
     var isCaught = this.isEscapingAtariCaught(stone, level);
-    Stone.undo(this.goban);
+    this.goban.untry();
     if (main.debug) main.log.debug('Hunter: group with last life ' + lastLife + ' would ' + (isCaught ? 'be caught: ' : 'escape: ') + g);
     return isCaught;
 };

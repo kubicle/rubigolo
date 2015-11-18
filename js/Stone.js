@@ -82,21 +82,6 @@ Stone.prototype.isEmpty = function () {
     return this.color === EMPTY;
 };
 
-Stone.validMove = function (goban, i, j, color) {
-    // Remark: no log here because of the noise created with web server mode
-    if (!goban.validMove(i, j)) { // also checks if empty
-        return false;
-    }
-    var stone = goban.stoneAt(i, j);
-    if (stone.moveIsSuicide(color)) {
-        return false;
-    }
-    if (stone.moveIsKo(color)) {
-        return false;
-    }
-    return true;
-};
-
 // Is a move a suicide?
 // not a suicide if 1 free life around
 // or if one enemy group will be killed
@@ -169,24 +154,9 @@ Stone.prototype.resuscitateIn = function (group) {
     this.color = group.color;
 };
 
-Stone.playAt = function (goban, i, j, color) {
-    var stone = goban.putDown(i, j);
-    stone._putDown(color);
-    return stone;
-};
-
-// Called to undo a single stone (the main undo feature relies on this)  
-Stone.undo = function (goban) {
-    var stone = goban.takeBack();
-    if (!stone) return;
-    if (main.debug) main.log.debug('Stone.undo ' + stone);
-    stone._takeBack();
-};
-
-// Called for each new stone played
-Stone.prototype._putDown = function (color) {
+// Called by goban only
+Stone.prototype.putDown = function (color) {
     this.color = color;
-    if (main.debug) main.log.debug('put_down: ' + this.toString());
 
     var allies = this.uniqueAllies(color); // note we would not need unique if group#merge ignores dupes
     if (allies.length === 0) {
@@ -205,8 +175,9 @@ Stone.prototype._putDown = function (color) {
     }
 };
 
-Stone.prototype._takeBack = function () {
-    if (main.debugGroup) main.log.debug('_takeBack: ' + this.toString() + ' from group ' + this.group);
+// Called by goban only
+Stone.prototype.takeBack = function () {
+    if (main.debugGroup) main.log.debug('takeBack: ' + this.toString() + ' from group ' + this.group);
 
     this.group.unmergeFrom(this);
     this.group.disconnectStone(this);
@@ -220,7 +191,7 @@ Stone.prototype._takeBack = function () {
     this.group = null;
     this.color = EMPTY;
     Group.resuscitateFrom(this, this.goban);
-    if (main.debugGroup) main.log.debug('_takeBack: end; main group: ' + logGroup.debugDump());
+    if (main.debugGroup) main.log.debug('takeBack: end; main group: ' + logGroup.debugDump());
 };
 
 Stone.prototype.setGroupOnMerge = function (newGroup) {

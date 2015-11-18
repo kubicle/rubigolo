@@ -9,7 +9,6 @@ var Genes = require('../../Genes');
 var Grid = require('../../Grid');
 var InfluenceMap = require('./boan/InfluenceMap');
 var PotentialTerritory = require('./boan/PotentialTerritory');
-var Stone = require('../../Stone');
 var ZoneFiller = require('./boan/ZoneFiller');
 
 var sOK = main.sOK, sINVALID = main.sINVALID, sBLUNDER = main.sBLUNDER;
@@ -144,7 +143,7 @@ Frankie.prototype.getMove = function () {
     var i,j;
     for (j = 1; j <= this.gsize; j++) {
         for (i = 1; i <= this.gsize; i++) {
-            if (!Stone.validMove(this.goban, i, j, this.color)) {
+            if (!this.goban.isValidMove(i, j, this.color)) {
                 stateYx[j][i] = sINVALID;
                 continue;
             }
@@ -202,7 +201,7 @@ Frankie.prototype._testMoveEval = function (i, j) {
     var stateYx = this.stateGrid.yx;
     var scoreYx = this.scoreGrid.yx;
     // to get eval "again", set the state back to OK even if it got marked invalid later
-    if (Stone.validMove(this.goban, i, j, this.color)) stateYx[j][i] = sOK;
+    if (this.goban.isValidMove(i, j, this.color)) stateYx[j][i] = sOK;
     var score = 0, survey = {};
     for (var n = 0; n < this.heuristics.length; n++) {
         var h = this.heuristics[n];

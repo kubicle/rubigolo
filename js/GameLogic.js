@@ -3,7 +3,6 @@
 
 var main = require('./main');
 var Grid = require('./Grid');
-var Stone = require('./Stone');
 var Group = require('./Group');
 var Goban = require('./Goban');
 var SgfReader = require('./SgfReader');
@@ -125,10 +124,10 @@ GameLogic.prototype.playOneMove = function (move) {
 GameLogic.prototype.playAStone = function (move) {
     var coords = Grid.move2xy(move);
     var i = coords[0], j = coords[1];
-    if (!Stone.validMove(this.goban, i, j, this.curColor)) {
+    if (!this.goban.isValidMove(i, j, this.curColor)) {
         return this._errorMsg('Invalid move: ' + move);
     }
-    Stone.playAt(this.goban, i, j, this.curColor);
+    this.goban.playAt(i, j, this.curColor);
     this._storeMoveInHistory(move);
     this._nextPlayer();
     this.numPass = 0;
@@ -258,7 +257,7 @@ GameLogic.prototype._requestUndo = function (halfMove) {
     }
     for (var i = count; i >= 1; i--) {
         if (!this.history[this.history.length-1].endWith('pass')) { // no stone to remove for a pass
-            Stone.undo(this.goban);
+            this.goban.undo();
         }
         this.history.pop();
     }

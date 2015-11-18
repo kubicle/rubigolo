@@ -86,7 +86,7 @@ PotentialTerritory.prototype._foresee = function (grid, first, second) {
 
     // restore goban
     moveCount = this.goban.moveNumber() - moveCount;
-    while (moveCount-- > 0) Stone.undo(this.goban);
+    while (moveCount-- > 0) this.goban.untry();
 };
 
 PotentialTerritory.prototype._initGroupState = function () {
@@ -198,7 +198,7 @@ PotentialTerritory.prototype.addStone = function (yx, i, j, color, border) {
         if (stone.moveIsSuicide(color)) {
             return;
         }
-        Stone.playAt(this.goban, i, j, color);
+        this.goban.tryAt(i, j, color);
     }
     yx[j][i] = color;
 };

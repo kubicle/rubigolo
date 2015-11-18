@@ -6,7 +6,6 @@ var main = require('../../main');
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
-var Stone = require('../../Stone');
 
 var sOK = main.sOK;
 
@@ -36,7 +35,7 @@ NoEasyPrisoner.prototype.evalBoard = function (stateYx, scoreYx) {
 NoEasyPrisoner.prototype.evalMove = function (i, j) {
     // NB: snapback is handled in hunter; here we just notice the sacrifice of a stone, which will
     // be balanced by the profit measured by hunter (e.g. lose 1 but kill 3).
-    var stone = Stone.playAt(this.goban, i, j, this.color);
+    var stone = this.goban.tryAt(i, j, this.color);
     var g = stone.group;
     var score = 0, move;
     if (main.debug) move = Grid.xy2move(i, j);
@@ -54,6 +53,6 @@ NoEasyPrisoner.prototype.evalMove = function (i, j) {
             if (main.debug) main.log.debug('NoEasyPrisoner (backed by Hunter) says ' + move + ' is foolish  (' + score + ')');
         }
     }
-    Stone.undo(this.goban);
+    this.goban.untry();
     return score;
 };
