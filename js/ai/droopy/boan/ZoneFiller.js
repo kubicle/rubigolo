@@ -6,13 +6,11 @@ var main = require('../../../main');
 var BORDER = main.BORDER, WHITE = main.WHITE;
 
 
-/** @class public read-only attribute: grid
- *  if a grid is given, it is used as starting point; 
- *  otherwise, goban.scoringGrid is used.
+/** @class Fills & collect info about zones.
  */
 function ZoneFiller(goban, grid) {
     this.goban = goban;
-    this.grid = grid || goban.scoringGrid.initFromGoban(goban);
+    this.grid = grid;
     this.yx = this.grid.yx;
     this.groups = null;
 
@@ -22,10 +20,10 @@ module.exports = ZoneFiller;
 
 
 // "Color" a goban zone.
-// toReplace can be EMPTY or a zone code (but cannot be a real color like BLACK)
+// toReplace can be EMPTY, BLACK, WHITE or a zone code
 // neighbors, if given should be an array of n arrays, with n == number of colors
 // if neighbors are not given, we do simple "coloring"
-ZoneFiller.prototype.fillWithColor = function (startI, startJ, toReplace, color, neighbors) {
+ZoneFiller.prototype.fillWithColor = function (startI, startJ, toReplace, byColor, neighbors) {
     if (this.yx[startJ][startI] !== toReplace) return 0;
     var vcount = 0, yx = this.yx;
     this.toReplace = toReplace;
@@ -46,7 +44,7 @@ ZoneFiller.prototype.fillWithColor = function (startI, startJ, toReplace, color,
             var curgap = null;
             for (var j = j0; j <= j1; j++) {
                 if (ix < i) {
-                    yx[j][i] = color; // fill with color
+                    yx[j][i] = byColor; // fill with color
                 }
                 if (this._check(ix, j)) {
                     if (!curgap) {
@@ -68,15 +66,18 @@ ZoneFiller.prototype.fillWithColor = function (startI, startJ, toReplace, color,
 ZoneFiller.prototype._check = function (i, j) {
     var color = this.yx[j][i];
     if (color === BORDER) return false;
-    if (color === this.toReplace) return true;
+    if (color === this.toReplace) {
+        return true;
+    }
 
     if (!this.groups) return false; // we don't want the groups surrounding zones
-    if (color > WHITE) return false; // i,j is part of a void
+    if (typeof color !== 'number') return false; // i,j is part of a void
+
+    // keep new neighbors
     var group = this.goban.stoneAt(i, j).group;
     if (!group) throw new Error('Unexpected: ZoneFiller replacing a group'); // (since i,j is EMPTY)
     var groups = this.groups[color];
-    if (groups.indexOf(group) !== -1) return false; // group is already in the list of neighbors
+    if (groups.indexOf(group) === -1) groups.push(group);
 
-    groups.push(group);
     return false;
 };
