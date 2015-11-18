@@ -27,7 +27,8 @@ function Breeder(gameSize) {
     ];
     this.scorer = new ScoreAnalyser();
     this.genSize = Breeder.GENERATION_SIZE;
-    return this.firstGeneration();
+    this.firstGeneration();
+    this.seenGames = {};
 }
 module.exports = Breeder;
 
@@ -49,18 +50,30 @@ Breeder.prototype.firstGeneration = function () {
     this.scoreDiff = [];
 };
 
+Breeder.prototype.showInUi = function (msg) {
+    if (main.testUi) main.testUi.showTestGame(this.name, msg, this.game);
+};
+
 Breeder.prototype.playUntilGameEnds = function () {
     while (!this.game.gameEnding) {
         var curPlayer = this.players[this.game.curColor];
-        var move = curPlayer.getMove();
         try {
+            var move = curPlayer.getMove();
             this.game.playOneMove(move);
         } catch (err) {
             main.log.error('' + err);
             main.log.error('Exception occurred during a breeding game.\n' + curPlayer + ' with genes: ' + curPlayer.genes);
             main.log.error(this.game.historyString());
+            this.showInUi(err);
             throw err;
         }
+    }
+    // Keep track of games we already saw
+    var img = this.game.goban.buildCompressedImage();
+    if (!this.seenGames[img]) {
+        this.seenGames[img] = 1;
+    } else {
+        this.seenGames[img]++;
     }
 };
 
@@ -202,5 +215,12 @@ Breeder.prototype.bwBalanceCheck = function (numGames, gsize) {
     main.log.info('Average score difference for Black (points per game): ' + totalScore / numGames);
     main.log.info('Out of ' + numGames + ' games, White-' + whiteAi +
         ' won ' + (numGames - numWins) + ' times, and Black-' + blackAi + ' won ' + numWins + ' times');
+
+    var dupes = 0;
+    for (i in this.seenGames) {
+        dupes += this.seenGames[i] - 1;
+    }
+    main.log.info('Number of dupe games: ' + dupes);
+
     return numGames - numWins; // number of White's victory
 };
