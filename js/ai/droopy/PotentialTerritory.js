@@ -1,10 +1,10 @@
-//Translated from potential_territory.rb using babyruby2js
 'use strict';
 
-var Grid = require('../../../Grid');
-var main = require('../../../main');
-var Stone = require('../../../Stone');
-var BoardAnalyser = require('./BoardAnalyser');
+var main = require('../../main');
+var Grid = require('../../Grid');
+var Heuristic = require('./Heuristic');
+var inherits = require('util').inherits;
+var Stone = require('../../Stone');
 
 var EMPTY = main.EMPTY, BLACK = main.BLACK, WHITE = main.WHITE;
 var NEVER = main.NEVER;
@@ -19,10 +19,9 @@ var XY_DIAGONAL = Stone.XY_DIAGONAL;
 
 
 /** @class */
-function PotentialTerritory(goban) {
-    this.goban = goban;
-    this.gsize = goban.gsize;
-    this.boan = new BoardAnalyser();
+function PotentialTerritory(player) {
+    Heuristic.call(this, player);
+
     this.realGrid = this.goban.scoringGrid; // we can reuse the already allocated grid
     this.realYx = this.realGrid.yx; // simple shortcut to real yx
     // grids below are used in the evaluation process
@@ -30,14 +29,24 @@ function PotentialTerritory(goban) {
     this.reducedGrid = new Grid(this.gsize);
     this.territory = new Grid(this.gsize); // result of evaluation
     this._prepareBorderConnect();
+
+    // Share the info with others at player level - TODO: find better place
+    player.pot = this;
+
+    this.allGroups = this.tmp = null;
 }
+inherits(PotentialTerritory, Heuristic);
 module.exports = PotentialTerritory;
 
+
+PotentialTerritory.prototype.evalBoard = function () {
+    this._guessTerritories();
+};
 
 // Returns the matrix of potential territory.
 // +1: definitely white, -1: definitely black
 // Values in between are possible too.
-PotentialTerritory.prototype.guessTerritories = function () {
+PotentialTerritory.prototype._guessTerritories = function () {
     this._initGroupState();
     // update real grid to current goban
     this.realGrid.initFromGoban(this.goban);
@@ -47,15 +56,14 @@ PotentialTerritory.prototype.guessTerritories = function () {
     // now merge the result
     var blackYx = this.grids[BLACK].yx;
     var whiteYx = this.grids[WHITE].yx;
-    var resultYx = this.territory.yx;
+    var terrYx = this.territory.yx;
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
-            resultYx[j][i] = (POT2OWNER[2 + blackYx[j][i]] + POT2OWNER[2 + whiteYx[j][i]]) / 2;
+            terrYx[j][i] = (POT2OWNER[2 + blackYx[j][i]] + POT2OWNER[2 + whiteYx[j][i]]) / 2;
         }
     }
     if (main.debug) main.log.debug('Guessing territory for:\n' + this.realGrid +
         '\nBLACK first:\n' + this.grids[BLACK] + 'WHITE first:\n' + this.grids[WHITE] + this);
-    return resultYx;
 };
 
 PotentialTerritory.prototype.toString = function () {
@@ -78,12 +86,12 @@ PotentialTerritory.prototype._foresee = function (grid, first, second) {
 
     // passed grid will receive the result (scoring grid)
     this._connectThings(grid, first, second);
-    this.boan.analyse(this.goban, grid.initFromGoban(this.goban), first);
+    this.player.boan.analyse(this.goban, grid.initFromGoban(this.goban), first);
     this._collectGroupState();
 
     // restore goban
     moveCount = this.goban.moveNumber() - moveCount;
-    while (moveCount-- > 0) Stone.undo(this.goban);
+    while (moveCount-- > 0) this.goban.untry();
 };
 
 PotentialTerritory.prototype._initGroupState = function () {
@@ -195,7 +203,7 @@ PotentialTerritory.prototype.addStone = function (yx, i, j, color, border) {
         if (stone.moveIsSuicide(color)) {
             return;
         }
-        Stone.playAt(this.goban, i, j, color);
+        this.goban.tryAt(i, j, color);
     }
     yx[j][i] = color;
 };

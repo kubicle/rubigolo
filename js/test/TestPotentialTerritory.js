@@ -22,11 +22,8 @@ TestPotentialTerritory.prototype.initBoard = function (size, handicap) {
     this.game = new GameLogic();
     this.game.newGame(size, handicap);
     this.goban = this.game.goban;
-    this.pot = new main.defaultAi.PotentialTerritory(this.goban);
-};
-
-TestPotentialTerritory.prototype.checkPotential = function (expected) {
-    this.assertEqual(expected, this.pot.image());
+    this.aiPlayer = new main.defaultAi(this.goban, main.BLACK);
+    this.pot = this.aiPlayer.pot;
 };
 
 TestPotentialTerritory.prototype.checkBasicGame = function (moves, expected, gsize, finalPos) {
@@ -34,7 +31,7 @@ TestPotentialTerritory.prototype.checkBasicGame = function (moves, expected, gsi
     this.game.loadMoves(moves);
     if (finalPos) this.assertEqual(finalPos, this.goban.image());
 
-    this.pot.guessTerritories();
+    this.pot.evalBoard();
     var territory = this.pot.image();
     if (territory === expected) return;
     this.showInUi('Expected territory was<br>' + expected + ' but got<br>' + territory);

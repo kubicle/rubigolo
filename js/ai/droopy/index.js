@@ -7,7 +7,6 @@ var allHeuristics = require('./AllHeuristics');
 var BoardAnalyser = require('./boan/BoardAnalyser');
 var Genes = require('../../Genes');
 var Grid = require('../../Grid');
-var PotentialTerritory = require('./boan/PotentialTerritory');
 var Stone = require('../../Stone');
 var ZoneFiller = require('./boan/ZoneFiller');
 
@@ -21,8 +20,6 @@ function Droopy(goban, color, genes) {
     this.version = 'Droopy-1.0';
     this.goban = goban;
     this.genes = genes || new Genes();
-    this.pot = new PotentialTerritory(this.goban);
-    this.boan = new BoardAnalyser();
     this.gsize = this.goban.gsize;
     this.stateGrid = new Grid(this.gsize);
     this.scoreGrid = new Grid(this.gsize);
@@ -37,7 +34,7 @@ function Droopy(goban, color, genes) {
 module.exports = Droopy;
 
 Droopy.BoardAnalyser = BoardAnalyser;
-Droopy.PotentialTerritory = PotentialTerritory;
+// Used only by tests
 Droopy.ZoneFiller = ZoneFiller;
 
 
@@ -104,9 +101,6 @@ Droopy.prototype.getMove = function () {
         main.log.error('Forcing AI pass since we already played ' + this.numMoves);
         return 'pass';
     }
-    this.debugMode = main.debug;
-    main.debug = false;
-
     var stateYx = this.stateGrid.yx;
     var scoreYx = this.scoreGrid.yx;
 
@@ -123,10 +117,8 @@ Droopy.prototype._prepareEval = function () {
     this.bestScore = this.minimumScore - 0.001;
     this.bestI = NO_MOVE;
 
-    this.pot.guessTerritories();
-
-    // get "raw" group info
-    this.boan.analyse(this.goban);
+    this.debugMode = main.debug;
+    main.debug = false;
 };
 
 /** Init grids (and mark invalid moves) */
@@ -185,7 +177,8 @@ Droopy.prototype.isBlunderMove = function (i, j) {
 };
 
 Droopy.prototype.guessTerritories = function () {
-    return this.pot.guessTerritories();
+    this.pot.evalBoard();
+    return this.pot.territory.yx;
 };
 
 Droopy.prototype._getMoveForTest = function (i, j) {
