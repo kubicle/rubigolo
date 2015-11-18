@@ -13,18 +13,25 @@ var BLACK = main.BLACK, WHITE = main.WHITE;
  *  code is the void code (like a color but higher index)
  *  neighbors is an array of n arrays, with n == number of colors
  */
-function Void(code, i, j, vcount, neighbors) {
+function Void(code) {
     this.code = code;
-    this.i = i;
-    this.j = j;
-    this.vcount = vcount;
-    this.groups = neighbors; // neighboring groups (array of arrays; 1st index is color)
+    this.i = 0;
+    this.j = 0;
+    this.vcount = 0;
+    this.groups = null; // neighboring groups (array of arrays; 1st index is color)
     this.vtype = undefined; // see vXXX contants below
     this.color = undefined; // BLACK or WHITE, or undefined if no clear owner
     this.owner = undefined; // GroupInfo or undefined; NB: fake eyes don't have owner
     this.isInDeadGroup = false; // true when all groups around an eye are dead (e.g. one-eyed dead group)
 }
 module.exports = Void;
+
+Void.prototype.init = function (i, j, vcount, neighbors) {
+    this.i = i;
+    this.j = j;
+    this.vcount = vcount;
+    this.groups = neighbors;
+};
 
 var vEYE = Void.vEYE = 1;
 var vFAKE_EYE = Void.vFAKE_EYE = 2;
