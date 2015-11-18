@@ -7,7 +7,6 @@ var allHeuristics = require('./AllHeuristics');
 var BoardAnalyser = require('./boan/BoardAnalyser');
 var Genes = require('../../Genes');
 var Grid = require('../../Grid');
-var Stone = require('../../Stone');
 var ZoneFiller = require('./boan/ZoneFiller');
 
 var sOK = main.sOK, sINVALID = main.sINVALID, sBLUNDER = main.sBLUNDER, sDEBUG = main.sDEBUG;
@@ -33,8 +32,8 @@ function Droopy(goban, color, genes) {
 }
 module.exports = Droopy;
 
-Droopy.BoardAnalyser = BoardAnalyser;
 // Used only by tests
+Droopy.BoardAnalyser = BoardAnalyser;
 Droopy.ZoneFiller = ZoneFiller;
 
 
@@ -125,7 +124,7 @@ Droopy.prototype._prepareEval = function () {
 Droopy.prototype._initScoringGrid = function (stateYx, scoreYx) {
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
-            if (!Stone.validMove(this.goban, i, j, this.color)) {
+            if (!this.goban.isValidMove(i, j, this.color)) {
                 stateYx[j][i] = sINVALID;
                 continue;
             }
