@@ -29,7 +29,7 @@ inherits(Influence, Heuristic);
 module.exports = Influence;
 
 
-Influence.prototype.clear = function () {
+Influence.prototype._clear = function () {
     for (var j = this.gsize; j >= 1; j--) {
         var mapj = this.map[j];
         for (var i = this.gsize; i >= 1; i--) {
@@ -40,7 +40,7 @@ Influence.prototype.clear = function () {
 };
 
 Influence.prototype.evalBoard = function () {
-    this.clear();
+    this._clear();
     var influence = [4, 2, 1];
     // First we get stones' direct influence
     for (var j = 1; j <= this.gsize; j++) {
@@ -73,16 +73,18 @@ Influence.prototype.evalBoard = function () {
 
 Influence.prototype.debugDump = function () {
     var c;
-    function inf2str(inf) { return '%2d'.format(inf[c]); }
+    function inf2str(inf) {
+        return ('     ' + inf[c].toFixed(2).chomp('0').chomp('0').chomp('.')).slice(-6);
+    }
 
     for (c = BLACK; c <= WHITE; c++) {
         main.log.debug('Influence map for ' + Grid.COLOR_NAMES[c] + ':');
         for (var j = this.gsize; j >= 1; j--) {
-            main.log.debug('%2d'.format(j) +
+            main.log.debug('%2d'.format(j) + ' ' +
                 this.map[j].slice(1, this.gsize + 1).map(inf2str).join('|'));
         }
-        var cols = '  ';
-        for (var i = 1; i <= this.gsize; i++) { cols += ' ' + Grid.xLabel(i) + ' '; }
+        var cols = '   ';
+        for (var i = 1; i <= this.gsize; i++) { cols += '     ' + Grid.xLabel(i) + ' '; }
         main.log.debug(cols);
     }
 };
