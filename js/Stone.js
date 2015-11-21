@@ -5,7 +5,8 @@ var main = require('./main');
 var Grid = require('./Grid');
 var Group = require('./Group');
 
-var EMPTY = main.EMPTY, DIR0 = main.DIR0, DIR3 = main.DIR3;
+var EMPTY = main.EMPTY, BORDER = main.BORDER;
+var DIR0 = main.DIR0, DIR3 = main.DIR3;
 
 
 /** @class A "stone" stores everything we want to keep track of regarding an intersection on the board.
@@ -25,8 +26,8 @@ function Stone(goban, i, j, color) {
 }
 module.exports = Stone;
 
-Stone.XY_AROUND = [[0, 1], [1, 0], [0, -1], [-1, 0]]; // top, right, bottom, left
-Stone.XY_DIAGONAL = [[1, 1], [1, -1], [-1, -1], [-1, 1]]; // top-right, bottom-right, bottom-left, top-left
+var XY_AROUND = Stone.XY_AROUND = [[0, 1], [1, 0], [0, -1], [-1, 0]]; // top, right, bottom, left
+var XY_DIAGONAL = Stone.XY_DIAGONAL = [[1, 1], [1, -1], [-1, -1], [-1, 1]]; // top-right, bottom-right, bottom-left, top-left
 
 Stone.prototype.clear = function () {
     this.color = EMPTY;
@@ -36,20 +37,15 @@ Stone.prototype.clear = function () {
 // Computes each stone's neighbors (called for each stone after init)
 // NB: Stones next to side have only 3 neighbors, and the corner stones have 2
 Stone.prototype.findNeighbors = function () {
-    var coords = Stone.XY_AROUND, diags = Stone.XY_DIAGONAL, stone;
-    // NB: order in which we push neighbors should be irrelevant but is not at this point.
-    // 2 places:
-    // - TestGroup looks at group merging numbers etc. (no worry here)
-    // - TestPotentialTerritory#testBigEmptySpace has a group that is seen dead or not depending on order.
-    // The latter one should be fixed one day.
-    for (var i = DIR3; i >= DIR0; i--) {
-        stone = this.goban.stoneAt(this.i + coords[i][0], this.j + coords[i][1]);
-        if (stone !== main.BORDER) this.neighbors.push(stone);
-    }
-    for (i = DIR0; i <= DIR3; i++) {
-        stone = this.goban.stoneAt(this.i + coords[i][0], this.j + coords[i][1]);
+    var yx = this.goban.ban;
+    // NB: order in which we push neighbors should be irrelevant but is not fully
+    // because TestGroup looks at group merging numbers etc. (no worry here)
+    for (var n = DIR3; n >= DIR0; n--) {
+        var stone = yx[this.j + XY_AROUND[n][1]][this.i + XY_AROUND[n][0]];
+        if (stone !== BORDER) this.neighbors.push(stone);
+
         this.allNeighbors.push(stone);
-        stone = this.goban.stoneAt(this.i + diags[i][0], this.j + diags[i][1]);
+        stone = yx[this.j + XY_DIAGONAL[n][1]][this.i + XY_DIAGONAL[n][0]];
         this.allNeighbors.push(stone);
     }
 };
