@@ -15,7 +15,7 @@ var FAILS = GroupInfo.FAILS, LIVES = GroupInfo.LIVES;
 /** @class Our main board analyser / score counter etc.
  */
 function BoardAnalyser() {
-    this.version = BoardAnalyser.BOAN_VERSION;
+    this.version = BoardAnalyser.VERSION;
     this.mode = null;
     this.goban = null;
     this.allVoids = [];
