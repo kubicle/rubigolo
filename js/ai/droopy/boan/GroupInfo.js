@@ -33,7 +33,7 @@ var ALIVE = GroupInfo.ALIVE = 1000; // any big enough liveliness to mean "alive 
 // This also resets the eyes
 GroupInfo.prototype.resetAnalysis = function (group) {
     this.group = group;
-    this.eyeCount = 0;
+    this.eyeCount = this._liveliness = 0;
     this.voids.clear();
     this.nearVoids.clear();
     this.dependsOn.clear();
@@ -57,13 +57,13 @@ GroupInfo.prototype.toString = function () {
         '] deadEnemies:[' + this.deadEnemies.map(GroupInfo.giNdx) + '])';
 };
 
-/** Adds a void to an owner-group.
+/** Adds a void to an owner-group + makes groups sharing the void brothers.
  * @param {Void} v
  * @param {Array} [groups] - array of co-owner groups (they become brothers)
  * @return {GroupInfo} - "this"
  */
 GroupInfo.prototype.addVoid = function (v, groups) {
-    if (main.debug) main.log.debug('OWNED EYE: ' + v + ' owned by ' + this);
+    if (main.debug) main.log.debug('OWNED: ' + v + ' owned by ' + this);
     this.voids.push(v);
     if (v.vtype === vEYE) this.eyeCount++;
 
@@ -293,7 +293,7 @@ GroupInfo.prototype.checkSingleEye = function (first2play) {
 // This checks if a group has a minimum liveliness.
 // We call this several times, raising the bar progressively...
 GroupInfo.prototype.checkLiveliness = function (minLife, strict) {
-    var life = this.liveliness(strict);
+    var life = this._liveliness = this.liveliness(strict);
     if (life >= ALIVE || (strict && life >= 2)) {
         this.isAlive = true;
         if (main.debug) main.log.debug('ALIVE-liveliness ' + life + ': ' + this);

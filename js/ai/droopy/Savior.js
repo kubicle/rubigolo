@@ -7,24 +7,28 @@ var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
 
-var sOK = main.sOK, ALWAYS = main.ALWAYS;
+var sOK = main.sOK, sDEBUG = main.sDEBUG, ALWAYS = main.ALWAYS;
 
 
 /** @class Saviors rescue ally groups in atari */
 function Savior(player) {
     Heuristic.call(this, player);
-    this.hunter = null; // cannot call getHeuristic here because Hunter is after Savior
+
+    this.hunter = player.getHeuristic('Hunter');
 }
 inherits(Savior, Heuristic);
 module.exports = Savior;
 
 
 Savior.prototype.evalBoard = function (stateYx, scoreYx) {
-    if (!this.hunter) this.hunter = this.player.getHeuristic('Hunter');
     var myScoreYx = this.scoreGrid.yx;
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
-            if (stateYx[j][i] < sOK) continue;
+            var state = stateYx[j][i];
+            if (state < sOK) continue;
+            if (state === sDEBUG && this.name === this.player.debugHeuristic)
+                main.debug = true; // set your breakpoint on this line if needed
+
             var stone = this.goban.stoneAt(i, j);
             var threat = this._evalEscape(i, j, stone);
             if (threat === 0) continue;
@@ -48,7 +52,7 @@ Savior.prototype._evalEscape = function (i, j, stone) {
             if (hunterThreat === 0) continue;
             groups.push(g);
             if (hunterThreat !== null) continue;
-            // No really intuitive: we check if enemy could chase us starting in i,j
+            // Not really intuitive: we check if enemy could chase us starting in i,j
             if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' asking hunter to look at ' +
                 stone + ' pre-atari on ' + g);
             hunterThreat = this.hunter.catchThreat(i, j, this.enemyColor);
