@@ -42,9 +42,7 @@ function Goban(gsize) {
     this.numGroups = 0;
 
     this.history = [];
-    this.positionHistory = [];
-    this.currentPosition = this.buildCompressedImage();
-    this.allSeenPositions = {};
+    this._initSuperko(false);
     this._moveIdStack = [];
     this._moveIdGen = this.moveId = 0; // moveId is unique per tried move
 }
@@ -72,9 +70,28 @@ Goban.prototype.clear = function () {
     this.numGroups = 0;
 
     this.history.clear();
-    this.positionHistory.clear();
+    this._initSuperko(false);
     this._moveIdStack.clear();
     this._moveIdGen = this.moveId = 0;
+};
+
+Goban.prototype.setRules = function (rules) {
+    for (var rule in rules) {
+        var setting = rules[rule];
+        switch (rule) {
+        case 'positionalSuperko': this._initSuperko(setting); break;
+        default: main.log.warn('Ignoring unsupported rule: ' + rule + ': ' + setting);
+        }
+    }
+};
+
+Goban.prototype._initSuperko = function (isRuleOn) {
+    this.useSuperko = isRuleOn;
+    if (isRuleOn) {
+        this.positionHistory = [];
+        this.currentPosition = this.buildCompressedImage();
+        this.allSeenPositions = {};
+    }
 };
 
 // Allocate a new group or recycles one from garbage list.
@@ -149,11 +166,13 @@ Goban.prototype.isValidMove = function (i, j, color) {
     var stone = this.ban[j][i];
     if (stone.color !== EMPTY) return false;
 
-    // Check this is not a superko (already seen position)
-    if (this.allSeenPositions[this.nextMoveImage(i, j, color)]) {
-        return false;
+    if (this.useSuperko) {
+        // Check this is not a superko (already seen position)
+        var pos = this.nextMoveImage(i, j, color);
+        if (this.allSeenPositions[pos]) {
+            return false;
+        }
     }
-
     if (stone.moveIsSuicide(color)) {
         return false;
     }
@@ -188,11 +207,12 @@ Goban.prototype.playAt = function (i, j, color) {
     var stone = this._putDown(i, j);
     stone.putDown(color);
 
-    this.positionHistory.push(this.currentPosition);
-    this.allSeenPositions[this.currentPosition] = this.history.length;
-    //TODO: use nextMoveImage(i, j, color) or better
-    this.currentPosition = this.buildCompressedImage();
-
+    if (this.useSuperko) {
+        this.positionHistory.push(this.currentPosition);
+        this.allSeenPositions[this.currentPosition] = this.history.length;
+        //TODO: use nextMoveImage(i, j, color) or better
+        this.currentPosition = this.buildCompressedImage();
+    }
     return stone;
 };
 
@@ -202,8 +222,10 @@ Goban.prototype.undo = function () {
     if (!stone) throw new Error('Extra undo');
     stone.takeBack();
 
-    this.currentPosition = this.positionHistory.pop();
-    delete this.allSeenPositions[this.currentPosition];
+    if (this.useSuperko) {
+        this.currentPosition = this.positionHistory.pop();
+        delete this.allSeenPositions[this.currentPosition];
+    }
 };
 
 Goban.prototype.tryAt = function (i, j, color) {

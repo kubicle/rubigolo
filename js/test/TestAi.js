@@ -683,8 +683,9 @@ TestAi.prototype.testKillRace2 = function () {
 };
 
 TestAi.prototype.testSuperko = function () {
-    // same as above but W's eye is actually shared by 2 brothers
-    this.checkGame('a3,b3,a2,b2,pass,a1,b1,c1,pass,a1,pass,a4,a2,pass,b1,pass,a3,a1', '!a2');
+    this.initBoard(5);
+    this.goban.setRules({ positionalSuperko: true });
+    this.game.loadMoves('a3,b3,a2,b2,pass,a1,b1,c1,pass,a1,pass,a4,a2,pass,b1,pass,a3,a1');
     if (!this.goban.isValidMove(1, 2, BLACK)) return;
     this.showInUi('a2 should be invalid: superko');
     this.assertEqual(true, false);
