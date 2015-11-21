@@ -93,8 +93,7 @@ Stone.prototype.moveIsSuicide = function (color) {
             if (s.group.lives > 1) return false; // our neighbor group will still have lives left
         }
     }
-    // $log.debug("move #{@i}, #{@j}, color:#{color} would be a suicide") if $debug
-    return true;
+    return true; // move would be a suicide
 };
 
 // Is a move a ko?
@@ -105,7 +104,6 @@ Stone.prototype.moveIsKo = function (color) {
     // 1) Must kill a single group
     // NB: we don't need to iterate on unique groups because on condition #2 below
     var groupA = null;
-    //TODO: check here if we always have the unique allies ready anyway
     for (var n = this.neighbors.length - 1; n >= 0; n--) {
         var enemy = this.neighbors[n].group;
         if (!enemy || enemy.color !== 1 - color) continue;
@@ -136,8 +134,7 @@ Stone.prototype.moveIsKo = function (color) {
     if (stoneB.i !== this.i || stoneB.j !== this.j) {
         return false;
     }
-    //if (main.debug) main.log.debug('ko in ' + this.toString() + ', color:' + color + ' cannot be played now');
-    return true;
+    return true; // move is a ko
 };
 
 Stone.prototype.die = function () {
