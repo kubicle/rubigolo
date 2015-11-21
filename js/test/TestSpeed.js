@@ -153,17 +153,17 @@ TestSpeed.prototype.playGameAndClean = function (movesIj, cleanMode) {
 
 // Our first, basic test
 TestSpeed.prototype.play10Stones = function () {
-    this.goban.playAt(2, 2, WHITE);
-    this.goban.playAt(1, 2, BLACK);
-    this.goban.playAt(1, 3, WHITE);
-    this.goban.playAt(2, 1, BLACK);
-    this.goban.playAt(1, 1, WHITE);
-    this.goban.playAt(4, 4, BLACK);
-    this.goban.playAt(4, 5, WHITE);
-    this.goban.playAt(1, 2, BLACK);
-    this.goban.playAt(5, 5, WHITE);
-    this.goban.playAt(5, 4, BLACK);
+    this.goban.tryAt(2, 2, WHITE);
+    this.goban.tryAt(1, 2, BLACK);
+    this.goban.tryAt(1, 3, WHITE);
+    this.goban.tryAt(2, 1, BLACK);
+    this.goban.tryAt(1, 1, WHITE);
+    this.goban.tryAt(4, 4, BLACK);
+    this.goban.tryAt(4, 5, WHITE);
+    this.goban.tryAt(1, 2, BLACK);
+    this.goban.tryAt(5, 5, WHITE);
+    this.goban.tryAt(5, 4, BLACK);
     for (var i = 0; i < 10; i++) {
-        this.goban.undo();
+        this.goban.untry();
     }
 };
