@@ -37,13 +37,13 @@ BoardAnalyser.prototype.countScore = function (goban) {
     this.scores[BLACK] = this.scores[WHITE] = 0;
     this.prisoners = Group.countPrisoners(goban);
 
-    if (!this._initAnalysis('SCORE', goban)) return;
+    var grid = goban.scoringGrid.initFromGoban(goban);
+    if (!this._initAnalysis('SCORE', goban, grid)) return;
     this._runAnalysis();
     this._finalColoring();
     if (main.debug) main.log.debug(this.filler.grid.toText(function (c) { return Grid.colorToChar(c); }));
 };
 
-/** If grid is not given a new one will be created from goban */
 BoardAnalyser.prototype.analyse = function (goban, grid, first2play) {
     var mode = first2play === undefined ? 'MOVE' : 'TERRITORY';
     if (!this._initAnalysis(mode, goban, grid)) return;
@@ -78,7 +78,6 @@ BoardAnalyser.prototype.debugDump = function () {
     }
 };
 
-// grid is optional
 BoardAnalyser.prototype._initAnalysis = function (mode, goban, grid) {
     this.mode = mode;
     this.goban = goban;
