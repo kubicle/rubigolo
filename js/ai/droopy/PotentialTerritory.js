@@ -97,7 +97,7 @@ PotentialTerritory.prototype._foresee = function (grid, first, second) {
 PotentialTerritory.prototype._initGroupState = function () {
     this.allGroups = this.goban.getAllGroups();
     for (var ndx in this.allGroups) {
-        var g = this.allGroups[ndx];
+        var g = this.allGroups[~~ndx];
         g.isAlive = g.isDead = NEVER;
     }
 };
