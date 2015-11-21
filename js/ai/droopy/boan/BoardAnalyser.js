@@ -48,7 +48,7 @@ BoardAnalyser.prototype.analyse = function (goban, grid, first2play) {
     var mode = first2play === undefined ? 'MOVE' : 'TERRITORY';
     if (!this._initAnalysis(mode, goban, grid)) return;
     this._runAnalysis(first2play);
-    this._finalColoring();
+    if (mode === 'TERRITORY') this._finalColoring();
 };
 
 BoardAnalyser.prototype.image = function () {
@@ -133,6 +133,7 @@ BoardAnalyser.prototype._runAnalysis = function (first2play) {
     this._findEyeOwners();
     this._findBattleWinners();
     this._lifeOrDeathLoop(first2play);
+    this._findDameVoids();
 };
 
 BoardAnalyser.prototype._findBrothers = function () {
@@ -316,12 +317,6 @@ BoardAnalyser.prototype._lifeOrDeathLoop = function (first2play) {
     if (main.debug && count > 0) main.log.debug('*** UNDECIDED groups after _lifeOrDeathLoop:' + count);
 };
 
-BoardAnalyser.prototype._finalColoring = function () {
-    this._findDameVoids();
-    this._colorVoids();
-    this._colorDeadGroups();
-};
-
 // Looks for "dame" = neutral voids (if alive groups from more than one color are around)
 BoardAnalyser.prototype._findDameVoids = function () {
     var aliveColors = [];
@@ -340,6 +335,11 @@ BoardAnalyser.prototype._findDameVoids = function () {
             v.setAsDame();
         }
     }
+};
+
+BoardAnalyser.prototype._finalColoring = function () {
+    this._colorVoids();
+    this._colorDeadGroups();
 };
 
 // Colors the voids with owner's color
