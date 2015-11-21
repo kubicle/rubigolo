@@ -110,11 +110,14 @@ BoardAnalyser.prototype._initVoidsAndGroups = function () {
     this.allGroups = {};
     this.allVoids.clear();
     var neighbors = [[], []], n, groups;
+    var v = new Void(voidCode++);
     for (var j = 1; j <= this.goban.gsize; j++) {
         for (var i = 1; i <= this.goban.gsize; i++) {
-            var vcount = this.filler.fillWithColor(i, j, EMPTY, voidCode, neighbors);
+            var vcount = this.filler.fillWithColor(i, j, EMPTY, v, neighbors);
             if (vcount === 0) continue;
-            var v = new Void(voidCode++, i, j, vcount, neighbors);
+
+            // 1 new void created
+            v.init(i, j, vcount, neighbors);
             this.allVoids.push(v);
 
             // keep all the groups
@@ -124,6 +127,7 @@ BoardAnalyser.prototype._initVoidsAndGroups = function () {
             for (n = groups.length - 1; n >= 0; n--) this._addGroup(groups[n], v);
 
             neighbors = [[], []];
+            v = new Void(voidCode++);
         }
     }
 };
@@ -354,7 +358,7 @@ BoardAnalyser.prototype._colorVoids = function () {
         } else {
             color = Grid.DAME_COLOR;
         }
-        this.filler.fillWithColor(v.i, v.j, v.code, color);
+        this.filler.fillWithColor(v.i, v.j, v, color);
     }
 };
 
