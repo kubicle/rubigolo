@@ -144,8 +144,9 @@ Shaper.prototype._eyeCloser = function (i, j, color) {
     if (this.isOwned(i, j, color) !== SOMETIMES) return 0;
 
     var potEye = null, eyeThreatened = false, allyNeedsEye = false;
-    var g = null, threat = 0, enemyCount = 0;
+    var g = null, threat = 0;
     var potEyeYx = this.potEyeGrid.yx;
+
     for (var n = stone.neighbors.length - 1; n >= 0; n--) {
         var s = stone.neighbors[n];
         switch (s.color) {
@@ -158,15 +159,14 @@ Shaper.prototype._eyeCloser = function (i, j, color) {
             if (g !== null) threat += this.groupThreat(g, /*saved=*/true); //TODO review this approximation
             g = s.group;
             break;
-        default: // enemy - must be only 1
-            enemyCount++;
+        default: // enemy
+            // NB: dead enemies have less influence so we sometimes can see more than 1 around
             if (s.group.isDead === ALWAYS) continue;
             eyeThreatened = true;
             break;
         }
     }
     if (potEye && eyeThreatened && allyNeedsEye) {
-        if (enemyCount > 1) throw new Error('Unexpected: more than 1 enemy');
         threat += this.groupThreat(g, /*saved=*/true);
         var potEyeCount = g._info.countPotentialEyes();
         if (main.debug) main.log.debug('Shaper ' + Grid.colorName(color) + ' sees potential threat ' +
