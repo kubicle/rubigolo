@@ -19,7 +19,16 @@ module.exports = GroupAnalyser;
 
 
 GroupAnalyser.prototype.evalBoard = function () {
+    this._initGroupState();
     // get "raw" group info
     var goban = this.goban;
     this.boan.analyse(goban, goban.scoringGrid.initFromGoban(goban));
+};
+
+GroupAnalyser.prototype._initGroupState = function () {
+    this.allGroups = this.goban.getAllGroups();
+    for (var ndx in this.allGroups) {
+        var g = this.allGroups[~~ndx];
+        g.inRaceWith = null;
+    }
 };
