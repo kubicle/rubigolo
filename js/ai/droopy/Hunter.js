@@ -15,9 +15,10 @@ var ALWAYS = main.ALWAYS;
 function Hunter(player) {
     Heuristic.call(this, player);
 
-    this.takeLifeCoeff = this.getGene('takeLife', 1, 0.01, 2);
+    this.pressureCoeff = this.getGene('pressure', 1, 0.01, 2);
 
     this.snapbacks = null;
+    this.noEasyPrisonerYx = player.getHeuristic('NoEasyPrisoner').scoreGrid.yx;
 }
 inherits(Hunter, Heuristic);
 module.exports = Hunter;
@@ -46,6 +47,7 @@ Hunter.prototype._gotLivesFromKillingAround = function (g, minLives) {
 
 
 var KO_KILL_SCORE = 1;
+var RACE_KILL_SCORE = 1.1; // just need to be enough to let the move happen (score comes from pressure eval)
 
 /** Returns a score to measure what kind of kill a move is.
  *  Any number < 1.01 is sign of a "not so good" kill.
@@ -72,6 +74,7 @@ Hunter.prototype._killScore = function (empty, color) {
             numAllies += 0.0001;
             break;
         default: // enemy
+            if (n.group.inRaceWith) return RACE_KILL_SCORE;
             if (n.group.lives > 1) break; // not a kill
             numKill += n.group.stones.length;
         }
@@ -125,13 +128,22 @@ Hunter.prototype._countPreAtariThreat = function (stone, enemies, empties, color
     return isSnapback;
 };
 
-Hunter.prototype._countSimplePressure = function (enemies) {
-    var threat = 0;
+Hunter.prototype._countPressureAndRace = function (stone, enemies, level, isEasyPrisoner) {
+    var threat = 0, raceThreat = 0;
     for (var egNdx = enemies.length - 1; egNdx >= 0; egNdx--) {
-        var egl = enemies[egNdx].lives;
-        if (egl >= 2) threat += 1 / (egl + 1);
+        var enemy = enemies[egNdx];
+        var egl = enemy.lives, allyInRace = enemy.inRaceWith;
+        if (allyInRace && egl === allyInRace.lives && !stone.isNextTo(allyInRace)) {
+            raceThreat += this.groupThreat(enemy) +
+                this.groupThreat(allyInRace, /*saved=*/true);
+            continue;
+        } 
+        // Could be 2 or 3 below; see TestAi#testSemiAndEndGame h1 & b8 for examples
+        if (egl >= 2 && level === 0 && !isEasyPrisoner) {
+            threat += 1 / (egl + 1);
+        }
     }
-    return threat * this.takeLifeCoeff;
+    return threat * this.pressureCoeff + raceThreat;
 };
 
 Hunter.prototype._beforeEvalBoard = function () {
@@ -147,23 +159,24 @@ Hunter.prototype._evalMove = function (i, j, color, level) {
     // count groups already in atari
     var threat1 = this._countAtariThreat(enemies, level);
     
-    // count some profit in removing enemy lives
-    if(level === 0) threat1 += this._countSimplePressure(enemies);
-
     // now look for groups with 2 lives
     var egroups = [];
-    var snapback = this._countPreAtariThreat(stone, enemies, empties, color, level, egroups);
-    if (level === 0 && snapback) {
+    var isSnapback = this._countPreAtariThreat(stone, enemies, empties, color, level, egroups);
+    if (level === 0 && isSnapback) {
         this.snapbacks.push(stone); // for other heuristics to look at...
     }
     // unless snapback, make sure our new stone's group can survive
-    if (!snapback && empties.length <= 1) {
+    if (!isSnapback && empties.length <= 1) {
         var killScore = this._killScore(stone, color); //TODO: make this easier!
         if (killScore !== KO_KILL_SCORE &&
             (killScore < 0.02 || (killScore > 1 && killScore < 1.01))) {
-            return 0; // REVIEW ME: return threat1 does not penalize snapback victim enough
+            return 0; // REVIEW ME: we ignore threat1 to penalize more snapback creation
         }
     }
+    // count some profit in removing enemy lives
+    var isEasyPrisoner = !isSnapback && this.noEasyPrisonerYx[j][i] < 0;
+    threat1 += this._countPressureAndRace(stone, enemies, level, isEasyPrisoner);
+
     if (!egroups.length) return threat1;
 
     this.goban.tryAt(i, j, color); // our attack takes one of the 2 last lives (the one in i,j)
@@ -181,7 +194,7 @@ Hunter.prototype._evalMove = function (i, j, color, level) {
     var threat2 = this._getMultipleChaseThreat(egroups, canEscape);
 
     if (main.debug && (threat1 || threat2)) main.log.debug('Hunter ' + Grid.colorName(color) +
-        ' found a threat of ' + threat1 + ' + ' + threat2 + ' at ' + Grid.xy2move(i, j));
+        ' found a threat of ' + threat1.toFixed(2) + ' + ' + threat2 + ' at ' + Grid.xy2move(i, j));
     return threat1 + threat2;
 };
 
