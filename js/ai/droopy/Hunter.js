@@ -95,7 +95,7 @@ Hunter.prototype._countAtariThreat = function (enemies, level) {
 };
 
 Hunter.prototype._countPreAtariThreat = function (stone, enemies, empties, color, level, egroups) {
-    var snapback = false, eg;
+    var isSnapback = false, eg;
     var allies = stone.uniqueAllies(color);
     // now look for groups with 2 lives
     for (var egNdx = enemies.length - 1; egNdx >= 0; egNdx--) {
@@ -116,13 +116,13 @@ Hunter.prototype._countPreAtariThreat = function (stone, enemies, empties, color
                 continue;
             }
             // here we know this is a snapback
-            snapback = true;
+            isSnapback = true;
             if (main.debug) main.log.debug('Hunter ' + Grid.colorName(color) + ' sees a snapback in ' + stone);
         }
         if (main.debug) main.log.debug('Hunter ' + Grid.colorName(color) + '(level ' + level + ') looking at threat ' + stone + ' on ' + eg);
         egroups.push(eg);
     }
-    return snapback;
+    return isSnapback;
 };
 
 Hunter.prototype._countSimplePressure = function (enemies) {
