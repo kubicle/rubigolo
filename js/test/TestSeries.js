@@ -73,7 +73,8 @@ TestSeries.prototype._logReport = function (specificClass, classCount, duration)
     var report = 'Completed tests. (' + classes + ', ' + this.testCount + ' tests, ' +
         this.checkCount + ' checks in ' + duration + 's)\n\n';
     if (numIssues === 0) {
-        report += 'SUCCESS!';
+        if (this.testCount || this.checkCount) report += 'SUCCESS!';
+        else report += '*** 0 TESTS DONE ***  Check your filter?';
         // Less important test data
         if (this.todoCount) report += '  (Todos: ' + this.todoCount + ')';
         if (this.count) report += '\n(generic count: ' + this.count + ')';
