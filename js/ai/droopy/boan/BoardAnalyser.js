@@ -361,7 +361,20 @@ BoardAnalyser.prototype._colorDeadGroups = function () {
     for (var ndx in this.allGroups) {
         var gi = this.allGroups[~~ndx];
         if (!gi.isDead) continue;
+
+        // At least 1 enemy around must be alive 
+        var reallyDead = false;
+        for (var n = gi.killers.length - 1; n >= 0; n--) {
+            if (!gi.killers[n]._info.isDead) reallyDead = true;
+        }
         var color = gi.group.color;
+        if (gi.killers.length && !reallyDead) {
+            for (var i = gi.nearVoids.length - 1; i >= 0; i--) {
+                gi.nearVoids[i].setVoidOwner(color);
+            }
+            continue;
+        }
+
         var stone = gi.group.stones[0];
         var taken = this.filler.fillWithColor(stone.i, stone.j, color, Grid.DEAD_COLOR + color);
         this.prisoners[color] += taken;

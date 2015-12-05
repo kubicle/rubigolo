@@ -64,7 +64,7 @@ TestBoardAnalyser.prototype.testWeirdEmptyBoard = function () {
     // result scoring grid is not really important.
     this.checkGame('', '+++++,+++++,+++++,+++++,+++++');
     this.checkGame('c3', '-----,-----,--@--,-----,-----');
-    this.checkGame('c3,d5', '---#-,-----,--@--,-----,-----');
+    this.checkGame('c3,d5', '---#-,-----,--@--,-----,-----'); // or ???#?,?????,??&??,?????,?????
     this.checkGame('c3,d4', '?????,???#?,??&??,?????,?????');
 };
 
@@ -86,25 +86,25 @@ TestBoardAnalyser.prototype.testDoomedGivesEye2 = function () {
 };
 
 TestBoardAnalyser.prototype.testDoomedGivesEye3 = function () {
-    // Same as above but both groups have a single eye - they both die
-    this.todo('Handle seki'); // both should stay alive instead
+    this.todo('Handle seki'); // add a test in which both should stay alive
+    // Both groups have a single eye but B has 2 more lives so he would win the race
     this.checkGame('a2,a4,b2,b4,c2,b5,c3,pass,d3,pass,d4,pass,d5,pass,a1,pass,b1,pass,c1,pass,e3,pass,e4,pass,e5',
-        '-#-&&,##-&&,--&&&,&&&::,&&&::');
+        '-#-@@,##-@@,--@@@,@@@--,@@@--');
 };
 
-TestBoardAnalyser.prototype.testTwoSigleEyeConnectedByFakeEye = function () {
-    // Black SW and center groups survive depending on each other
+TestBoardAnalyser.prototype.testTwoSingleEyeConnectedByEye = function () {
+    // Black SW and center groups survive depending on each other; c4 is a real eye
     this.checkGame('a2,a3,b2,b3,c2,a4,b1,a5,c3,b6,b4,a6,b5,c6,c5,d6,d5,e6,e5,f6,f5,g5,f4,g4,f3,g3,d4,f2,e3,e2,pass,d2,pass,d3,d1,e1,c1,g1',
         ':::::::,' +
         'OOOOOO:,' +
         'O@@@@@O,' +
-        'O@?@-@O,' +
+        'O@-@-@O,' +
         'OO@O@@O,' +
         '@@@OOO:,' +
         '-@@@O:O', 7);
     // and a variation that triggered a bug:
     this.checkGame('a2,a3,b2,b3,c2,a4,b1,a5,c3,b6,b4,a6,b5,c6,c5,d6,d5,e6,e5,f6,f5,g5,f4,g4,f3,g3,d4,f2,e3,e2,pass,d2,pass,d3,pass,g2',
-        ':::::::,OOOOOO:,O@@@@@O,O@?@-@O,OO@O@@O,@@@OOOO,-@?????', 7);
+        ':::::::,OOOOOO:,O@@@@@O,O@-@-@O,OO@O@@O,@@@OOOO,-@?????', 7);
 };
 
 TestBoardAnalyser.prototype.testUnconnectedBrothers = function () {
@@ -154,7 +154,7 @@ TestBoardAnalyser.prototype.testNoTwoEyesDeadEnemy = function () {
     // Black group is dead - having a dead kamikaze should not change that
     this.checkGame('c3,c4,b4,d4,c5,d3,d2,c2,b3,e2,b2,d1,d5,b1,e5,e4,b5,a1,a2,a4,c1,d2,a5,b1',
         '&&&&&,' +
-        '#&OOO,' +
+        'O&OOO,' +
         ':&&O:,' +
         '&&OOO,' +
         ':O:O:');
