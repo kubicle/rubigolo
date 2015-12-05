@@ -96,19 +96,24 @@ GroupInfo.prototype.makeDependOn = function (groups) {
 // NB: if we had another way to get the numContactPoints info, we could do this
 // much more efficiently by looking once at each empty point on the board
 GroupInfo.prototype.findBrothers = function () {
-    var g = this.group;
+    var g = this.group, color = g.color;
     // find allies 1 stone away
-    var empties = g.allLives();
     var allAllies = [];
+    var empties = g.allLives();
     var numContactPoints = 0;
     for (var e = empties.length - 1; e >= 0; e--) {
-        var allies = empties[e].uniqueAllies(g.color);
-        if (allies.length === 1) continue;
-        numContactPoints++;
-        allAllies.pushUnique(allies);
+        var neighbors = empties[e].neighbors, isContact = false;
+        for (var n = neighbors.length - 1; n >= 0; n--) {
+            var s = neighbors[n];
+            if (s.color !== color || s.group === g) continue;
+            isContact = true;
+            if (allAllies.indexOf(s.group) < 0) allAllies.push(s.group);
+        }
+        if (isContact) numContactPoints++;
     }
     if (!numContactPoints) return;
     this.numContactPoints = numContactPoints;
+    allAllies.push(g);
     Band.gather(allAllies);
 };
 
