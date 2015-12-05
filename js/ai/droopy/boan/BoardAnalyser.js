@@ -247,10 +247,6 @@ var singleEyeCheck = {
     run: function (gi, first) { return gi.checkSingleEye(first); },
     kill: killWeakest
 };
-var liveliness1Check = { name: 'liveliness1',
-    run: function (gi) { return gi.checkLiveliness(1); },
-    kill: killWeakest
-};
 var liveliness2Check = { name: 'liveliness2',
     run: function (gi) { return gi.checkLiveliness(2); },
     kill: killWeakest
@@ -260,14 +256,12 @@ var finalCheck = { name: 'final', run: function (gi) { return gi.checkLiveliness
 var midGameLifeChecks = [
     parentCheck,
     brotherCheck,
-    liveliness1Check,
     singleEyeCheck,
     // We don't expect a final liveliness (2) in mid-game
 ];
 var scoringLifeChecks = [
     parentCheck,
     brotherCheck,
-    liveliness1Check,
     singleEyeCheck,
     liveliness2Check,
     finalCheck
