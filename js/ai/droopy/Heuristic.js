@@ -114,7 +114,7 @@ Heuristic.prototype.groupThreat = function (g, saved) {
 Heuristic.prototype._countSavedAllies = function (killedEnemyGroup) {
     // do not count any saved allies if we gave them a single life in corner
     if (killedEnemyGroup.stones.length === 1 &&
-        this.distanceFromStoneToCorner(killedEnemyGroup.stones[0]) === 0) {
+        killedEnemyGroup.stones[0].isCorner()) {
         return 0;
     }
     var saving = 0;
@@ -156,18 +156,6 @@ Heuristic.prototype.markMoveAsBlunder = function (i, j, reason) {
     this.player.markMoveAsBlunder(i, j, this.name + ':' + reason);
 };
 
-Heuristic.prototype.distanceFromStoneToBorder = function (stone) {
-    var gsize = this.gsize;
-    var i = stone.i, j = stone.j;
-    return Math.min(Math.min(i - 1, gsize - i), Math.min(j - 1, gsize - j));
-};
-
-Heuristic.prototype.distanceFromStoneToCorner = function (stone) {
-    var gsize = this.gsize;
-    var i = stone.i, j = stone.j;
-    return Math.min(i - 1, gsize - i) + Math.min(j - 1, gsize - j);
-};
-
 Heuristic.prototype.diagonalStones = function (s1, s2) {
     return [this.goban.stoneAt(s1.i, s2.j), this.goban.stoneAt(s2.i, s1.j)];
 };
@@ -185,11 +173,11 @@ Heuristic.prototype.distanceBetweenStones = function (s1, s2, color) {
         if (numEnemies === 0) return 0; // safe hane
         if (numEnemies === 2) return 99; // cut!
         var connPoint = c1.color === enemy ? c2 : c1;
-        if (this.distanceFromStoneToBorder(s1) === 0 || this.distanceFromStoneToBorder(s2) === 0) {
-            if (this.distanceFromStoneToBorder(connPoint) === 1) return 1; // enemy cut-stone on border
+        if (s1.distanceFromBorder() === 0 || s2.distanceFromBorder() === 0) {
+            if (connPoint.distanceFromBorder() === 1) return 1; // enemy cut-stone on border
             if (connPoint.allyStones(enemy) !== 0) return 1; // other enemy next to conn point
             return 0;
-        } else if (this.distanceFromStoneToBorder(connPoint) === 1) {
+        } else if (connPoint.distanceFromBorder() === 1) {
             if (connPoint.allyStones(enemy) !== 0) return 1;
             return 0;
         }
@@ -203,12 +191,12 @@ Heuristic.prototype.distanceBetweenStones = function (s1, s2, color) {
             if (between.neighbors[i].color === enemy) numEnemies++;
         }
         if (numEnemies >= 1) return 1; // needs 1 move to connect (1 or 2 enemies is same)
-        if (this.distanceFromStoneToBorder(s1) + this.distanceFromStoneToBorder(s2) === 0) {
+        if (s1.distanceFromBorder() + s2.distanceFromBorder() === 0) {
             return 0; // along border with 0 enemy around is safe
         }
         return 0.5; // REVIEW ME
     }
-    var d1 = this.distanceFromStoneToBorder(s1), d2 = this.distanceFromStoneToBorder(s2);
+    var d1 = s1.distanceFromBorder(), d2 = s2.distanceFromBorder();
     if (dx + dy === 3 && d1 === 0 && d2 === 0) {
         // TODO code betweenStones and test it
         var betweens = this.betweenStones(s1, s2);

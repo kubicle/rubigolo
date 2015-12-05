@@ -77,7 +77,7 @@ Savior.prototype._evalEscape = function (i, j, stone) {
     }
     if (livesAdded === 2) {
         // we get 2 lives from the new stone - first check special case of border
-        if (groups.length === 1 && this.distanceFromStoneToBorder(stone) === 0) {
+        if (groups.length === 1 && stone.isBorder()) {
             if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' checks an escape along border in ' + Grid.xy2move(i, j));
             var savior = this.canEscapeAlongBorder(groups[0], i, j);
             if (savior !== undefined) return savior ? savedThreat : 0;

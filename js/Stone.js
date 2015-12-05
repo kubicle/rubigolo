@@ -78,6 +78,20 @@ Stone.prototype.isEmpty = function () {
     return this.color === EMPTY;
 };
 
+Stone.prototype.isCorner = function () {
+    return this.neighbors.length === 2;
+};
+
+Stone.prototype.isBorder = function () {
+    return this.neighbors.length <= 3; // NB: corners are borders too
+};
+
+Stone.prototype.distanceFromBorder = function () {
+    var gsize = this.goban.gsize;
+    var i = this.i, j = this.j;
+    return Math.min(Math.min(i - 1, gsize - i), Math.min(j - 1, gsize - j));
+};
+
 // Is a move a suicide?
 // not a suicide if 1 free life around
 // or if one enemy group will be killed
