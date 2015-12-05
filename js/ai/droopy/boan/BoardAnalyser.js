@@ -342,8 +342,8 @@ BoardAnalyser.prototype._findDameVoids = function () {
 };
 
 BoardAnalyser.prototype._finalColoring = function () {
-    this._colorVoids();
     this._colorDeadGroups();
+    this._colorVoids();
 };
 
 // Colors the voids with owner's color
