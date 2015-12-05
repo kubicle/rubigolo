@@ -2,10 +2,9 @@
 
 var main = require('../../../main');
 var Band = require('./Band');
-var Shaper = require('../Shaper');
-var Void = require('./Void');
 
-var vEYE = Void.vEYE;
+var EMPTY = main.EMPTY;
+var NEVER = main.NEVER, SOMETIMES = main.SOMETIMES, ALWAYS = main.ALWAYS;
 
 
 /** @class Contains the analyse results that are attached to each group */
@@ -38,8 +37,7 @@ GroupInfo.prototype.resetAnalysis = function (group) {
     this.nearVoids.clear();
     this.dependsOn.clear();
     this.band = null;
-    this.isAlive = false;
-    this.isDead = false;
+    this.isAlive = this.isDead = false;
     this.deadEnemies.clear();
     this.killers.clear();
     this.potentialEyes.clear();
@@ -52,7 +50,7 @@ GroupInfo.prototype.toString = function () {
     var brothers = this.band ? this.band.toString() : '';
     return this.group.toString() +
         ' (isAlive:' + this.isAlive + ' isDead:' + this.isDead + ', ' +
-        this.eyeCount + ' eyes, ' + this.voids.length + ' voids  brothers:[' +
+        this.voids.length + ' voids  brothers:[' +
         brothers + '] parents:[' + this.dependsOn.map(GroupInfo.giNdx) +
         '] deadEnemies:[' + this.deadEnemies.map(GroupInfo.giNdx) + '])';
 };
@@ -65,7 +63,7 @@ GroupInfo.prototype.toString = function () {
 GroupInfo.prototype.addVoid = function (v, groups) {
     if (main.debug) main.log.debug('OWNED: ' + v + ' owned by ' + this);
     this.voids.push(v);
-    if (v.vtype === vEYE) this.eyeCount++;
+    this.eyeCount++;
 
     // an eye between several groups makes them brothers
     if (groups && groups.length > 1) Band.gather(groups);
@@ -78,14 +76,7 @@ GroupInfo.prototype.removeVoid = function (v) {
     if (ndx === -1) throw new Error('remove unknown void');
     if (main.debug) main.log.debug('LOST: ' + v + ' lost by ' + this);
     this.voids.splice(ndx, 1);
-    if (v.vtype === vEYE) this.eyeCount--;
-};
-
-/** Called by an owned void when it is about to change type to newVtype */
-GroupInfo.prototype.onVoidTypeChange = function (v, newVtype) {
-    if (newVtype === vEYE) this.eyeCount++;
-    else if (v.vtype === vEYE) this.eyeCount--;
-    if (v.vtype === newVtype || this.eyeCount < 0) throw new Error('Unexpected vtype error');
+    this.eyeCount--;
 };
 
 GroupInfo.prototype.makeDependOn = function (groups) {
@@ -121,15 +112,6 @@ GroupInfo.prototype.findBrothers = function () {
     Band.gather(allAllies);
 };
 
-/** Returns the (first) single eye of a group (or null if no eye) */
-GroupInfo.prototype.getSingleEye = function () {
-    for (var i = this.voids.length - 1; i >= 0; i--) {
-        var eye = this.voids[i];
-        if (eye.vtype === vEYE) return eye;
-    }
-    return null;
-};
-
 GroupInfo.prototype.considerDead = function (reason) {
     this.isDead = true;
 
@@ -163,9 +145,8 @@ GroupInfo.prototype.liveliness = function (strict, shallow) {
             }
         }
     }
-    var numEyes = strict ? this.eyeCount : this.voids.length;
     var numDeadEnemies = strict ? this.countEyesFromDeadEnemy() : this.deadEnemies.length;
-    return numEyes + numDeadEnemies + familyPoints + racePoints;
+    return this.eyeCount + numDeadEnemies + familyPoints + racePoints;
 };
 
 /** This group "is doomed by" gi if without gi there would be space for 2 eyes.
@@ -211,15 +192,16 @@ GroupInfo.prototype.isDoomedBy = function (gi) {
 // a dead enemy. This is probably a better way to stop counting dead enemies to make up
 // for unaccounted eyes. See TestBoardAnalyser#testBigGame2 in h12 for an example.
 GroupInfo.prototype.countEyesFromDeadEnemy = function () {
-    var numDead = this.deadEnemies.length;
-    if (!numDead) return 0;
-
-    var eye = this.getSingleEye();
-    if (!eye) return numDead;
-
-    var count = 0;
-    for(var n = numDead - 1; n >= 0; n--) {
-        if (!eye.isTouching(this.deadEnemies[n])) count++;
+    var count = this.deadEnemies.length;
+    for(var n = count - 1; n >= 0; n--) {
+        var voids = this.deadEnemies[n].nearVoids;
+        // if a void next to this enemy belongs to us already, then dead enemy adds nothing
+        for (var m = voids.length - 1; m >= 0; m--) {
+            if (voids[m].owner === this) { // if remark above is coded, it becomes voids[m].color === color
+                count--;
+                break;
+            }
+        }
     }
     return count;
 };
