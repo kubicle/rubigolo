@@ -44,8 +44,8 @@ function Goban(gsize) {
 
     this.history = [];
     this._initSuperko(false);
-    this._moveIdStack = [];
-    this._moveIdGen = this.moveId = 0; // moveId is unique per tried move
+    // this._moveIdStack = [];
+    // this._moveIdGen = this.moveId = 0; // moveId is unique per tried move
 
     this.analyseGrid = null;
 }
@@ -74,8 +74,8 @@ Goban.prototype.clear = function () {
 
     this.history.clear();
     this._initSuperko(false);
-    this._moveIdStack.clear();
-    this._moveIdGen = this.moveId = 0;
+    // this._moveIdStack.clear();
+    // this._moveIdGen = this.moveId = 0;
 };
 
 Goban.prototype.setRules = function (rules) {
@@ -107,6 +107,12 @@ Goban.prototype.newGroup = function (stone, lives) {
     } else {
         return new Group(this, stone, lives, this.numGroups);
     }
+};
+
+Goban.prototype.deleteGroup = function (group) {
+    // When undoing a move, we usually can decrement group ID generator too
+    if (group.ndx === this.numGroups) this.numGroups--;
+    this.garbageGroups.push(group);
 };
 
 Goban.prototype.image = function () {
@@ -263,15 +269,15 @@ Goban.prototype._takeBack = function () {
 
 // If inc > 0 (e.g. +1), increments the move ID
 // otherwise, unstack (pop) the previous move ID (we are doing a "undo")
-Goban.prototype.updateMoveId = function (inc) {
-    if (inc > 0) {
-        this._moveIdGen++;
-        this._moveIdStack.push(this.moveId);
-        this.moveId = this._moveIdGen;
-    } else {
-        this.moveId = this._moveIdStack.pop();
-    }
-};
+// Goban.prototype.updateMoveId = function (inc) {
+//     if (inc > 0) {
+//         this._moveIdGen++;
+//         this._moveIdStack.push(this.moveId);
+//         this.moveId = this._moveIdGen;
+//     } else {
+//         this.moveId = this._moveIdStack.pop();
+//     }
+// };
 
 Goban.prototype.previousStone = function () {
     return this.history[this.history.length-1];

@@ -50,7 +50,7 @@ Group.prototype.clear = function () {
     for (var i = this.stones.length - 1; i >= 0; i--) {
         this.stones[i].clear();
     }
-    this.goban.garbageGroups.push(this);
+    this.goban.deleteGroup(this);
 };
 
 Group.prototype.toString = function () {
@@ -151,9 +151,8 @@ Group.prototype.connectStone = function (stone, onMerge) {
 // on_merge must be true for merge or unmerge-related call 
 Group.prototype.disconnectStone = function (stone, onMerge) {
     if (onMerge === undefined) onMerge = false;
-    if (main.debugGroup) {
-        main.log.debug('Disconnecting ' + stone + ' from group ' + this + ' (on_merge=' + onMerge + ')');
-    }
+    if (main.debugGroup) main.log.debug('Disconnecting ' + stone + ' from group ' + this + ' (on_merge=' + onMerge + ')');
+
     // groups of 1 stone become empty groups (->garbage)
     if (this.stones.length > 1) {
         this.lives -= this.livesAddedByStone(stone);
@@ -164,7 +163,7 @@ Group.prototype.disconnectStone = function (stone, onMerge) {
             throw new Error('Unexpected error (lives<0 on disconnect)');
         }
     } else {
-        this.goban.garbageGroups.push(this);
+        this.goban.deleteGroup(this);
         if (main.debugGroup) main.log.debug('Group going to recycle bin: ' + this);
     }
     // we always remove them in the reverse order they came
