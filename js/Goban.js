@@ -22,6 +22,7 @@ function Goban(gsize) {
     this.gsize = gsize;
     this.grid = new Grid(gsize);
     this.scoringGrid = new Grid(gsize);
+
     this.ban = this.grid.yx;
     var i, j;
     for (j = 1; j <= gsize; j++) {
@@ -45,6 +46,8 @@ function Goban(gsize) {
     this._initSuperko(false);
     this._moveIdStack = [];
     this._moveIdGen = this.moveId = 0; // moveId is unique per tried move
+
+    this.analyseGrid = null;
 }
 module.exports = Goban;
 

@@ -41,7 +41,7 @@ BoardAnalyser.prototype.countScore = function (goban) {
     if (!this._initAnalysis('SCORE', goban, grid)) return;
     this._runAnalysis();
     this._finalColoring();
-    if (main.debug) main.log.debug(this.filler.grid.toText(function (c) { return Grid.colorToChar(c); }));
+    if (main.debug) main.log.debug(grid.toText(function (c) { return Grid.colorToChar(c); }));
 };
 
 BoardAnalyser.prototype.analyse = function (goban, grid, first2play) {
@@ -52,11 +52,11 @@ BoardAnalyser.prototype.analyse = function (goban, grid, first2play) {
 };
 
 BoardAnalyser.prototype.image = function () {
-    return this.filler.grid.image();
+    return this.goban.analyseGrid.image();
 };
 
 BoardAnalyser.prototype.debugDump = function () {
-    main.log.debug(this.filler.grid.toText(function (c) {
+    main.log.debug(this.goban.analyseGrid.toText(function (c) {
         return Grid.colorToChar(c);
     }));
     for (var v, v_array = this.allVoids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
@@ -81,6 +81,7 @@ BoardAnalyser.prototype.debugDump = function () {
 BoardAnalyser.prototype._initAnalysis = function (mode, goban, grid) {
     this.mode = mode;
     this.goban = goban;
+    goban.analyseGrid = grid;
     this.filler = new ZoneFiller(goban, grid);
     if (goban.moveNumber() === 0) return false;
 
