@@ -627,7 +627,7 @@ TestAi.prototype.testAnotherKillAfterKo = function () {
     this.todo('One-eye group can survive if e9 + Ko battle');
 };
 
-TestAi.prototype.testBattledEyeNotSplit = function () {
+TestAi.prototype.testBattledVoidNotSplit = function () {
     // We may see a 3 vertex eye for Black in SW corner, but white stone is next to it
     // so White should not jump on a1
     this.checkGame('d4,d2,c3,d6,e5,c5,e3,c4,d5,b3,c2,c1,b2,b4,a3', '!a1,a4~1.5', 7);
