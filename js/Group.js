@@ -40,6 +40,9 @@ Group.prototype.recycle = function (stone, lives, ndx) {
     this.color = stone.color;
     this.mergedWith = this.mergedBy = this.killedBy = null;
     this.ndx = ndx;
+
+    this.isAlive = this.isDead = 0;
+    this.inRaceWith = null;
     return this;
 };
 
