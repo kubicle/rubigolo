@@ -67,72 +67,15 @@ Shaper.prototype._findPotentialEyes = function (stateYx) {
 };
 
 Shaper.prototype._evalSingleEyeSplit = function (scoreYx, g) {
-    var gi = g._info;
-    if (gi.eyeCount !== 1) return;
-    var eye = gi.getSingleEye(); // TODO: if depending group is on a side of eye, 1 vertex will be lost
-    if (!eye) return;
     var coords = [];
-    var alive = Shaper.getEyeMakerMove(this.goban, eye.i, eye.j, eye.vcount, coords);
+    var alive = g._info.getEyeMakerMove(coords);
     if (alive !== 1) return;
     var i = coords[0], j = coords[1];
     var score = this.groupThreat(g, this.color === g.color);
     this.scoreGrid.yx[j][i] += score;
     scoreYx[j][i] += score;
-    if (main.debug) main.log.debug('Shaper ' + Grid.colorName(this.color) + ' sees single eye split  at' +
+    if (main.debug) main.log.debug('Shaper ' + Grid.colorName(this.color) + ' sees single eye split at ' +
         i + ',' + j + ' score: ' + score);
-};
-
-// Decides if a "void" is good to make 2 eyes.
-//   i,j is one free vertex of the void
-//   vcount is the number of empties in the void
-// Returns:
-//   0 => cannot make 2 eyes
-//   1 => can make 2 eyes if we play now (coords will receive [i,j])
-//   2 => can make 2 eyes even if opponent plays first
-Shaper.getEyeMakerMove = function (goban, i, j, vcount, coords) {
-    if (vcount <= 2) return 0;
-    if (vcount >= 7) return 2;
-
-    var s1 = goban.stoneAt(i, j);
-    var empties = s1.empties();
-    if (vcount === 3) {
-        var center = empties.length === 1 ? empties[0] : s1;
-        coords[0] = center.i; coords[1] = center.j;
-        return 1;
-    }
-    if (vcount === 4) {
-        if (empties.length === 3) { // "T" shape - s1 is at center
-            coords[0] = s1.i; coords[1] = s1.j;
-            return 1;
-        }
-        if (empties.length === 1) {
-            if (empties[0].numEmpties() === 3) { // "T" shape - s1 is one extremity
-                coords[0] = empties[0].i; coords[1] = empties[0].j;
-                return 1;
-            }
-            // FIXME: if one empty is board corner return 1 (move = next to corner)
-            return 2; // "Z" shape - s1 is one extremity
-        }
-        // s1 has 2 empty neighbors
-        if (empties[0].numEmpties() === 2 && empties[1].numEmpties() === 2) {
-            return 0; // square shape - each empty has 2 neighbors
-        }
-        // FIXME: if one empty is board corner return 1 (move = next to corner)
-        return 2; // "Z" shape - s1 is one of the 2 at "center"
-    }
-    if (vcount === 5) {
-        // FIXME: use a new method to get all empties and sort them by # neighbors
-        // 4-1-1-1-1 if one has 4 neighbors this is a "+" shape and center is must-play now (1)
-        // 2-2-2-1-1 if none has 3 this is a "line" = (2)
-        // 3-2-2-2-1 if one has 3 and only 1 has 1, then 3 is must-play (1)
-        // pick the only one with 3 neighbors
-        return 2;
-    }
-    // vcount === 6
-    // FIXME
-    // 3-3-2-2-2-2 (1) aim at one of the 3
-    // anything else is (2)
-    return 2;
 };
 
 Shaper.prototype._evalMove = function (i, j, color) {
