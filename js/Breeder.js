@@ -55,26 +55,16 @@ Breeder.prototype.showInUi = function (msg) {
 };
 
 Breeder.prototype.playUntilGameEnds = function () {
-    while (!this.game.gameEnding) {
-        var curPlayer = this.players[this.game.curColor];
-        try {
-            var move = curPlayer.getMove();
-            this.game.playOneMove(move);
-        } catch (err) {
-            main.log.error('' + err);
-            main.log.error('Exception occurred during a breeding game.\n' + curPlayer + ' with genes: ' + curPlayer.genes);
-            main.log.error(this.game.historyString());
-            this.showInUi(err);
-            throw err;
-        }
+    var game = this.game;
+    while (!game.gameEnding) {
+        var curPlayer = this.players[game.curColor];
+        var move = curPlayer.getMove();
+        game.playOneMove(move);
     }
     // Keep track of games we already saw
-    var img = this.game.goban.buildCompressedImage();
-    if (!this.seenGames[img]) {
-        this.seenGames[img] = 1;
-    } else {
-        this.seenGames[img]++;
-    }
+    var img = game.goban.buildCompressedImage();
+    if (!this.seenGames[img]) this.seenGames[img] = 1;
+    else this.seenGames[img]++;
 };
 
 // Plays a game and returns the score difference in points
@@ -82,7 +72,14 @@ Breeder.prototype.playGame = function (name1, name2, p1, p2) {
     this.game.newGame(this.gsize, 0, Breeder.KOMI);
     this.players[0].prepareGame(p1);
     this.players[1].prepareGame(p2);
-    this.playUntilGameEnds();
+    try {
+        this.playUntilGameEnds();
+    } catch (err) {
+        main.log.error('Exception occurred during a breeding game: ' + err);
+        main.log.error(this.game.historyString());
+        this.showInUi(err);
+        throw err;
+    }
     var scoreDiff = this.scorer.computeScoreDiff(this.goban, Breeder.KOMI);
     if (main.debugBreed) {
         main.log.debug('\n#' + name1 + ':' + p1 + '\nagainst\n#' + name2 + ':' + p2);
