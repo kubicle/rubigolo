@@ -154,7 +154,7 @@ Hunter.prototype._evalMove = function (i, j, color, level) {
     level = level || 0;
     var stone = this.goban.stoneAt(i, j);
     var empties = stone.empties();
-    var enemies = stone.uniqueEnemies(color);
+    var enemies = stone.uniqueAllies(1 - color);
 
     // count groups already in atari
     var threat1 = this._countAtariThreat(enemies, level);

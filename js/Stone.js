@@ -217,10 +217,6 @@ Stone.prototype.uniqueAllies = function (color) {
     return allies;
 };
 
-Stone.prototype.uniqueEnemies = function (allyColor) {
-    return this.uniqueAllies(1 - allyColor);
-};
-
 // Returns the empty points around this stone
 Stone.prototype.empties = function () {
     var empties = [], neighbors = this.neighbors;

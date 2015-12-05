@@ -80,7 +80,7 @@ Hunter.prototype.evalMove = function (i, j, color, level) {
     var stone = this.goban.stoneAt(i, j);
     var empties = stone.empties();
     var allies = stone.uniqueAllies(color);
-    var enemies = stone.uniqueEnemies(color);
+    var enemies = stone.uniqueAllies(1 - color);
     var egroups = null, eg;
     var threat1 = 0;
     // first count groups already in atari

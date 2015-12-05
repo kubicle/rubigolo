@@ -240,7 +240,7 @@ Group.prototype._dieFrom = function (killerStone) {
     if (this.lives < 0) throw new Error('Unexpected error (lives<0)');
 
     for (var stone, stone_array = this.stones, stone_ndx = 0; stone=stone_array[stone_ndx], stone_ndx < stone_array.length; stone_ndx++) {
-        for (var enemy, enemy_array = stone.uniqueEnemies(this.color), enemy_ndx = 0; enemy=enemy_array[enemy_ndx], enemy_ndx < enemy_array.length; enemy_ndx++) {
+        for (var enemy, enemy_array = stone.uniqueAllies(1 - this.color), enemy_ndx = 0; enemy=enemy_array[enemy_ndx], enemy_ndx < enemy_array.length; enemy_ndx++) {
             enemy.notAttackedAnymore(stone);
         }
         stone.die();
@@ -256,7 +256,7 @@ Group.prototype._resuscitate = function () {
     this.lives = 1; // always comes back with a single life
     for (var stone, stone_array = this.stones, stone_ndx = 0; stone=stone_array[stone_ndx], stone_ndx < stone_array.length; stone_ndx++) {
         stone.resuscitateIn(this);
-        for (var enemy, enemy_array = stone.uniqueEnemies(this.color), enemy_ndx = 0; enemy=enemy_array[enemy_ndx], enemy_ndx < enemy_array.length; enemy_ndx++) {
+        for (var enemy, enemy_array = stone.uniqueAllies(1 - this.color), enemy_ndx = 0; enemy=enemy_array[enemy_ndx], enemy_ndx < enemy_array.length; enemy_ndx++) {
             enemy._attackedByResuscitated(stone);
         }
     }
