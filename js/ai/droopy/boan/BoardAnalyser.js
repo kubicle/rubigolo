@@ -182,20 +182,22 @@ BoardAnalyser.prototype._findBattleWinners = function () {
             if (v.color !== undefined) continue;
             life[BLACK] = life[WHITE] = 0;
             for (var color = BLACK; color <= WHITE; color++) {
+                // NB: we don't check for brothers' liveliness counted twice.
+                // No issue noticed so far - see testUnconnectedBrothers / b4
                 for (var n = v.groups[color].length - 1; n >= 0; n--) {
-                    var gi = v.groups[color][n]._info; // TODO: we could skip brothers to avoid counting twice; no issue noticed - see testUnconnectedBrothers / b4
-                    life[color] += gi.liveliness();
+                    var gi = v.groups[color][n]._info;
+                    life[color] += gi.liveliness() + gi.group.lives / 10000; // is gi.group.lives still necessary?
                 }
             }
             var winner = compareLiveliness(life);
             // make sure we have a winner, not a tie
             if (winner === undefined) {
-                if (main.debug) main.log.debug('BATTLED EYE in dispute: ' + v);
+                if (main.debug) main.log.debug('BATTLED VOID in dispute: ' + v + ' with ' + life[0]);
                 continue;
             }
-            if (main.debug) main.log.debug('BATTLED EYE: ' + Grid.colorName(winner) +
-                ' wins with ' + life[winner].toFixed(2) + ' VS ' + life[1 - winner].toFixed(2));
-            v.setVoidOwner(winner, undefined);
+            if (main.debug) main.log.debug('BATTLED VOID: ' + Grid.colorName(winner) +
+                ' wins with ' + life[winner].toFixed(4) + ' VS ' + life[1 - winner].toFixed(4));
+            v.setVoidOwner(winner);
             foundOne = true;
         }
         if (!foundOne) break;
@@ -211,23 +213,26 @@ function killWeakest(check, fails) {
         for (var e = 0; e < enemies.length; e++) {
             var enemy = enemies[e]._info;
             var cmp = fail._liveliness - enemy.liveliness();
-            if (cmp < 0) {
-                if (enemy.isDoomedBy(fail)) {
-                    fails[i] = null;
-                    break;
-                }
-            } else {
-                if (!fail.isDoomedBy(enemy)) {
-                    fails[i] = null;
-                    break;
-                }
+            if (main.debug) main.log.debug('FAIL: group #' + fail.group.ndx + ' with ' +
+                fail._liveliness + ' against ' + (fail._liveliness - cmp) + ' for enemy group #' + enemy.group.ndx);
+            if (cmp > 0) {
+                if (main.debug) main.log.debug(check.name + ' would fail ' + fail +
+                    ' BUT keept alive since it is stronger than ' + enemy);
+                fails[i] = null;
+                break;
+            } else if (cmp === 0) {
+                if (main.debug) main.log.debug('RACE between ' + fail.group + ' and ' + enemy.group);
+                fail.group.inRaceWith = enemy.group;
+                enemy.group.inRaceWith = fail.group;
+                fails[i] = null;
+                break;
             }
         }
     }
     var count = 0;
     for (i = 0; i < fails.length; i++) {
         if (!fails[i]) continue;
-        fails[i].considerDead(check.name + ': liveliness=' + fails[i]._liveliness.toFixed(2));
+        fails[i].considerDead(check.name + ': liveliness=' + fails[i]._liveliness.toFixed(4));
         count++;
     }
     return count;

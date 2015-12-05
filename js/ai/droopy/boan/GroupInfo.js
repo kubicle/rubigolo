@@ -128,13 +128,34 @@ GroupInfo.prototype.liveliness = function (strict, shallow) {
     if (this.isAlive || this.eyeCount >= 2) {
         return ALIVE;
     }
-    var racePoints = this.group.lives / 100;
+
+    var n, racePoints = 0, color = this.group.color, lives = this.group.lives;
+    for (var i = this.nearVoids.length - 1; i >= 0; i--) {
+        var v = this.nearVoids[i];
+        var points = Math.min(lives, v.vcount);
+        if (v.owner) {
+            if (v.owner === this) racePoints += points;
+        } else {
+            var allies = v.groups[color]; // NB: we don't care about enemies
+            if (allies.length === 1) {
+                racePoints += points;
+            } else {
+                var myNdx = this.group.ndx, minNdx = myNdx;
+                for (n = allies.length - 1; n >= 0; n--) {
+                    minNdx = Math.min(allies[n].ndx, minNdx);
+                }
+                if (myNdx === minNdx) racePoints += points;
+            }
+        }
+    }
+    racePoints /= 100;
+
     if (this.isDead) {
         return 0 + racePoints;
     }
     var familyPoints = 0;
     if (!shallow) {
-        for (var n = this.dependsOn.length - 1; n >= 0; n--) {
+        for (n = this.dependsOn.length - 1; n >= 0; n--) {
             familyPoints += this.dependsOn[n].liveliness(strict, true);
         }
         if (this.band) {
@@ -149,42 +170,61 @@ GroupInfo.prototype.liveliness = function (strict, shallow) {
     return this.eyeCount + numDeadEnemies + familyPoints + racePoints;
 };
 
-/** This group "is doomed by" gi if without gi there would be space for 2 eyes.
- * WIP...
-3:  OXO   4-2: OXXO   4T: OXO   4x: OX
-                           O        XO
-                O
-5b: OXO    5+: OXO    6c: OXO
-    OO          O         OOO
- */
-GroupInfo.prototype.isDoomedBy = function (gi) {
-    // this group must be surrounding gi, so it simply must have more stones
-    var enemySize = gi.group.stones.length;
-    if (this.group.stones.length <= enemySize) return false;
+// Finds next recommended move to make 2 eyes
+// Returns:
+//   NEVER => cannot make 2 eyes
+//   SOMETIMES => can make 2 eyes if we play now (coords will receive [i,j])
+//   ALWAYS => can make 2 eyes even if opponent plays first
+GroupInfo.prototype.getEyeMakerMove = function (coords) {
+    // TODO: if depending group is on a side of eye, 1 vertex will be lost
+    if (this.eyeCount > 1) return ALWAYS;
+    if (this.eyeCount === 0) return NEVER;
+    if (this.voids[0].vcount > 6) return ALWAYS;
+    if (main.debug) main.log.debug('getEyeMakerMove checking ' + this);
 
-    var numVoids = this.nearVoids.length;
-    if (numVoids < 2) return false; // TODO: 6c?
+    var g = this.group, color = g.color;
+    var analyseYx = g.goban.analyseGrid.yx;
+    var best = null, bestLives = 0, bestEnemies = 0, numMoves = 0;
+    var empties = g.allLives(), numEmpties0 = empties.length;
 
-    var sharedVoids = [];
-    for (var n = numVoids - 1; n >= 0; n--) {
-        var v = this.nearVoids[n];
-        if (v.isTouching(gi)) sharedVoids.push(v);
+    for (var n = 0; n < empties.length; n++) {
+        var s = empties[n];
+        var v = analyseYx[s.j][s.i];
+        if (!v.owner || v.color !== color) continue;
+
+        var numEnemies = 0, numAllies = 0, numLives = 0;
+        for (var m = s.neighbors.length - 1; m >= 0; m--) {
+            var s2 = s.neighbors[m];
+            switch (s2.color) {
+            case EMPTY:
+                if (n < numEmpties0 && !s2.isNextTo(g) && empties.indexOf(s2) < 0)
+                    empties.push(s2); // add s2 to our list of empties to check
+                numLives++;
+                break;
+            case color: numAllies++; break;
+            default: numEnemies++;
+            }
+        }
+        if (numEnemies) {
+            if (numLives + (numAllies ? 1 : 0) < 2) continue;
+        } else {
+            if (numLives < 2) continue;
+        }
+        if (main.debug) main.log.debug('' + numLives + (numEnemies < 1 ? '' : (numEnemies > 1 ? 'e' + numEnemies : 'E')) + ' in ' + s);
+        numMoves++;
+        if (best) {
+            if (numEnemies <= bestEnemies) continue;
+            if (numLives + numEnemies < bestLives) continue;
+        }
+        best = s;
+        bestEnemies = numEnemies;
+        bestLives = numLives;
     }
-    switch (sharedVoids.length) {
-    case 2:
-        var v0 = sharedVoids[0], v1 = sharedVoids[1];
-        if (v0.vcount === 1 && v1.vcount === 1 && 
-            (enemySize === 1 || enemySize === 2)) break; // 3 and 4-2; TODO 4x?
-        return false;
-    case 3:
-        if (sharedVoids[0].vcount === 1 && sharedVoids[1].vcount === 1 &&
-            sharedVoids[2].vcount === 1 && enemySize === 1) break; // 4T - TODO enemySize=2?
-        //TODO: 5b 5+
-        return false;
-    default: return false;
-    }
-    gi.isAlive = true;
-    return true;
+    if (main.debug) main.log.debug('getEyeMakerMove result: ' + best);
+    if (!best) return NEVER;
+    if (numMoves > 1) return ALWAYS;
+    coords[0] = best.i; coords[1] = best.j;
+    return SOMETIMES;
 };
 
 // TODO better algo
@@ -247,26 +287,38 @@ GroupInfo.prototype.checkBrothers = function () {
     return LIVES;
 };
 
+GroupInfo.prototype._isLostInEnemyZone = function () {
+    if (this.band || this.dependsOn.length) return false;
+    if (this.nearVoids[0].color === this.group.color) return false;
+    if (this.group.stones.length >= 6) return false;
+    return true;
+};
+
 // This checks if a group can make 2 eyes from a single one
 GroupInfo.prototype.checkSingleEye = function (first2play) {
-    if (this.eyeCount !== 1) return UNDECIDED;
-    var eye = this.getSingleEye();
+    if (this.eyeCount >= 2) {
+        this.isAlive = true;
+        if (main.debug) main.log.debug('ALIVE-doubleEye: ' + this);
+        return LIVES;
+    }
+    if (this._isLostInEnemyZone()) return FAILS;
+
     var coords = [];
-    var alive = Shaper.getEyeMakerMove(this.group.goban, eye.i, eye.j, eye.vcount, coords);
+    var alive = this.getEyeMakerMove(coords);
     // if it depends which player plays first
-    if (alive === 1) {
+    if (alive === SOMETIMES) {
         if (first2play === undefined) return UNDECIDED; // no idea who wins here
         if (first2play !== this.group.color) {
-            alive = 0;
+            alive = NEVER;
         }
     }
-    if (alive === 0) {
+    if (alive === NEVER) {
         // yet we cannot say it is dead if there are brothers or dead enemies around
         if (this.band || this.dependsOn.length || this.deadEnemies.length) return UNDECIDED;
         this._liveliness = this.liveliness();
         return FAILS;
     }
-
+    // alive === ALWAYS
     this.isAlive = true;
     if (main.debug) main.log.debug('ALIVE-singleEye-' + alive + ': ' + this);
     return LIVES;
