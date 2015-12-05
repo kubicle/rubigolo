@@ -341,22 +341,6 @@ BoardAnalyser.prototype._finalColoring = function () {
     this._colorVoids();
 };
 
-// Colors the voids with owner's color
-BoardAnalyser.prototype._colorVoids = function () {
-    var color;
-    for (var i = this.allVoids.length - 1; i >= 0; i--) {
-        var v = this.allVoids[i];
-        var score = v.finalScore();
-        if (score) {
-            this.scores[v.color] += score;
-            color = Grid.TERRITORY_COLOR + v.color;
-        } else {
-            color = Grid.DAME_COLOR;
-        }
-        this.filler.fillWithColor(v.i, v.j, v, color);
-    }
-};
-
 BoardAnalyser.prototype._colorDeadGroups = function () {
     for (var ndx in this.allGroups) {
         var gi = this.allGroups[~~ndx];
@@ -379,5 +363,21 @@ BoardAnalyser.prototype._colorDeadGroups = function () {
         var taken = this.filler.fillWithColor(stone.i, stone.j, color, Grid.DEAD_COLOR + color);
         this.prisoners[color] += taken;
         this.scores[1 - color] += taken;
+    }
+};
+
+// Colors the voids with owner's color
+BoardAnalyser.prototype._colorVoids = function () {
+    var color;
+    for (var i = this.allVoids.length - 1; i >= 0; i--) {
+        var v = this.allVoids[i];
+        var score = v.finalScore();
+        if (score) {
+            this.scores[v.color] += score;
+            color = Grid.TERRITORY_COLOR + v.color;
+        } else {
+            color = Grid.DAME_COLOR;
+        }
+        this.filler.fillWithColor(v.i, v.j, v, color);
     }
 };
