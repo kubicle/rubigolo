@@ -134,7 +134,6 @@ Group.prototype.livesAddedByStone = function (stone) {
 
 // Connect a new stone or a merged stone to this group
 Group.prototype.connectStone = function (stone, onMerge) {
-    if (onMerge === undefined) onMerge = false;
     if (main.debugGroup) main.log.debug('Connecting ' + stone + ' to group ' + this + ' (on_merge=' + onMerge + ')');
 
     this.stones.push(stone);
@@ -150,31 +149,25 @@ Group.prototype.connectStone = function (stone, onMerge) {
 // Disconnect a stone
 // on_merge must be true for merge or unmerge-related call 
 Group.prototype.disconnectStone = function (stone, onMerge) {
-    if (onMerge === undefined) onMerge = false;
     if (main.debugGroup) main.log.debug('Disconnecting ' + stone + ' from group ' + this + ' (on_merge=' + onMerge + ')');
 
-    // groups of 1 stone become empty groups (->garbage)
     if (this.stones.length > 1) {
         this.lives -= this.livesAddedByStone(stone);
-        if (!onMerge) { // see comment in connect_stone
-            this.lives += 1;
-        }
+        if (!onMerge) this.lives++; // see comment in connect_stone
         if (this.lives < 0) { // can be 0 if suicide-kill
             throw new Error('Unexpected error (lives<0 on disconnect)');
         }
-    } else {
+    } else { // groups of 1 stone become empty groups (->garbage)
         this.goban.deleteGroup(this);
         if (main.debugGroup) main.log.debug('Group going to recycle bin: ' + this);
     }
     // we always remove them in the reverse order they came
-    if (this.stones.pop() !== stone) {
-        throw new Error('Unexpected error (disconnect order)');
-    }
+    if (this.stones.pop() !== stone) throw new Error('Unexpected error (disconnect order)');
 };
 
 // When a new stone appears next to this group
 Group.prototype.attackedBy = function (stone) {
-    this.lives -= 1;
+    this.lives--;
     if (this.lives <= 0) { // also check <0 so we can raise in die_from method
         return this._dieFrom(stone);
     }
