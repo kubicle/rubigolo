@@ -3,15 +3,14 @@
 
 var main = require('../../../main');
 
-var BORDER = main.BORDER, WHITE = main.WHITE;
+var BORDER = main.BORDER;
 
 
 /** @class Fills & collect info about zones.
  */
 function ZoneFiller(goban, grid) {
     this.goban = goban;
-    this.grid = grid;
-    this.yx = this.grid.yx;
+    this.yx = grid.yx;
     this.groups = null;
 
     this.toReplace = this.groups = null;
