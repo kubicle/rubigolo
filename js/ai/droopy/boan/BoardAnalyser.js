@@ -252,7 +252,7 @@ var singleEyeCheck = {
     run: function (gi, first) { return gi.checkSingleEye(first); },
     kill: killWeakest
 };
-var finalCheck = { name: 'final', run: function (gi) { return gi.checkLiveliness(2, true); } };
+var finalCheck = { name: 'final', run: function (gi) { return gi.checkLiveliness(2); } };
 
 var midGameLifeChecks = [
     parentCheck,

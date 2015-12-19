@@ -176,6 +176,7 @@ GroupInfo.prototype.liveliness = function (strict, shallow) {
             }
         }
     }
+    //TODO: get rid of this "strict" idea
     var numDeadEnemies = strict ? this.countEyesFromDeadEnemy() : this.deadEnemies.length;
     return this.eyeCount + numDeadEnemies + familyPoints + racePoints;
 };
@@ -341,11 +342,10 @@ GroupInfo.prototype.checkSingleEye = function (first2play) {
     return LIVES;
 };
 
-// This checks if a group has a minimum liveliness.
-// We call this several times, raising the bar progressively...
-GroupInfo.prototype.checkLiveliness = function (minLife, strict) {
-    var life = this._liveliness = this.liveliness(strict);
-    if (life >= ALIVE || (strict && life >= 2)) {
+// This checks if a group has a minimum liveliness
+GroupInfo.prototype.checkLiveliness = function (minLife) {
+    var life = this._liveliness = this.liveliness(true);
+    if (life >= 2) {
         this.isAlive = true;
         if (main.debug) main.log.debug('ALIVE-liveliness ' + life + ': ' + this);
         return LIVES;
