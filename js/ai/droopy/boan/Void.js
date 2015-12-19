@@ -120,7 +120,7 @@ Void.prototype.setVoidOwner = function (color) {
     if (color === this.color) return;
     if (main.debug) main.log.debug('VOID: ' + Grid.colorName(color) + ' owns ' + this);
 
-    if (this.owner) this.owner.removeVoid(this);
+    if (this.owner) { this.owner.removeVoid(this); this.owner = null; }
     this.color = color;
  
     // Given void can be seen as an eye if no other eye is around its "dead" enemies
