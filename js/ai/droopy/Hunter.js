@@ -128,19 +128,30 @@ Hunter.prototype._countPreAtariThreat = function (stone, enemies, empties, color
     return isSnapback;
 };
 
+// Presupposes that stone.isNextTo(enemy) is true
+Hunter.prototype._isValidRaceMove = function (stone, enemy, ally) {
+    if (!ally || enemy.lives !== ally.lives) return false;
+    if (!ally.isValid()) return false;
+    if (stone.isNextTo(ally) && ally.livesAddedByStone(stone) < 1) return false; // playing stone would not help us
+    // TODO check all lives; if one of them is a better move than stone, then return false
+    // var added = enemy.livesAddedByStone(stone);
+    // var lives = enemy.allLives();
+    // for (var n = lives.length - 1; n >= 0; n--) {
+    //     if (enemy.livesAddedByStone(lives[n]) > added) return false;
+    // }
+    return true;
+};
+
 Hunter.prototype._countPressureAndRace = function (stone, enemies, level, isEasyPrisoner) {
     var threat = 0, raceThreat = 0;
     for (var egNdx = enemies.length - 1; egNdx >= 0; egNdx--) {
         var enemy = enemies[egNdx];
         var egl = enemy.lives, allyInRace = enemy.inRaceWith;
-        if (allyInRace && egl === allyInRace.lives && !stone.isNextTo(allyInRace)) {
-            raceThreat += this.groupThreat(enemy) +
-                this.groupThreat(allyInRace, /*saved=*/true);
-            continue;
-        } 
-        // Could be 2 or 3 below; see TestAi#testSemiAndEndGame h1 & b8 for examples
-        if (egl >= 2 && level === 0 && !isEasyPrisoner) {
-            threat += 1 / (egl + 1);
+        if (this._isValidRaceMove(stone, enemy, allyInRace)) {
+            raceThreat += this.groupThreat(enemy, true);
+            raceThreat += this.groupThreat(allyInRace, /*saved=*/true);
+        } else if (egl >= 2 && level === 0 && !isEasyPrisoner) {
+            threat += 1 / (egl + 1); // see TestAi#testSemiAndEndGame h1 & b8 for examples
         }
     }
     return threat * this.pressureCoeff + raceThreat;
