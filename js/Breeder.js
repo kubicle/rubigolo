@@ -72,15 +72,16 @@ Breeder.prototype.playGame = function (name1, name2, p1, p2) {
     this.game.newGame(this.gsize, 0, Breeder.KOMI);
     this.players[0].prepareGame(p1);
     this.players[1].prepareGame(p2);
+    var scoreDiff;
     try {
         this.playUntilGameEnds();
+        scoreDiff = this.scorer.computeScoreDiff(this.goban, Breeder.KOMI);
     } catch (err) {
         main.log.error('Exception occurred during a breeding game: ' + err);
         main.log.error(this.game.historyString());
         this.showInUi(err);
         throw err;
     }
-    var scoreDiff = this.scorer.computeScoreDiff(this.goban, Breeder.KOMI);
     if (main.debugBreed) {
         main.log.debug('\n#' + name1 + ':' + p1 + '\nagainst\n#' + name2 + ':' + p2);
         main.log.debug('Distance: ' + '%.02f'.format(p1.distance(p2)));

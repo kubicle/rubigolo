@@ -44,6 +44,11 @@ GroupInfo.prototype.resetAnalysis = function (group) {
     this.numContactPoints = 0;
 };
 
+// For debug only
+function when2str(when) {
+    return when > NEVER ? (when > SOMETIMES ? 'ALWAYS' : 'SOMETIMES') : 'NEVER';
+}
+
 GroupInfo.giNdx = function (gi) { return '#' + gi.group.ndx; };
 
 GroupInfo.prototype.toString = function () {
@@ -225,7 +230,7 @@ GroupInfo.prototype.getEyeMakerMove = function (coords) {
         bestEnemies = numEnemies;
         bestLives = numLives;
     }
-    if (main.debug) main.log.debug('getEyeMakerMove result: ' + best);
+    if (main.debug) main.log.debug('getEyeMakerMove result: ' + best + ' - ' + (best ? (numMoves > 1 ? 'ALWAYS' : 'SOMETIMES') : 'NEVER'));
     if (!best) return NEVER;
     if (numMoves > 1) return ALWAYS;
     coords[0] = best.i; coords[1] = best.j;
@@ -325,7 +330,7 @@ GroupInfo.prototype.checkSingleEye = function (first2play) {
     }
     // alive === ALWAYS
     this.isAlive = true;
-    if (main.debug) main.log.debug('ALIVE-singleEye-' + alive + ': ' + this);
+    if (main.debug) main.log.debug('ALIVE-singleEye-' + when2str(alive) + ': ' + this);
     return LIVES;
 };
 
