@@ -194,7 +194,7 @@ Breeder.prototype.control = function () {
 
 // Play many games AI VS AI to verify black/white balance
 // Returns the number of games won by White
-Breeder.prototype.bwBalanceCheck = function (numGames, gsize) {
+Breeder.prototype.bwBalanceCheck = function (numGames, gsize, numLostGamesShowed) {
     var blackAi = this.players[BLACK].version, whiteAi = this.players[WHITE].version;
     var desc = numGames + ' games on ' + gsize + 'x' + gsize + ', komi=' + Breeder.KOMI + ', ' +
         blackAi + ' VS ' + whiteAi;
@@ -205,7 +205,11 @@ Breeder.prototype.bwBalanceCheck = function (numGames, gsize) {
     for (var i = 0; i < numGames; i++) {
         var score = this.playGame('control', 'control', this.controlGenes, this.controlGenes);
         if (score === 0) throw new Error('Unexpected tie game');
-        if (score > 0) numWins++; // Black won
+        if (score > 0) {
+            numWins++; // Black won
+            if (numWins <= numLostGamesShowed)
+                this.showInUi('#' + numWins + ' lost: ' + this.game.historyString());
+        }
         totalScore += score;
     }
 
