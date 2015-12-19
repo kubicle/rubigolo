@@ -69,9 +69,11 @@ Shaper.prototype._findPotentialEyes = function (stateYx) {
 Shaper.prototype._evalSingleEyeSplit = function (scoreYx, g) {
     var coords = [];
     var alive = g._info.getEyeMakerMove(coords);
-    if (alive !== 1) return;
+    if (alive !== SOMETIMES) return;
     var i = coords[0], j = coords[1];
     var score = this.groupThreat(g, this.color === g.color);
+    var potEyeCount = g._info.countPotentialEyes();
+    score = score / Math.max(1, potEyeCount - 1);
     this.scoreGrid.yx[j][i] += score;
     scoreYx[j][i] += score;
     if (main.debug) main.log.debug('Shaper ' + Grid.colorName(this.color) + ' sees single eye split at ' +
