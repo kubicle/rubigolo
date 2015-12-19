@@ -127,11 +127,12 @@ Heuristic.prototype._countSavedAllies = function (killedEnemyGroup) {
 };
 
 Heuristic.prototype._invasionCost = function (i, j, dir, color, level) {
-    if (level-- === 0) return 0;
     var s = this.goban.stoneAt(i, j);
     if (s === BORDER || s.color !== EMPTY) return 0;
     var cost = this.enemyTerritoryScore(i, j, color);
+    if (s.isBorder()) cost /= 2;
     if (cost <= 0) return 0;
+    if (--level === 0) return cost;
 
     var dx = XY_AROUND[dir][0], dy = XY_AROUND[dir][1];
     var spread = XY_AROUND[(dir + 3) % 4];
@@ -142,13 +143,16 @@ Heuristic.prototype._invasionCost = function (i, j, dir, color, level) {
     return cost;
 };
 
-var INVASION_DEEPNESS = 0; // TODO: better algo for this
+var INVASION_DEEPNESS = 1; // TODO: better algo for this
 
 Heuristic.prototype.invasionCost = function (i, j, color) {
     var cost = Math.max(0, this.enemyTerritoryScore(i, j, color));
     for (var dir = DIR0; dir <= DIR3; dir++) {
         cost += this._invasionCost(i + XY_AROUND[dir][0], j + XY_AROUND[dir][1], dir, color, INVASION_DEEPNESS);
     }
+    var s = this.goban.stoneAt(i, j);
+    if (s.isCorner()) cost = Math.max(cost - 1, 0);
+    else if (s.isBorder()) cost = Math.max(cost - 0.85, 0);
     return cost;
 };
 
