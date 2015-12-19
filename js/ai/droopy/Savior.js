@@ -46,7 +46,9 @@ Savior.prototype._evalEscape = function (i, j, stone) {
     var hunterThreat = null; // we only get once the eval from hunter in i,j
     for (var g, g_array = stone.uniqueAllies(this.color), g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
         if (g.lives === 1) {
+            if (hunterThreat === 0) continue;
             groups.push(g);
+            if (hunterThreat !== null) continue;
             savedThreat += this.groupThreat(g, true);
         } else if (g.lives === 2) {
             if (hunterThreat === 0) continue;
@@ -56,7 +58,7 @@ Savior.prototype._evalEscape = function (i, j, stone) {
             if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' asking hunter to look at ' +
                 stone + ' pre-atari on ' + g);
             hunterThreat = this.hunter.catchThreat(i, j, this.enemyColor);
-            savedThreat += hunterThreat;
+            if (hunterThreat) savedThreat = hunterThreat; // hunter computes total threat in i,j
         } else if (g.isDead < ALWAYS) {
             livesAdded += g.lives - 1;
         }
