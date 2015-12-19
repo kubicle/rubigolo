@@ -212,7 +212,9 @@ GroupInfo.prototype.getEyeMakerMove = function (coords) {
                 numLives++;
                 break;
             case color: numAllies++; break;
-            default: numEnemies++;
+            default:
+                if (s2.group.lives > 1) numEnemies++;
+                else numLives++;
             }
         }
         if (numEnemies) {
@@ -220,12 +222,17 @@ GroupInfo.prototype.getEyeMakerMove = function (coords) {
         } else {
             if (numLives < 2) continue;
         }
-        if (main.debug) main.log.debug('' + numLives + (numEnemies < 1 ? '' : (numEnemies > 1 ? 'e' + numEnemies : 'E')) + ' in ' + s);
-        numMoves++;
+        if (main.debug) main.log.debug('getEyeMakerMove sees ' + numLives + (numEnemies < 1 ? '' : (numEnemies > 1 ? 'e' + numEnemies : 'E')) + ' in ' + s);
+        // skip corner if we have better
+        if (s.isCorner() && numMoves) continue;
+
+        numMoves++; // we must count only the successful moves
         if (best) {
             if (numEnemies <= bestEnemies) continue;
             if (numLives + numEnemies < bestLives) continue;
+            if (best.isCorner()) numMoves--;
         }
+
         best = s;
         bestEnemies = numEnemies;
         bestLives = numLives;
