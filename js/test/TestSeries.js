@@ -32,6 +32,7 @@ TestSeries.prototype.testOneClass = function (Klass, methodPattern) {
         } catch(e) {
             if (e.message.startWith(TestSeries.FAILED_ASSERTION_MSG)) {
                 this.failedCount++;
+                e.message = e.message.substr(TestSeries.FAILED_ASSERTION_MSG.length);
                 main.log.error('Test failed: ' + test.name + ': ' + e.message + '\n');
             } else {
                 this.errorCount++;

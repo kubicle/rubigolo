@@ -44,9 +44,9 @@ TestAi.prototype.checkScore = function(player, color, move, score, expScore, heu
     var msg = Grid.colorName(color) + '-' + move +
         ' got ' + score.toFixed(3) + ' instead of ' + expScore +
         (heuristic ? ' for ' + heuristic : '');
-    main.log.warn('Discrepancy in ' + this.name + ': ' + msg);
-    this.showInUi(msg);
     this.logErrorContext(player, move);
+    this.showInUi(msg);
+    main.log.warn('Discrepancy in ' + this.name + ': ' + msg);
 };
 
 // if expEval is null there is not check: value is returned
@@ -106,8 +106,9 @@ TestAi.prototype.playAndCheck = function (expMove, expEval) {
             main.log.error('CAUTION: ' + expMove + ' and ' + move + 
                 ' are twins or very close => consider modifying the test scenario');
         }
-        this.showInUi('expected ' + Grid.colorName(color) + '-' + expMove + ' but got ' + move);
-        this.assertEqual(expMove, move, Grid.colorName(color)); // test aborts here
+        expMove = Grid.colorName(color) + '-' + expMove;
+        this.showInUi('expected ' + expMove + ' but got ' + move);
+        this.assertEqual(expMove, move); // test aborts here
     }
     if (expEval) this.checkScore(player, color, move, score, expEval);
     else this.check(true); // just counts the check

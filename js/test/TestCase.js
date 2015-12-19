@@ -58,7 +58,6 @@ TestCase.prototype.assertEqual = function (expected, val, comment) {
     this.series.checkCount++;
     var msg = this.compareValue(expected, val);
     if (msg === '') return;
-    main.log.warn(msg);
     _fail(msg, comment);
 };
 
