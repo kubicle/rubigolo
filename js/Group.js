@@ -70,6 +70,10 @@ Group.prototype.toString = function () {
     return s;
 };
 
+Group.prototype.isValid = function () {
+    return this.stones[0].group === this;
+};
+
 // debug dump does not have more to display now that stones are simpler
 // TODO: remove it unless stones get more state data to display
 Group.prototype.debugDump = function () {
