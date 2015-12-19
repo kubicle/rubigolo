@@ -28,12 +28,12 @@ function PotentialTerritory(player) {
     this.grids = [new Grid(this.gsize), new Grid(this.gsize)];
     this.reducedGrid = new Grid(this.gsize);
     this.territory = new Grid(this.gsize); // result of evaluation
-    this._prepareBorderConnect();
+    this._computeBorderConnectConstants();
 
     // Share the info with others at player level - TODO: find better place
     player.pot = this;
 
-    this.allGroups = this.tmp = null;
+    this.allGroups = null;
 }
 inherits(PotentialTerritory, Heuristic);
 module.exports = PotentialTerritory;
@@ -51,19 +51,9 @@ PotentialTerritory.prototype._guessTerritories = function () {
     // update real grid to current goban
     this.realGrid.initFromGoban(this.goban);
     // evaluate 2 "scenarios" - each player plays everywhere *first*
-    this._foresee(this.grids[BLACK], BLACK, WHITE);
-    this._foresee(this.grids[WHITE], WHITE, BLACK);
-    // now merge the result
-    var blackYx = this.grids[BLACK].yx;
-    var whiteYx = this.grids[WHITE].yx;
-    var terrYx = this.territory.yx;
-    for (var j = 1; j <= this.gsize; j++) {
-        for (var i = 1; i <= this.gsize; i++) {
-            terrYx[j][i] = (POT2OWNER[2 + blackYx[j][i]] + POT2OWNER[2 + whiteYx[j][i]]) / 2;
-        }
-    }
-    if (main.debug) main.log.debug('Guessing territory for:\n' + this.realGrid +
-        '\nBLACK first:\n' + this.grids[BLACK] + 'WHITE first:\n' + this.grids[WHITE] + this);
+    this._foresee(BLACK);
+    this._foresee(WHITE);
+    this._mergeResults();
 };
 
 PotentialTerritory.prototype.toString = function () {
@@ -81,17 +71,31 @@ PotentialTerritory.prototype._grid = function (first) {
     return this.grids[first];
 };
 
-PotentialTerritory.prototype._foresee = function (grid, first, second) {
+PotentialTerritory.prototype._foresee = function (color) {
     var moveCount = this.goban.moveNumber();
 
-    // passed grid will receive the result (scoring grid)
-    this._connectThings(grid, first, second);
-    this.player.boan.analyse(this.goban, grid.initFromGoban(this.goban), first);
+    // grid will receive the result (scoring grid)
+    var grid = this.grids[color];
+    this._connectThings(grid, color);
+    this.player.boan.analyse(this.goban, grid.initFromGoban(this.goban), color);
     this._collectGroupState();
 
     // restore goban
     moveCount = this.goban.moveNumber() - moveCount;
     while (moveCount-- > 0) this.goban.untry();
+};
+
+PotentialTerritory.prototype._mergeResults = function () {
+    var blackYx = this.grids[BLACK].yx;
+    var whiteYx = this.grids[WHITE].yx;
+    var terrYx = this.territory.yx;
+    for (var j = this.gsize; j >= 1; j--) {
+        for (var i = this.gsize; i >= 1; i--) {
+            terrYx[j][i] = (POT2OWNER[2 + blackYx[j][i]] + POT2OWNER[2 + whiteYx[j][i]]) / 2;
+        }
+    }
+    if (main.debug) main.log.debug('Guessing territory for:\n' + this.realGrid +
+        '\nBLACK first:\n' + this.grids[BLACK] + 'WHITE first:\n' + this.grids[WHITE] + this);
 };
 
 PotentialTerritory.prototype._initGroupState = function () {
@@ -116,12 +120,11 @@ PotentialTerritory.prototype._collectGroupState = function () {
     }
 };
 
-PotentialTerritory.prototype._connectThings = function (grid, first, second) {
-    this.tmp = this.territory; // safe to use it as temp grid here
+PotentialTerritory.prototype._connectThings = function (grid, color) {
     this.reducedYx = null;
     // enlarging starts with real grid
-    this.enlarge(this.realGrid, this.tmp.copy(this.realGrid), first, second);
-    this.enlarge(this.tmp, grid.copy(this.tmp), second, first);
+    this.enlarge(this.realGrid, grid.copy(this.realGrid), color);
+
     if (main.debug) main.log.debug('after 1st enlarge (before connectToBorders):\n' + grid);
     this.connectToBorders(grid.yx);
     if (main.debug) main.log.debug('after connectToBorders:\n' + grid);
@@ -132,23 +135,20 @@ PotentialTerritory.prototype._connectThings = function (grid, first, second) {
     if (main.debug) main.log.debug('after reduce:\n' + this.reducedGrid);
 
     // now we have the reduced goban, play the enlarge moves again minus the extra
-    this.enlarge(this.realGrid, this.tmp.copy(this.realGrid), first, second);
-    this.enlarge(this.tmp, grid.copy(this.tmp), second, first);
+    this.enlarge(this.realGrid, grid.copy(this.realGrid), color);
     if (main.debug) main.log.debug('after 2nd enlarge (before connectToBorders):\n' + grid);
     this.connectToBorders(grid.yx);
     if (main.debug) main.log.debug('after connectToBorders:\n' + grid);
 };
 
-PotentialTerritory.prototype.enlarge = function (inGrid, outGrid, first, second) {
-    if (main.debug) main.log.debug('enlarge ' + first + ',' + second);
-    var inYx = inGrid.yx;
-    var outYx = outGrid.yx;
-    for (var j = 1; j <= this.gsize; j++) {
-        for (var i = 1; i <= this.gsize; i++) {
-            if (inYx[j][i] !== EMPTY) {
-                continue;
-            }
-            this.enlargeAt(inYx, outYx, i, j, first, second);
+PotentialTerritory.prototype.enlarge = function (inGrid, outGrid, color) {
+    if (main.debug) main.log.debug('---enlarge ' + Grid.colorName(color));
+    var inYx = inGrid.yx, outYx = outGrid.yx;
+    for (var j = this.gsize; j >= 1; j--) {
+        var inYxj = inYx[j];
+        for (var i = this.gsize; i >= 1; i--) {
+            if (inYxj[i] !== EMPTY) continue;
+            this.enlargeAt(inYx, outYx, i, j, color, 1 - color);
         }
     }
 };
@@ -242,7 +242,8 @@ function borderPos(dir, n, gsize) {
     }
 }
 
-PotentialTerritory.prototype._prepareBorderConnect = function () {
+// Done only once
+PotentialTerritory.prototype._computeBorderConnectConstants = function () {
     var points = [];
     for (var dir = DIR0; dir <= DIR3; dir++) {
         var dx = XY_AROUND[dir][0], dy = XY_AROUND[dir][1];
@@ -254,13 +255,14 @@ PotentialTerritory.prototype._prepareBorderConnect = function () {
     this.borderPoints = points;
 };
 
-/** Example for left border: (direction = RIGHT)
+/** Makes "obvious" connections to border. Note we must avoid splitting eyes.
+ Example for left border: (direction = RIGHT)
  G=GOAL, S=SPOT, L=LEFT, R=RIGHT (left & right could be switched, it does not matter)
- +
+ LL0
  L0 L1 L2
  G  S1 S2 S3
  R0 R1 R2
- +
+ RR0
  */
 PotentialTerritory.prototype.connectToBorders = function (yx) {
     var points = this.borderPoints;
@@ -275,9 +277,10 @@ PotentialTerritory.prototype.connectToBorders = function (yx) {
         if (color !== EMPTY) {
             l0 = yx[gj-dx][gi-dy]; r0 = yx[gj+dx][gi+dy];
             if (l0 === color || r0 === color) continue; // no need for goal if s0 or r0
-            // special case: we don't want to split a 3 vertex eye into 2 eyes here
             l1 = yx[s1j-dx][s1i-dy]; r1 = yx[s1j+dx][s1i+dy];
             if (l0 === EMPTY && r0 === EMPTY && l1 === color && r1 === color) continue;
+            var ll0 = yx[gj-2*dx][gi-2*dy], rr0 = yx[gj+2*dx][gi+2*dy];
+            if (ll0 === color || rr0 === color) continue;
             this.addStone(yx, gi, gj, color, true);
             continue;
         }
@@ -286,8 +289,8 @@ PotentialTerritory.prototype.connectToBorders = function (yx) {
         if (color !== EMPTY) {
             l0 = yx[gj-dx][gi-dy]; r0 = yx[gj+dx][gi+dy];
             l1 = yx[s1j-dx][s1i-dy]; r1 = yx[s1j+dx][s1i+dy];
-            if (l0 === color && l1 === color) continue;
-            if (r0 === color && r1 === color) continue;
+            if (l0 !== 1 - color && l1 === color) continue;
+            if (r0 !== 1 - color && r1 === color) continue;
             this.addStone(yx, s1i, s1j, color, true);
             if (l0 === color || r0 === color) continue; // no need for goal if s0 or r0
             this.addStone(yx, gi, gj, color, true);

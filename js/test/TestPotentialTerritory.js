@@ -71,7 +71,15 @@ TestPotentialTerritory.prototype.testInMidGame = function () {
     // 1 +++++++++
     //   abcdefghj
     this.checkBasicGame('c3,c6,e7,g3,g7,e2,d2,b4,b3,c7,g5,h4,h5,d8,e8,e5,c4,b5,e3',
-        "::::-----,::::-----,:::?-----,:::???---,::????---,::-????::,-----?:::,----:::::,----:::::", 9);
+        "::::-'---," +
+        "::::-'---," +
+        ":::?-'---," +
+        ":::??''''," +
+        "::????---," +
+        "::-????::," +
+        "?--?-?:::," +
+        "----??:::," +
+        "----??:::", 9);
 };
 
 TestPotentialTerritory.prototype.testOnFinishedGame = function () {
@@ -99,11 +107,11 @@ TestPotentialTerritory.prototype.testMessyBoard = function () {
     // @@OOOO+
     // ++++@@+
     this.checkBasicGame('d4,d2,e3,b4,e1,c5,d6,d5,c3,e5,d3,b3,b2,c2,a2,e2,f1,f2,b6,c6,f6,e6,f4,d7,f5,f3',
+        '??.:.??,' +
+        '??:::??,' +
+        '??:::??,' +
         '???????,' +
-        '???????,' +
-        '???????,' +
-        '???????,' +
-        '?????::,' +
+        '?????:.,' +
         '??:::::,' +
         '??:::::');
         // FIXME NW BLACK should die even if Black plays first; one reason is strong b4-c5 W connection
@@ -122,8 +130,16 @@ TestPotentialTerritory.prototype.testConnectBorders = function () {
     // ++@@OO+++
     // +++++++++
     this.checkBasicGame('d4,f4,e6,g6,d2,f7,e7,f2,e8,e3,e5,d3,c3,e2,c2,g5,f8,g8,f9,c7',
-        ":::'--?::,:::?--:::,:::?-::::,:::?-?:::,??---?:::,----?::::,---::::::,----:::::,----:::::", 9,
-        '+++++@+++,++++@@O++,++O+@O+++,++++@+O++,++++@+O++,+++@+O+++,++@OO++++,++@@OO+++,+++++++++');
+        "????'-?::," +
+        "????--:::," +
+        "????-::::," +
+        "????-?:::," +
+        "''''-?:::," +
+        "----?::::," +
+        "---::::::," +
+        "----:::::," +
+        "----:::::",
+        9, '+++++@+++,++++@@O++,++O+@O+++,++++@+O++,++++@+O++,+++@+O+++,++@OO++++,++@@OO+++,+++++++++');
 };
 
 // Same as above but no White NW stone (c7)
