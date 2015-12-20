@@ -433,7 +433,7 @@ var evalTests = [
     'Score',
     'Territory',
     'Influence B',
-    'Influence W',
+    'Influence W'
 ];
 
 Ui.prototype.createDevControls = function () {
