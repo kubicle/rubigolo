@@ -7,9 +7,6 @@ var allHeuristics = require('./AllHeuristics');
 var BoardAnalyser = require('./boan/BoardAnalyser');
 var Genes = require('../../Genes');
 var Grid = require('../../Grid');
-var InfluenceMap = require('./boan/InfluenceMap');
-var PotentialTerritory = require('./boan/PotentialTerritory');
-var Stone = require('../../Stone');
 var ZoneFiller = require('./boan/ZoneFiller');
 
 var sOK = main.sOK, sINVALID = main.sINVALID, sBLUNDER = main.sBLUNDER, sDEBUG = main.sDEBUG;
@@ -22,15 +19,12 @@ function Droopy(goban, color, genes) {
     this.version = 'Droopy-1.0';
     this.goban = goban;
     this.genes = genes || new Genes();
-    this.inf = new InfluenceMap(this.goban);
-    this.pot = new PotentialTerritory(this.goban);
-    this.boan = new BoardAnalyser();
     this.gsize = this.goban.gsize;
     this.stateGrid = new Grid(this.gsize);
     this.scoreGrid = new Grid(this.gsize);
 
     // genes need to exist before we create heuristics
-    this.minimumScore = this.getGene('smaller-move', 0.03, 0.01, 0.1);
+    this.minimumScore = this.getGene('smallerMove', 0.03, 0.01, 0.1);
 
     this._createHeuristics();
     this.setColor(color);
@@ -38,8 +32,8 @@ function Droopy(goban, color, genes) {
 }
 module.exports = Droopy;
 
+// Used only by tests
 Droopy.BoardAnalyser = BoardAnalyser;
-Droopy.PotentialTerritory = PotentialTerritory;
 Droopy.ZoneFiller = ZoneFiller;
 
 
@@ -106,9 +100,6 @@ Droopy.prototype.getMove = function () {
         main.log.error('Forcing AI pass since we already played ' + this.numMoves);
         return 'pass';
     }
-    var saveDebug = main.debug;
-    main.debug = false;
-
     var stateYx = this.stateGrid.yx;
     var scoreYx = this.scoreGrid.yx;
 
@@ -117,7 +108,7 @@ Droopy.prototype.getMove = function () {
     this._runHeuristics(stateYx, scoreYx);
     var move = this._collectBestMove(stateYx, scoreYx);
 
-    main.debug = saveDebug;
+    main.debug = this.debugMode;
     return move;
 };
 
@@ -125,19 +116,15 @@ Droopy.prototype._prepareEval = function () {
     this.bestScore = this.minimumScore - 0.001;
     this.bestI = NO_MOVE;
 
-    this.pot.guessTerritories();
-
-    // get "raw" group info
-    this.boan.analyse(this.goban);
-
-    this.inf.buildMap();
+    this.debugMode = main.debug;
+    main.debug = false;
 };
 
 /** Init grids (and mark invalid moves) */
 Droopy.prototype._initScoringGrid = function (stateYx, scoreYx) {
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
-            if (!Stone.validMove(this.goban, i, j, this.color)) {
+            if (!this.goban.isValidMove(i, j, this.color)) {
                 stateYx[j][i] = sINVALID;
                 continue;
             }
@@ -154,6 +141,7 @@ Droopy.prototype._initScoringGrid = function (stateYx, scoreYx) {
 Droopy.prototype._runHeuristics = function (stateYx, scoreYx) {
     for (var n = 0; n < this.heuristics.length; n++) {
         var h = this.heuristics[n];
+        main.debug = this.debugMode && this.debugHeuristic === h.name;
         var t0 = Date.now();
 
         if (h._beforeEvalBoard) h._beforeEvalBoard();
@@ -188,10 +176,11 @@ Droopy.prototype.isBlunderMove = function (i, j) {
 };
 
 Droopy.prototype.guessTerritories = function () {
-    return this.pot.guessTerritories();
+    this.pot.evalBoard();
+    return this.pot.territory.yx;
 };
 
-Droopy.prototype._prepareTestEval = function (i, j) {
+Droopy.prototype._getMoveForTest = function (i, j) {
     this.testI = i;
     this.testJ = j;
 
@@ -212,13 +201,13 @@ Droopy.prototype._getMoveSurvey = function (i, j) {
 
 /** For tests */
 Droopy.prototype.testMoveEval = function (i, j) {
-    this._prepareTestEval(i, j);
+    this._getMoveForTest(i, j);
     return this.scoreGrid.yx[j][i];
 };
 
 /** For tests */
 Droopy.prototype.testHeuristic = function (i, j, heuristicName) {
-    this._prepareTestEval(i, j);
+    this._getMoveForTest(i, j);
     var h = this.getHeuristic(heuristicName);
     return h.scoreGrid.yx[j][i];
 };
@@ -233,7 +222,7 @@ function surveySort(h1, h2) { return h2[1] - h1[1]; }
 Droopy.prototype.getMoveSurveyText = function (move, isTest) {
     if (move[1] > '9') return '';
     var coords = Grid.move2xy(move), i = coords[0], j = coords[1];
-    if (isTest) this._prepareTestEval(i, j);
+    if (isTest) this._getMoveForTest(i, j);
     var survey = this._getMoveSurvey(i, j);
     var score = this.scoreGrid.yx[j][i];
 

@@ -1,18 +1,22 @@
-//Translated from all_heuristics.rb using babyruby2js
 'use strict';
 
-// When creating a new heuristic, remember to add it here.
-var Spacer = require('./Spacer');
-var Savior = require('./Savior');
-var Hunter = require('./Hunter');
 var Connector = require('./Connector');
-var Pusher = require('./Pusher');
+var GroupAnalyser = require('./GroupAnalyser');
+var Hunter = require('./Hunter');
+var Influence = require('./Influence');
 var NoEasyPrisoner = require('./NoEasyPrisoner');
+var PotentialTerritory = require('./PotentialTerritory');
+var Pusher = require('./Pusher');
+var Savior = require('./Savior');
 var Shaper = require('./Shaper');
+var Spacer = require('./Spacer');
 
 
 var allHeuristics = function () {
     return [
+        PotentialTerritory,
+        GroupAnalyser,
+        Influence,
         NoEasyPrisoner,
         Hunter,
         Savior,

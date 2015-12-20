@@ -10,12 +10,17 @@ var gtp = require('../net/gtp');
 var Logger = require('../Logger');
 var ogsApi = require('../net/ogsApi');
 var NewGameDlg = require('./NewGameDlg');
+var PopupDlg = require('./PopupDlg');
 var ScoreAnalyser = require('../ScoreAnalyser');
 var UiEngine = require('../net/UiEngine');
 
 var WHITE = main.WHITE, BLACK = main.BLACK;
+var sOK = main.sOK;
 
 var viewportWidth = document.documentElement.clientWidth;
+
+var NO_HEURISTIC = '(heuristic)';
+var NO_EVAL_TEST = '(other eval)';
 
 
 function Ui(game) {
@@ -39,7 +44,7 @@ Ui.prototype.createUi = function () {
 
 Ui.prototype.refreshBoard = function () {
     this.board.refresh();
-    this.evalTestDropdown.select('-');
+    this.devDisplay();
 };
 
 Ui.prototype.loadFromTest = function (parent, testName, msg) {
@@ -88,11 +93,11 @@ Ui.prototype.newGameDialog = function () {
         aiPlays: this.aiPlays
     };
     var self = this;
-    new NewGameDlg(options, function (options) {
+    new NewGameDlg(options, function validate(options) {
         self.gsize = options.gsize;
         self.handicap = options.handicap;
         self.aiPlays = options.aiPlays;
-        self.startGame(options.moves);
+        return self.startGame(options.moves);
     });
 };
 
@@ -162,24 +167,31 @@ Ui.prototype.startGame = function (firstMoves, isLoaded) {
     var game = this.game;
     if (!isLoaded) game.newGame(this.gsize, this.handicap);
     if (firstMoves) {
-        game.loadMoves(firstMoves);
+        var errors = [];
+        if (!game.loadMoves(firstMoves, errors)) {
+            new PopupDlg(errors.join('\n'));
+            return false;
+        }
     }
     // read values from game to make sure they are valid and match loaded game
     this.gsize = game.goban.gsize;
     this.handicap = game.handicap;
 
     this.createPlayers();
+    this.debugHeuristic = null;
+
     if (!this.gameDiv) this.createGameUi('main', document.body);
     this.toggleControls();
 
     this.board.create(this.boardElt, this.boardWidth, this.game.goban);
     this.refreshBoard();
 
-    if (isLoaded) return;
-    if (firstMoves && this.checkEnd()) return;
+    if (isLoaded) return true;
+    if (firstMoves && this.checkEnd()) return true;
 
     this.message('Game started. Your turn...'); // erased if a move is played below
     this.letNextPlayerPlay();
+    return true;
 };
 
 /** @return false if game goes on normally; true if special ending action was done */
@@ -237,7 +249,7 @@ Ui.prototype.showAiMoveData = function (aiPlayer, move, isTest) {
 };
 
 Ui.prototype.letAiPlay = function (skipRefresh) {
-    var aiPlayer = this.players[this.game.curColor];
+    var aiPlayer = this.lastAiPlayer = this.players[this.game.curColor];
     var move = aiPlayer.getMove();
     if (!skipRefresh) this.showAiMoveData(aiPlayer, move);
     this.game.playOneMove(move);
@@ -245,12 +257,7 @@ Ui.prototype.letAiPlay = function (skipRefresh) {
     // AI resigned or double-passed?
     if (this.checkEnd()) return move;
 
-    if (!skipRefresh) {
-        this.refreshBoard();
-        if (this.debugHeuristic) {
-            this.board.showSpecial('value', aiPlayer.getHeuristic(this.debugHeuristic).scoreGrid.yx);
-        }
-    }
+    if (!skipRefresh) this.refreshBoard();
     return move;
 };
 
@@ -268,9 +275,14 @@ Ui.prototype.playerMove = function (move) {
 };
 
 Ui.prototype.playerResigns = function () {
-    this.game.playOneMove('resi');
-    this.computeScore();
-    this.checkEnd();
+    var self = this;
+    var options = { buttons: ['YES', 'NO'] };
+    new PopupDlg('Do you really want to resign?', 'Confirm', options, function (options) {
+        if (options.choice !== 0) return;
+        self.game.playOneMove('resi');
+        self.computeScore();
+        self.checkEnd();
+    });
 };
 
 Ui.prototype.playUndo = function () {
@@ -356,7 +368,6 @@ Ui.prototype.setEvalMode = function (enabled) {
 
 Ui.prototype.evalMove = function (move) {
     var player = this.getAiPlayer(this.game.curColor);
-    player.setDebugHeuristic(this.debugHeuristic);
     this.showAiMoveData(player, move, /*isTest=*/true);
 };
 
@@ -371,12 +382,17 @@ Ui.prototype.territoryTest = function () {
 };
 
 Ui.prototype.heuristicTest = function (name) {
-    var aiPlayer = this.getAiPlayer(BLACK);
-    this.debugHeuristic = aiPlayer.getHeuristic(name) ? name : null;
+    this.debugHeuristic = name === NO_HEURISTIC ? null : name;
+
+    this.getAiPlayer(BLACK).setDebugHeuristic(this.debugHeuristic);
+    this.getAiPlayer(WHITE).setDebugHeuristic(this.debugHeuristic);
+
+    this.refreshBoard();
 };
 
 Ui.prototype.influenceTest = function (color) {
-    var infl = this.getAiPlayer(1 - this.game.curColor).inf.map;
+    var infl = this.getAiPlayer(1 - this.game.curColor).infl;
+    // This could be AiPlayer's job to return us a grid ready for display
     var yx = new Grid(this.gsize).yx; // TODO: covert infl to 2 grids one day?
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
@@ -386,8 +402,23 @@ Ui.prototype.influenceTest = function (color) {
     this.board.showSpecial('value', yx);
 };
 
+Ui.prototype.devDisplay = function () {
+    this.evalTestDropdown.select(NO_EVAL_TEST);
+    if (!this.debugHeuristic || !this.lastAiPlayer) return;
+    var heuristic = this.lastAiPlayer.getHeuristic(this.debugHeuristic);
+    // Erase previous values (heuristics don't care about old values)
+    // This could be AiPlayer's job to return us a grid ready for display
+    var stateYx = this.lastAiPlayer.stateGrid.yx, scoreYx = heuristic.scoreGrid.yx;
+    for (var j = this.gsize; j >= 1; j--) {
+        for (var i = this.gsize; i >= 1; i--) {
+            if (stateYx[j][i] < sOK) scoreYx[j][i] = 0;
+        }
+    }
+    this.board.showSpecial('value', scoreYx);
+};
+
 var heuristics = [
-    '-',
+    NO_HEURISTIC,
     'NoEasyPrisoner',
     'Hunter',
     'Savior',
@@ -398,7 +429,7 @@ var heuristics = [
 ];
 
 var evalTests = [
-    '-',
+    NO_EVAL_TEST,
     'Score',
     'Territory',
     'Influence B',
@@ -420,7 +451,7 @@ Ui.prototype.createDevControls = function () {
     this.evalTestDropdown = Dome.newDropdown(col2, '#evalTest', evalTests, null, '');
     this.evalTestDropdown.on('change', function () {
         switch (this.value()) {
-        case '-': return self.refreshBoard();
+        case NO_EVAL_TEST: return self.refreshBoard();
         case 'Score': return self.scoreTest();
         case 'Territory': return self.territoryTest();
         case 'Influence B': return self.influenceTest(BLACK);

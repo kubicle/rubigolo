@@ -13,18 +13,25 @@ var BLACK = main.BLACK, WHITE = main.WHITE;
  *  code is the void code (like a color but higher index)
  *  neighbors is an array of n arrays, with n == number of colors
  */
-function Void(code, i, j, vcount, neighbors) {
+function Void(code) {
     this.code = code;
-    this.i = i;
-    this.j = j;
-    this.vcount = vcount;
-    this.groups = neighbors; // neighboring groups (array of arrays; 1st index is color)
+    this.i = 0;
+    this.j = 0;
+    this.vcount = 0;
+    this.groups = null; // neighboring groups (array of arrays; 1st index is color)
     this.vtype = undefined; // see vXXX contants below
     this.color = undefined; // BLACK or WHITE, or undefined if no clear owner
     this.owner = undefined; // GroupInfo or undefined; NB: fake eyes don't have owner
     this.isInDeadGroup = false; // true when all groups around an eye are dead (e.g. one-eyed dead group)
 }
 module.exports = Void;
+
+Void.prototype.init = function (i, j, vcount, neighbors) {
+    this.i = i;
+    this.j = j;
+    this.vcount = vcount;
+    this.groups = neighbors;
+};
 
 var vEYE = Void.vEYE = 1;
 var vFAKE_EYE = Void.vFAKE_EYE = 2;
@@ -45,24 +52,31 @@ function areGroupsAllDead(groups) {
 }
 
 Void.prototype.findOwner = function () {
+    var blackGroups = this.groups[BLACK], whiteGroups = this.groups[WHITE];
     // see which color has yet-alive groups around this void
-    var allBlackDead = areGroupsAllDead(this.groups[BLACK]);
-    var allWhiteDead = areGroupsAllDead(this.groups[WHITE]);
+    var allBlackDead = areGroupsAllDead(blackGroups);
+    var allWhiteDead = areGroupsAllDead(whiteGroups);
 
     // every group around now dead = eye belongs to the killers
     if (allBlackDead && allWhiteDead) {
         if (this.vtype && !this.isInDeadGroup) this.setAsDeadGroupEye();
         return;
     }
-
+    if (this.vtype === vEYE) return; // eyes don't change owner unless in a dead group
     if (!allBlackDead && !allWhiteDead) return; // still undefined owner
+
     var color = allBlackDead ? WHITE : BLACK;
+
     if (this.isFakeEye(color)) return;
 
-    this.setVoidOwner(color, vEYE);
+    if (!blackGroups.length || !whiteGroups.length) {
+        return this.setAsEye(color);
+    }
+
+    this.setVoidOwner(color);
 };
 
-// NB: groups around a fake-eye do not count it has an eye/void
+// NB: groups around a fake-eye do not count it as an eye/void
 Void.prototype.isFakeEye = function (color) {
     // Potential fake eyes are identified only once (when vtype is still "undefined")
     // after which they can only lose this property
@@ -77,7 +91,7 @@ Void.prototype.isFakeEye = function (color) {
         var gi = groups[i]._info;
         // NB: see TestBoardAnalyser#testBigGame1 for why we test deadEnemies below
         // Idea: with a dead enemy around, we are usually not forced to connect.
-        if (gi.numContactPoints === 1 && !gi.deadEnemies.length && gi.voids.length < 2) {
+        if (gi.numContactPoints === 1 && !gi.deadEnemies.length && gi.voids.length === 0) {
             if (main.debug && !isFake) main.log.debug('FAKE EYE: ' + this);
             isFake = true;
             gi.makeDependOn(groups);
@@ -92,26 +106,36 @@ Void.prototype.isFakeEye = function (color) {
     return true;
 };
 
-/** Called in 2 cases: 
- * - sets the "stronger color" that will probably own a void - vtype == undefined
- * - decides the void is an eye for given color - vtype == vEYE
- */
-Void.prototype.setVoidOwner = function (color, vtype) {
-    if (vtype !== vEYE && vtype !== undefined) throw new Error('Invalid void owner vtype: ' + vtype);
-    if (vtype === this.vtype && this.owner && color === this.color) return;
-    if (main.debug) main.log.debug(vtype2str(vtype).toUpperCase() + ': ' + Grid.colorName(color) + ' owns ' + this);
+Void.prototype.setAsEye = function (color) {
+    if (main.debug) main.log.debug('EYE: ' + Grid.colorName(color) + ' owns ' + this);
+    this.vtype = vEYE;
+    this.color = color;
+    // ONE of the groups now owns this void
+    var groups = this.groups[color];
+    this.owner = groups[0]._info.addVoid(this, groups);
+};
 
-    if (this.color !== color) {
-        if (this.owner) this.owner.removeVoid(this);
-        this.vtype = vtype;
-        this.color = color;
-        // ONE of the groups now owns this void
-        var groups = this.groups[color];
-        this.owner = groups[0]._info.addVoid(this, groups);
-    } else {
-        if (this.owner) this.owner.onVoidTypeChange(this, vtype);
-        this.vtype = vtype;
+/** Sets the "stronger color" that will probably own a void - vtype == undefined */
+Void.prototype.setVoidOwner = function (color) {
+    if (color === this.color) return;
+    if (main.debug) main.log.debug('VOID: ' + Grid.colorName(color) + ' owns ' + this);
+
+    if (this.owner) { this.owner.removeVoid(this); this.owner = null; }
+    this.color = color;
+ 
+    // Given void can be seen as an eye if no other eye is around its "dead" enemies
+    // i.e. no dead enemy ever "connects" 2 eyes (this would be a single eye)
+    var enemies = this.groups[1 - color];
+    for (var e = enemies.length - 1; e >= 0; e--) {
+        var evoids = enemies[e]._info.nearVoids;
+        for (var n = evoids.length - 1; n >= 0; n--) {
+            if (evoids[n] === this) continue;
+            if (evoids[n].color === color) return;
+        }
     }
+    // ONE of the groups now owns this void
+    var groups = this.groups[color];
+    this.owner = groups[0]._info.addVoid(this, groups);
 };
 
 // Called during final steps for voids that have both B&W groups alive close-by
@@ -169,9 +193,7 @@ Void.prototype.toString = function () {
 function grpNdx(g) { return '#' + g.ndx; }
 
 Void.prototype.debugDump = function () {
-    console.log(this.toString());
-    for (var color = 0; color < this.groups.length; color++) {
-        console.log('    Color ' + color + ' (' + Grid.colorToChar(color) + '): ' +
-            this.groups[color].map(grpNdx));
-    }
+    main.log.debug(this.toString());
+    main.log.debug('   black: ' + this.groups[BLACK].map(grpNdx));
+    main.log.debug('   white: ' + this.groups[WHITE].map(grpNdx));
 };

@@ -6,7 +6,6 @@ var main = require('../../main');
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
-var Stone = require('../../Stone');
 
 
 /** @class Should recognize when our move is foolish... */
@@ -28,10 +27,12 @@ NoEasyPrisoner.prototype._evalMove = function (i, j, color) {
     // NB: snapback is handled in hunter; here we just notice the sacrifice of a stone, which will
     // be balanced by the profit measured by hunter (e.g. lose 1 but kill 3).
 
-    // Skip places where no influence around
-    if (this.infl[j][i][1 - color] < 2 && this.infl[j][i][color] < 2) return 0;
+    // Skip places where nothing happens around
+    // NB: if dead allies (without influence), avoid adding more stones here
+    if (this.infl[j][i][1 - color] < 2 && this.infl[j][i][color] < 2 &&
+        this.goban.stoneAt(i, j).allyStones(color) === 0) return 0;
 
-    var stone = Stone.playAt(this.goban, i, j, color);
+    var stone = this.goban.tryAt(i, j, color);
     var g = stone.group;
     var score = 0, move;
     if (main.debug) move = Grid.xy2move(i, j);
@@ -49,6 +50,6 @@ NoEasyPrisoner.prototype._evalMove = function (i, j, color) {
             if (main.debug) main.log.debug('NoEasyPrisoner (backed by Hunter) says ' + move + ' is foolish  (' + score + ')');
         }
     }
-    Stone.undo(this.goban);
+    this.goban.untry();
     return score;
 };

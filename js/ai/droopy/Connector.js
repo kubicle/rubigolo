@@ -7,16 +7,20 @@ var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
 
 var EMPTY = main.EMPTY, BORDER = main.BORDER;
-var ALWAYS = main.ALWAYS;
+var ALWAYS = main.ALWAYS, NEVER = main.NEVER;
 
 /*
-TODO: fix under-evaluation in cases we could handle better:
-  - When we see a group is "SOMETIMES" dead, we consider the connection/cut as
+TODO:
+- Fix under-evaluation in cases we could handle better:
+  # When we see a group is "SOMETIMES" dead, we consider the connection/cut as
     a 0.5 win; in case where the connection/cut is precisely the saving/killing stone,
     we should count a full win instead.
-  - See test TestAi#testConnect: the connection is actually deciding life/death of more
+  # See test TestAi#testConnect: the connection is actually deciding life/death of more
     than the 2 groups we look at: the 2 stones group is a brother of another group 
     which will be saved/dead too depending on this connection.
+- Merge "direct" and "diagonal" algos to do it right
+- One other way to connect 2 groups is to "protect" the cutting point; handle this here
+- When we try to "cut" (enemy color), eval should give 0 if another way of connecting exists
 */
 
 /** @class A move that connects 2 of our groups is good.
@@ -38,6 +42,7 @@ Connector.prototype._evalMove = function (i, j, color) {
     // If our stone would simply be captured, no luck
     var stone = this.goban.stoneAt(i, j);
     if (this.noEasyPrisonerYx[j][i] < 0 && !this.hunter.isSnapback(stone)) {
+        if (main.debug) main.log.debug('Connector ' + Grid.colorName(color) + ' skips ' + stone + ' (trusting NoEasyPrisoner)');
         return 0;
     }
     // Score for connecting our groups + cutting enemies
@@ -124,6 +129,7 @@ Connector.prototype._directConnect = function (stone, color) {
     if (s1.i !== s2.i && s1.j !== s2.j) {
         // no need to connect now if connection is granted
         if (this.distanceBetweenStones(s1, s2, color) === 0) {
+            if (main.debug) main.log.debug('Connector ' + Grid.colorName(color) + ' sees no hurry to connect ' + s1 + ' and ' + s2);
             if (groupNeedsToConnect(s1.group) || groupNeedsToConnect(s2.group))
                 return this.minimumScore;
             return 0;
@@ -142,16 +148,19 @@ Connector.prototype._computeScore = function (stone, color, groups, numEnemies, 
         var someAlive = false, g;
         for (var n = groups.length - 1; n >= 0; n--) {
             g = groups[n];
-            if (g.isDead < ALWAYS) {
+            // lives 1 or 2 are counted by Hunter/Savior; TODO: centralize how this is counted
+            if (g.lives <= 2 && g.xAlive < ALWAYS) return 0;
+            if (g.xDead < ALWAYS || g.xAlive > NEVER) {
                 someAlive = true;
-                if (g.isAlive === ALWAYS) continue;
+                break;
             }
         }
         if (!someAlive) return 0; // don't try to connect dead groups
+
         for (n = groups.length - 1; n >= 0; n--) {
             g = groups[n];
-            if (g.isAlive === ALWAYS) continue;
-            score += (2 - g.isAlive) / 2 * this.groupThreat(g, /*saved=*/true); // !saved would not work so well I think
+            if (g.xDead === NEVER) continue;
+            score += (2 - g.xAlive) / 2 * this.groupThreat(g, /*saved=*/true); // !saved would not work so well I think
         }
         score *= this.riskCoeff;
     }
@@ -161,8 +170,6 @@ Connector.prototype._computeScore = function (stone, color, groups, numEnemies, 
 };
 
 Connector.prototype._connectsMyGroups = function (stone, color) {
-    // TODO: merge "direct" and "diagonal" algos to do it right
-    // TODO: one other way to connect 2 groups is to "protect" the cutting point; handle this here
     var score = this._directConnect(stone, color);
     if (score) return score;
     return this._diagonalConnect(stone, color);

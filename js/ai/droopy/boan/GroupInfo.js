@@ -2,10 +2,9 @@
 
 var main = require('../../../main');
 var Band = require('./Band');
-var Shaper = require('../Shaper');
-var Void = require('./Void');
 
-var vEYE = Void.vEYE;
+var EMPTY = main.EMPTY;
+var NEVER = main.NEVER, SOMETIMES = main.SOMETIMES, ALWAYS = main.ALWAYS;
 
 
 /** @class Contains the analyse results that are attached to each group */
@@ -33,18 +32,22 @@ var ALIVE = GroupInfo.ALIVE = 1000; // any big enough liveliness to mean "alive 
 // This also resets the eyes
 GroupInfo.prototype.resetAnalysis = function (group) {
     this.group = group;
-    this.eyeCount = 0;
+    this.eyeCount = this._liveliness = 0;
     this.voids.clear();
     this.nearVoids.clear();
     this.dependsOn.clear();
     this.band = null;
-    this.isAlive = false;
-    this.isDead = false;
+    this.isAlive = this.isDead = false;
     this.deadEnemies.clear();
     this.killers.clear();
     this.potentialEyes.clear();
     this.numContactPoints = 0;
 };
+
+// For debug only
+function when2str(when) {
+    return when > NEVER ? (when > SOMETIMES ? 'ALWAYS' : 'SOMETIMES') : 'NEVER';
+}
 
 GroupInfo.giNdx = function (gi) { return '#' + gi.group.ndx; };
 
@@ -52,20 +55,20 @@ GroupInfo.prototype.toString = function () {
     var brothers = this.band ? this.band.toString() : '';
     return this.group.toString() +
         ' (isAlive:' + this.isAlive + ' isDead:' + this.isDead + ', ' +
-        this.eyeCount + ' eyes, ' + this.voids.length + ' voids  brothers:[' +
+        this.voids.length + ' voids  brothers:[' +
         brothers + '] parents:[' + this.dependsOn.map(GroupInfo.giNdx) +
         '] deadEnemies:[' + this.deadEnemies.map(GroupInfo.giNdx) + '])';
 };
 
-/** Adds a void to an owner-group.
+/** Adds a void to an owner-group + makes groups sharing the void brothers.
  * @param {Void} v
  * @param {Array} [groups] - array of co-owner groups (they become brothers)
  * @return {GroupInfo} - "this"
  */
 GroupInfo.prototype.addVoid = function (v, groups) {
-    if (main.debug) main.log.debug('OWNED EYE: ' + v + ' owned by ' + this);
+    if (main.debug) main.log.debug('OWNED: ' + v + ' owned by ' + this);
     this.voids.push(v);
-    if (v.vtype === vEYE) this.eyeCount++;
+    this.eyeCount++;
 
     // an eye between several groups makes them brothers
     if (groups && groups.length > 1) Band.gather(groups);
@@ -78,14 +81,7 @@ GroupInfo.prototype.removeVoid = function (v) {
     if (ndx === -1) throw new Error('remove unknown void');
     if (main.debug) main.log.debug('LOST: ' + v + ' lost by ' + this);
     this.voids.splice(ndx, 1);
-    if (v.vtype === vEYE) this.eyeCount--;
-};
-
-/** Called by an owned void when it is about to change type to newVtype */
-GroupInfo.prototype.onVoidTypeChange = function (v, newVtype) {
-    if (newVtype === vEYE) this.eyeCount++;
-    else if (v.vtype === vEYE) this.eyeCount--;
-    if (v.vtype === newVtype || this.eyeCount < 0) throw new Error('Unexpected vtype error');
+    this.eyeCount--;
 };
 
 GroupInfo.prototype.makeDependOn = function (groups) {
@@ -105,29 +101,25 @@ GroupInfo.prototype.makeDependOn = function (groups) {
 // NB: if we had another way to get the numContactPoints info, we could do this
 // much more efficiently by looking once at each empty point on the board
 GroupInfo.prototype.findBrothers = function () {
-    var g = this.group;
+    var g = this.group, color = g.color;
     // find allies 1 stone away
-    var empties = g.allLives();
     var allAllies = [];
+    var empties = g.allLives();
     var numContactPoints = 0;
     for (var e = empties.length - 1; e >= 0; e--) {
-        var allies = empties[e].uniqueAllies(g.color);
-        if (allies.length === 1) continue;
-        numContactPoints++;
-        allAllies.pushUnique(allies);
+        var neighbors = empties[e].neighbors, isContact = false;
+        for (var n = neighbors.length - 1; n >= 0; n--) {
+            var s = neighbors[n];
+            if (s.color !== color || s.group === g) continue;
+            isContact = true;
+            if (allAllies.indexOf(s.group) < 0) allAllies.push(s.group);
+        }
+        if (isContact) numContactPoints++;
     }
     if (!numContactPoints) return;
     this.numContactPoints = numContactPoints;
+    allAllies.push(g);
     Band.gather(allAllies);
-};
-
-/** Returns the (first) single eye of a group (or null if no eye) */
-GroupInfo.prototype.getSingleEye = function () {
-    for (var i = this.voids.length - 1; i >= 0; i--) {
-        var eye = this.voids[i];
-        if (eye.vtype === vEYE) return eye;
-    }
-    return null;
 };
 
 GroupInfo.prototype.considerDead = function (reason) {
@@ -146,13 +138,34 @@ GroupInfo.prototype.liveliness = function (strict, shallow) {
     if (this.isAlive || this.eyeCount >= 2) {
         return ALIVE;
     }
-    var racePoints = this.group.lives / 100;
+
+    var n, racePoints = 0, color = this.group.color, lives = this.group.lives;
+    for (var i = this.nearVoids.length - 1; i >= 0; i--) {
+        var v = this.nearVoids[i];
+        var points = Math.min(lives, v.vcount);
+        if (v.owner) {
+            if (v.owner === this) racePoints += points;
+        } else {
+            var allies = v.groups[color]; // NB: we don't care about enemies
+            if (allies.length === 1) {
+                racePoints += points;
+            } else {
+                var myNdx = this.group.ndx, minNdx = myNdx;
+                for (n = allies.length - 1; n >= 0; n--) {
+                    minNdx = Math.min(allies[n].ndx, minNdx);
+                }
+                if (myNdx === minNdx) racePoints += points;
+            }
+        }
+    }
+    racePoints /= 100;
+
     if (this.isDead) {
         return 0 + racePoints;
     }
     var familyPoints = 0;
     if (!shallow) {
-        for (var n = this.dependsOn.length - 1; n >= 0; n--) {
+        for (n = this.dependsOn.length - 1; n >= 0; n--) {
             familyPoints += this.dependsOn[n].liveliness(strict, true);
         }
         if (this.band) {
@@ -163,47 +176,73 @@ GroupInfo.prototype.liveliness = function (strict, shallow) {
             }
         }
     }
-    var numEyes = strict ? this.eyeCount : this.voids.length;
+    //TODO: get rid of this "strict" idea
     var numDeadEnemies = strict ? this.countEyesFromDeadEnemy() : this.deadEnemies.length;
-    return numEyes + numDeadEnemies + familyPoints + racePoints;
+    return this.eyeCount + numDeadEnemies + familyPoints + racePoints;
 };
 
-/** This group "is doomed by" gi if without gi there would be space for 2 eyes.
- * WIP...
-3:  OXO   4-2: OXXO   4T: OXO   4x: OX
-                           O        XO
-                O
-5b: OXO    5+: OXO    6c: OXO
-    OO          O         OOO
- */
-GroupInfo.prototype.isDoomedBy = function (gi) {
-    // this group must be surrounding gi, so it simply must have more stones
-    var enemySize = gi.group.stones.length;
-    if (this.group.stones.length <= enemySize) return false;
+// Finds next recommended move to make 2 eyes
+// Returns:
+//   NEVER => cannot make 2 eyes
+//   SOMETIMES => can make 2 eyes if we play now (coords will receive [i,j])
+//   ALWAYS => can make 2 eyes even if opponent plays first
+GroupInfo.prototype.getEyeMakerMove = function (coords) {
+    // TODO: if depending group is on a side of eye, 1 vertex will be lost
+    if (this.eyeCount > 1) return ALWAYS;
+    if (this.eyeCount === 0) return NEVER;
+    if (this.voids[0].vcount > 6) return ALWAYS;
+    if (main.debug) main.log.debug('getEyeMakerMove checking ' + this);
 
-    var numVoids = this.nearVoids.length;
-    if (numVoids < 2) return false; // TODO: 6c?
+    var g = this.group, color = g.color;
+    var analyseYx = g.goban.analyseGrid.yx;
+    var best = null, bestLives = 0, bestEnemies = 0, numMoves = 0;
+    var empties = g.allLives(), numEmpties0 = empties.length;
 
-    var sharedVoids = [];
-    for (var n = numVoids - 1; n >= 0; n--) {
-        var v = this.nearVoids[n];
-        if (v.isTouching(gi)) sharedVoids.push(v);
+    for (var n = 0; n < empties.length; n++) {
+        var s = empties[n];
+        var v = analyseYx[s.j][s.i];
+        if (!v.owner || v.color !== color) continue;
+
+        var numEnemies = 0, numAllies = 0, numLives = 0;
+        for (var m = s.neighbors.length - 1; m >= 0; m--) {
+            var s2 = s.neighbors[m];
+            switch (s2.color) {
+            case EMPTY:
+                if (n < numEmpties0 && !s2.isNextTo(g) && empties.indexOf(s2) < 0)
+                    empties.push(s2); // add s2 to our list of empties to check
+                numLives++;
+                break;
+            case color: numAllies++; break;
+            default:
+                if (s2.group.lives > 1) numEnemies++;
+                else numLives++;
+            }
+        }
+        if (numEnemies) {
+            if (numLives + (numAllies ? 1 : 0) < 2) continue;
+        } else {
+            if (numLives < 2) continue;
+        }
+        if (main.debug) main.log.debug('getEyeMakerMove sees ' + numLives + (numEnemies < 1 ? '' : (numEnemies > 1 ? 'e' + numEnemies : 'E')) + ' in ' + s);
+        // skip corner if we have better
+        if (s.isCorner() && numMoves) continue;
+
+        numMoves++; // we must count only the successful moves
+        if (best) {
+            if (numEnemies <= bestEnemies) continue;
+            if (numLives + numEnemies < bestLives) continue;
+            if (best.isCorner()) numMoves--;
+        }
+
+        best = s;
+        bestEnemies = numEnemies;
+        bestLives = numLives;
     }
-    switch (sharedVoids.length) {
-    case 2:
-        var v0 = sharedVoids[0], v1 = sharedVoids[1];
-        if (v0.vcount === 1 && v1.vcount === 1 && 
-            (enemySize === 1 || enemySize === 2)) break; // 3 and 4-2; TODO 4x?
-        return false;
-    case 3:
-        if (sharedVoids[0].vcount === 1 && sharedVoids[1].vcount === 1 &&
-            sharedVoids[2].vcount === 1 && enemySize === 1) break; // 4T - TODO enemySize=2?
-        //TODO: 5b 5+
-        return false;
-    default: return false;
-    }
-    gi.isAlive = true;
-    return true;
+    if (main.debug) main.log.debug('getEyeMakerMove result: ' + best + ' - ' + (best ? (numMoves > 1 ? 'ALWAYS' : 'SOMETIMES') : 'NEVER'));
+    if (!best) return NEVER;
+    if (numMoves > 1) return ALWAYS;
+    coords[0] = best.i; coords[1] = best.j;
+    return SOMETIMES;
 };
 
 // TODO better algo
@@ -211,29 +250,18 @@ GroupInfo.prototype.isDoomedBy = function (gi) {
 // a dead enemy. This is probably a better way to stop counting dead enemies to make up
 // for unaccounted eyes. See TestBoardAnalyser#testBigGame2 in h12 for an example.
 GroupInfo.prototype.countEyesFromDeadEnemy = function () {
-    var numDead = this.deadEnemies.length;
-    if (!numDead) return 0;
-
-    var eye = this.getSingleEye();
-    if (!eye) return numDead;
-
-    var count = 0;
-    for(var n = numDead - 1; n >= 0; n--) {
-        if (!eye.isTouching(this.deadEnemies[n])) count++;
+    var count = this.deadEnemies.length;
+    for(var n = count - 1; n >= 0; n--) {
+        var voids = this.deadEnemies[n].nearVoids;
+        // if a void next to this enemy belongs to us already, then dead enemy adds nothing
+        for (var m = voids.length - 1; m >= 0; m--) {
+            if (voids[m].owner === this) { // if remark above is coded, it becomes voids[m].color === color
+                count--;
+                break;
+            }
+        }
     }
     return count;
-};
-
-// This just spots groups with 2 eyes to mark them "alive" (no kill check here)
-GroupInfo.prototype.checkDoubleEye = function () {
-    if (this.eyeCount + this.deadEnemies.length < 2) return UNDECIDED;
-    if (this.eyeCount < 2) {
-        if (this.eyeCount + this.countEyesFromDeadEnemy() < 2) return UNDECIDED;
-    }
-    // Group is alive
-    if (main.debug) main.log.debug('ALIVE-doubleEye: ' + this);
-    this.isAlive = true;
-    return LIVES;
 };
 
 // This checks if a group can survive from its parents
@@ -277,36 +305,47 @@ GroupInfo.prototype.checkBrothers = function () {
     return LIVES;
 };
 
+GroupInfo.prototype._isLostInEnemyZone = function () {
+    if (this.band || this.dependsOn.length) return false;
+    if (this.nearVoids[0].color === this.group.color) return false;
+    if (this.group.stones.length >= 6) return false;
+    return true;
+};
+
 // This checks if a group can make 2 eyes from a single one
 GroupInfo.prototype.checkSingleEye = function (first2play) {
-    if (this.eyeCount !== 1) return UNDECIDED;
-    var eye = this.getSingleEye();
+    if (this.eyeCount >= 2) {
+        this.isAlive = true;
+        if (main.debug) main.log.debug('ALIVE-doubleEye: ' + this);
+        return LIVES;
+    }
+    if (this._isLostInEnemyZone()) return FAILS;
+
     var coords = [];
-    var alive = Shaper.getEyeMakerMove(this.group.goban, eye.i, eye.j, eye.vcount, coords);
+    var alive = this.getEyeMakerMove(coords);
     // if it depends which player plays first
-    if (alive === 1) {
+    if (alive === SOMETIMES) {
         if (first2play === undefined) return UNDECIDED; // no idea who wins here
         if (first2play !== this.group.color) {
-            alive = 0;
+            alive = NEVER;
         }
     }
-    if (alive === 0) {
+    if (alive === NEVER) {
         // yet we cannot say it is dead if there are brothers or dead enemies around
         if (this.band || this.dependsOn.length || this.deadEnemies.length) return UNDECIDED;
         this._liveliness = this.liveliness();
         return FAILS;
     }
-
+    // alive === ALWAYS
     this.isAlive = true;
-    if (main.debug) main.log.debug('ALIVE-singleEye-' + alive + ': ' + this);
+    if (main.debug) main.log.debug('ALIVE-singleEye-' + when2str(alive) + ': ' + this);
     return LIVES;
 };
 
-// This checks if a group has a minimum liveliness.
-// We call this several times, raising the bar progressively...
-GroupInfo.prototype.checkLiveliness = function (minLife, strict) {
-    var life = this.liveliness(strict);
-    if (life >= ALIVE || (strict && life >= 2)) {
+// This checks if a group has a minimum liveliness
+GroupInfo.prototype.checkLiveliness = function (minLife) {
+    var life = this._liveliness = this.liveliness(true);
+    if (life >= 2) {
         this.isAlive = true;
         if (main.debug) main.log.debug('ALIVE-liveliness ' + life + ': ' + this);
         return LIVES;

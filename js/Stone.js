@@ -5,7 +5,8 @@ var main = require('./main');
 var Grid = require('./Grid');
 var Group = require('./Group');
 
-var EMPTY = main.EMPTY, DIR0 = main.DIR0, DIR3 = main.DIR3;
+var EMPTY = main.EMPTY, BORDER = main.BORDER;
+var DIR0 = main.DIR0, DIR3 = main.DIR3;
 
 
 /** @class A "stone" stores everything we want to keep track of regarding an intersection on the board.
@@ -25,8 +26,8 @@ function Stone(goban, i, j, color) {
 }
 module.exports = Stone;
 
-Stone.XY_AROUND = [[0, 1], [1, 0], [0, -1], [-1, 0]]; // top, right, bottom, left
-Stone.XY_DIAGONAL = [[1, 1], [1, -1], [-1, -1], [-1, 1]]; // top-right, bottom-right, bottom-left, top-left
+var XY_AROUND = Stone.XY_AROUND = [[0, 1], [1, 0], [0, -1], [-1, 0]]; // top, right, bottom, left
+var XY_DIAGONAL = Stone.XY_DIAGONAL = [[1, 1], [1, -1], [-1, -1], [-1, 1]]; // top-right, bottom-right, bottom-left, top-left
 
 Stone.prototype.clear = function () {
     this.color = EMPTY;
@@ -36,29 +37,24 @@ Stone.prototype.clear = function () {
 // Computes each stone's neighbors (called for each stone after init)
 // NB: Stones next to side have only 3 neighbors, and the corner stones have 2
 Stone.prototype.findNeighbors = function () {
-    var coords = Stone.XY_AROUND, diags = Stone.XY_DIAGONAL, stone;
-    // NB: order in which we push neighbors should be irrelevant but is not at this point.
-    // 2 places:
-    // - TestGroup looks at group merging numbers etc. (no worry here)
-    // - TestPotentialTerritory#testBigEmptySpace has a group that is seen dead or not depending on order.
-    // The latter one should be fixed one day.
-    for (var i = DIR3; i >= DIR0; i--) {
-        stone = this.goban.stoneAt(this.i + coords[i][0], this.j + coords[i][1]);
-        if (stone !== main.BORDER) this.neighbors.push(stone);
-    }
-    for (i = DIR0; i <= DIR3; i++) {
-        stone = this.goban.stoneAt(this.i + coords[i][0], this.j + coords[i][1]);
+    var yx = this.goban.ban;
+    // NB: order in which we push neighbors should be irrelevant but is not fully
+    // because TestGroup looks at group merging numbers etc. (no worry here)
+    for (var n = DIR3; n >= DIR0; n--) {
+        var stone = yx[this.j + XY_AROUND[n][1]][this.i + XY_AROUND[n][0]];
+        if (stone !== BORDER) this.neighbors.push(stone);
+
         this.allNeighbors.push(stone);
-        stone = this.goban.stoneAt(this.i + diags[i][0], this.j + diags[i][1]);
+        stone = yx[this.j + XY_DIAGONAL[n][1]][this.i + XY_DIAGONAL[n][0]];
         this.allNeighbors.push(stone);
     }
 };
 
 Stone.prototype.toString = function () {
     if (this.color === EMPTY) {
-        return 'empty:' + this.asMove();
+        return this.asMove();
     } else {
-        return 'stone' + Grid.colorToChar(this.color) + ':' + this.asMove();
+        return (this.color ? 'W' : 'B') + '-' + this.asMove();
     }
 };
 
@@ -82,19 +78,18 @@ Stone.prototype.isEmpty = function () {
     return this.color === EMPTY;
 };
 
-Stone.validMove = function (goban, i, j, color) {
-    // Remark: no log here because of the noise created with web server mode
-    if (!goban.validMove(i, j)) { // also checks if empty
-        return false;
-    }
-    var stone = goban.stoneAt(i, j);
-    if (stone.moveIsSuicide(color)) {
-        return false;
-    }
-    if (stone.moveIsKo(color)) {
-        return false;
-    }
-    return true;
+Stone.prototype.isCorner = function () {
+    return this.neighbors.length === 2;
+};
+
+Stone.prototype.isBorder = function () {
+    return this.neighbors.length <= 3; // NB: corners are borders too
+};
+
+Stone.prototype.distanceFromBorder = function () {
+    var gsize = this.goban.gsize;
+    var i = this.i, j = this.j;
+    return Math.min(Math.min(i - 1, gsize - i), Math.min(j - 1, gsize - j));
 };
 
 // Is a move a suicide?
@@ -112,8 +107,7 @@ Stone.prototype.moveIsSuicide = function (color) {
             if (s.group.lives > 1) return false; // our neighbor group will still have lives left
         }
     }
-    // $log.debug("move #{@i}, #{@j}, color:#{color} would be a suicide") if $debug
-    return true;
+    return true; // move would be a suicide
 };
 
 // Is a move a ko?
@@ -124,7 +118,6 @@ Stone.prototype.moveIsKo = function (color) {
     // 1) Must kill a single group
     // NB: we don't need to iterate on unique groups because on condition #2 below
     var groupA = null;
-    //TODO: check here if we always have the unique allies ready anyway
     for (var n = this.neighbors.length - 1; n >= 0; n--) {
         var enemy = this.neighbors[n].group;
         if (!enemy || enemy.color !== 1 - color) continue;
@@ -155,8 +148,7 @@ Stone.prototype.moveIsKo = function (color) {
     if (stoneB.i !== this.i || stoneB.j !== this.j) {
         return false;
     }
-    //if (main.debug) main.log.debug('ko in ' + this.toString() + ', color:' + color + ' cannot be played now');
-    return true;
+    return true; // move is a ko
 };
 
 Stone.prototype.die = function () {
@@ -169,24 +161,9 @@ Stone.prototype.resuscitateIn = function (group) {
     this.color = group.color;
 };
 
-Stone.playAt = function (goban, i, j, color) {
-    var stone = goban.putDown(i, j);
-    stone._putDown(color);
-    return stone;
-};
-
-// Called to undo a single stone (the main undo feature relies on this)  
-Stone.undo = function (goban) {
-    var stone = goban.takeBack();
-    if (!stone) return;
-    if (main.debug) main.log.debug('Stone.undo ' + stone);
-    stone._takeBack();
-};
-
-// Called for each new stone played
-Stone.prototype._putDown = function (color) {
+// Called by goban only
+Stone.prototype.putDown = function (color) {
     this.color = color;
-    if (main.debug) main.log.debug('put_down: ' + this.toString());
 
     var allies = this.uniqueAllies(color); // note we would not need unique if group#merge ignores dupes
     if (allies.length === 0) {
@@ -205,8 +182,9 @@ Stone.prototype._putDown = function (color) {
     }
 };
 
-Stone.prototype._takeBack = function () {
-    if (main.debugGroup) main.log.debug('_takeBack: ' + this.toString() + ' from group ' + this.group);
+// Called by goban only
+Stone.prototype.takeBack = function () {
+    if (main.debugGroup) main.log.debug('takeBack: ' + this.toString() + ' from group ' + this.group);
 
     this.group.unmergeFrom(this);
     this.group.disconnectStone(this);
@@ -220,7 +198,7 @@ Stone.prototype._takeBack = function () {
     this.group = null;
     this.color = EMPTY;
     Group.resuscitateFrom(this, this.goban);
-    if (main.debugGroup) main.log.debug('_takeBack: end; main group: ' + logGroup.debugDump());
+    if (main.debugGroup) main.log.debug('takeBack: end; main group: ' + logGroup.debugDump());
 };
 
 Stone.prototype.setGroupOnMerge = function (newGroup) {
@@ -237,10 +215,6 @@ Stone.prototype.uniqueAllies = function (color) {
         }
     }
     return allies;
-};
-
-Stone.prototype.uniqueEnemies = function (allyColor) {
-    return this.uniqueAllies(1 - allyColor);
 };
 
 // Returns the empty points around this stone

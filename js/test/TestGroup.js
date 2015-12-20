@@ -3,8 +3,9 @@
 
 var main = require('../main');
 var inherits = require('util').inherits;
-var Stone = require('../Stone');
 var GameLogic = require('../GameLogic');
+
+var BLACK = main.BLACK, WHITE = main.WHITE;
 
 
 /** @class NB: for debugging think of using @goban.debug_display
@@ -33,16 +34,16 @@ TestGroup.prototype.testGroupMerge = function () {
     this.assertEqual(1, this.goban.killedGroups.length);
     this.assertEqual(-1, this.goban.killedGroups[0].color);
     // single stone
-    var s = Stone.playAt(this.goban, 4, 3, main.BLACK);
+    var s = this.goban.playAt(4, 3, BLACK);
     var g = s.group;
     this.assertEqual(this.goban, g.goban);
     this.assertEqual([s], g.stones);
     this.assertEqual(4, g.lives);
-    this.assertEqual(main.BLACK, g.color);
+    this.assertEqual(BLACK, g.color);
     this.assertEqual(null, g.mergedBy);
     this.assertEqual(null, g.killedBy);
     // connect a stone to 1 group
-    var s2 = Stone.playAt(this.goban, 4, 2, main.BLACK);
+    var s2 = this.goban.playAt(4, 2, BLACK);
     this.assertEqual(g, s.group); // not changed
     this.assertEqual([s, s2], g.stones);
     this.assertEqual(6, g.lives);
@@ -50,18 +51,18 @@ TestGroup.prototype.testGroupMerge = function () {
     this.assertEqual(s2.group, g); // same group    
     // connect 2 groups of 1 stone each
     // (s1 on top, s2 2 rows below, and s3 between them)
-    var s1 = Stone.playAt(this.goban, 2, 5, main.WHITE);
+    var s1 = this.goban.playAt(2, 5, WHITE);
     var g1 = s1.group;
-    s2 = Stone.playAt(this.goban, 2, 3, main.WHITE);
+    s2 = this.goban.playAt(2, 3, WHITE);
     var g2 = s2.group;
-    var s3 = Stone.playAt(this.goban, 2, 4, main.WHITE);
+    var s3 = this.goban.playAt(2, 4, WHITE);
     g = s3.group;
     this.assertEqual(g1, g); // g1 was kept because on top of stone (comes first)
     this.assertEqual(g, s1.group);
     this.assertEqual(g, s2.group);
     this.assertEqual(7, g.lives);
     this.assertEqual([s1, s3, s2], g.stones);
-    this.assertEqual(main.WHITE, g.color);
+    this.assertEqual(WHITE, g.color);
     this.assertEqual(null, g.mergedBy);
     this.assertEqual(g, g2.mergedWith); // g2 was merged into g/g1
     this.assertEqual(s3, g2.mergedBy);
@@ -72,32 +73,32 @@ TestGroup.prototype.testGroupMerge = function () {
 };
 
 TestGroup.prototype.testGroupKill = function () {
-    Stone.playAt(this.goban, 1, 5, main.WHITE); // a5
-    var s = Stone.playAt(this.goban, 1, 4, main.WHITE); // a4
+    this.goban.playAt(1, 5, WHITE); // a5
+    var s = this.goban.playAt(1, 4, WHITE); // a4
     var g = s.group;
     this.assertEqual(3, g.lives);
-    var b1 = Stone.playAt(this.goban, 2, 4, main.BLACK); // b4
-    Stone.playAt(this.goban, 2, 5, main.BLACK); // b5
+    var b1 = this.goban.playAt(2, 4, BLACK); // b4
+    this.goban.playAt(2, 5, BLACK); // b5
     var bg = b1.group;
     this.assertEqual(1, g.lives); // g in atari
     this.assertEqual(3, bg.lives); // black group has 3 lives because of white group on its left
-    s = Stone.playAt(this.goban, 1, 3, main.BLACK); // kill!
+    s = this.goban.playAt(1, 3, BLACK); // kill!
     this.assertEqual(5, bg.lives); // black group has now 5 lives
     this.assertEqual(0, g.lives); // dead
     this.assertEqual(s, g.killedBy);
-    this.assertEqual(true, this.goban.stoneAt(1, 5).isEmpty());
-    this.assertEqual(true, this.goban.stoneAt(1, 4).isEmpty());
+    this.assertEqual(true, this.goban.isEmpty(1, 5));
+    this.assertEqual(true, this.goban.isEmpty(1, 4));
 };
 
 // Shape like  O <- the new stone brings only 2 lives
 //            OO    because the one in 3,4 was already owned
 TestGroup.prototype.testSharedLivesOnConnect = function () {
-    Stone.playAt(this.goban, 3, 3, main.WHITE);
-    var s = Stone.playAt(this.goban, 4, 3, main.WHITE);
+    this.goban.playAt(3, 3, WHITE);
+    var s = this.goban.playAt(4, 3, WHITE);
     this.assertEqual(6, s.group.lives);
-    var s2 = Stone.playAt(this.goban, 4, 4, main.WHITE);
+    var s2 = this.goban.playAt(4, 4, WHITE);
     this.assertEqual(7, s2.group.lives);
-    Stone.undo(this.goban);
+    this.goban.undo();
     this.assertEqual(6, s.group.lives); // @goban.debug_display
 };
 
@@ -105,19 +106,19 @@ TestGroup.prototype.testSharedLivesOnConnect = function () {
 //              O <- the new stone brings 1 life but shared lives 
 //             OO    are not counted anymore in merged group
 TestGroup.prototype.testSharedLivesOnMerge = function () {
-    Stone.playAt(this.goban, 3, 2, main.WHITE);
-    var s1 = Stone.playAt(this.goban, 4, 2, main.WHITE);
+    this.goban.playAt(3, 2, WHITE);
+    var s1 = this.goban.playAt(4, 2, WHITE);
     this.assertEqual(6, s1.group.lives);
-    var s2 = Stone.playAt(this.goban, 3, 4, main.WHITE);
+    var s2 = this.goban.playAt(3, 4, WHITE);
     this.assertEqual(4, s2.group.lives);
-    Stone.playAt(this.goban, 4, 4, main.WHITE);
+    this.goban.playAt(4, 4, WHITE);
     this.assertEqual(6, s2.group.lives);
-    var s3 = Stone.playAt(this.goban, 4, 3, main.WHITE);
+    var s3 = this.goban.playAt(4, 3, WHITE);
     this.assertEqual(10, s3.group.lives);
-    Stone.undo(this.goban);
+    this.goban.undo();
     this.assertEqual(6, s1.group.lives);
     this.assertEqual(6, s2.group.lives);
-    Stone.undo(this.goban);
+    this.goban.undo();
     this.assertEqual(4, s2.group.lives); // @goban.debug_display
 };
 
@@ -138,7 +139,7 @@ TestGroup.prototype.testSharedLives2 = function () {
     this.game.loadMoves('a1,pass,a3,pass,b3,pass,b1,pass,c1,pass,c3,pass,c2');
     var s = this.goban.stoneAt(1, 1);
     this.assertEqual(8, s.group.lives);
-    Stone.undo(this.goban);
+    this.goban.undo();
     this.assertEqual(4, s.group.lives);
     this.goban.stoneAt(3, 1);
     this.assertEqual(4, s.group.lives); // @goban.debug_display
@@ -166,26 +167,26 @@ TestGroup.prototype.checkStone = function (s, color, move, around) {
 // 1 +++++
 //   abcde
 TestGroup.prototype.testMergeAndAround = function () {
-    var b1 = Stone.playAt(this.goban, 1, 3, main.BLACK);
+    var b1 = this.goban.playAt(1, 3, BLACK);
     var bg1 = b1.group;
-    var w1 = Stone.playAt(this.goban, 1, 2, main.WHITE);
+    var w1 = this.goban.playAt(1, 2, WHITE);
     this.assertEqual(2, w1.group.lives);
-    var b2 = Stone.playAt(this.goban, 3, 3, main.BLACK);
+    var b2 = this.goban.playAt(3, 3, BLACK);
     var bg2 = b2.group;
     this.assertEqual(true, bg1 !== bg2);
-    var w2 = Stone.playAt(this.goban, 3, 4, main.WHITE);
+    var w2 = this.goban.playAt(3, 4, WHITE);
     for (var _i = 0; _i < 3; _i++) {
         // ++@
         // O+O
         // @++      
         this.goban.stoneAt(4, 3);
         // now merge black groups:
-        var b3 = Stone.playAt(this.goban, 2, 3, main.BLACK);
+        var b3 = this.goban.playAt(2, 3, BLACK);
         this.assertEqual(true, (b1.group === b2.group) && (b3.group === b1.group));
         this.assertEqual(3, b1.group.ndx); // and group #3 was used as main (not mandatory but for now it is the case)
         this.assertEqual(5, b1.group.lives);
         // now get back a bit
-        Stone.undo(this.goban);
+        this.goban.undo();
         this.checkGroup(bg1, 1, 1, 0, 'a3', 2); // group #1 of 1 black stones [a3], lives:2
         this.checkStone(b1, 0, 'a3', 'a4,b3'); // stoneO:a3 around:  +[a4 b3]
         this.checkGroup(w1.group, 2, 1, 1, 'a2', 2); // group #2 of 1 white stones [a2], lives:2
@@ -195,7 +196,7 @@ TestGroup.prototype.testMergeAndAround = function () {
         this.checkGroup(w2.group, 4, 1, 1, 'c4', 3); // group #4 of 1 white stones [c4], lives:3 
         this.checkStone(w2, 1, 'c4', 'b4,c5,d4'); // stone@:c4 around:  +[c5 d4 b4]
         // the one below is nasty: we connect with black, then undo and reconnect with white
-        this.assertEqual(main.BLACK, this.game.curColor); // otherwise things are reversed below
+        this.assertEqual(BLACK, this.game.curColor); // otherwise things are reversed below
         this.game.loadMoves('c2,b2,pass,b4,b3,undo,b4,pass,b3');
         // +++++ 5 +++++
         // +@@++ 4 +@@++
@@ -240,11 +241,11 @@ TestGroup.prototype.testKo2 = function () {
     this.initBoard(5, 0);
     this.game.loadMoves('a3,b3,b4,c2,b2,b1,c3,a2,pass,b3');
     // @game.history.each do |move| puts(move) end
-    this.assertEqual(false, Stone.validMove(this.goban, 2, 2, main.BLACK)); // KO
+    this.assertEqual(false, this.goban.isValidMove(2, 2, BLACK)); // KO
     this.game.loadMoves('e5,d5');
-    this.assertEqual(true, Stone.validMove(this.goban, 2, 2, main.BLACK)); // KO can be taken again
+    this.assertEqual(true, this.goban.isValidMove(2, 2, BLACK)); // KO can be taken again
     this.game.loadMoves('undo');
-    this.assertEqual(false, Stone.validMove(this.goban, 2, 2, main.BLACK)); // since we are back to the ko time because of undo
+    this.assertEqual(false, this.goban.isValidMove(2, 2, BLACK)); // since we are back to the ko time because of undo
 };
 
 // Fixed. Bug was when undo was picking last group by "merged_with" (implemented merged_by)
@@ -279,7 +280,7 @@ TestGroup.prototype.testUndo2 = function () {
     this.assertEqual(true, ws.group === null);
     this.game.loadMoves('undo');
     this.assertEqual(1, wg.lives);
-    this.assertEqual(main.BLACK, ws.color);
+    this.assertEqual(BLACK, ws.color);
     this.game.loadMoves('c3,a2'); // and kill again the same
     this.assertEqual(0, wg.lives);
     this.assertEqual(main.EMPTY, ws.color);
@@ -297,7 +298,7 @@ TestGroup.prototype.testUndo3 = function () {
     this.assertEqual('OOO++,@@O++,+O@++,@+@++,+++++', this.goban.image());
     this.game.loadMoves('b2,a3,b4,a4');
     this.assertEqual('OOO++,O+O++,OO@++,@@@++,+++++', this.goban.image());
-    Stone.undo(this.goban);
+    this.goban.undo();
     this.assertEqual('OOO++,+@O++,OO@++,@@@++,+++++', this.goban.image());
     var w1 = this.goban.stoneAt(1, 5).group;
     var w2 = this.goban.stoneAt(1, 3).group;

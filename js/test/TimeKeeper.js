@@ -3,6 +3,7 @@
 
 var main = require('../main');
 
+var DELAY_THRESHOLD = 5; // we tolerate delays under this value
 var systemPerf = null;
 
 
@@ -101,12 +102,15 @@ TimeKeeper.prototype.resultReport = function () {
 
 TimeKeeper.prototype._checkLimits = function (lenientIfSlow) {
     if (!this.expectedTime || main.isCoverTest) return '';
-    if (this.duration <= this.expectedTime * this.tolerance) return '';
+    var diff = this.duration - this.expectedTime * this.tolerance;
+    if (diff <= 0) return '';
 
     var msg = 'Duration over limit: ' + this.duration.toFixed(2) +
         ' instead of ' + this.expectedTime.toFixed(2);
     this.log.warn(this.taskName + ': ' + msg);
 
-    if (!lenientIfSlow) main.tests.warningCount++;
+    if (!lenientIfSlow && !main.isCiTest && diff > DELAY_THRESHOLD) {
+        main.tests.warningCount++;
+    }
     return msg;
 };

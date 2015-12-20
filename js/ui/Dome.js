@@ -1,9 +1,8 @@
 'use strict';
 
 var curGroup = null;
+var uniqueId = 1;
 
-
-// name starts with # so remove it from className and add this to current group
 
 /**
  * @param {Dome|DOM} parent
@@ -87,9 +86,8 @@ Dome.prototype.removeChild = function (child) { this.elt.removeChild(child.elt);
 
 Dome.newButton = function (parent, name, label, action) {
     var button = new Dome(parent, 'button', name + 'Button', name);
-    var btn = button.elt;
-    btn.innerText = label;
-    btn.addEventListener('click', action);
+    button.elt.innerText = label;
+    button.on('click', action);
     return button;
 };
 
@@ -116,8 +114,8 @@ Dome.newCheckbox = function (parent, name, label, value, init) {
     var inp = input.elt;
     inp.type = 'checkbox';
     inp.name = name;
-    inp.value = value;
-    inp.id = name + 'ChkBox' + value;
+    if (value !== undefined) inp.value = value;
+    inp.id = name + 'ChkBox' + (value !== undefined ? value : uniqueId++);
     if (init) inp.checked = true;
 
     new Dome(div, 'label', name + 'ChkLabel chkLbl', name)

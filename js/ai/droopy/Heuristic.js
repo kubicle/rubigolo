@@ -7,7 +7,7 @@ var Stone = require('../../Stone');
 
 var BLACK = main.BLACK, WHITE = main.WHITE, EMPTY = main.EMPTY, BORDER = main.BORDER;
 var sOK = main.sOK, sDEBUG = main.sDEBUG;
-var ALWAYS = main.ALWAYS;
+var ALWAYS = main.ALWAYS, NEVER = main.NEVER;
 var XY_AROUND = Stone.XY_AROUND;
 var DIR0 = main.DIR0, DIR3 = main.DIR3;
 
@@ -20,7 +20,7 @@ function Heuristic(player) {
     this.name = this.constructor.name;
     this.goban = player.goban;
     this.gsize = player.goban.gsize;
-    this.infl = player.inf.map;
+    this.infl = player.infl;
     this.pot = player.pot;
     this.boan = player.boan;
     this.scoreGrid = new Grid(this.gsize);
@@ -48,13 +48,12 @@ Heuristic.prototype.evalBoard = function (stateYx, scoreYx) {
             var state = stateYx[j][i];
             if (state < sOK) continue;
             if (state === sDEBUG && this.name === this.player.debugHeuristic)
-                main.debug = true;
+                main.debug = true; // set your breakpoint on this line if needed
 
             var score = myScoreYx[j][i] = this._evalMove(i, j, color);
             scoreYx[j][i] += score;
 
-            if (state === sDEBUG)
-                main.debug = false;
+            if (state === sDEBUG) main.debug = false;
         }
     }
 };
@@ -70,7 +69,7 @@ Heuristic.prototype.territoryScore = function (i, j, color) {
 /** @return {number} - NEVER, SOMETIMES, ALWAYS */
 Heuristic.prototype.isOwned = function (i, j, color) {
     var myColor = color === main.BLACK ? -1 : +1;
-    var score = 0;
+    var score = NEVER;
     if (Grid.territory2owner[2 + this.pot.grids[BLACK].yx[j][i]] === myColor) score++;
     if (Grid.territory2owner[2 + this.pot.grids[WHITE].yx[j][i]] === myColor) score++;
     return score;
@@ -115,7 +114,7 @@ Heuristic.prototype.groupThreat = function (g, saved) {
 Heuristic.prototype._countSavedAllies = function (killedEnemyGroup) {
     // do not count any saved allies if we gave them a single life in corner
     if (killedEnemyGroup.stones.length === 1 &&
-        this.distanceFromStoneToCorner(killedEnemyGroup.stones[0]) === 0) {
+        killedEnemyGroup.stones[0].isCorner()) {
         return 0;
     }
     var saving = 0;
@@ -128,11 +127,12 @@ Heuristic.prototype._countSavedAllies = function (killedEnemyGroup) {
 };
 
 Heuristic.prototype._invasionCost = function (i, j, dir, color, level) {
-    if (level-- === 0) return 0;
     var s = this.goban.stoneAt(i, j);
     if (s === BORDER || s.color !== EMPTY) return 0;
     var cost = this.enemyTerritoryScore(i, j, color);
+    if (s.isBorder()) cost /= 2;
     if (cost <= 0) return 0;
+    if (--level === 0) return cost;
 
     var dx = XY_AROUND[dir][0], dy = XY_AROUND[dir][1];
     var spread = XY_AROUND[(dir + 3) % 4];
@@ -143,30 +143,21 @@ Heuristic.prototype._invasionCost = function (i, j, dir, color, level) {
     return cost;
 };
 
-var INVASION_DEEPNESS = 0; // TODO: better algo for this
+var INVASION_DEEPNESS = 1; // TODO: better algo for this
 
 Heuristic.prototype.invasionCost = function (i, j, color) {
     var cost = Math.max(0, this.enemyTerritoryScore(i, j, color));
     for (var dir = DIR0; dir <= DIR3; dir++) {
         cost += this._invasionCost(i + XY_AROUND[dir][0], j + XY_AROUND[dir][1], dir, color, INVASION_DEEPNESS);
     }
+    var s = this.goban.stoneAt(i, j);
+    if (s.isCorner()) cost = Math.max(cost - 1, 0);
+    else if (s.isBorder()) cost = Math.max(cost - 0.85, 0);
     return cost;
 };
 
 Heuristic.prototype.markMoveAsBlunder = function (i, j, reason) {
     this.player.markMoveAsBlunder(i, j, this.name + ':' + reason);
-};
-
-Heuristic.prototype.distanceFromStoneToBorder = function (stone) {
-    var gsize = this.gsize;
-    var i = stone.i, j = stone.j;
-    return Math.min(Math.min(i - 1, gsize - i), Math.min(j - 1, gsize - j));
-};
-
-Heuristic.prototype.distanceFromStoneToCorner = function (stone) {
-    var gsize = this.gsize;
-    var i = stone.i, j = stone.j;
-    return Math.min(i - 1, gsize - i) + Math.min(j - 1, gsize - j);
 };
 
 Heuristic.prototype.diagonalStones = function (s1, s2) {
@@ -186,11 +177,11 @@ Heuristic.prototype.distanceBetweenStones = function (s1, s2, color) {
         if (numEnemies === 0) return 0; // safe hane
         if (numEnemies === 2) return 99; // cut!
         var connPoint = c1.color === enemy ? c2 : c1;
-        if (this.distanceFromStoneToBorder(s1) === 0 || this.distanceFromStoneToBorder(s2) === 0) {
-            if (this.distanceFromStoneToBorder(connPoint) === 1) return 1; // enemy cut-stone on border
+        if (s1.distanceFromBorder() === 0 || s2.distanceFromBorder() === 0) {
+            if (connPoint.distanceFromBorder() === 1) return 1; // enemy cut-stone on border
             if (connPoint.allyStones(enemy) !== 0) return 1; // other enemy next to conn point
             return 0;
-        } else if (this.distanceFromStoneToBorder(connPoint) === 1) {
+        } else if (connPoint.distanceFromBorder() === 1) {
             if (connPoint.allyStones(enemy) !== 0) return 1;
             return 0;
         }
@@ -204,12 +195,12 @@ Heuristic.prototype.distanceBetweenStones = function (s1, s2, color) {
             if (between.neighbors[i].color === enemy) numEnemies++;
         }
         if (numEnemies >= 1) return 1; // needs 1 move to connect (1 or 2 enemies is same)
-        if (this.distanceFromStoneToBorder(s1) + this.distanceFromStoneToBorder(s2) === 0) {
+        if (s1.distanceFromBorder() + s2.distanceFromBorder() === 0) {
             return 0; // along border with 0 enemy around is safe
         }
         return 0.5; // REVIEW ME
     }
-    var d1 = this.distanceFromStoneToBorder(s1), d2 = this.distanceFromStoneToBorder(s2);
+    var d1 = s1.distanceFromBorder(), d2 = s2.distanceFromBorder();
     if (dx + dy === 3 && d1 === 0 && d2 === 0) {
         // TODO code betweenStones and test it
         var betweens = this.betweenStones(s1, s2);
@@ -237,7 +228,7 @@ Heuristic.prototype.canConnect = function (i, j, color) {
     var empties = [];
     for (var nNdx = stone.neighbors.length - 1; nNdx >= 0; nNdx--) {
         var n = stone.neighbors[nNdx];
-        if (n.color === color && n.group.isDead < ALWAYS) return n;
+        if (n.color === color && n.group.xDead < ALWAYS) return n;
         if (n.color === main.EMPTY) empties.push(n);
     }
     // look around each empty for allies
@@ -248,7 +239,7 @@ Heuristic.prototype.canConnect = function (i, j, color) {
             var en = empty.neighbors[n2Ndx];
             if (en === stone) continue; // same stone
             if (en.color !== color) continue; // empty or enemy
-            if (en.group.isDead === ALWAYS) continue; // TODO: look better at group's health
+            if (en.group.xDead === ALWAYS) continue; // TODO: look better at group's health
             var dist = this.distanceBetweenStones(stone, en, color);
             if (dist >= 2) continue;
             moveNeeded -= (2 - dist);

@@ -6,7 +6,6 @@ var main = require('../../main');
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
-var Stone = require('../../Stone');
 
 var sOK = main.sOK, ALWAYS = main.ALWAYS;
 
@@ -50,7 +49,7 @@ Savior.prototype._evalEscape = function (i, j, stone) {
             if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' asking hunter to look at ' + Grid.xy2move(i, j) + ': pre-atari on ' + g);
             hunterThreat = this.hunter.evalMove(i, j, this.enemyColor);
             threat += hunterThreat;
-        } else if (g.isDead < ALWAYS) {
+        } else if (g.xDead < ALWAYS) {
             livesAdded += g.lives - 1;
         }
     }
@@ -75,9 +74,9 @@ Savior.prototype._evalEscape = function (i, j, stone) {
         }
         // when we get 2 lives from the new stone, get our hunter to evaluate if we can escape
         if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' asking hunter to look at ' + Grid.xy2move(i, j) + ': threat=' + threat + ', lives_added=' + livesAdded);
-        Stone.playAt(this.goban, i, j, this.color);
+        this.goban.tryAt(i, j, this.color);
         var isCaught = this.hunter.isEscapingAtariCaught(stone);
-        Stone.undo(this.goban);
+        this.goban.untry();
         if (!isCaught) {
             return threat;
         }

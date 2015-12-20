@@ -4,10 +4,11 @@
 var main = require('./main');
 var HandicapSetter = require('./HandicapSetter');
 var Grid = require('./Grid');
-var Stone = require('./Stone');
+
 
 /** @class */
-function HandicapSetter() {}
+function HandicapSetter() {
+}
 module.exports = HandicapSetter;
 
 // Initializes the handicap points
@@ -35,7 +36,7 @@ HandicapSetter.setHandicap = function (goban, h) {
     var moves = h.split('-');
     for (var move, move_array = moves, move_ndx = 0; move=move_array[move_ndx], move_ndx < move_array.length; move_ndx++) {
         var coords = Grid.move2xy(move);
-        Stone.playAt(goban, coords[0], coords[1], main.BLACK);
+        goban.playAt(coords[0], coords[1], main.BLACK);
     }
     return moves.length;
 };
@@ -107,7 +108,7 @@ HandicapSetter.setStandardHandicap = function (goban, count) {
         default: 
             break; // not more than 8
         }
-        Stone.playAt(goban, x, y, main.BLACK);
+        goban.playAt(x, y, main.BLACK);
     }
     return count;
 };

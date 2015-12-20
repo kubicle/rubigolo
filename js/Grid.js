@@ -69,13 +69,12 @@ Grid.prototype.copy = function (sourceGrid) {
  */
 Grid.prototype.initFromGoban = function (goban) {
     var sourceGrid = goban.grid;
-    if (sourceGrid.gsize !== this.gsize) {
-        throw new Error('Cannot copy between different sized grids');
-    }
-    var srcYx = sourceGrid.yx;
-    for (var j = 1; j <= this.gsize; j++) {
-        for (var i = 1; i <= this.gsize; i++) {
-            this.yx[j][i] = srcYx[j][i].color;
+    if (sourceGrid.gsize !== this.gsize) throw new Error('Cannot copy between different sized grids');
+
+    for (var j = this.gsize; j >= 1; j--) {
+        var yxj = this.yx[j], srcYxj = sourceGrid.yx[j];
+        for (var i = this.gsize; i >= 1; i--) {
+            yxj[i] = srcYxj[i].color;
         }
     }
     return this;
@@ -192,9 +191,7 @@ Grid.prototype.loadImage = function (image) {
     }
     for (var j = this.gsize; j >= 1; j--) {
         var row = rows[this.gsize - j];
-        if (row.length !== this.gsize) {
-            throw new Error('Invalid image: row ' + row);
-        }
+        if (row.length !== this.gsize) throw new Error('Invalid image: row ' + row);
         for (var i = 1; i <= this.gsize; i++) {
             this.yx[j][i] = Grid.charToColor(row[i - 1]);
         }

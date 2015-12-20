@@ -1,8 +1,9 @@
-//Translated from influence_map.rb using babyruby2js
 'use strict';
 
-var main = require('../../../main');
-var Grid = require('../../../Grid');
+var main = require('../../main');
+var Grid = require('../../Grid');
+var Heuristic = require('./Heuristic');
+var inherits = require('util').inherits;
 
 var EMPTY = main.EMPTY, BLACK = main.BLACK, WHITE = main.WHITE;
 var ALWAYS = main.ALWAYS;
@@ -10,31 +11,36 @@ var ALWAYS = main.ALWAYS;
 
 /** @class public read-only attribute: map
  */
-function InfluenceMap(goban) {
-    var self = this;
-    this.goban = goban;
-    this.gsize = goban.gsize;
-    this.map = Array.new(this.gsize + 1, function () {
-        return Array.new(self.gsize + 1, function () {
+function Influence(player) {
+    Heuristic.call(this, player);
+
+    this.deadFactor = this.getGene('deadFactor', 0.23, 0.01, 1);
+
+    var size = this.gsize + 1;
+    this.map = Array.new(size, function () {
+        return Array.new(size, function () {
             return [0, 0];
         });
     });
+    // Share the map with others at player level - TODO: find better place
+    player.infl = this.map;
 }
-module.exports = InfluenceMap;
+inherits(Influence, Heuristic);
+module.exports = Influence;
 
 
-InfluenceMap.prototype.clear = function () {
-    for (var j = 1; j <= this.gsize; j++) {
-        for (var i = 1; i <= this.gsize; i++) {
-            for (var c = BLACK; c <= WHITE; c++) {
-                this.map[j][i][c] = 0;
-            }
+Influence.prototype._clear = function () {
+    for (var j = this.gsize; j >= 1; j--) {
+        var mapj = this.map[j];
+        for (var i = this.gsize; i >= 1; i--) {
+            var mapji = mapj[i];
+            mapji[BLACK] = mapji[WHITE] = 0;
         }
     }
 };
 
-InfluenceMap.prototype.buildMap = function () {
-    this.clear();
+Influence.prototype.evalBoard = function () {
+    this._clear();
     var influence = [4, 2, 1];
     // First we get stones' direct influence
     for (var j = 1; j <= this.gsize; j++) {
@@ -43,7 +49,7 @@ InfluenceMap.prototype.buildMap = function () {
             var color = stone.color;
             if (color === EMPTY) continue;
             // a dying group must have a much small influence (but maybe not 0)
-            var deadFactor = stone.group.isDead === ALWAYS ? 0.25 : 1;
+            var deadFactor = stone.group.xDead === ALWAYS ? this.deadFactor : 1;
 
             this.map[j][i][color] += influence[0] * deadFactor; // on the stone itself
 
@@ -65,18 +71,20 @@ InfluenceMap.prototype.buildMap = function () {
     if (main.debug) this.debugDump();
 };
 
-InfluenceMap.prototype.debugDump = function () {
+Influence.prototype.debugDump = function () {
     var c;
-    function inf2str(inf) { return '%2d'.format(inf[c]); }
+    function inf2str(inf) {
+        return ('     ' + inf[c].toFixed(2).chomp('0').chomp('0').chomp('.')).slice(-6);
+    }
 
     for (c = BLACK; c <= WHITE; c++) {
-        console.log('Influence map for ' + Grid.COLOR_NAMES[c] + ':');
+        main.log.debug('Influence map for ' + Grid.COLOR_NAMES[c] + ':');
         for (var j = this.gsize; j >= 1; j--) {
-            console.log('' + '%2d'.format(j) +
+            main.log.debug('%2d'.format(j) + ' ' +
                 this.map[j].slice(1, this.gsize + 1).map(inf2str).join('|'));
         }
-        var cols = '  ';
-        for (var i = 1; i <= this.gsize; i++) { cols += ' ' + Grid.xLabel(i) + ' '; }
-        console.log(cols);
+        var cols = '   ';
+        for (var i = 1; i <= this.gsize; i++) { cols += '     ' + Grid.xLabel(i) + ' '; }
+        main.log.debug(cols);
     }
 };

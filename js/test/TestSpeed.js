@@ -4,9 +4,10 @@
 var main = require('../main');
 var inherits = require('util').inherits;
 var Grid = require('../Grid');
-var Stone = require('../Stone');
 var Goban = require('../Goban');
 var TimeKeeper = require('./TimeKeeper');
+
+var BLACK = main.BLACK, WHITE = main.WHITE;
 
 
 /** @class */
@@ -26,6 +27,7 @@ TestSpeed.CM_NEW = 2;
 TestSpeed.prototype.initBoard = function (size) {
     if (size === undefined) size = 9;
     this.goban = new Goban(size);
+    this.goban.setRules({ positionalSuperko: false });
 };
 
 TestSpeed.prototype.testSpeed1 = function () {
@@ -88,10 +90,12 @@ TestSpeed.prototype.testSpeed2 = function () {
     //   abcdefghj
     var game2 = 'c3,c6,e7,g3,g7,e2,d2,b4,b3,c7,g5,h4,h5,d8,e8,e5,c4,b5,e3,f2,c5,f6,f7,g6,h6,d7,a4,a5,b6,a3,a6,b7,a4,a7,d9,c9,b8,e6,d5,d6,e9,g4,f5,f4,e1,f1,d1,j5,j6,e4,j4,j3,h8,c8,d3,j5,f3,g2,j4,b5,b4,a5,j5';
     var game2MovesIj = this.movesIj(game2);
+
     // validate the game once
     this.playMoves(game2MovesIj);
     var finalPos = '++O@@++++,+@OO@++@+,OOOO@@@++,++OOOOO@@,OO@@O@@@@,@@@+OOOO@,O@@@@@O+O,+++@OOO++,+++@@O+++';
     this.assertEqual(finalPos, this.goban.image());
+
     this.initBoard();
     var count = main.isCoverTest ? 1 : 2000;
     t.start('63 move game, ' + count + ' times and undo', 0.1);
@@ -114,14 +118,14 @@ TestSpeed.prototype.movesIj = function (game) {
 
 TestSpeed.prototype.playMoves = function (movesIj) {
     var moveCount = 0;
-    var curColor = main.BLACK;
+    var curColor = BLACK;
     for (var n = 0; n <= movesIj.length - 2; n += 2) {
         var i = movesIj[n];
         var j = movesIj[n + 1];
-        if (!Stone.validMove(this.goban, i, j, curColor)) {
+        if (!this.goban.isValidMove(i, j, curColor)) {
             throw new Error('Invalid move: ' + i + ',' + j);
         }
-        Stone.playAt(this.goban, i, j, curColor);
+        this.goban.playAt(i, j, curColor);
         moveCount += 1;
         curColor = (curColor + 1) % 2;
     }
@@ -135,7 +139,7 @@ TestSpeed.prototype.playGameAndClean = function (movesIj, cleanMode) {
     switch (cleanMode) {
     case TestSpeed.CM_UNDO:
         for (var i = 0; i < numMoves; i++) {
-            Stone.undo(this.goban);
+            this.goban.undo();
         }
         break;
     case TestSpeed.CM_CLEAR:
@@ -152,17 +156,17 @@ TestSpeed.prototype.playGameAndClean = function (movesIj, cleanMode) {
 
 // Our first, basic test
 TestSpeed.prototype.play10Stones = function () {
-    Stone.playAt(this.goban, 2, 2, main.WHITE);
-    Stone.playAt(this.goban, 1, 2, main.BLACK);
-    Stone.playAt(this.goban, 1, 3, main.WHITE);
-    Stone.playAt(this.goban, 2, 1, main.BLACK);
-    Stone.playAt(this.goban, 1, 1, main.WHITE);
-    Stone.playAt(this.goban, 4, 4, main.BLACK);
-    Stone.playAt(this.goban, 4, 5, main.WHITE);
-    Stone.playAt(this.goban, 1, 2, main.BLACK);
-    Stone.playAt(this.goban, 5, 5, main.WHITE);
-    Stone.playAt(this.goban, 5, 4, main.BLACK);
+    this.goban.tryAt(2, 2, WHITE);
+    this.goban.tryAt(1, 2, BLACK);
+    this.goban.tryAt(1, 3, WHITE);
+    this.goban.tryAt(2, 1, BLACK);
+    this.goban.tryAt(1, 1, WHITE);
+    this.goban.tryAt(4, 4, BLACK);
+    this.goban.tryAt(4, 5, WHITE);
+    this.goban.tryAt(1, 2, BLACK);
+    this.goban.tryAt(5, 5, WHITE);
+    this.goban.tryAt(5, 4, BLACK);
     for (var i = 0; i < 10; i++) {
-        Stone.undo(this.goban);
+        this.goban.untry();
     }
 };

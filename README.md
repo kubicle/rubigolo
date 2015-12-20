@@ -26,6 +26,11 @@ npm start
 
 =======
 
+## December 2015 News
+* Latest AI (Droopy) wins against old one (Frankie) around 95% of the time. Freezing Droopy as it is and starting a 3rd version from here; introducing Chuckie...
+* Not much progres on the other fronts. Worked a bit on GTP but my access to OGS is not working. Thinking of trying KGS instead.
+* Test status: AI tests: 6 TODOs, 58 tests, 158 checks (0 errors nor warnings but more TODOs in the code).
+
 ## October 2015 News
 * Streamlined the tests and did the setup for [Travis CI](https://travis-ci.org/).
 * Could measure the improvement of the AI: no idea about the outside world yet, but the new AI beats the old one around 80 times out of 100 on a 9x9. Much more things I want to improve, including many not so difficult ones (before coding they all look like this, actually... haha)

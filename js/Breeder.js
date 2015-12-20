@@ -27,7 +27,8 @@ function Breeder(gameSize) {
     ];
     this.scorer = new ScoreAnalyser();
     this.genSize = Breeder.GENERATION_SIZE;
-    return this.firstGeneration();
+    this.firstGeneration();
+    this.seenGames = {};
 }
 module.exports = Breeder;
 
@@ -49,19 +50,21 @@ Breeder.prototype.firstGeneration = function () {
     this.scoreDiff = [];
 };
 
+Breeder.prototype.showInUi = function (msg) {
+    if (main.testUi) main.testUi.showTestGame(this.name, msg, this.game);
+};
+
 Breeder.prototype.playUntilGameEnds = function () {
-    while (!this.game.gameEnding) {
-        var curPlayer = this.players[this.game.curColor];
+    var game = this.game;
+    while (!game.gameEnding) {
+        var curPlayer = this.players[game.curColor];
         var move = curPlayer.getMove();
-        try {
-            this.game.playOneMove(move);
-        } catch (err) {
-            main.log.error('' + err);
-            main.log.error('Exception occurred during a breeding game.\n' + curPlayer + ' with genes: ' + curPlayer.genes);
-            main.log.error(this.game.historyString());
-            throw err;
-        }
+        game.playOneMove(move);
     }
+    // Keep track of games we already saw
+    var img = game.goban.buildCompressedImage();
+    if (!this.seenGames[img]) this.seenGames[img] = 1;
+    else this.seenGames[img]++;
 };
 
 // Plays a game and returns the score difference in points
@@ -69,8 +72,16 @@ Breeder.prototype.playGame = function (name1, name2, p1, p2) {
     this.game.newGame(this.gsize, 0, Breeder.KOMI);
     this.players[0].prepareGame(p1);
     this.players[1].prepareGame(p2);
-    this.playUntilGameEnds();
-    var scoreDiff = this.scorer.computeScoreDiff(this.goban, Breeder.KOMI);
+    var scoreDiff;
+    try {
+        this.playUntilGameEnds();
+        scoreDiff = this.scorer.computeScoreDiff(this.goban, Breeder.KOMI);
+    } catch (err) {
+        main.log.error('Exception occurred during a breeding game: ' + err);
+        main.log.error(this.game.historyString());
+        this.showInUi(err);
+        throw err;
+    }
     if (main.debugBreed) {
         main.log.debug('\n#' + name1 + ':' + p1 + '\nagainst\n#' + name2 + ':' + p2);
         main.log.debug('Distance: ' + '%.02f'.format(p1.distance(p2)));
@@ -183,7 +194,7 @@ Breeder.prototype.control = function () {
 
 // Play many games AI VS AI to verify black/white balance
 // Returns the number of games won by White
-Breeder.prototype.bwBalanceCheck = function (numGames, gsize) {
+Breeder.prototype.bwBalanceCheck = function (numGames, gsize, numLostGamesShowed) {
     var blackAi = this.players[BLACK].version, whiteAi = this.players[WHITE].version;
     var desc = numGames + ' games on ' + gsize + 'x' + gsize + ', komi=' + Breeder.KOMI + ', ' +
         blackAi + ' VS ' + whiteAi;
@@ -194,7 +205,11 @@ Breeder.prototype.bwBalanceCheck = function (numGames, gsize) {
     for (var i = 0; i < numGames; i++) {
         var score = this.playGame('control', 'control', this.controlGenes, this.controlGenes);
         if (score === 0) throw new Error('Unexpected tie game');
-        if (score > 0) numWins++; // Black won
+        if (score > 0) {
+            numWins++; // Black won
+            if (numWins <= numLostGamesShowed)
+                this.showInUi('#' + numWins + ' lost: ' + this.game.historyString());
+        }
         totalScore += score;
     }
 
@@ -202,5 +217,12 @@ Breeder.prototype.bwBalanceCheck = function (numGames, gsize) {
     main.log.info('Average score difference for Black (points per game): ' + totalScore / numGames);
     main.log.info('Out of ' + numGames + ' games, White-' + whiteAi +
         ' won ' + (numGames - numWins) + ' times, and Black-' + blackAi + ' won ' + numWins + ' times');
+
+    var dupes = 0;
+    for (i in this.seenGames) {
+        dupes += this.seenGames[i] - 1;
+    }
+    main.log.info('Number of dupe games: ' + dupes);
+
     return numGames - numWins; // number of White's victory
 };
