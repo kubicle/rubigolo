@@ -20,7 +20,7 @@ Shaper.prototype.evalBoard = function (stateYx, scoreYx) {
     var allGroups = this.ter.allGroups;
     for (var ndx in allGroups) {
         var g = allGroups[ndx], gi = g._info;
-        if (g.isDead === ALWAYS || gi.eyeCount !== 1) continue;
+        if (g.xDead === ALWAYS || gi.eyeCount !== 1) continue;
         var eye = gi.getSingleEye();
         if (!eye) continue;
         var coords = [];

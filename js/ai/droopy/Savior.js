@@ -59,7 +59,7 @@ Savior.prototype._evalEscape = function (i, j, stone) {
                 stone + ' pre-atari on ' + g);
             hunterThreat = this.hunter.catchThreat(i, j, this.enemyColor);
             if (hunterThreat) savedThreat = hunterThreat; // hunter computes total threat in i,j
-        } else if (g.isDead < ALWAYS) {
+        } else if (g.xDead < ALWAYS) {
             livesAdded += g.lives - 1;
         }
     }

@@ -149,8 +149,8 @@ Connector.prototype._computeScore = function (stone, color, groups, numEnemies, 
         for (var n = groups.length - 1; n >= 0; n--) {
             g = groups[n];
             // lives 1 or 2 are counted by Hunter/Savior; TODO: centralize how this is counted
-            if (g.lives <= 2 && g.isAlive < ALWAYS) return 0;
-            if (g.isDead < ALWAYS || g.isAlive > NEVER) {
+            if (g.lives <= 2 && g.xAlive < ALWAYS) return 0;
+            if (g.xDead < ALWAYS || g.xAlive > NEVER) {
                 someAlive = true;
                 break;
             }
@@ -159,8 +159,8 @@ Connector.prototype._computeScore = function (stone, color, groups, numEnemies, 
 
         for (n = groups.length - 1; n >= 0; n--) {
             g = groups[n];
-            if (g.isDead === NEVER) continue;
-            score += (2 - g.isAlive) / 2 * this.groupThreat(g, /*saved=*/true); // !saved would not work so well I think
+            if (g.xDead === NEVER) continue;
+            score += (2 - g.xAlive) / 2 * this.groupThreat(g, /*saved=*/true); // !saved would not work so well I think
         }
         score *= this.riskCoeff;
     }

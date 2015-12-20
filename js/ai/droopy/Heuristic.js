@@ -228,7 +228,7 @@ Heuristic.prototype.canConnect = function (i, j, color) {
     var empties = [];
     for (var nNdx = stone.neighbors.length - 1; nNdx >= 0; nNdx--) {
         var n = stone.neighbors[nNdx];
-        if (n.color === color && n.group.isDead < ALWAYS) return n;
+        if (n.color === color && n.group.xDead < ALWAYS) return n;
         if (n.color === main.EMPTY) empties.push(n);
     }
     // look around each empty for allies
@@ -239,7 +239,7 @@ Heuristic.prototype.canConnect = function (i, j, color) {
             var en = empty.neighbors[n2Ndx];
             if (en === stone) continue; // same stone
             if (en.color !== color) continue; // empty or enemy
-            if (en.group.isDead === ALWAYS) continue; // TODO: look better at group's health
+            if (en.group.xDead === ALWAYS) continue; // TODO: look better at group's health
             var dist = this.distanceBetweenStones(stone, en, color);
             if (dist >= 2) continue;
             moveNeeded -= (2 - dist);

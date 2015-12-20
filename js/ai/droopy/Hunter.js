@@ -70,11 +70,11 @@ Hunter.prototype._killScore = function (empty, color) {
             break;
         case color: // ally
             life += (n.group.lives - 1) * 0.01;
-            if (n.group.isAlive === ALWAYS) life += 2;
+            if (n.group.xAlive === ALWAYS) life += 2;
             numAllies += 0.0001;
             break;
         default: // enemy
-            if (n.group.inRaceWith) return RACE_KILL_SCORE;
+            if (n.group.xInRaceWith) return RACE_KILL_SCORE;
             if (n.group.lives > 1) break; // not a kill
             numKill += n.group.stones.length;
         }
@@ -146,7 +146,7 @@ Hunter.prototype._countPressureAndRace = function (stone, enemies, level, isEasy
     var threat = 0, raceThreat = 0;
     for (var egNdx = enemies.length - 1; egNdx >= 0; egNdx--) {
         var enemy = enemies[egNdx];
-        var egl = enemy.lives, allyInRace = enemy.inRaceWith;
+        var egl = enemy.lives, allyInRace = enemy.xInRaceWith;
         if (this._isValidRaceMove(stone, enemy, allyInRace)) {
             raceThreat += this.groupThreat(enemy, true);
             raceThreat += this.groupThreat(allyInRace, /*saved=*/true);

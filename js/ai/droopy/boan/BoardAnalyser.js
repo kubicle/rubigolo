@@ -222,8 +222,8 @@ function killWeakest(check, fails) {
                 break;
             } else if (cmp === 0) {
                 if (main.debug) main.log.debug('RACE between ' + fail.group + ' and ' + enemy.group);
-                fail.group.inRaceWith = enemy.group;
-                enemy.group.inRaceWith = fail.group;
+                fail.group.xInRaceWith = enemy.group;
+                enemy.group.xInRaceWith = fail.group;
                 fails[i] = null;
                 break;
             }

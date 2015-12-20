@@ -29,6 +29,6 @@ GroupAnalyser.prototype._initGroupState = function () {
     this.allGroups = this.goban.getAllGroups();
     for (var ndx in this.allGroups) {
         var g = this.allGroups[~~ndx];
-        g.inRaceWith = null;
+        g.xInRaceWith = null;
     }
 };

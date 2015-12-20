@@ -28,8 +28,8 @@ function Group(goban, stone, lives, ndx) {
     this.ndx = ndx; // unique index
 
     // populated by analysis:
-    this.isAlive = this.isDead = 0;
-    this.inRaceWith = null;
+    this.xAlive = this.xDead = 0;
+    this.xInRaceWith = null;
 }
 module.exports = Group;
 
@@ -41,8 +41,8 @@ Group.prototype.recycle = function (stone, lives, ndx) {
     this.mergedWith = this.mergedBy = this.killedBy = null;
     this.ndx = ndx;
 
-    this.isAlive = this.isDead = 0;
-    this.inRaceWith = null;
+    this.xAlive = this.xDead = 0;
+    this.xInRaceWith = null;
     return this;
 };
 

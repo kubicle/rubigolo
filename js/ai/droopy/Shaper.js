@@ -32,7 +32,7 @@ Shaper.prototype.evalBoard = function (stateYx, scoreYx) {
     var allGroups = this.pot.allGroups;
     for (var ndx in allGroups) {
         var g = allGroups[~~ndx];
-        if (g.isDead === ALWAYS || g.isAlive === ALWAYS) continue;
+        if (g.xDead === ALWAYS || g.xAlive === ALWAYS) continue;
 
         this._evalSingleEyeSplit(scoreYx, g);
     }
@@ -99,14 +99,14 @@ Shaper.prototype._eyeCloser = function (i, j, color) {
             if (potEyeYx[s.j][s.i] === color) potEye = s;
             break;
         case color:
-            if (s.group.isAlive !== SOMETIMES) continue;
+            if (s.group.xAlive !== SOMETIMES) continue;
             allyNeedsEye = true;
             if (g !== null) threat += this.groupThreat(g, /*saved=*/true); //TODO review this approximation
             g = s.group;
             break;
         default: // enemy
             // NB: dead enemies have less influence so we sometimes can see more than 1 around
-            if (s.group.isDead === ALWAYS) continue;
+            if (s.group.xDead === ALWAYS) continue;
             eyeThreatened = true;
             break;
         }

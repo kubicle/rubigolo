@@ -102,7 +102,7 @@ PotentialTerritory.prototype._initGroupState = function () {
     this.allGroups = this.goban.getAllGroups();
     for (var ndx in this.allGroups) {
         var g = this.allGroups[~~ndx];
-        g.isAlive = g.isDead = NEVER;
+        g.xAlive = g.xDead = NEVER;
     }
 };
 
@@ -113,9 +113,9 @@ PotentialTerritory.prototype._collectGroupState = function () {
         while (gn.mergedWith) gn = gn.mergedWith;
         // collect state of final group
         if (gn.killedBy || gn._info.isDead) {
-            g0.isDead++;
+            g0.xDead++;
         } else if (gn._info.isAlive) {
-            g0.isAlive++;
+            g0.xAlive++;
         }
     }
 };

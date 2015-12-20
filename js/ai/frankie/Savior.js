@@ -49,7 +49,7 @@ Savior.prototype._evalEscape = function (i, j, stone) {
             if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' asking hunter to look at ' + Grid.xy2move(i, j) + ': pre-atari on ' + g);
             hunterThreat = this.hunter.evalMove(i, j, this.enemyColor);
             threat += hunterThreat;
-        } else if (g.isDead < ALWAYS) {
+        } else if (g.xDead < ALWAYS) {
             livesAdded += g.lives - 1;
         }
     }

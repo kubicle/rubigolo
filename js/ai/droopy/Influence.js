@@ -49,7 +49,7 @@ Influence.prototype.evalBoard = function () {
             var color = stone.color;
             if (color === EMPTY) continue;
             // a dying group must have a much small influence (but maybe not 0)
-            var deadFactor = stone.group.isDead === ALWAYS ? this.deadFactor : 1;
+            var deadFactor = stone.group.xDead === ALWAYS ? this.deadFactor : 1;
 
             this.map[j][i][color] += influence[0] * deadFactor; // on the stone itself
 

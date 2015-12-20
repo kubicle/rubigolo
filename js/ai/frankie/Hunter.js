@@ -64,7 +64,7 @@ Hunter.prototype._killScore = function (empty, color) {
             break;
         case color: // ally
             life += (n.group.lives - 1) * 0.01;
-            if (n.group.isAlive === ALWAYS) life += 2;
+            if (n.group.xAlive === ALWAYS) life += 2;
             numAllies += 0.0001;
             break;
         default: // enemy
