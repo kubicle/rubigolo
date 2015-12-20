@@ -267,6 +267,21 @@ TestBoardAnalyser.prototype.testSmallGame2 = function () {
         '--#@@@@O:', 9);
 };
 
+//TODO see countEyesFromDeadEnemy for test below to work well
+// TestBoardAnalyser.prototype.testSmallGame3 = function () {
+//     this.checkGame('f4,f6,d6,c3,d4,e5,g5,e4,e7,d3,g7,d5,c4,b4,g6,c5,f7,b6,c7,f3,e6,f5,g4,g2,g3,h3,c6,h4,b7,h5,a6,h6,b5,h7,h8,j8,a4,g8,b3,b2,c4,f8,a2,c2,e8,h9,f9,b1,e2,e3,f2,h2,d2,f1,d1,c1,pass,g9,e9,d8,d9,c8,b8,pass,c9,pass,d7',
+//         '--@@@@OO:,' +
+//         '-@--@OO:O,' +
+//         '-@@@@@@O:,' +
+//         '@-@@@O@O:,' +
+//         '-@OOOO@O:,' +
+//         '@-@-O@@O:,' +
+//         '-@OOOO@O:,' +
+//         '@OO&&&OO:,' +
+//         '-OO&:O:::',
+//         9);
+// };
+
 TestBoardAnalyser.prototype.testBigGame1 = function () {
     // Interesting:
     // - a8 is an unplayed move (not interesting for black nor white)
