@@ -60,4 +60,4 @@ exclude_paths:
 - rb/**/*
 - lib/**/*
 - js/build.js
-
+- js/ai/frankie/**/*

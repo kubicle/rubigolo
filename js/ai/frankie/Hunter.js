@@ -154,7 +154,7 @@ Hunter.prototype.evalMove = function (i, j, color, level) {
  *  Some of these chases might fail, but even so, the enemy can only defend one.
  *  Rule of thumb:
  *  - if 0 can escape => we capture the bigger one
- *  - if　1 or more can escape => we capture nothing if only 1, or the 2nd bigger if the 1st can escape
+ *  - if 1 or more can escape => we capture nothing if only 1, or the 2nd bigger if the 1st can escape
  */
 Hunter.prototype._getMultipleChaseThreat = function (egroups, canEscape) {
     switch (egroups.length) {

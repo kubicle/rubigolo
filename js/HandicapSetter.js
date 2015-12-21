@@ -2,7 +2,6 @@
 'use strict';
 
 var main = require('./main');
-var HandicapSetter = require('./HandicapSetter');
 var Grid = require('./Grid');
 
 

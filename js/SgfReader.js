@@ -60,9 +60,8 @@ SgfReader.prototype.toMoveList = function () {
 //private;
 SgfReader.prototype.getGameInfo = function () {
     var header = this.nodes[0];
-    if (!header || header[0] !== 'FF') {
-        throw new Error('SGF header missing');
-    }
+    if (!header || header[0] !== 'FF') throw new Error('SGF header missing');
+
     for (var p = 0; p <= header.length - 1; p += 2) {
         var name = header[p];
         var val = header[p + 1];
@@ -113,9 +112,7 @@ SgfReader.prototype.getGameInfo = function () {
 };
 
 SgfReader.prototype.convertMove = function (sgfMove) {
-    if (sgfMove === 'tt') {
-        return 'pass';
-    }
+    if (sgfMove === 'tt') return 'pass';
     var i = sgfMove[0];
     if (i >= 'i') i = String.fromCharCode(i.charCodeAt() + 1);
     return i + (this.boardSize - (sgfMove[1].charCodeAt() - 'a'.charCodeAt())).toString();
@@ -140,34 +137,24 @@ SgfReader.prototype.parseNode = function (t) {
     }
     t = this.get(';', t);
     var node = [];
-    while (true) {
+    for (;;) {
         var i = 0;
-        while (t[i] && t[i].between('A', 'Z')) {
-            i += 1;
-        }
+        while (t[i] && t[i].between('A', 'Z')) { i++; }
         var propIdent = t.substr(0, i);
-        if (propIdent === '') {
-            this.error('Property name expected', t);
-        }
+        if (propIdent === '') this.error('Property name expected', t);
         node.push(propIdent);
         t = this.get(propIdent, t);
-        while (true) {
+        for (;;) {
             t = this.get('[', t);
             var brace = t.indexOf(']');
-            if (brace < 0) {
-                this.error('Missing \']\'', t);
-            }
+            if (brace < 0) this.error('Missing \']\'', t);
             var val = t.substr(0, brace);
             node.push(val);
             t = this.get(val + ']', t);
-            if (t[0] !== '[') {
-                break;
-            }
+            if (t[0] !== '[') break;
             node.push(null); // multiple values, we use nil as name for 2nd, 3rd, etc.
         }
-        if (!t[0] || !t[0].between('A', 'Z')) {
-            break;
-        }
+        if (!t[0] || !t[0].between('A', 'Z')) break;
     }
     this.nodes.push(node);
     return t;
@@ -178,15 +165,10 @@ SgfReader.prototype.skip = function (t) {
 };
 
 SgfReader.prototype.get = function (lex, t) {
-    if (!t.startWith(lex)) {
-        this.error(lex + ' expected', t);
-    }
+    if (!t.startWith(lex)) this.error(lex + ' expected', t);
     return t.replace(lex, '').trimLeft();
 };
 
 SgfReader.prototype.error = function (reason, t) {
     throw new Error('Syntax error: \'' + reason + '\' at ...' + t.substr(0, 20) + '...');
 };
-
-// E02: unknown method: info(...)
-// E02: unknown method: index(...)

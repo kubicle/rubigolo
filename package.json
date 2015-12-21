@@ -6,7 +6,7 @@
   "license": "MIT",
   "scripts": {
     "start": "watchify js/app.js -o js/build.js -t lessify -v",
-    "test": "node js/test/ciTestMain.js"
+    "test": "node js/test/ciTestMain.js --ci"
   },
   "main": "js/app.js",
   "repository": {
