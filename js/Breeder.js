@@ -22,7 +22,7 @@ function Breeder(gameSize) {
     this.game.newGame(this.gsize);
     this.goban = this.game.goban;
     this.players = [
-        new main.ais.Frankie(this.goban, BLACK),
+        new main.ais.Droopy(this.goban, BLACK),
         new main.defaultAi(this.goban, WHITE)
     ];
     this.scorer = new ScoreAnalyser();
@@ -35,7 +35,7 @@ module.exports = Breeder;
 Breeder.GENERATION_SIZE = 26; // must be even number
 Breeder.MUTATION_RATE = 0.03; // e.g. 0.02 is 2%
 Breeder.WIDE_MUTATION_RATE = 0.1; // how often do we "widely" mutate
-Breeder.KOMI = 4.5;
+Breeder.KOMI = 3.5;
 Breeder.TOO_SMALL_SCORE_DIFF = 3; // if final score is less that this, see it as a tie game
 
 

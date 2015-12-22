@@ -18,9 +18,10 @@ require('./test/TestAll'); // one day this will only be in the testing build
 // Known AIs and default one
 main.ais = {
     Frankie: require('./ai/frankie'),
-    Droopy: require('./ai/droopy')
+    Droopy: require('./ai/droopy'),
+    Chuckie: require('./ai/chuckie')
 };
-main.defaultAi = main.latestAi = main.ais.Droopy;
+main.defaultAi = main.latestAi = main.ais.Chuckie;
 
 if (typeof window !== 'undefined') {
     // In a browser: create the UI
