@@ -13,6 +13,7 @@ var NewGameDlg = require('./NewGameDlg');
 var PopupDlg = require('./PopupDlg');
 var ScoreAnalyser = require('../ScoreAnalyser');
 var UiEngine = require('../net/UiEngine');
+var userPref = require('../userPreferences');
 
 var WHITE = main.WHITE, BLACK = main.BLACK;
 var sOK = main.sOK;
@@ -331,11 +332,15 @@ Ui.prototype.automaticAiPlay = function (turns) {
     }, animated ? 100 : 0);
 };
 
+window.addEventListener('beforeunload', function () {
+    userPref.close();
+});
+
 
 //--- DEV UI
 
 Ui.prototype.initDev = function () {
-    this.inDevMode = false;
+    this.inDevMode = userPref.getValue('devMode', false);
     this.debugHeuristic = null;
     this.inEvalMode = false;
     this.devKeys = '';
@@ -345,6 +350,7 @@ Ui.prototype.onDevKey = function (key) {
     this.devKeys = this.devKeys.slice(-9) + key;
     if (this.devKeys.slice(-2) === 'db') {
         this.inDevMode = !this.inDevMode;
+        userPref.setValue('devMode', this.inDevMode);
         return this.toggleControls();
     }
     if (this.devKeys.slice(-2) === '0g') {
@@ -448,6 +454,11 @@ Ui.prototype.createDevControls = function () {
         main.debug = this.isChecked();
         main.log.level = main.debug ? Logger.DEBUG : Logger.INFO;
     });
+
+    Dome.newLink(col2, 'emailGame', 'Email game',
+        'mailto:kubicle@yahoo.com?subject=' + main.appName + '%20game' +
+        '&body=' + this.game.historyString());
+
     this.evalTestDropdown = Dome.newDropdown(col2, '#evalTest', evalTests, null, '');
     this.evalTestDropdown.on('change', function () {
         switch (this.value()) {

@@ -1,4 +1,5 @@
 'use strict';
+/* eslint no-console: 0 */
 
 var curGroup = null;
 var uniqueId = 1;
@@ -89,6 +90,13 @@ Dome.newButton = function (parent, name, label, action) {
     button.elt.innerText = label;
     button.on('click', action);
     return button;
+};
+
+Dome.newLink = function (parent, name, label, url) {
+    var link = new Dome(parent, 'a', name + 'Link', name);
+    link.setAttribute('href', url);
+    link.setText(label);
+    return link;
 };
 
 /** A label is a span = helps to write text on the left of an element */
