@@ -9,8 +9,6 @@ function Gtp() {
 var gtp = new Gtp();
 module.exports = gtp;
 
-window.gtp = gtp //TMP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 
 Gtp.prototype.init = function (engine) {
     this.engine = engine;

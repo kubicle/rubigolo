@@ -140,7 +140,7 @@ TestBoardAnalyser.prototype.testNoTwoEyes3_1 = function () {
         '-----,-----,@@@@@,####@,-@-#@');
 };
 
- TestBoardAnalyser.prototype.testNoTwoEyes3_2 = function () {
+TestBoardAnalyser.prototype.testNoTwoEyes3_2 = function () {
     // White group is dead - having a dead kamikaze + an empty spot in NE corner should not change that
     this.checkGame('c3,d3,c2,d2,c4,c1,b1,d1,b2,d4,d5,e4,e2,pass,c5',
         '--@@-,' +
