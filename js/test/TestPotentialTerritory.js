@@ -1,5 +1,5 @@
-//Translated from test_potential_territory.rb using babyruby2js
 'use strict';
+/* eslint quotes: 0 */
 /* jshint quotmark: false */
 
 var main = require('../main');

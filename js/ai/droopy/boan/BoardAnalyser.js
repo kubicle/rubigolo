@@ -257,7 +257,7 @@ var finalCheck = { name: 'final', run: function (gi) { return gi.checkLiveliness
 var midGameLifeChecks = [
     parentCheck,
     brotherCheck,
-    singleEyeCheck,
+    singleEyeCheck
     // We don't expect a final liveliness (2) in mid-game
 ];
 var scoringLifeChecks = [

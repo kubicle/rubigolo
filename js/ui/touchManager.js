@@ -1,4 +1,5 @@
 'use strict';
+/* eslint no-console: 0 */
 
 var DISTANCE_THRESHOLD = 10; // px
 var MIN_MOVE_DELAY = 50; // ms, how often do we emit a drag event

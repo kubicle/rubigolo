@@ -56,7 +56,7 @@ Gtp.prototype.runCommand = function (line) {
 };
 
 Gtp.prototype._send = function (msg) {
-    console.info('GTP sends: [' + msg + ']');
+    console.info('GTP sends: [' + msg + ']'); //TODO sending
 };
 
 Gtp.prototype.success = function (response) {

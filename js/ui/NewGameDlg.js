@@ -2,7 +2,6 @@
 
 var main = require('../main');
 var Dome = require('./Dome');
-var PopupDlg = require('./PopupDlg');
 
 
 function NewGameDlg(options, validateFn) {

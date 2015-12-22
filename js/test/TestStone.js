@@ -3,7 +3,6 @@
 
 var main = require('../main');
 var inherits = require('util').inherits;
-var Stone = require('../Stone');
 var Goban = require('../Goban');
 
 var BLACK = main.BLACK, WHITE = main.WHITE;
