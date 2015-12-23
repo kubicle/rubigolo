@@ -28,10 +28,6 @@ TestAi.prototype.initBoard = function (size, handicap) {
     ];
 };
 
-TestAi.prototype.showInUi = function (msg) {
-    if (main.testUi) main.testUi.showTestGame(this.name, msg, this.game);
-};
-
 TestAi.prototype.logErrorContext = function (player, move) {
     main.log.error(this.goban.toString());
     main.log.error(player.getMoveSurveyText(move));

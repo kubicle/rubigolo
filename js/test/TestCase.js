@@ -71,3 +71,9 @@ TestCase.prototype.todo = function (comment) {
     this.series.todoCount++;
     main.log.info('TODO: ' + comment);
 };
+
+TestCase.prototype.showInUi = function (msg) {
+    if (main.testUi && this.game) {
+        main.testUi.showTestGame(this.name, msg, this.game);
+    }
+};

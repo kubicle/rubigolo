@@ -38,9 +38,7 @@ TestPotentialTerritory.prototype.checkBasicGame = function (moves, expected, gsi
     this.assertEqual(expected, territory);
 };
 
-TestPotentialTerritory.prototype.showInUi = function (msg) {
-    if (main.testUi) main.testUi.showTestGame(this.name, msg, this.game);
-};
+//---
 
 
 TestPotentialTerritory.prototype.testBigEmptySpace = function () {

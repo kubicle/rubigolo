@@ -51,10 +51,6 @@ TestBoardAnalyser.prototype.checkScore = function (prisoners, dead, score) {
     this.assertEqual(score, this.boan.scores);
 };
 
-TestBoardAnalyser.prototype.showInUi = function (msg) {
-    if (main.testUi) main.testUi.showTestGame(this.name, msg, this.game);
-};
-
 //---
 
 
