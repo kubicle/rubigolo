@@ -4,6 +4,7 @@ require('./TestAi');
 require('./TestBoardAnalyser');
 require('./TestBreeder');
 require('./TestGameLogic');
+require('./TestGoban');
 require('./TestGroup');
 require('./TestPotentialTerritory');
 require('./TestScoreAnalyser');
