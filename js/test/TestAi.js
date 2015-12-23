@@ -195,6 +195,11 @@ TestAi.prototype.checkGame = function (moves, checks, gsize) {
 
 //--- Tests are below
 
+TestAi.prototype.testAiInternals = function () {
+    this.initBoard(5);
+    this.assertEqual('c3 (6.40)\n- Spacer: 6.40\n', this.players[BLACK].getMoveSurveyText('c3', true));
+};
+
 TestAi.prototype.testEyeMaking = function () {
     // ++@@@
     // +@@OO
