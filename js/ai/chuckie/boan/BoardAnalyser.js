@@ -27,7 +27,7 @@ function BoardAnalyser() {
 module.exports = BoardAnalyser;
 
 
-var BOAN_VERSION = BoardAnalyser.VERSION = 'droopy';
+var BOAN_VERSION = BoardAnalyser.VERSION = 'chuckie';
 
 
 /** Calling this method updates the goban to show the detected result.

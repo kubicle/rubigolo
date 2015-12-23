@@ -117,7 +117,7 @@ Board.prototype.onTap = function (x, y) {
         return this.tapHandlerFn('!' + (i >= 1 && i <= this.gsize ? Grid.xLabel(i) : j));
     }
 
-    if (this.goban.color(i, j) !== EMPTY) return;
+    if (this.goban.colorAt(i, j) !== EMPTY) return;
     var move = Grid.xy2move(i, j);
     this.tapHandlerFn(move);
 };
@@ -142,7 +142,7 @@ Board.prototype.refresh = function () {
     }
     for (var j = 0; j < this.gsize; j++) {
         for (var i = 0; i < this.gsize; i++) {
-            var color = this.goban.color(i + 1, this.gsize - j);
+            var color = this.goban.colorAt(i + 1, this.gsize - j);
             var wgoColor = toWgoColor[color];
 
             var obj = this.board.obj_arr[i][j][0];

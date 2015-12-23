@@ -156,9 +156,9 @@ Void.prototype.toString = function () {
 };
 
 Void.prototype.debugDump = function () {
-    console.log(this.toString());
+    main.log.debug(this.toString());
     for (var color = 0; color < this.groups.length; color++) {
-        console.log('    Color ' + color + ' (' + Grid.colorToChar(color) + '): ' +
+        main.log.debug('    Color ' + color + ' (' + Grid.colorToChar(color) + '): ' +
             this.groups[color].map(grpNdx));
     }
 };
@@ -498,7 +498,7 @@ BoardAnalyser.prototype.image = function () {
 };
 
 BoardAnalyser.prototype.debugDump = function () {
-    console.log(this.filler.grid.toText(function (c) {
+    main.log.debug(this.filler.grid.toText(function (c) {
         return Grid.colorToChar(c);
     }));
     for (var v, v_array = this.allVoids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
@@ -511,10 +511,10 @@ BoardAnalyser.prototype.debugDump = function () {
             var numEyes = g._info.eyeCount;
             eyes[numEyes >= 2 ? 2 : numEyes].push(g);
         }
-        console.log('\nGroups with 2 eyes or more: ' + eyes[2].map(grpNdx));
-        console.log('Groups with 1 eye: ' + eyes[1].map(grpNdx));
-        console.log('Groups with no eye: ' + eyes[0].map(grpNdx));
-        console.log('Score:' + this.scores.map(function (s, i) {
+        main.log.debug('\nGroups with 2 eyes or more: ' + eyes[2].map(grpNdx));
+        main.log.debug('Groups with 1 eye: ' + eyes[1].map(grpNdx));
+        main.log.debug('Groups with no eye: ' + eyes[0].map(grpNdx));
+        main.log.debug('Score:' + this.scores.map(function (s, i) {
             return ' player ' + i + ': ' + s + ' points';
         }));
     }

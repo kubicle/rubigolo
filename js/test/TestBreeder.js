@@ -3,7 +3,6 @@
 
 var main = require('../main');
 var inherits = require('util').inherits;
-main.test = true;
 var Breeder = require('../Breeder');
 
 
@@ -18,7 +17,7 @@ module.exports = main.tests.add(TestBreeder);
 TestBreeder.prototype.testBwBalance = function () {
     var numGames = 100;
     var numLostGamesShowed = 5;
-    var expectedWins = 0.95 * numGames; // number going up shows new AI gets stronger compared to default AI
+    var expectedWins = 0.60 * numGames; // number going up shows new AI gets stronger compared to default AI
     var tolerance = numGames / 10; // + or -; the more games you play the lower tolerance you can set
     var size = 9;
 

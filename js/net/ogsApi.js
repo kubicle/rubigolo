@@ -1,4 +1,5 @@
 'use strict';
+/* eslint no-console: 0 */
 
 var io = require('socket.io-client');
 
@@ -13,7 +14,7 @@ var ignorable_notifications = {
     'gameDeclined': true,
     'gameResumedFromStoneRemoval': true,
     'tournamentStarted': true,
-    'tournamentEnded': true,
+    'tournamentEnded': true
 };
 
 

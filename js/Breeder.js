@@ -22,7 +22,7 @@ function Breeder(gameSize) {
     this.game.newGame(this.gsize);
     this.goban = this.game.goban;
     this.players = [
-        new main.ais.Frankie(this.goban, BLACK),
+        new main.ais.Droopy(this.goban, BLACK),
         new main.defaultAi(this.goban, WHITE)
     ];
     this.scorer = new ScoreAnalyser();
@@ -35,7 +35,7 @@ module.exports = Breeder;
 Breeder.GENERATION_SIZE = 26; // must be even number
 Breeder.MUTATION_RATE = 0.03; // e.g. 0.02 is 2%
 Breeder.WIDE_MUTATION_RATE = 0.1; // how often do we "widely" mutate
-Breeder.KOMI = 4.5;
+Breeder.KOMI = 3.5;
 Breeder.TOO_SMALL_SCORE_DIFF = 3; // if final score is less that this, see it as a tie game
 
 
@@ -50,8 +50,8 @@ Breeder.prototype.firstGeneration = function () {
     this.scoreDiff = [];
 };
 
-Breeder.prototype.showInUi = function (msg) {
-    if (main.testUi) main.testUi.showTestGame(this.name, msg, this.game);
+Breeder.prototype.showInUi = function (title, msg) {
+    if (main.testUi) main.testUi.showTestGame(title, msg, this.game);
 };
 
 Breeder.prototype.playUntilGameEnds = function () {
@@ -79,7 +79,7 @@ Breeder.prototype.playGame = function (name1, name2, p1, p2) {
     } catch (err) {
         main.log.error('Exception occurred during a breeding game: ' + err);
         main.log.error(this.game.historyString());
-        this.showInUi(err);
+        this.showInUi('Exception in breeding game', err);
         throw err;
     }
     if (main.debugBreed) {
@@ -208,7 +208,7 @@ Breeder.prototype.bwBalanceCheck = function (numGames, gsize, numLostGamesShowed
         if (score > 0) {
             numWins++; // Black won
             if (numWins <= numLostGamesShowed)
-                this.showInUi('#' + numWins + ' lost: ' + this.game.historyString());
+                this.showInUi('Lost breeding game #' + numWins, this.game.historyString());
         }
         totalScore += score;
     }

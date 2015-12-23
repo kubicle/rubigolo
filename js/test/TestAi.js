@@ -28,10 +28,6 @@ TestAi.prototype.initBoard = function (size, handicap) {
     ];
 };
 
-TestAi.prototype.showInUi = function (msg) {
-    if (main.testUi) main.testUi.showTestGame(this.name, msg, this.game);
-};
-
 TestAi.prototype.logErrorContext = function (player, move) {
     main.log.error(this.goban.toString());
     main.log.error(player.getMoveSurveyText(move));
@@ -198,6 +194,11 @@ TestAi.prototype.checkGame = function (moves, checks, gsize) {
 
 
 //--- Tests are below
+
+TestAi.prototype.testAiInternals = function () {
+    this.initBoard(5);
+    this.assertEqual('c3 (6.40)\n- Spacer: 6.40\n', this.players[BLACK].getMoveSurveyText('c3', true));
+};
 
 TestAi.prototype.testEyeMaking = function () {
     // ++@@@
@@ -700,13 +701,4 @@ TestAi.prototype.testKillRace2 = function () {
     // same as above but W's eye is actually shared by 2 brothers
     this.checkGame('d4,f4,d6,g7,f6,e5,g5,e6,e3,f7,g6,e7,g3,g4,d5,h4,c7,f3,g2,f2,e4,f5,h6,d7,d8,e8,c8,h5,h7,d9,g8,j6,h8,j7,f9,e9,f8,j8,h9,c9,e2,f1,e1,b8,c6,b7,b6,a6,pass,b5,b4,c5,c4,h3,h2,g1,a5,j2,j4,j3,a7,a8,a6,b9,pass,c2,b2,b1,d1,b3,a2,a3,a4,c3,c1,a1,d3,d2',
         'a2>53, a2=b2, #pass, b5>41, b5=c5', 9);
-};
-
-TestAi.prototype.testSuperko = function () {
-    this.initBoard(5);
-    this.goban.setRules({ positionalSuperko: true });
-    this.game.loadMoves('a3,b3,a2,b2,pass,a1,b1,c1,pass,a1,pass,a4,a2,pass,b1,pass,a3,a1');
-    if (!this.goban.isValidMove(1, 2, BLACK)) return;
-    this.showInUi('a2 should be invalid: superko');
-    this.assertEqual(true, false);
 };

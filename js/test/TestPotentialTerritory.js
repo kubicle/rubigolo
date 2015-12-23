@@ -1,5 +1,5 @@
-//Translated from test_potential_territory.rb using babyruby2js
 'use strict';
+/* eslint quotes: 0 */
 /* jshint quotmark: false */
 
 var main = require('../main');
@@ -38,9 +38,7 @@ TestPotentialTerritory.prototype.checkBasicGame = function (moves, expected, gsi
     this.assertEqual(expected, territory);
 };
 
-TestPotentialTerritory.prototype.showInUi = function (msg) {
-    if (main.testUi) main.testUi.showTestGame(this.name, msg, this.game);
-};
+//---
 
 
 TestPotentialTerritory.prototype.testBigEmptySpace = function () {

@@ -63,10 +63,6 @@ Stone.prototype.asMove = function () {
     return Grid.xy2move(this.i, this.j);
 };
 
-Stone.prototype.debugDump = function () {
-    return this.toString(); // we could add more info
-};
-
 // Returns a string with the list of empty points, sorted (debug only)
 Stone.prototype.emptiesDump = function () {
     return this.empties().map(function (s) {

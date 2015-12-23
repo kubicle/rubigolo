@@ -9,8 +9,6 @@ function Gtp() {
 var gtp = new Gtp();
 module.exports = gtp;
 
-window.gtp = gtp //TMP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 
 Gtp.prototype.init = function (engine) {
     this.engine = engine;
@@ -58,7 +56,7 @@ Gtp.prototype.runCommand = function (line) {
 };
 
 Gtp.prototype._send = function (msg) {
-    console.info('GTP sends: [' + msg + ']');
+    console.info('GTP sends: [' + msg + ']'); //TODO sending
 };
 
 Gtp.prototype.success = function (response) {

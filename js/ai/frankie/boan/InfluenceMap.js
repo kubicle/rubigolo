@@ -68,13 +68,13 @@ InfluenceMap.prototype.debugDump = function () {
     function inf2str(inf) { return '%2d'.format(inf[c]); }
 
     for (c = 0; c < 2; c++) {
-        console.log('Influence map for ' + Grid.COLOR_NAMES[c] + ':');
+        main.log.debug('Influence map for ' + Grid.COLOR_NAMES[c] + ':');
         for (var j = this.gsize; j >= 1; j--) {
-            console.log('' + '%2d'.format(j) +
+            main.log.debug('' + '%2d'.format(j) +
                 this.map[j].slice(1, this.gsize + 1).map(inf2str).join('|'));
         }
         var cols = '  ';
         for (var i = 1; i <= this.gsize; i++) { cols += ' ' + Grid.xLabel(i) + ' '; }
-        console.log(cols);
+        main.log.debug(cols);
     }
 };
