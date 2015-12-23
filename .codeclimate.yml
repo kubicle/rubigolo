@@ -61,3 +61,4 @@ exclude_paths:
 - lib/**/*
 - js/build.js
 - js/ai/frankie/**/*
+- js/ai/droopy/**/*
