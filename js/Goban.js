@@ -195,12 +195,9 @@ Goban.prototype.stoneAt = function (i, j) {
     return this.ban[j][i];
 };
 
-Goban.prototype.color = function (i, j) {
+Goban.prototype.colorAt = function (i, j) {
     var stone = this.ban[j][i];
-    if (stone) { // works because BORDER == nil
-        return stone.color;
-    }
-    return BORDER;
+    return stone ? stone.color : BORDER;
 };
 
 // No validity test here
