@@ -144,13 +144,11 @@ Goban.prototype.getAllGroups = function () {
 };
 
 // For debugging only
-Goban.prototype.debugDisplay = function () {
-    if (!main.debug) return;
-    main.log.debug('Board:');
-    main.log.debug(this.grid.toText(function (s) { return Grid.colorToChar(s.color); }));
-    main.log.debug('Groups:');
-    main.log.debug(this.grid.toText(function (s) { return s.group ? '' + s.group.ndx : '.'; }));
-    main.log.debug('Full info on groups and stones:');
+Goban.prototype.debugDump = function () {
+    var res = 'Board:\n' + this.toString() +
+        '\nGroups:\n' +
+        this.grid.toText(function (s) { return s.group ? '' + s.group.ndx : '.'; }) +
+        '\nStones in groups:\n';
     var groups = {};
     for (var row, row_array = this.grid.yx, row_ndx = 0; row=row_array[row_ndx], row_ndx < row_array.length; row_ndx++) {
         for (var s, s_array = row, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
@@ -158,8 +156,9 @@ Goban.prototype.debugDisplay = function () {
         }
     }
     for (var ndx = 1; ndx <= this.numGroups; ndx++) {
-        if (groups[ndx]) main.log.debug(groups[ndx].debugDump());
+        if (groups[ndx]) res += groups[ndx].debugDump() + '\n';
     }
+    return res;
 };
 
 // This display is for debugging and text-only game

@@ -56,26 +56,22 @@ BoardAnalyser.prototype.image = function () {
 };
 
 BoardAnalyser.prototype.debugDump = function () {
-    main.log.debug(this.goban.analyseGrid.toText(function (c) {
-        return Grid.colorToChar(c);
-    }));
+    var res = 'Grid:\n' +
+        this.goban.analyseGrid.toText(function (c) { return Grid.colorToChar(c); }) +
+        'Voids:\n';
     for (var v, v_array = this.allVoids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
-        v.debugDump();
+        res += v.toString() + '\n';
+    }
+    res += 'Groups:\n';
+    for (var ndx in this.allGroups) {
+        res += this.allGroups[~~ndx].toString() + '\n';
     }
     if (this.scores) {
-        var eyes = [[], [], []];
-        for (var ndx in this.allGroups) {
-            var gi = this.allGroups[~~ndx];
-            var numEyes = gi.eyeCount;
-            eyes[numEyes >= 2 ? 2 : numEyes].push(gi);
-        }
-        main.log.debug('\nGroups with 2 eyes or more: ' + eyes[2].map(GroupInfo.giNdx));
-        main.log.debug('Groups with 1 eye: ' + eyes[1].map(GroupInfo.giNdx));
-        main.log.debug('Groups with no eye: ' + eyes[0].map(GroupInfo.giNdx));
-        main.log.debug('Score:' + this.scores.map(function (s, i) {
+        res += 'Score:' + this.scores.map(function (s, i) {
             return ' player ' + i + ': ' + s + ' points';
-        }));
+        });
     }
+    return res;
 };
 
 BoardAnalyser.prototype._initAnalysis = function (mode, goban, grid) {

@@ -182,18 +182,10 @@ Void.prototype.isTouching = function (gi) {
     return this.groups[g.color].indexOf(g) > -1;
 };
 
-Void.prototype.toString = function () {
-    var s = vtype2str(this.vtype) + ' ' + this.code + '-' + Grid.colorToChar(this.code) + ' (' + Grid.xy2move(this.i, this.j) + '), vcount ' + this.vcount;
-    for (var color = 0; color < this.groups.length; color++) {
-        s += ', ' + this.groups[color].length + ' ' + Grid.colorName(color) + ' neighbors';
-    }
-    return s;
-};
-
 function grpNdx(g) { return '#' + g.ndx; }
 
-Void.prototype.debugDump = function () {
-    main.log.debug(this.toString());
-    main.log.debug('   black: ' + this.groups[BLACK].map(grpNdx));
-    main.log.debug('   white: ' + this.groups[WHITE].map(grpNdx));
+Void.prototype.toString = function () {
+    return vtype2str(this.vtype) + '-' + Grid.xy2move(this.i, this.j) + ', vcount:' + this.vcount +
+        ', black:' + (this.groups[BLACK].map(grpNdx).toString() || '-') +
+        ', white:' + (this.groups[WHITE].map(grpNdx).toString() || '-');
 };
