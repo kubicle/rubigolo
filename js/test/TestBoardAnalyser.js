@@ -54,6 +54,27 @@ TestBoardAnalyser.prototype.checkScore = function (prisoners, dead, score) {
 //---
 
 
+// Coverage & base methods
+TestBoardAnalyser.prototype.testInternals = function () {
+    this.initBoard(5);
+    // same game as testDoomedGivesEye2 below
+    this.game.loadMoves('a2,a4,b2,b4,c2,b5,b1,c5,d2,c4,d1');
+    var grid = this.goban.scoringGrid.initFromGoban(this.goban);
+    var ba = this.boan = new main.defaultAi.BoardAnalyser();
+    ba.analyse(this.goban, grid, WHITE);
+
+    // Voids
+    var v = ba.allVoids[0];
+    var gi = ba.allGroups[1];
+    this.assertEqual(true, v.isTouching(gi));
+    this.assertEqual(false, v.isTouching(ba.allGroups[2]));
+    this.assertEqual('eye-a1, vcount:1, black:#1, white:-', v.toString());
+    this.assertEqual('void-e1, vcount:11, black:#1, white:#2', ba.allVoids[2].toString());
+
+    //Coverage
+    this.assertEqual(true, ba.debugDump().length > 100);
+};
+
 TestBoardAnalyser.prototype.testWeirdEmptyBoard = function () {
     // Just makes sure the analyser does not crash on empty boards.
     // Note that scoring these boards makes little sense so the 
