@@ -50,8 +50,8 @@ Breeder.prototype.firstGeneration = function () {
     this.scoreDiff = [];
 };
 
-Breeder.prototype.showInUi = function (msg) {
-    if (main.testUi) main.testUi.showTestGame(this.name, msg, this.game);
+Breeder.prototype.showInUi = function (title, msg) {
+    if (main.testUi) main.testUi.showTestGame(title, msg, this.game);
 };
 
 Breeder.prototype.playUntilGameEnds = function () {
@@ -79,7 +79,7 @@ Breeder.prototype.playGame = function (name1, name2, p1, p2) {
     } catch (err) {
         main.log.error('Exception occurred during a breeding game: ' + err);
         main.log.error(this.game.historyString());
-        this.showInUi(err);
+        this.showInUi('Exception in breeding game', err);
         throw err;
     }
     if (main.debugBreed) {
@@ -208,7 +208,7 @@ Breeder.prototype.bwBalanceCheck = function (numGames, gsize, numLostGamesShowed
         if (score > 0) {
             numWins++; // Black won
             if (numWins <= numLostGamesShowed)
-                this.showInUi('#' + numWins + ' lost: ' + this.game.historyString());
+                this.showInUi('Lost breeding game #' + numWins, this.game.historyString());
         }
         totalScore += score;
     }

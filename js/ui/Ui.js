@@ -52,7 +52,11 @@ Ui.prototype.loadFromTest = function (parent, testName, msg) {
     this.createGameUi('compact', parent, testName, msg);
     this.aiPlays = 'both';
     this.startGame(null, /*isLoaded=*/true);
-    this.message(this.whoPlaysNow());
+    if (this.game.gameEnding) {
+        this.proposeScore();
+    } else {
+        this.message(this.whoPlaysNow());
+    }
 };
 
 Ui.prototype.createGameUi = function (layout, parent, title, descr) {

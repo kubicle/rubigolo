@@ -3,7 +3,6 @@
 
 var main = require('../main');
 var inherits = require('util').inherits;
-main.test = true;
 var Breeder = require('../Breeder');
 
 
