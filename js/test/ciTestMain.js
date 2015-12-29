@@ -23,9 +23,8 @@ function run() {
     else main.log.info('Running tests...');
 
     main.log.level = Logger.INFO;
-    var logfn = function (/*lvl, msg*/) { return true; }; // all goes to console
 
-    var failCount = main.tests.run(logfn);
+    var failCount = main.tests.run();
     if (failCount === 0) {
         main.log.info('Tests completed OK.');
         process.exit(0);

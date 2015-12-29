@@ -6,6 +6,7 @@ var systemConsole = console;
 /** @class */
 function Logger() {
     this.level = Logger.INFO;
+    this.logfunc = null;
 
     Logger.prototype.debug = this._newLogFn(Logger.DEBUG, systemConsole.debug);
     Logger.prototype.info = this._newLogFn(Logger.INFO, systemConsole.info);

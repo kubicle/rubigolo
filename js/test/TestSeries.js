@@ -43,13 +43,11 @@ TestSeries.prototype.testOneClass = function (Klass, methodPattern) {
 };
 
 /** Runs the registered test cases
- * @param {func} [logfunc] - logfn(level, msg) if not given or if it returns true, console will show the msg too.
  * @param {string} [specificClass] - name of single class to test. E.g. "TestSpeed"
  * @param {string} [methodPattern] - if given, only test names containing this pattern are run
  * @return {number} - number of issues detected (exceptions + errors + warnings); 0 if all fine
  */
-TestSeries.prototype.run = function (logfunc, specificClass, methodPattern) {
-    main.log.setLogFunc(logfunc);
+TestSeries.prototype.run = function (specificClass, methodPattern) {
     var logLevel = main.log.level;
     var classCount = 0;
     this.testCount = this.checkCount = this.count = 0;
