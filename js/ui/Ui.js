@@ -174,7 +174,7 @@ Ui.prototype.startGame = function (firstMoves, isLoaded) {
     if (firstMoves) {
         var errors = [];
         if (!game.loadMoves(firstMoves, errors)) {
-            new PopupDlg(errors.join('\n'));
+            new PopupDlg(this.gameDiv, errors.join('\n'));
             return false;
         }
     }
@@ -282,7 +282,7 @@ Ui.prototype.playerMove = function (move) {
 Ui.prototype.playerResigns = function () {
     var self = this;
     var options = { buttons: ['YES', 'NO'] };
-    new PopupDlg('Do you really want to resign?', 'Confirm', options, function (options) {
+    new PopupDlg(this.gameDiv, 'Do you really want to resign?', 'Confirm', options, function (options) {
         if (options.choice !== 0) return;
         self.game.playOneMove('resi');
         self.computeScore();

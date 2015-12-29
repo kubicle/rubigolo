@@ -4,9 +4,10 @@ var Dome = require('./Dome');
 
 
 function action() {
+    // "this" is the button
     var dlg = this.dlg;
     if (dlg.options) dlg.options.choice = this.id;
-    Dome.removeChild(document.body, dlg.dialogRoot);
+    Dome.removeChild(dlg.parent, dlg.dialogRoot);
     if (dlg.validateFn) dlg.validateFn(dlg.options);
 }
 
@@ -16,11 +17,12 @@ function newButton(div, dlg, label, id) {
     btn.id = id;
 }
 
-function PopupDlg(msg, title, options, validateFn) {
+function PopupDlg(parent, msg, title, options, validateFn) {
+    this.parent = parent || document.body;
     this.options = options;
     this.validateFn = validateFn;
 
-    this.dialogRoot = Dome.newDiv(document.body, 'popupBackground');
+    this.dialogRoot = Dome.newDiv(this.parent, 'popupBackground');
     var dialog = this.dialogRoot.newDiv('popupDlg dialog');
     dialog.newDiv('dialogTitle').setText(title || 'Problem');
 
