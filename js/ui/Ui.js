@@ -163,8 +163,9 @@ Ui.prototype.createPlayers = function () {
 
 Ui.prototype.getAiPlayer = function (color) {
     var player = this.players[color];
+    if (player) return player;
     var Ai = color === BLACK ? main.defaultAi : main.latestAi;
-    if (!player) player = this.players[color] = new Ai(this.game.goban, color);
+    player = this.players[color] = new Ai(this.game.goban, color);
     return player;
 };
 
