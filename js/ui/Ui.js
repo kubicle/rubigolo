@@ -12,7 +12,7 @@ var ogsApi = require('../net/ogsApi');
 var NewGameDlg = require('./NewGameDlg');
 var PopupDlg = require('./PopupDlg');
 var ScoreAnalyser = require('../ScoreAnalyser');
-var UiEngine = require('../net/UiEngine');
+var UiGtpEngine = require('../net/UiGtpEngine');
 var userPref = require('../userPreferences');
 
 var WHITE = main.WHITE, BLACK = main.BLACK;
@@ -359,7 +359,9 @@ Ui.prototype.onDevKey = function (key) {
         return this.toggleControls();
     }
     if (this.devKeys.slice(-2) === '0g') {
-        gtp.init(new UiEngine(this));
+        // TODO: WIP OGS
+        main.gtp = gtp;
+        gtp.init(new UiGtpEngine(this));
         this.ogsApi = ogsApi;
         return ogsApi.init();
     }
