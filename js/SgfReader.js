@@ -80,12 +80,14 @@ function SgfReader() {
 }
 module.exports = SgfReader;
 
-SgfReader.HEADER = '(;';
 
+SgfReader.isSgf = function (game) {
+    return game.trimLeft().startWith('(;');
+};
 
 // Raises an exception if we could not convert the format
 SgfReader.prototype.readGame = function (sgf, upToMoveNumber) {
-    if (!sgf.startWith(SgfReader.HEADER)) throw new Error('SGF header missing');
+    if (!SgfReader.isSgf(sgf)) throw new Error('Not an SGF file');
     this.text = sgf;
     this.nodes = [];
     this.handMoves = [[], []];
