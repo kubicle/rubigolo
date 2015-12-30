@@ -182,7 +182,7 @@ commandHandler('reg_genmove', function (cmd) {
 
 // Reg test command (only in node)
 commandHandler('loadsgf', function (cmd) {
-    if (typeof window !== undefined) return this.fail('loadsgf unavailable here');
+    if (typeof window !== 'undefined') return this.fail('loadsgf unavailable here');
     var fname = cmd.args[0];
     var game = fs.readFileSync(fname, { encoding: 'utf8' });
     if (!game) return this.fail('cannot load file ' + fname);
