@@ -5,6 +5,7 @@ var GameLogic = require('../GameLogic');
 var ScoreAnalyser = require('../ScoreAnalyser');
 
 var WHITE = main.WHITE, BLACK = main.BLACK;
+var GAME_NOT_STARTED = '00';
 
 
 /** @class
@@ -19,7 +20,7 @@ module.exports = GtpEngine;
 
 
 GtpEngine.prototype.quit = function () {
-    console.error('GTP quit command received');
+    console.error('GTP quit command received'); // cannot be on stdout
 };
 
 GtpEngine.prototype.send = function (msg) {
@@ -68,7 +69,9 @@ GtpEngine.prototype.setKomi = function (komi) {
 };
 
 GtpEngine.prototype._forceCurPlayer = function (color) {
+    if (!this.players[BLACK]) return false;
     this.game.curColor = color === 'b' ? BLACK : WHITE;
+    return true;
 };
 
 GtpEngine.prototype._letAiPlay = function () {
@@ -78,27 +81,31 @@ GtpEngine.prototype._letAiPlay = function () {
 };
 
 GtpEngine.prototype.regGenMove = function (color) {
-    this._forceCurPlayer(color);
+    if (!this._forceCurPlayer(color)) return GAME_NOT_STARTED;
     return this.players[this.game.curColor].getMove();
 };
 
 GtpEngine.prototype.loadSgf = function (game, moveNumber) {
     var errors = [];
-    if (!this.game.loadMoves(game, errors, moveNumber)) return errors[0];
+    if (!this.game.loadSgf(game, errors, moveNumber)) return errors[0];
     this._beginGame();
     return '';
 };
 
 GtpEngine.prototype.genMove = function (color) {
-    this._forceCurPlayer(color);
+    if (!this._forceCurPlayer(color)) return GAME_NOT_STARTED;
     return this._letAiPlay();
 };
 
 GtpEngine.prototype.playMove = function (color, vertex) {
-    this._forceCurPlayer(color); // this follows GTP2 spec
+    if (!this._forceCurPlayer(color)) return false;
     if (!this.game.playOneMove(vertex)) return false;
     this.refreshDisplay();
     return true;
+};
+
+GtpEngine.prototype.undo = function () {
+    return this.game.playOneMove('half_undo');
 };
 
 GtpEngine.prototype.computeScore = function () {

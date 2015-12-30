@@ -1,6 +1,8 @@
 'use strict';
 
+var EventEmitter = require('events').EventEmitter;
 var fs = require('fs');
+var inherits = require('util').inherits;
 
 
 /** @class
@@ -13,6 +15,7 @@ function Gtp() {
     this.engine = null;
     this.commands = {};
 }
+inherits(Gtp, EventEmitter);
 
 var gtp = new Gtp();
 module.exports = gtp;
@@ -28,7 +31,11 @@ Gtp.prototype.runCommand = function (line) {
     if (!fn) return this.fail('unknown command ' + cmd.command);
 
     this.cmd = cmd;
-    fn.call(this, cmd);
+    try {
+        fn.call(this, cmd);
+    } catch (exc) {
+        this.fail('exception running ' + line + '\n' + exc.stack);
+    }
 };
 
 Gtp.prototype._parseRawLine = function (rawline) {
@@ -108,6 +115,7 @@ commandHandler('quit', function () {
     // Doc says full response must be sent/processed before we close the connection
     this.success('');
     this.engine.quit();
+    this.emit('quit');
 });
 
 commandHandler('boardsize', function (cmd) {
@@ -163,6 +171,11 @@ commandHandler('play', function (cmd) {
     return this.success();
 });
 
+commandHandler('undo', function () {
+    if (!this.engine.undo()) return this.fail('cannot undo');
+    return this.success();
+});
+
 commandHandler('genmove', function (cmd) {
     var color = parseColor(cmd.args[0]);
     if (!color) return this.fail('syntax error');
@@ -188,7 +201,8 @@ commandHandler('loadsgf', function (cmd) {
     if (!game) return this.fail('cannot load file ' + fname);
 
     var upToMoveNumber = cmd.args[1];
-    this.engine.loadSgf(game, upToMoveNumber);
+    var err = this.engine.loadSgf(game, upToMoveNumber);
+    if (err) return this.fail('loadsgf ' + fname + ' failed: ' + err);
     return this.success();
 });
 
