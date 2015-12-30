@@ -2,155 +2,281 @@
 'use strict';
 
 var main = require('./main');
+
+var BLACK = main.BLACK, WHITE = main.WHITE;
+var colorName = ['B', 'W'];
+var defaultBoardSize = 19;
+
 // Example:
 // (;FF[4]EV[go19.ch.10.4.3]PB[kyy]PW[Olivier Lombart]KM[6.5]SZ[19]
 // SO[http://www.littlegolem.com];B[pd];W[pp];
 // B[ce];W[dc]...;B[tt];W[tt];B[tt];W[aq])
 
+var infoTags = {
+    GM: ['int', null], // 1: Go - other values are considered invalid
+    FF: ['int', 'fileFormat'],
+    SZ: ['int', 'boardSize'], // NB: necessary for 'move' type conversions
+    AB: ['move', null], // add a move (or handicap) for Black
+    AW: ['move', null], // add a move for White
+    HA: ['int', 'handicap'],
+    KM: ['real', 'komi'],
+    RU: ['text', 'rules'],
+    RE: ['text', 'result'],
+    PB: ['text', 'playerBlack'],
+    PW: ['text', 'playerWhite'],
+    BS: ['int', 'blackSpecies'], // 0: human, >0: computer
+    WS: ['int', 'whiteSpecies'],
+    LT: ['flag', 'enforceLosingOnTime'],
+    SO: ['text', 'source'],
+    ID: ['text', 'gameId'],
+    AP: ['text', 'application'], // used to create the SGF file
+    BR: ['text', 'blackRank'],
+    WR: ['text', 'whiteRank'],
+    BT: ['text', 'blackTeam'], // Black's Team
+    WT: ['text', 'whiteTeam'], // White's Team
+    TM: ['text', 'timeLimit'], // per player
+    OT: ['text', 'overtimeMethod'],
+    EV: ['text', 'event'], // e.g. tournament name
+    RO: ['text', 'round'],
+    DT: ['text', 'date'],
+    PC: ['text', 'place'],
+    GN: ['text', 'gameName'],
+    ON: ['text', 'openingPlayed'],
+    GC: ['text', 'gameComment'],
+    C:  ['text', 'comment'],
+    N:  ['text', 'nodeName'],
+    US: ['text', 'userName'], // user who entered the game
+    AN: ['text', 'analyseAuthor'],
+    CP: ['text', 'copyright'],
+    CA: ['text', 'characterSet'], // e.g. UTF-8
+    ST: ['text', null] // method used to display variations
+};
 
-/** @class public read-only attribute: boardSize, komi, handicap, handicapStones
- */
-function SgfReader(sgf) {
-    this.text = sgf;
-    this.nodes = [];
-    this.boardSize = 19;
-    this.handicap = 0;
-    this.handicapStones = [];
-    this.komi = 6.5;
-    this.parseGameTree(sgf + '');
-    return this.getGameInfo();
+var gameTags = {
+    B: 'move',
+    W: 'move',
+    AB: 'move',
+    AW: 'move',
+    BL: null, // Black's time Left
+    WL: null, // White's time Left
+    C:  null, // comments
+    CR: null, // circle
+    BM: null, // bad move
+    N:  null  // node name
+};
+
+
+
+/** @class */
+function SgfReader() {
+    this.text = null;
+    this.nodes = null;
+    this.boardSize = 0;
+    this.handMoves = null;
+    this.infos = null;
+    this.curColor = BLACK;
+    this.moves = null;
+    this.moveNumber = 0;
 }
 module.exports = SgfReader;
 
+SgfReader.HEADER = '(;';
+
+
 // Raises an exception if we could not convert the format
-SgfReader.prototype.toMoveList = function () {
-    // NB: we verify the expected player since our internal move format
-    // does not mention the player each time.
-    var expectedPlayer = 'B';
-    var moves = '';
-    if (this.handicap > 0) {
-        expectedPlayer = 'W';
-        if (this.handicapStones.length !== 0) {
-            if (this.handicapStones.length !== this.handicap) {
-                throw new Error('List of ' + this.handicapStones.length + ' handicap stones given does not match the handicap number of ' + this.handicap);
-            }
-            moves = 'hand:' + this.handicap + '=' + this.handicapStones.join('-') + ',';
-        } else {
-            moves = 'hand:' + this.handicap + ',';
-        }
-    }
-    for (var i = 1; i <= this.nodes.length - 1; i++) {
-        var name = this.nodes[i][0];
-        var value = this.nodes[i][1];
-        if (name !== 'B' && name !== 'W') {
-            if (name !== 'C') { // comments can be ignored
-                main.log.warn('Unknown property ' + name + '[' + value + '] ignored');
-            }
-            continue;
-        }
-        if (name !== expectedPlayer) {
-            throw new Error('Move for ' + expectedPlayer + ' was expected and we got ' + name + ' instead');
-        }
-        moves += this.convertMove(value) + ',';
-        expectedPlayer = (( expectedPlayer === 'B' ? 'W' : 'B' ));
-    }
-    return moves.chop();
+SgfReader.prototype.readGame = function (sgf, upToMoveNumber) {
+    if (!sgf.startWith(SgfReader.HEADER)) throw new Error('SGF header missing');
+    this.text = sgf;
+    this.nodes = [];
+    this.handMoves = [[], []];
+    this._parseGameTree(sgf);
+    this._processGameInfo();
+    this._processMoves(upToMoveNumber);
+    return this.infos;
 };
 
-//private;
-SgfReader.prototype.getGameInfo = function () {
-    var header = this.nodes[0];
-    if (!header || header[0] !== 'FF') throw new Error('SGF header missing');
+SgfReader.prototype.toMoveList = function () {
+    return this.moves;
+};
 
+function letterToCoord(c) {
+    if (c.between('a', 'z')) return c.charCodeAt() - 97; // - 'a'
+    if (c.between('A', 'Z')) return c.charCodeAt() - 65; // - 'A'
+    throw new Error('Invalid coordinate value: ' + c);
+}
+
+var COLUMNS = 'abcdefghjklmnopqrstuvwxyz'; // NB: "i" is skipped + not handling > z
+
+// this.boardSize (tag SZ) must be known before we can convert moves
+// If SZ is unknown while we start generating moves, we suppose size as default.
+// Once boardSize is set, changing it throws an exception.
+SgfReader.prototype._setBoardSize = function (size) {
+    if (this.boardSize) throw new Error('Size (SZ) set twice or after the first move');
+    this.boardSize = size;
+};
+
+SgfReader.prototype._convertMove = function (sgfMove) {
+    if (!this.boardSize) this._setBoardSize(defaultBoardSize);
+
+    if (sgfMove === '' || (sgfMove === 'tt' && this.boardSize <= 19)) {
+        return 'pass';
+    }
+    var i = COLUMNS[letterToCoord(sgfMove[0])];
+    var j = this.boardSize - letterToCoord(sgfMove[1]);
+    return i + j;
+};
+
+SgfReader.prototype._addMove = function (color, move, isHand) {
+    // Keep count of "real" moves (not handicap or "added" moves)
+    if (!isHand) this.moveNumber++;
+    
+    // Add color info to the move if this was not the expected color
+    var colorStr = color === this.curColor ? '' : colorName[color];
+    // If real game started...
+    if (this.moveNumber) {
+        this.curColor = 1 - color;
+        this.moves.push(colorStr + move);
+    } else {
+        this.handMoves[color].push(move);
+    }
+};
+
+SgfReader.prototype._convertValue = function (rawVal, valType) {
+    switch (valType) {
+    case 'text': return rawVal;
+    case 'int': return parseInt(rawVal);
+    case 'real': return parseFloat(rawVal);
+    case 'flag': return true;
+    case 'move': return this._convertMove(rawVal);
+    default: throw new Error('Invalid tag type: ' + valType);
+    }
+};
+
+SgfReader.prototype._processGameTag = function (name, rawVal) {
+    var valType = gameTags[name];
+    if (valType === undefined) {
+        return main.log.warn('Unknown property ' + name + '[' + rawVal + '] ignored');
+    }
+    if (!valType) return; // fine to ignore
+
+    var value = this._convertValue(rawVal, valType);
+
+    switch (name) {
+    case 'B': return this._addMove(BLACK, value);
+    case 'W': return this._addMove(WHITE, value);
+    case 'AB': return this._addMove(BLACK, value, /*isHand=*/true);
+    case 'AW': return this._addMove(WHITE, value, /*isHand=*/true);
+    }
+};
+
+SgfReader.prototype._genHandMoves = function (color) {
+    var moves = this.handMoves[color];
+    if (!moves.length) return '';
+
+    return 'hand:' + colorName[color] + '=' + moves.join('-') + ',';
+};
+
+SgfReader.prototype._processMoves = function (upToMoveNumber) {
+    this.moves = [];
+    this.moveNumber = 0;
+    this.curColor = null;
+
+    for (var i = 1; i < this.nodes.length; i++) {
+        var node = this.nodes[i];
+        for (var n = 0; n < node.length; n += 2) {
+            var name = node[n] || name;
+            var rawVal = node[n + 1];
+            this._processGameTag(name, rawVal);
+        }
+    }
+    var beforeMove = upToMoveNumber ? upToMoveNumber - 1 : this.moves.length;
+    this.moves = (this._genHandMoves(BLACK) + this._genHandMoves(WHITE) +
+        this.moves.slice(0, beforeMove).join(',')).chomp(',');
+};
+
+SgfReader.prototype._storeInfoTag = function (name, rawVal) {
+    var tag = infoTags[name];
+    if (tag === undefined) {
+        this.infos[name] = rawVal;
+        return main.log.info('Unknown property in SGF header: ' + name + '[' + rawVal + ']');
+    }
+    var infoType = tag[0], infoName = tag[1];
+
+    var value = this._convertValue(rawVal, infoType);
+    if (infoName) this.infos[infoName] = value;
+    return value;
+};
+
+SgfReader.prototype._processGameInfo = function () {
+    this.boardSize = null;
+    this.infos = { boardSize: defaultBoardSize, komi: 0, handicap: 0 };
+    var header = this.nodes[0];
     for (var p = 0; p <= header.length - 1; p += 2) {
         var name = header[p];
-        var val = header[p + 1];
+        var rawVal = header[p + 1];
+
+        var value = this._storeInfoTag(name, rawVal);
+
         switch (name) {
-        case 'FF':
-            if (parseInt(val) < 4) {
-                main.log.warn('SGF version FF[' + val + ']. Not sure we handle it.');
+        case 'GM':
+            if (value !== 1) throw new Error('SGF game is not a GO game');
+            break;
+        case 'FF': // FileFormat
+            if (value < 3 || value > 4) {
+                main.log.warn('SGF format ' + value + '. Not sure we handle it well.');
             }
             break;
-        case 'SZ':
-            this.boardSize = parseInt(val);
-            break;
-        case 'HA':
-            this.handicap = parseInt(val);
-            break;
-        case 'AB':
-            this.handicapStones.push(this.convertMove(val));
-            break;
-        case 'KM':
-            this.komi = parseFloat(val);
-            break;
-        case 'RU':
-        case 'RE':
-        case 'PB':
-        case 'PW':
-        case 'BR':
-        case 'WR':
-        case 'BT':
-        case 'WT':
-        case 'TM':
-        case 'DT':
-        case 'EV':
-        case 'RO':
-        case 'PC':
-        case 'GN':
-        case 'ON':
-        case 'GC':
-        case 'SO':
-        case 'US':
-        case 'AN':
-        case 'CP':
-            //NOP
-            break;
-        default: 
-            main.log.info('Unknown property in SGF header: ' + name + '[' + val + ']');
+        case 'SZ': this._setBoardSize(value); break;
+        case 'AB': this._addMove(BLACK, value, /*isHand=*/true); break;
+        case 'AW': this._addMove(WHITE, value, /*isHand=*/true); break;
         }
     }
 };
 
-SgfReader.prototype.convertMove = function (sgfMove) {
-    if (sgfMove === 'tt') return 'pass';
-    var i = sgfMove[0];
-    if (i >= 'i') i = String.fromCharCode(i.charCodeAt() + 1);
-    return i + (this.boardSize - (sgfMove[1].charCodeAt() - 'a'.charCodeAt())).toString();
-};
-
-SgfReader.prototype.parseGameTree = function (t) {
-    t = this.skip(t);
-    t = this.get('(', t);
-    t = this.parseNode(t);
+SgfReader.prototype._parseGameTree = function (t) {
+    t = this._skip(t);
+    t = this._get('(', t);
+    t = this._parseNode(t);
     this.finished = false;
     while (!this.finished) {
-        t = this.parseNode(t);
+        t = this._parseNode(t);
     }
-    return this.get(')', t);
+    return this._get(')', t);
 };
 
-SgfReader.prototype.parseNode = function (t) {
-    t = this.skip(t);
+function indexOfClosingBrace(t) {
+    var pos = 0;
+    for (;;) {
+        var brace = t.indexOf(']', pos);
+        if (brace === -1) return -1;
+        if (t[brace - 1] !== '\\') return brace;
+        pos = brace + 1;
+    }
+}
+
+SgfReader.prototype._parseNode = function (t) {
+    t = this._skip(t);
     if (t[0] !== ';') {
         this.finished = true;
         return t;
     }
-    t = this.get(';', t);
+    t = this._get(';', t);
     var node = [];
     for (;;) {
         var i = 0;
         while (t[i] && t[i].between('A', 'Z')) { i++; }
         var propIdent = t.substr(0, i);
-        if (propIdent === '') this.error('Property name expected', t);
+        if (propIdent === '') this._error('Property name expected', t);
         node.push(propIdent);
-        t = this.get(propIdent, t);
+        t = this._get(propIdent, t);
         for (;;) {
-            t = this.get('[', t);
-            var brace = t.indexOf(']');
-            if (brace < 0) this.error('Missing \']\'', t);
+            t = this._get('[', t);
+            var brace = indexOfClosingBrace(t);
+            if (brace < 0) this._error('Missing \']\'', t);
+
             var val = t.substr(0, brace);
             node.push(val);
-            t = this.get(val + ']', t);
+            t = this._get(val + ']', t);
             if (t[0] !== '[') break;
             node.push(null); // multiple values, we use nil as name for 2nd, 3rd, etc.
         }
@@ -160,15 +286,15 @@ SgfReader.prototype.parseNode = function (t) {
     return t;
 };
 
-SgfReader.prototype.skip = function (t) {
+SgfReader.prototype._skip = function (t) {
     return t.trimLeft();
 };
 
-SgfReader.prototype.get = function (lex, t) {
-    if (!t.startWith(lex)) this.error(lex + ' expected', t);
+SgfReader.prototype._get = function (lex, t) {
+    if (!t.startWith(lex)) this._error(lex + ' expected', t);
     return t.replace(lex, '').trimLeft();
 };
 
-SgfReader.prototype.error = function (reason, t) {
+SgfReader.prototype._error = function (reason, t) {
     throw new Error('Syntax error: \'' + reason + '\' at ...' + t.substr(0, 20) + '...');
 };
