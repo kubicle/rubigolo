@@ -81,13 +81,11 @@ GameLogic.prototype._failLoad = function (msg, errors) {
 
 // @param {string} game - moves, e.g. "c2,b2,pass,b4,b3,undo,b4,pass,b3"
 // @param {string[]} [errors] - errors will be added to this or thrown
-// @param {number} [upToMoveNumber] - loads moves up to the position before this - SGF only
-GameLogic.prototype.loadMoves = function (game, errors, upToMoveNumber) {
+GameLogic.prototype.loadMoves = function (game, errors) {
     if (!game) return true;
-    try {
-        game = this._sgfToGame(game, upToMoveNumber);
-    } catch (err) {
-        return this._failLoad('Failed loading SGF moves:\n' + err, errors);
+    if (SgfReader.isSgf(game)) {
+        game = this._sgfToGame(game, errors);
+        if (!game) return false;
     }
 
     var moves = game.split(',');
@@ -97,6 +95,15 @@ GameLogic.prototype.loadMoves = function (game, errors, upToMoveNumber) {
         }
     }
     return true;
+};
+
+// @param {string} game - SGF game text
+// @param {string[]} [errors] - errors will be added to this or thrown
+// @param {number} [upToMoveNumber] - loads moves up to the position before this - SGF only
+GameLogic.prototype.loadSgf = function (game, errors, upToMoveNumber) {
+    game = this._sgfToGame(game, errors, upToMoveNumber);
+    if (!game) return false;
+    return this.loadMoves(game, errors);
 };
 
 // Handles a regular move + the special commands (pass, resign, undo, load, hand, log)
@@ -282,12 +289,15 @@ GameLogic.prototype._requestUndo = function (halfMove) {
 
 // Converts a game (list of moves) from SGF format to our internal format.
 // Returns the game unchanged if it is not an SGF one.
-GameLogic.prototype._sgfToGame = function (game, upToMoveNumber) {
-    if (!game.startWith(SgfReader.HEADER)) return game;
-
-    var reader = new SgfReader();
-    var infos = reader.readGame(game, upToMoveNumber);
-
+GameLogic.prototype._sgfToGame = function (game, errors, upToMoveNumber) {
+    var reader, infos;
+    try {
+        reader = new SgfReader();
+        infos = reader.readGame(game, upToMoveNumber);
+    } catch (err) {
+        this._failLoad('Failed loading SGF moves:\n' + err, errors);
+        return null;
+    }
     this.newGame(infos.boardSize);
     this.komi = infos.komi;
     return reader.toMoveList();
