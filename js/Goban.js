@@ -44,8 +44,6 @@ function Goban(gsize) {
     this.numGroups = 0;
 
     this.history = [];
-
-    this.positionHistory = this.currentPosition = this.allSeenPositions = null;
     this._initSuperko(false);
 
     // this._moveIdStack = [];
@@ -78,6 +76,7 @@ Goban.prototype.clear = function () {
 
     this.history.clear();
     this._initSuperko(false);
+
     // this._moveIdStack.clear();
     // this._moveIdGen = this.moveId = 0;
 };
@@ -89,15 +88,6 @@ Goban.prototype.setRules = function (rules) {
         case 'positionalSuperko': this._initSuperko(setting); break;
         default: main.log.warn('Ignoring unsupported rule: ' + rule + ': ' + setting);
         }
-    }
-};
-
-Goban.prototype._initSuperko = function (isRuleOn) {
-    this.useSuperko = isRuleOn;
-    if (isRuleOn) {
-        this.positionHistory = [];
-        this.currentPosition = this.buildCompressedImage();
-        this.allSeenPositions = {};
     }
 };
 
@@ -178,18 +168,17 @@ Goban.prototype.isValidMove = function (i, j, color) {
     var stone = this.ban[j][i];
     if (stone.color !== EMPTY) return false;
 
-    if (this.useSuperko) {
-        // Check this is not a superko (already seen position)
-        var pos = this.nextMoveImage(i, j, color);
-        if (this.allSeenPositions[pos]) {
-            return false;
-        }
-    }
     if (stone.moveIsSuicide(color)) {
         return false;
     }
     if (stone.moveIsKo(color)) {
         return false;
+    }
+    if (this.useSuperko) {
+        // Check this is not a superko (already seen position)
+        if (this.allSeenPositions[this.nextMoveImage(i, j, color)]) {
+            return false;
+        }
     }
     return true;
 };
@@ -213,15 +202,9 @@ Goban.prototype.moveNumber = function () {
 };
 
 Goban.prototype.playAt = function (i, j, color) {
+    this._updatePositionSignature(i, j, color);
     var stone = this._putDown(i, j);
     stone.putDown(color);
-
-    if (this.useSuperko) {
-        this.positionHistory.push(this.currentPosition);
-        this.allSeenPositions[this.currentPosition] = this.history.length;
-        //TODO: use nextMoveImage(i, j, color) or better
-        this.currentPosition = this.buildCompressedImage();
-    }
     return stone;
 };
 
@@ -230,11 +213,7 @@ Goban.prototype.undo = function () {
     var stone = this._takeBack();
     if (!stone) throw new Error('Extra undo');
     stone.takeBack();
-
-    if (this.useSuperko) {
-        this.currentPosition = this.positionHistory.pop();
-        delete this.allSeenPositions[this.currentPosition];
-    }
+    this._updatePositionSignature();
 };
 
 Goban.prototype.tryAt = function (i, j, color) {
@@ -280,46 +259,98 @@ Goban.prototype._takeBack = function () {
 // };
 
 Goban.prototype.previousStone = function () {
-    return this.history[this.history.length-1];
+    return this.history[this.history.length - 1];
 };
 
-/** Compresses 4 stones into a single character.
- * buf contains the 4 stones, each one coded as 0: empty, 1: black, 2: white
- * Resulting character has ascii code 33 + n, with n in 0..81
- */
-function compress4(buf) {
-    return String.fromCharCode(33 + // 33 is "!" - we avoid 32/space on purpose
-        buf[0] +
-        buf[1] * 3 +
-        buf[2] * 9 +
-        buf[3] * 27);
-}
-
-/** Returns a string which describes a unique game position */
-Goban.prototype.buildCompressedImage = function () {
-    var buf = [], img = '';
-    var ndx = 0, gsize = this.gsize;
-    for (var j = 1; j <= gsize; j++) {
-        var yxj = this.ban[j];
-        for (var i = 1; i <= gsize; i++) {
-            buf[ndx++] = yxj[i].color + 1;
-            if (ndx === 4) {
-                img += compress4(buf);
-                ndx = 0;
-            }
-        }
+Goban.prototype._initSuperko = function (isRuleOn) {
+    this.useSuperko = isRuleOn;
+    if (isRuleOn) {
+        this.currentPosition = this.buildCompressedImage();
+        this.positionHistory = [];
+        this.allSeenPositions = {};
+    } else {
+        this.currentPosition = null;
+        this.positionHistory = this.allSeenPositions = null;
     }
-    if (ndx > 0) {
-        for (var n = ndx; n < 4; n++) buf[n] = 0;
-        img += compress4(buf);
+};
+
+Goban.prototype._updatePositionSignature = function (i, j, color) {
+    if (this.useSuperko) {
+        if (i) { // play
+            this.positionHistory.push(this.currentPosition);
+            this.allSeenPositions[this.currentPosition] = this.history.length;
+            this.currentPosition = this.nextMoveImage(i, j, color);
+        } else { // undo
+            this.currentPosition = this.positionHistory.pop();
+            this.allSeenPositions[this.currentPosition] = null;
+        }
+    } else {
+        this.currentPosition = null;
+    }
+};
+
+Goban.prototype.nextMoveImage = function (i, j, color) {
+    var img = this._modifyCompressedImage(this.currentPosition, i, j, color);
+
+    // Remove all dead stones from image
+    var enemies = this.stoneAt(i, j).uniqueAllies(1 - color);
+    for (var e = enemies.length - 1; e >= 0; e--) {
+        if (enemies[e].lives > 1) continue;
+        var stones = enemies[e].stones;
+        for (var n = stones.length - 1; n >= 0; n--) {
+            var s = stones[n];
+            img = this._modifyCompressedImage(img, s.i, s.j, EMPTY);
+        }
     }
     return img;
 };
 
-Goban.prototype.nextMoveImage = function (i, j, color) {
-    var stoneNdx = (j - 1) * this.gsize + i - 1;
-    var img = this.currentPosition;
-    var ndx = ~~(stoneNdx / 4);
-    var newChar = img.charCodeAt(ndx) - 33 + ((1 << color) * Math.pow(3, stoneNdx % 4));
-    return img.substr(0, ndx) + String.fromCharCode(newChar + 33) + img.substr(ndx + 1);
+Goban.prototype.getPositionSignature = function () {
+    if (this.useSuperko) {
+        return this.currentPosition;
+    } else {
+        if (!this.currentPosition) this.currentPosition = this.image();
+        return this.currentPosition;
+    }
+};
+
+var COMPRESS_CHAR0 = 33; // 33 is "!" - we avoid 32/space on purpose
+var ZERO = '0'.charCodeAt();
+
+/** Returns a string which describes a unique game position.
+ * 4 stones (0: empty, 1: black, 2: white) are coded into a single character.
+ * Resulting character has ascii code COMPRESS_CHAR0 + n, with n in 0..80
+ */
+Goban.prototype.buildCompressedImage = function () {
+    var buf = '', img = '';
+    var gsize = this.gsize;
+    for (var j = 1; j <= gsize; j++) {
+        var yxj = this.ban[j];
+        for (var i = 1; i <= gsize; i++) {
+            buf += String.fromCharCode(ZERO + yxj[i].color + 1);
+            if (buf.length === 4) {
+                img += String.fromCharCode(parseInt(buf, 3) + COMPRESS_CHAR0);
+                buf = '';
+            }
+        }
+    }
+    if (buf.length) {
+        buf = (buf + '000').substr(0, 4);
+        img += String.fromCharCode(parseInt(buf, 3) + COMPRESS_CHAR0);
+    }
+    return img;
+};
+
+Goban.prototype._modifyCompressedImage = function (img, i, j, color) {
+    var stoneNum = (j - 1) * this.gsize + (i - 1);
+    var ndx = ~~(stoneNum / 4), subNdx = stoneNum % 4;
+    var newChar;
+    if (color === EMPTY) {
+        var asStr = ('000' + (img.charCodeAt(ndx) - COMPRESS_CHAR0).toString(3)).slice(-4);
+        var newStr = asStr.substr(0, subNdx) + '0' + asStr.substr(subNdx + 1);
+        newChar = parseInt(newStr, 3) + COMPRESS_CHAR0;
+    } else {
+        newChar = img.charCodeAt(ndx) + (1 << color) * Math.pow(3, 3 - subNdx);
+    }
+    return img.substr(0, ndx) + String.fromCharCode(newChar) + img.substr(ndx + 1);
 };

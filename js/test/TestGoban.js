@@ -43,8 +43,9 @@ TestGoban.prototype.testSignature = function () {
         goban.playAt(i, j, color);
         color = 1 - color;
 
-        var realImg = goban.getPositionSignature();
-        this.assertEqual(realImg, incrementalImg);
+        var curImg = goban.getPositionSignature();
+        this.assertEqual(curImg, incrementalImg);
+        this.assertEqual(goban.buildCompressedImage(), curImg);
     }
 };
 
@@ -90,16 +91,17 @@ TestGoban.prototype.testSuperko = function () {
 
     goban.setRules({ positionalSuperko: true });
 
-    this.game.loadMoves('a3,b3,a2,b2,pass,a1,b1,c1,pass,a1,pass,a4,a2,pass,b1,pass,a3,a1');
-    if (goban.isValidMove(1, 2, BLACK)) {
-        this.showInUi('a2 should be invalid: superko');
+    this.game.loadMoves('a3,b3,a2,b2,pass,a1,b1,c1,pass,a1,pass,a4,a2,pass,b1,pass,a3');
+    // W-a1 now would repeat position we had after W-a4
+    if (goban.isValidMove(1, 1, WHITE)) {
+        this.showInUi('a1 should be invalid: superko');
         this.assertEqual(true, false);
     }
     // undo, redo and verify superko is still detected
     goban.undo();
-    goban.playAt(1, 1, WHITE);
-    this.assertEqual(false, goban.isValidMove(1, 2, BLACK));
-    // a2 is allowed again after another stone is added anywhere
+    goban.playAt(1, 3, BLACK);
+    this.assertEqual(false, goban.isValidMove(1, 1, WHITE));
+    // a1 is allowed again after another stone is added anywhere
     goban.playAt(4, 2, BLACK);
-    this.assertEqual(true, goban.isValidMove(1, 2, BLACK));
+    this.assertEqual(true, goban.isValidMove(1, 1, WHITE));
 };

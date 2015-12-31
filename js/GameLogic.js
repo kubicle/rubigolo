@@ -30,6 +30,10 @@ module.exports = GameLogic;
 
 GameLogic.prototype.copy = function (src) {
     this.newGame(src.goban.gsize, src.handicap, src.komi);
+
+    // TODO: general settings should probably be at GameLogic level
+    if (src.goban.useSuperko) this.goban.setRules({ positionalSuperko: true });
+
     this.loadMoves(src.history.join(','));
 };
 
