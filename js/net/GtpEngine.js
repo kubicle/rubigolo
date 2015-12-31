@@ -37,13 +37,6 @@ GtpEngine.prototype.getAiPlayer = function (color) {
     return player;
 };
 
-GtpEngine.prototype._beginGame = function () {
-    this.refreshDisplay();
-    // make sure both AI exist
-    this.getAiPlayer(BLACK);
-    this.getAiPlayer(WHITE);
-};
-
 GtpEngine.prototype.name = function () {
     return main.appName;
 };
@@ -68,28 +61,16 @@ GtpEngine.prototype.setKomi = function (komi) {
     this.game.komi = komi;
 };
 
-GtpEngine.prototype._forceCurPlayer = function (color) {
-    if (!this.players[BLACK]) return false;
-    this.game.curColor = color === 'b' ? BLACK : WHITE;
-    return true;
-};
-
-GtpEngine.prototype._letAiPlay = function () {
-    var move = this.players[this.game.curColor].getMove();
-    this.game.playOneMove(move);
-    return move;
-};
-
-GtpEngine.prototype.regGenMove = function (color) {
-    if (!this._forceCurPlayer(color)) return GAME_NOT_STARTED;
-    return this.players[this.game.curColor].getMove();
-};
-
 GtpEngine.prototype.loadSgf = function (game, moveNumber) {
     var errors = [];
     if (!this.game.loadSgf(game, errors, moveNumber)) return errors[0];
     this._beginGame();
     return '';
+};
+
+GtpEngine.prototype.regGenMove = function (color) {
+    if (!this._forceCurPlayer(color)) return GAME_NOT_STARTED;
+    return this.players[this.game.curColor].getMove();
 };
 
 GtpEngine.prototype.genMove = function (color) {
@@ -112,4 +93,26 @@ GtpEngine.prototype.computeScore = function () {
     var game = this.game;
     if (!game.gameEnding && !game.gameEnded) return null;
     return this.scorer.computeScoreDiff(game.goban, game.komi);
+};
+
+
+//--- private
+
+GtpEngine.prototype._beginGame = function () {
+    this.refreshDisplay();
+    // make sure both AI exist
+    this.getAiPlayer(BLACK);
+    this.getAiPlayer(WHITE);
+};
+
+GtpEngine.prototype._forceCurPlayer = function (color) {
+    if (!this.players[BLACK]) return false;
+    this.game.curColor = color === 'b' ? BLACK : WHITE;
+    return true;
+};
+
+GtpEngine.prototype._letAiPlay = function () {
+    var move = this.players[this.game.curColor].getMove();
+    this.game.playOneMove(move);
+    return move;
 };
