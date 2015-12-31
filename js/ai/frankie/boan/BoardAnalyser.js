@@ -487,7 +487,7 @@ BoardAnalyser.prototype.countScore = function (goban) {
 };
 
 /** If grid is not given a new one will be created from goban */
-BoardAnalyser.prototype.analyse = function (first, goban, grid) {
+BoardAnalyser.prototype.analyse = function (goban, grid, first) {
     if (!this._initAnalysis(goban, grid)) return;
     this._runAnalysis(first);
     this._finalColoring();
