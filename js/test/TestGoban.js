@@ -26,8 +26,11 @@ TestGoban.prototype.testInternals = function () {
     goban.playAt(2, 2, WHITE);
     this.assertEqual(BLACK, goban.colorAt(1, 2));
     this.assertEqual(WHITE, goban.colorAt(2, 2));
-    //Coverage
+    // Coverage
     this.assertEqual(true, goban.debugDump().length > 100);
+    // 2 Grid methods
+    this.assertEqual(goban.image(), goban.grid.image()); // these 2 could change, actually
+    this.assertEqual('undefinedundefined', goban.scoringGrid.toString().substr(0, 18));
 };
 
 TestGoban.prototype.testSignature = function () {
