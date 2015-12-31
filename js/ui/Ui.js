@@ -8,7 +8,6 @@ var GameLogic = require('../GameLogic');
 var Grid = require('../Grid');
 var Gtp = require('../net/Gtp');
 var Logger = require('../Logger');
-var ogsApi = require('../net/ogsApi');
 var NewGameDlg = require('./NewGameDlg');
 var PopupDlg = require('./PopupDlg');
 var ScoreAnalyser = require('../ScoreAnalyser');
@@ -359,11 +358,9 @@ Ui.prototype.onDevKey = function (key) {
         return this.toggleControls();
     }
     if (this.devKeys.slice(-2) === '0g') {
-        // TODO: WIP OGS
+        // TODO: WIP
         var gtp = main.gtp = new Gtp();
-        gtp.init(new UiGtpEngine(this));
-        this.ogsApi = ogsApi;
-        return ogsApi.init();
+        return gtp.init(new UiGtpEngine(this));
     }
 };
 
