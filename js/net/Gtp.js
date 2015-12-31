@@ -1,4 +1,5 @@
 'use strict';
+/* eslint no-console: 0 */
 
 var EventEmitter = require('events').EventEmitter;
 var fs = require('fs');

@@ -1,4 +1,5 @@
 'use strict';
+/* eslint no-console: 0 */
 
 var main = require('../main');
 var GameLogic = require('../GameLogic');
