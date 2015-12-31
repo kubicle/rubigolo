@@ -81,7 +81,7 @@ PotentialTerritory.prototype._foresee = function (grid, first, second) {
 
     // passed grid will receive the result (scoring grid)
     this._connectThings(grid, first, second);
-    this.boan.analyse(first, this.goban, grid.initFromGoban(this.goban));
+    this.boan.analyse(this.goban, grid.initFromGoban(this.goban), first);
     this._collectGroupState();
 
     // restore goban

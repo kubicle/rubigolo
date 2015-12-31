@@ -1,17 +1,46 @@
 'use strict';
+/* eslint no-console: 0 */
 
+var EventEmitter = require('events').EventEmitter;
+var fs = require('fs');
+var inherits = require('util').inherits;
 
+var commands = {};
+
+/** @class
+ * GTP protocol parser. Speaks to a GtpEngine.
+ * - input: gtp.runCommand(cmdline)
+ * - output: engine.send(response)
+ */
 function Gtp() {
     this.engine = null;
-    this.commands = {};
+    this.cpuTime = 0;
 }
+inherits(Gtp, EventEmitter);
+module.exports = Gtp;
 
-var gtp = new Gtp();
-module.exports = gtp;
+// Stone status
+var ALIVE = Gtp.ALIVE = 1;
+var SEKI =  Gtp.SEKI =  0;
+var DEAD =  Gtp.DEAD = -1;
 
 
 Gtp.prototype.init = function (engine) {
     this.engine = engine;
+};
+
+Gtp.prototype.runCommand = function (line) {
+    var cmd = this._parseCommand(line);
+    var fn = commands[cmd.command];
+    if (!fn) return this.fail('unknown command ' + cmd.command);
+
+    this.cmd = cmd;
+    try {
+        fn.call(this, cmd);
+    } catch (exc) {
+        console.error(exc.stack);
+        this.fail('exception running ' + line + ': ' + exc);
+    }
 };
 
 Gtp.prototype._parseRawLine = function (rawline) {
@@ -24,7 +53,7 @@ Gtp.prototype._parseRawLine = function (rawline) {
             line += ' ';
             break;
         default:
-            if (c < ' ' || c.codePointAt() === 127) break;
+            if (c < ' ' || c.charCodeAt() === 127) break;
             line += c;
         }
     }
@@ -46,33 +75,21 @@ Gtp.prototype._parseCommand = function (rawline) {
     return cmd;
 };
 
-Gtp.prototype.runCommand = function (line) {
-    var cmd = this._parseCommand(line);
-    var fn = gtp.commands[cmd.command];
-    if (!fn) return this.fail('unknown command');
-
-    this.cmd = cmd;
-    fn.call(this, cmd);
-};
-
-Gtp.prototype._send = function (msg) {
-    console.info('GTP sends: [' + msg + ']'); //TODO sending
-};
-
 Gtp.prototype.success = function (response) {
     var msg = '=' + this.cmd.id;
     if (response) msg += ' ' + response;
     msg += '\n\n';
-    this._send(msg);
+    this.engine.send(msg);
 };
 
 Gtp.prototype.fail = function (errorMsg) {
-    var msg = '?' + this.cmd.id + ' ' + errorMsg + '\n\n';
-    this._send(msg);
+    var id = this.cmd ? this.cmd.id : '';
+    var msg = '?' + id + ' ' + errorMsg + '\n\n';
+    this.engine.send(msg);
 };
 
 function commandHandler(cmdName, fn) {
-    gtp.commands[cmdName] = fn;
+    commands[cmdName] = fn;
 }
 
 commandHandler('protocol_version', function () {
@@ -88,20 +105,22 @@ commandHandler('version', function () {
 });
 
 commandHandler('known_command', function (cmd) {
-    return this.success(this.commands[cmd.args[0]] ? 'true' : 'false');
+    return this.success(commands[cmd.args[0]] ? 'true' : 'false');
 });
 
 commandHandler('list_commands', function () {
     var cmds = '';
-    for (var command in this.commands) {
+    for (var command in commands) {
         cmds += command + '\n';
     }
     return this.success(cmds + '\n');
 });
 
 commandHandler('quit', function () {
-    //TODO: doc says full response must be processed (Sent) before we close the connection. how?
-    return this.success('');
+    // Doc says full response must be sent/processed before we close the connection
+    this.success('');
+    this.engine.quit();
+    this.emit('quit');
 });
 
 commandHandler('boardsize', function (cmd) {
@@ -157,12 +176,48 @@ commandHandler('play', function (cmd) {
     return this.success();
 });
 
+commandHandler('undo', function () {
+    if (!this.engine.undo()) return this.fail('cannot undo');
+    return this.success();
+});
+
 commandHandler('genmove', function (cmd) {
     var color = parseColor(cmd.args[0]);
     if (!color) return this.fail('syntax error');
 
     var vertex = this.engine.genMove(color);
-    return this.success(vertex);
+    return this.success(vertex.toUpperCase());
+});
+
+// Reg test command
+commandHandler('reg_genmove', function (cmd) {
+    var color = parseColor(cmd.args[0]);
+    if (!color) return this.fail('syntax error');
+
+    var t0 = Date.now();
+    var vertex = this.engine.regGenMove(color);
+    this.cpuTime += Date.now() - t0;
+    return this.success(vertex.toUpperCase());
+});
+
+// Reg test command (only in node)
+commandHandler('loadsgf', function (cmd) {
+    if (typeof window !== 'undefined') return this.fail('loadsgf unavailable here');
+    var fname = cmd.args[0];
+    var game = fs.readFileSync(fname, { encoding: 'utf8' });
+    if (!game) return this.fail('cannot load file ' + fname);
+
+    var upToMoveNumber = cmd.args[1];
+    var err = this.engine.loadSgf(game, upToMoveNumber);
+    if (err) return this.fail('loadsgf ' + fname + ' failed: ' + err);
+    return this.success();
+});
+
+// Reg test command
+commandHandler('cputime', function () {
+    var elapsed = this.cpuTime;
+    this.cpuTime = 0;
+    return this.success(elapsed / 1000);
 });
 
 // Tournament command
@@ -181,4 +236,17 @@ commandHandler('final_score', function () {
     return this.success(score); // e.g. W+2.5 or B+31 or 0
 });
 
-// TODO: final_status_list
+var stoneStatus = {
+    dead: DEAD,
+    seki: SEKI,
+    alive: ALIVE
+};
+
+// Tournament command
+commandHandler('final_status_list', function (cmd) {
+    var status = stoneStatus[cmd.args[0]]; // dead, alive or seki
+    if (status === undefined) return this.fail('syntax error: ' + cmd.args[0]);
+
+    var vertexes = this.engine.getStonesWithStatus(status);
+    return this.success(vertexes.join('\n').toUpperCase());
+});

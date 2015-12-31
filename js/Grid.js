@@ -171,7 +171,7 @@ Grid.prototype.toString = function () {
 // Image is upside-down to help compare with a copy paste from console log.
 // So last row (j==gsize) comes first in image
 Grid.prototype.image = function () {
-    if (main.instanceOf(Object, this.yx[1][1])) {
+    if (typeof this.yx[1][1] === 'object') {
         return this.toLine(function (s) {
             return Grid.colorToChar(s.color);
         });

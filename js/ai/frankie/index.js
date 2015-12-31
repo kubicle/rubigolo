@@ -183,7 +183,7 @@ Frankie.prototype._prepareEval = function () {
     this.ter.guessTerritories();
 
     // get "raw" group info
-    this.boan.analyse(this.color, this.goban);
+    this.boan.analyse(this.goban, null, this.color);
 };
 
 /** Called by heuristics if they decide to stop looking further (rare cases) */

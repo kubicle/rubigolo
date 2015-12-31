@@ -6,13 +6,12 @@ var Board = require('./Board');
 var Dome = require('./Dome');
 var GameLogic = require('../GameLogic');
 var Grid = require('../Grid');
-var gtp = require('../net/gtp');
+var Gtp = require('../net/Gtp');
 var Logger = require('../Logger');
-var ogsApi = require('../net/ogsApi');
 var NewGameDlg = require('./NewGameDlg');
 var PopupDlg = require('./PopupDlg');
 var ScoreAnalyser = require('../ScoreAnalyser');
-var UiEngine = require('../net/UiEngine');
+var UiGtpEngine = require('../net/UiGtpEngine');
 var userPref = require('../userPreferences');
 
 var WHITE = main.WHITE, BLACK = main.BLACK;
@@ -163,8 +162,9 @@ Ui.prototype.createPlayers = function () {
 
 Ui.prototype.getAiPlayer = function (color) {
     var player = this.players[color];
+    if (player) return player;
     var Ai = color === BLACK ? main.defaultAi : main.latestAi;
-    if (!player) player = this.players[color] = new Ai(this.game.goban, color);
+    player = this.players[color] = new Ai(this.game.goban, color);
     return player;
 };
 
@@ -174,7 +174,7 @@ Ui.prototype.startGame = function (firstMoves, isLoaded) {
     if (firstMoves) {
         var errors = [];
         if (!game.loadMoves(firstMoves, errors)) {
-            new PopupDlg(errors.join('\n'));
+            new PopupDlg(this.gameDiv, errors.join('\n'));
             return false;
         }
     }
@@ -221,7 +221,7 @@ Ui.prototype.proposeScore = function () {
     this.message(this.scoreMsg);
     this.message('<br><br>Do you accept this score?', true);
     this.toggleControls();
-    this.board.showScoring(this.game.goban.scoringGrid.yx);
+    this.board.showScoring(this.scorer.getScoringGrid().yx);
 };
 
 Ui.prototype.acceptScore = function (acceptEnd) {
@@ -282,7 +282,7 @@ Ui.prototype.playerMove = function (move) {
 Ui.prototype.playerResigns = function () {
     var self = this;
     var options = { buttons: ['YES', 'NO'] };
-    new PopupDlg('Do you really want to resign?', 'Confirm', options, function (options) {
+    new PopupDlg(this.gameDiv, 'Do you really want to resign?', 'Confirm', options, function (options) {
         if (options.choice !== 0) return;
         self.game.playOneMove('resi');
         self.computeScore();
@@ -358,9 +358,9 @@ Ui.prototype.onDevKey = function (key) {
         return this.toggleControls();
     }
     if (this.devKeys.slice(-2) === '0g') {
-        gtp.init(new UiEngine(this));
-        this.ogsApi = ogsApi;
-        return ogsApi.init();
+        // TODO: WIP
+        var gtp = main.gtp = new Gtp();
+        return gtp.init(new UiGtpEngine(this));
     }
 };
 
@@ -384,7 +384,7 @@ Ui.prototype.evalMove = function (move) {
 Ui.prototype.scoreTest = function () {
     var score = this.scorer.computeScore(this.game.goban, this.game.komi);
     this.message(score);
-    this.board.showSpecial('scoring', this.game.goban.scoringGrid.yx);
+    this.board.showSpecial('scoring', this.scorer.getScoringGrid().yx);
 };
 
 Ui.prototype.territoryTest = function () {

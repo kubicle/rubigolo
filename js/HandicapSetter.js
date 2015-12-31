@@ -4,38 +4,39 @@
 var main = require('./main');
 var Grid = require('./Grid');
 
+var BLACK = main.BLACK, WHITE = main.WHITE;
 
-/** @class */
+
+/** @class Used for setting handicap stones,
+ * and for setting a position "by hand", which is exactly the same. */
 function HandicapSetter() {
 }
 module.exports = HandicapSetter;
 
 // Initializes the handicap points
 // h can be a number or a string
-// string examples: "3" or "3=d4-p16-p4" or "d4-p16-p4"
+// string examples: "3" or "B=d4-p16-p4" or "W=d4-p16-p4"
 // Returns the handicap actual count
 HandicapSetter.setHandicap = function (goban, h) {
     if (h === 0 || h === '0') return 0;
     
-    // Standard handicap?
-    var posEqual = -1;
-    if (typeof h === 'string') {
-        posEqual = h.indexOf('=');
-        if (h[0].between('0', '9') && posEqual < 0) {
-            h = parseInt(h);
-        }
+    // Standard handicap if simple number - no "=..."
+    if (typeof h === 'number' || h.indexOf('=') < 0) {
+        return HandicapSetter.setStandardHandicap(goban, ~~h);
     }
-    if (typeof h === 'number') { // e.g. 3
-        return HandicapSetter.setStandardHandicap(goban, h);
+
+    var color;
+    switch (h[0]) {
+    case 'B': color = BLACK; break;
+    case 'W': color = WHITE; break;
+    default: throw new Error('Invalid "hand" command: ' + h);
     }
-    // Could be standard or not but we are given the stones so use them   
-    if (posEqual !== -1) { // "3=d4-p16-p4" would become "d4-p16-p4"
-        h = h.substring(posEqual + 1);
-    }
-    var moves = h.split('-');
+    
+    var posEqual = h.indexOf('=');
+    var moves = h.substring(posEqual + 1).split('-');
     for (var move, move_array = moves, move_ndx = 0; move=move_array[move_ndx], move_ndx < move_array.length; move_ndx++) {
         var coords = Grid.move2xy(move);
-        goban.playAt(coords[0], coords[1], main.BLACK);
+        goban.playAt(coords[0], coords[1], color);
     }
     return moves.length;
 };

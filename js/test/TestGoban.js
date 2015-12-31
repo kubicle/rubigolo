@@ -3,8 +3,9 @@
 
 var main = require('../main');
 var inherits = require('util').inherits;
-var Goban = require('../Goban');
 var GameLogic = require('../GameLogic');
+var Goban = require('../Goban');
+var Grid = require('../Grid');
 
 var BLACK = main.BLACK, WHITE = main.WHITE;
 
@@ -25,8 +26,30 @@ TestGoban.prototype.testInternals = function () {
     goban.playAt(2, 2, WHITE);
     this.assertEqual(BLACK, goban.colorAt(1, 2));
     this.assertEqual(WHITE, goban.colorAt(2, 2));
-    //Coverage
+    // Coverage
     this.assertEqual(true, goban.debugDump().length > 100);
+    // 2 Grid methods
+    this.assertEqual(goban.image(), goban.grid.image()); // these 2 could change, actually
+    this.assertEqual('undefinedundefined', goban.scoringGrid.toString().substr(0, 18));
+};
+
+TestGoban.prototype.testSignature = function () {
+    var goban = this.goban;
+    goban.setRules({ positionalSuperko: true });
+    var moves = 'a5,b5,a4,b4,c5,a3,d4,c4,d3,d5,c3,b3,a2,c2,e4,d2,e2,e1,e5,e3,b1,b2,c1,a1'.split(',');
+    var color = BLACK;
+    for (var n = 0; n < moves.length; n++) {
+        var coord = Grid.move2xy(moves[n]), i = coord[0], j = coord[1];
+
+        var incrementalImg = goban.nextMoveImage(i, j, color);
+
+        goban.playAt(i, j, color);
+        color = 1 - color;
+
+        var curImg = goban.getPositionSignature();
+        this.assertEqual(curImg, incrementalImg);
+        this.assertEqual(goban.buildCompressedImage(), curImg);
+    }
 };
 
 TestGoban.prototype.testSuicide = function () {
@@ -71,16 +94,17 @@ TestGoban.prototype.testSuperko = function () {
 
     goban.setRules({ positionalSuperko: true });
 
-    this.game.loadMoves('a3,b3,a2,b2,pass,a1,b1,c1,pass,a1,pass,a4,a2,pass,b1,pass,a3,a1');
-    if (goban.isValidMove(1, 2, BLACK)) {
-        this.showInUi('a2 should be invalid: superko');
+    this.game.loadMoves('a3,b3,a2,b2,pass,a1,b1,c1,pass,a1,pass,a4,a2,pass,b1,pass,a3');
+    // W-a1 now would repeat position we had after W-a4
+    if (goban.isValidMove(1, 1, WHITE)) {
+        this.showInUi('a1 should be invalid: superko');
         this.assertEqual(true, false);
     }
     // undo, redo and verify superko is still detected
     goban.undo();
-    goban.playAt(1, 1, WHITE);
-    this.assertEqual(false, goban.isValidMove(1, 2, BLACK));
-    // a2 is allowed again after another stone is added anywhere
+    goban.playAt(1, 3, BLACK);
+    this.assertEqual(false, goban.isValidMove(1, 1, WHITE));
+    // a1 is allowed again after another stone is added anywhere
     goban.playAt(4, 2, BLACK);
-    this.assertEqual(true, goban.isValidMove(1, 2, BLACK));
+    this.assertEqual(true, goban.isValidMove(1, 1, WHITE));
 };

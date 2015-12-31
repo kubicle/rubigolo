@@ -66,9 +66,10 @@ TestScoreAnalyser.prototype.testStartScoring = function () {
 TestScoreAnalyser.prototype.testScoringGrid = function () {
     this.initGame(7);
     this.sa.startScoring(this.goban, 1.5, null);
+    var sgridYx = this.sa.getScoringGrid().yx;
     this.assertEqual(main.EMPTY, this.goban.stoneAt(1, 1).color); // score analyser leaves the goban untouched
-    this.assertEqual(Grid.TERRITORY_COLOR + main.WHITE, this.goban.scoringGrid.yx[1][1]); // a1
-    this.assertEqual(Grid.TERRITORY_COLOR + main.BLACK, this.goban.scoringGrid.yx[6][2]); // b6
+    this.assertEqual(Grid.TERRITORY_COLOR + main.WHITE, sgridYx[1][1]); // a1
+    this.assertEqual(Grid.TERRITORY_COLOR + main.BLACK, sgridYx[6][2]); // b6
 };
 
 TestScoreAnalyser.prototype.testScoreInfoToS = function () {

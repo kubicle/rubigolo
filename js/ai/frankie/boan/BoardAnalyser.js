@@ -473,8 +473,6 @@ function BoardAnalyser() {
 module.exports = BoardAnalyser;
 
 
-/** Calling this method updates the goban to show the detected result.
- */
 BoardAnalyser.prototype.countScore = function (goban) {
     if (main.debug) main.log.debug('Counting score...');
     this.scores[BLACK] = this.scores[WHITE] = 0;
@@ -486,8 +484,12 @@ BoardAnalyser.prototype.countScore = function (goban) {
     if (main.debug) main.log.debug(this.filler.grid.toText(function (c) { return Grid.colorToChar(c); }));
 };
 
+BoardAnalyser.prototype.getScoringGrid = function () {
+    return this.goban.scoringGrid;
+};
+
 /** If grid is not given a new one will be created from goban */
-BoardAnalyser.prototype.analyse = function (first, goban, grid) {
+BoardAnalyser.prototype.analyse = function (goban, grid, first) {
     if (!this._initAnalysis(goban, grid)) return;
     this._runAnalysis(first);
     this._finalColoring();

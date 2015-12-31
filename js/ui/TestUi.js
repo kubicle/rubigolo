@@ -27,11 +27,10 @@ TestUi.prototype.runTest = function (name) {
         main.debug = false; // dead slow if debug is ON
     }
     main.log.level = main.debug ? Logger.DEBUG : Logger.INFO;
-    var self = this;
-    var logfn = function (lvl, msg) { return self.logfn(lvl, msg); };
+    main.log.setLogFunc(this.logfn.bind(this));
 
-    var numIssues = main.tests.run(logfn, specificClass, this.namePattern.value());
-    if (numIssues) logfn(Logger.INFO, '\n*** ' + numIssues + ' ISSUE' + (numIssues !== 1 ? 'S' : '') + ' - See below ***');
+    var numIssues = main.tests.run(specificClass, this.namePattern.value());
+    if (numIssues) this.logfn(Logger.INFO, '\n*** ' + numIssues + ' ISSUE' + (numIssues !== 1 ? 'S' : '') + ' - See below ***');
 
     this.output.scrollToBottom();
     this.errors.scrollToBottom();

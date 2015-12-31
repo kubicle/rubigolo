@@ -18,7 +18,7 @@ TestBreeder.prototype.testBwBalance = function () {
     var numGames = 100;
     var numLostGamesShowed = 5;
     var expectedWins = 0.60 * numGames; // number going up shows new AI gets stronger compared to default AI
-    var tolerance = numGames / 10; // + or -; the more games you play the lower tolerance you can set
+    var tolerance = numGames * 0.15; // + or -; the more games you play the lower tolerance you can set
     var size = 9;
 
     // For coverage tests no need to run many games
