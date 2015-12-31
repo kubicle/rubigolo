@@ -16,15 +16,27 @@ Dependencies
 - [WGo.js](http://github.com/waltheri/wgo.js) is included in the project
 - Browserify, watchify, lessify are used for the build
 
-How to build
-============
+How to build and test locally
+=============================
 
 ```
 npm install
+
+# Start browserify build & file watcher
 npm start
+
+# Run Computer Go Test Collection (you need gogui-regress.jar from GoGui)
+cd ...\cgtc-2.0.1
+java -jar gogui-regress.jar "node ...\rubigolo\js\consoleMain.js" *.tst
 ```
 
 =======
+
+## Christmas 2015 News
+* GTP is working! Used it to run with [GoGui](http://gogui.sf.net/) and [Computer Go Test Collection](https://webdocs.cs.ualberta.ca/~games/go/cgtc/).
+* Code coverage in CI reached 90%, yay!
+* Much more complete implementation of SGF reading (FF4 and FF3).
+* Version bumped to 0.1.0
 
 ## December 2015 News
 * Latest AI (Droopy) wins against old one (Frankie) around 95% of the time. Freezing Droopy as it is and starting a 3rd version from here; introducing Chuckie...
@@ -36,7 +48,7 @@ npm start
 * Could measure the improvement of the AI: no idea about the outside world yet, but the new AI beats the old one around 80 times out of 100 on a 9x9. Much more things I want to improve, including many not so difficult ones (before coding they all look like this, actually... haha)
 * Working on Go Text Protocol interface. Coming soon! I am impatient, see the 2 points below.
 * The great folks at [OGS](http://online-go.com) gave me an access (kudos!) for my yet-to-be-plugged-in bot. This is very exciting. Their site looks great BTW, the best place I saw so far. Beside many other cool features, their tutorial for beginner is super neat and it starts automatically when you create an account (and say you never played before). Check it out!
-* Found an online library of tests: the [Go Test Collection](https://webdocs.cs.ualberta.ca/~games/go/cgtc/). They can be run via GTP as well, so I cannot wait to plug them in... though I already have a very long list of improvements to do, even without finding how many of these tests the AI will happily fail!
+* Found an online library of tests: the [Computer Go Test Collection](https://webdocs.cs.ualberta.ca/~games/go/cgtc/). They can be run via GTP as well, so I cannot wait to plug them in... though I already have a very long list of improvements to do, even without finding how many of these tests the AI will happily fail!
 
 ## September 2015 News
 * As planned, failing unit tests now show with a mini UI so investigation is possible on the spot. This has been helping quite a lot already to fix and improve the AI.
