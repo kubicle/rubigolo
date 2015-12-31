@@ -44,7 +44,10 @@ function Goban(gsize) {
     this.numGroups = 0;
 
     this.history = [];
+
+    this.positionHistory = this.currentPosition = this.allSeenPositions = null;
     this._initSuperko(false);
+
     // this._moveIdStack = [];
     // this._moveIdGen = this.moveId = 0; // moveId is unique per tried move
 
