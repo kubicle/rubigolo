@@ -14,6 +14,7 @@ var inherits = require('util').inherits;
 function Gtp() {
     this.engine = null;
     this.commands = {};
+    this.cpuTime = 0;
 }
 inherits(Gtp, EventEmitter);
 
@@ -189,7 +190,9 @@ commandHandler('reg_genmove', function (cmd) {
     var color = parseColor(cmd.args[0]);
     if (!color) return this.fail('syntax error');
 
+    var t0 = Date.now();
     var vertex = this.engine.regGenMove(color);
+    this.cpuTime += Date.now() - t0;
     return this.success(vertex.toUpperCase());
 });
 
@@ -204,6 +207,13 @@ commandHandler('loadsgf', function (cmd) {
     var err = this.engine.loadSgf(game, upToMoveNumber);
     if (err) return this.fail('loadsgf ' + fname + ' failed: ' + err);
     return this.success();
+});
+
+// Reg test command
+commandHandler('cputime', function () {
+    var elapsed = this.cpuTime;
+    this.cpuTime = 0;
+    return this.success(elapsed / 1000);
 });
 
 // Tournament command
