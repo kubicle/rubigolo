@@ -3,8 +3,9 @@
 
 var main = require('../main');
 var inherits = require('util').inherits;
-var Goban = require('../Goban');
 var GameLogic = require('../GameLogic');
+var Goban = require('../Goban');
+var Grid = require('../Grid');
 
 var BLACK = main.BLACK, WHITE = main.WHITE;
 
@@ -27,6 +28,24 @@ TestGoban.prototype.testInternals = function () {
     this.assertEqual(WHITE, goban.colorAt(2, 2));
     //Coverage
     this.assertEqual(true, goban.debugDump().length > 100);
+};
+
+TestGoban.prototype.testSignature = function () {
+    var goban = this.goban;
+    goban.setRules({ positionalSuperko: true });
+    var moves = 'a5,b5,a4,b4,c5,a3,d4,c4,d3,d5,c3,b3,a2,c2,e4,d2,e2,e1,e5,e3,b1,b2,c1,a1'.split(',');
+    var color = BLACK;
+    for (var n = 0; n < moves.length; n++) {
+        var coord = Grid.move2xy(moves[n]), i = coord[0], j = coord[1];
+
+        var incrementalImg = goban.nextMoveImage(i, j, color);
+
+        goban.playAt(i, j, color);
+        color = 1 - color;
+
+        var realImg = goban.getPositionSignature();
+        this.assertEqual(realImg, incrementalImg);
+    }
 };
 
 TestGoban.prototype.testSuicide = function () {
