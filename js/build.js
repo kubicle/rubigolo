@@ -1,4 +1,309 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+
+},{}],2:[function(require,module,exports){
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+function EventEmitter() {
+  this._events = this._events || {};
+  this._maxListeners = this._maxListeners || undefined;
+}
+module.exports = EventEmitter;
+
+// Backwards-compat with node 0.10.x
+EventEmitter.EventEmitter = EventEmitter;
+
+EventEmitter.prototype._events = undefined;
+EventEmitter.prototype._maxListeners = undefined;
+
+// By default EventEmitters will print a warning if more than 10 listeners are
+// added to it. This is a useful default which helps finding memory leaks.
+EventEmitter.defaultMaxListeners = 10;
+
+// Obviously not all Emitters should be limited to 10. This function allows
+// that to be increased. Set to zero for unlimited.
+EventEmitter.prototype.setMaxListeners = function(n) {
+  if (!isNumber(n) || n < 0 || isNaN(n))
+    throw TypeError('n must be a positive number');
+  this._maxListeners = n;
+  return this;
+};
+
+EventEmitter.prototype.emit = function(type) {
+  var er, handler, len, args, i, listeners;
+
+  if (!this._events)
+    this._events = {};
+
+  // If there is no 'error' event listener then throw.
+  if (type === 'error') {
+    if (!this._events.error ||
+        (isObject(this._events.error) && !this._events.error.length)) {
+      er = arguments[1];
+      if (er instanceof Error) {
+        throw er; // Unhandled 'error' event
+      }
+      throw TypeError('Uncaught, unspecified "error" event.');
+    }
+  }
+
+  handler = this._events[type];
+
+  if (isUndefined(handler))
+    return false;
+
+  if (isFunction(handler)) {
+    switch (arguments.length) {
+      // fast cases
+      case 1:
+        handler.call(this);
+        break;
+      case 2:
+        handler.call(this, arguments[1]);
+        break;
+      case 3:
+        handler.call(this, arguments[1], arguments[2]);
+        break;
+      // slower
+      default:
+        len = arguments.length;
+        args = new Array(len - 1);
+        for (i = 1; i < len; i++)
+          args[i - 1] = arguments[i];
+        handler.apply(this, args);
+    }
+  } else if (isObject(handler)) {
+    len = arguments.length;
+    args = new Array(len - 1);
+    for (i = 1; i < len; i++)
+      args[i - 1] = arguments[i];
+
+    listeners = handler.slice();
+    len = listeners.length;
+    for (i = 0; i < len; i++)
+      listeners[i].apply(this, args);
+  }
+
+  return true;
+};
+
+EventEmitter.prototype.addListener = function(type, listener) {
+  var m;
+
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  if (!this._events)
+    this._events = {};
+
+  // To avoid recursion in the case that type === "newListener"! Before
+  // adding it to the listeners, first emit "newListener".
+  if (this._events.newListener)
+    this.emit('newListener', type,
+              isFunction(listener.listener) ?
+              listener.listener : listener);
+
+  if (!this._events[type])
+    // Optimize the case of one listener. Don't need the extra array object.
+    this._events[type] = listener;
+  else if (isObject(this._events[type]))
+    // If we've already got an array, just append.
+    this._events[type].push(listener);
+  else
+    // Adding the second element, need to change to array.
+    this._events[type] = [this._events[type], listener];
+
+  // Check for listener leak
+  if (isObject(this._events[type]) && !this._events[type].warned) {
+    var m;
+    if (!isUndefined(this._maxListeners)) {
+      m = this._maxListeners;
+    } else {
+      m = EventEmitter.defaultMaxListeners;
+    }
+
+    if (m && m > 0 && this._events[type].length > m) {
+      this._events[type].warned = true;
+      console.error('(node) warning: possible EventEmitter memory ' +
+                    'leak detected. %d listeners added. ' +
+                    'Use emitter.setMaxListeners() to increase limit.',
+                    this._events[type].length);
+      if (typeof console.trace === 'function') {
+        // not supported in IE 10
+        console.trace();
+      }
+    }
+  }
+
+  return this;
+};
+
+EventEmitter.prototype.on = EventEmitter.prototype.addListener;
+
+EventEmitter.prototype.once = function(type, listener) {
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  var fired = false;
+
+  function g() {
+    this.removeListener(type, g);
+
+    if (!fired) {
+      fired = true;
+      listener.apply(this, arguments);
+    }
+  }
+
+  g.listener = listener;
+  this.on(type, g);
+
+  return this;
+};
+
+// emits a 'removeListener' event iff the listener was removed
+EventEmitter.prototype.removeListener = function(type, listener) {
+  var list, position, length, i;
+
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  if (!this._events || !this._events[type])
+    return this;
+
+  list = this._events[type];
+  length = list.length;
+  position = -1;
+
+  if (list === listener ||
+      (isFunction(list.listener) && list.listener === listener)) {
+    delete this._events[type];
+    if (this._events.removeListener)
+      this.emit('removeListener', type, listener);
+
+  } else if (isObject(list)) {
+    for (i = length; i-- > 0;) {
+      if (list[i] === listener ||
+          (list[i].listener && list[i].listener === listener)) {
+        position = i;
+        break;
+      }
+    }
+
+    if (position < 0)
+      return this;
+
+    if (list.length === 1) {
+      list.length = 0;
+      delete this._events[type];
+    } else {
+      list.splice(position, 1);
+    }
+
+    if (this._events.removeListener)
+      this.emit('removeListener', type, listener);
+  }
+
+  return this;
+};
+
+EventEmitter.prototype.removeAllListeners = function(type) {
+  var key, listeners;
+
+  if (!this._events)
+    return this;
+
+  // not listening for removeListener, no need to emit
+  if (!this._events.removeListener) {
+    if (arguments.length === 0)
+      this._events = {};
+    else if (this._events[type])
+      delete this._events[type];
+    return this;
+  }
+
+  // emit removeListener for all listeners on all events
+  if (arguments.length === 0) {
+    for (key in this._events) {
+      if (key === 'removeListener') continue;
+      this.removeAllListeners(key);
+    }
+    this.removeAllListeners('removeListener');
+    this._events = {};
+    return this;
+  }
+
+  listeners = this._events[type];
+
+  if (isFunction(listeners)) {
+    this.removeListener(type, listeners);
+  } else {
+    // LIFO order
+    while (listeners.length)
+      this.removeListener(type, listeners[listeners.length - 1]);
+  }
+  delete this._events[type];
+
+  return this;
+};
+
+EventEmitter.prototype.listeners = function(type) {
+  var ret;
+  if (!this._events || !this._events[type])
+    ret = [];
+  else if (isFunction(this._events[type]))
+    ret = [this._events[type]];
+  else
+    ret = this._events[type].slice();
+  return ret;
+};
+
+EventEmitter.listenerCount = function(emitter, type) {
+  var ret;
+  if (!emitter._events || !emitter._events[type])
+    ret = 0;
+  else if (isFunction(emitter._events[type]))
+    ret = 1;
+  else
+    ret = emitter._events[type].length;
+  return ret;
+};
+
+function isFunction(arg) {
+  return typeof arg === 'function';
+}
+
+function isNumber(arg) {
+  return typeof arg === 'number';
+}
+
+function isObject(arg) {
+  return typeof arg === 'object' && arg !== null;
+}
+
+function isUndefined(arg) {
+  return arg === void 0;
+}
+
+},{}],3:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -23,7 +328,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],2:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -115,14 +420,14 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],3:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],4:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -712,13 +1017,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":3,"_process":2,"inherits":1}],5:[function(require,module,exports){
-module.exports={
-    "server": "beta",
-    "accountName": "kubicle_bot",
-    "apiKey": "08a5ff6a06bcceb051bf9b4174723816"
-}
-},{}],6:[function(require,module,exports){
+},{"./support/isBuffer":5,"_process":4,"inherits":3}],7:[function(require,module,exports){
 //Translated from breeder.rb using babyruby2js
 'use strict';
 
@@ -743,7 +1042,7 @@ function Breeder(gameSize) {
     this.game.newGame(this.gsize);
     this.goban = this.game.goban;
     this.players = [
-        new main.ais.Frankie(this.goban, BLACK),
+        new main.ais.Droopy(this.goban, BLACK),
         new main.defaultAi(this.goban, WHITE)
     ];
     this.scorer = new ScoreAnalyser();
@@ -756,7 +1055,7 @@ module.exports = Breeder;
 Breeder.GENERATION_SIZE = 26; // must be even number
 Breeder.MUTATION_RATE = 0.03; // e.g. 0.02 is 2%
 Breeder.WIDE_MUTATION_RATE = 0.1; // how often do we "widely" mutate
-Breeder.KOMI = 4.5;
+Breeder.KOMI = 1.5;
 Breeder.TOO_SMALL_SCORE_DIFF = 3; // if final score is less that this, see it as a tie game
 
 
@@ -771,8 +1070,8 @@ Breeder.prototype.firstGeneration = function () {
     this.scoreDiff = [];
 };
 
-Breeder.prototype.showInUi = function (msg) {
-    if (main.testUi) main.testUi.showTestGame(this.name, msg, this.game);
+Breeder.prototype.showInUi = function (title, msg) {
+    if (main.testUi) main.testUi.showTestGame(title, msg, this.game);
 };
 
 Breeder.prototype.playUntilGameEnds = function () {
@@ -800,7 +1099,7 @@ Breeder.prototype.playGame = function (name1, name2, p1, p2) {
     } catch (err) {
         main.log.error('Exception occurred during a breeding game: ' + err);
         main.log.error(this.game.historyString());
-        this.showInUi(err);
+        this.showInUi('Exception in breeding game', err);
         throw err;
     }
     if (main.debugBreed) {
@@ -929,7 +1228,7 @@ Breeder.prototype.bwBalanceCheck = function (numGames, gsize, numLostGamesShowed
         if (score > 0) {
             numWins++; // Black won
             if (numWins <= numLostGamesShowed)
-                this.showInUi('#' + numWins + ' lost: ' + this.game.historyString());
+                this.showInUi('Lost breeding game #' + numWins, this.game.historyString());
         }
         totalScore += score;
     }
@@ -948,7 +1247,7 @@ Breeder.prototype.bwBalanceCheck = function (numGames, gsize, numLostGamesShowed
     return numGames - numWins; // number of White's victory
 };
 
-},{"./GameLogic":7,"./Genes":8,"./ScoreAnalyser":14,"./main":51,"./test/TimeKeeper":70}],7:[function(require,module,exports){
+},{"./GameLogic":8,"./Genes":9,"./ScoreAnalyser":15,"./main":70,"./test/TimeKeeper":90}],8:[function(require,module,exports){
 //Translated from game_logic.rb using babyruby2js
 'use strict';
 
@@ -958,6 +1257,9 @@ var Group = require('./Group');
 var Goban = require('./Goban');
 var SgfReader = require('./SgfReader');
 var HandicapSetter = require('./HandicapSetter');
+
+var BLACK = main.BLACK, WHITE = main.WHITE;
+
 
 /** @class GameLogic enforces the game logic.
  *  public read-only attribute: goban, komi, curColor, gameEnded, gameEnding, whoResigned
@@ -978,6 +1280,10 @@ module.exports = GameLogic;
 
 GameLogic.prototype.copy = function (src) {
     this.newGame(src.goban.gsize, src.handicap, src.komi);
+
+    // TODO: general settings should probably be at GameLogic level
+    if (src.goban.useSuperko) this.goban.setRules({ positionalSuperko: true });
+
     this.loadMoves(src.history.join(','));
 };
 
@@ -1027,13 +1333,13 @@ GameLogic.prototype._failLoad = function (msg, errors) {
     return false;
 };
 
-// game is a series of moves, e.g. "c2,b2,pass,b4,b3,undo,b4,pass,b3"
+// @param {string} game - moves, e.g. "c2,b2,pass,b4,b3,undo,b4,pass,b3"
+// @param {string[]} [errors] - errors will be added to this or thrown
 GameLogic.prototype.loadMoves = function (game, errors) {
     if (!game) return true;
-    try {
-        game = this._sgfToGame(game);
-    } catch (err) {
-        return this._failLoad('Failed loading SGF moves:\n' + err, errors);
+    if (SgfReader.isSgf(game)) {
+        game = this._sgfToGame(game, errors);
+        if (!game) return false;
     }
 
     var moves = game.split(',');
@@ -1045,12 +1351,21 @@ GameLogic.prototype.loadMoves = function (game, errors) {
     return true;
 };
 
+// @param {string} game - SGF game text
+// @param {string[]} [errors] - errors will be added to this or thrown
+// @param {number} [upToMoveNumber] - loads moves up to the position before this - SGF only
+GameLogic.prototype.loadSgf = function (game, errors, upToMoveNumber) {
+    game = this._sgfToGame(game, errors, upToMoveNumber);
+    if (!game) return false;
+    return this.loadMoves(game, errors);
+};
+
 // Handles a regular move + the special commands (pass, resign, undo, load, hand, log)
 // Returns false if a problem occured. In this case the error message is available.
 GameLogic.prototype.playOneMove = function (move) {
     if (this.gameEnded) return this._errorMsg('Game already ended');
 
-    if (/^[a-z][1-2]?[0-9]$/.test(move)) {
+    if (/^[B|W]?[a-z][1-2]?[0-9]$/.test(move)) {
         return this.playAStone(move);
     } else if (move === 'undo') {
         return this._requestUndo();
@@ -1072,8 +1387,17 @@ GameLogic.prototype.playOneMove = function (move) {
 };
 
 // Handles a new stone move (not special commands like "pass")
+// e.g. "c3" or "Bc3" or "Wc3"
 GameLogic.prototype.playAStone = function (move) {
-    var coords = Grid.move2xy(move);
+    // Parse [B|W]vertex
+    var vertex = move.substr(1);
+    switch (move[0]) {
+    case 'B': this.curColor = BLACK; break;
+    case 'W': this.curColor = WHITE; break;
+    default: vertex = move;
+    }
+
+    var coords = Grid.move2xy(vertex);
     var i = coords[0], j = coords[1];
     if (!this.goban.isValidMove(i, j, this.curColor)) {
         return this._errorMsg('Invalid move: ' + move);
@@ -1219,18 +1543,21 @@ GameLogic.prototype._requestUndo = function (halfMove) {
 
 // Converts a game (list of moves) from SGF format to our internal format.
 // Returns the game unchanged if it is not an SGF one.
-// Returns an empty move list if nothing should be played (a game is pending).
-GameLogic.prototype._sgfToGame = function (game) {
-    if (!game.startWith('(;FF')) { // are they always the fist characters?
-        return game;
+GameLogic.prototype._sgfToGame = function (game, errors, upToMoveNumber) {
+    var reader, infos;
+    try {
+        reader = new SgfReader();
+        infos = reader.readGame(game, upToMoveNumber);
+    } catch (err) {
+        this._failLoad('Failed loading SGF moves:\n' + err, errors);
+        return null;
     }
-    var reader = new SgfReader(game);
-    this.newGame(reader.boardSize);
-    this.komi = reader.komi;
+    this.newGame(infos.boardSize);
+    this.komi = infos.komi;
     return reader.toMoveList();
 };
 
-},{"./Goban":9,"./Grid":10,"./Group":11,"./HandicapSetter":12,"./SgfReader":15,"./main":51}],8:[function(require,module,exports){
+},{"./Goban":10,"./Grid":11,"./Group":12,"./HandicapSetter":13,"./SgfReader":16,"./main":70}],9:[function(require,module,exports){
 //Translated from genes.rb using babyruby2js
 'use strict';
 
@@ -1397,7 +1724,7 @@ Genes.prototype.mutateAll = function () {
 // W02: unknown constant supposed to be attached to main: YAML
 // E02: unknown method: load(...)
 // W02: unknown constant supposed to be attached to main: YAML
-},{"./main":51}],9:[function(require,module,exports){
+},{"./main":70}],10:[function(require,module,exports){
 //Translated from goban.rb using babyruby2js
 'use strict';
 
@@ -1414,7 +1741,8 @@ var EMPTY = main.EMPTY, BORDER = main.BORDER;
  *  - It also remembers the list of stones played and can share this info for undo feature.
  *  - For console game and debug features, a goban can also "draw" its content as text.
  *  See Stone and Group classes for the layer above this.
- *  public read-only attribute: gsize, grid, scoringGrid, mergedGroups, killedGroups, garbageGroups
+ *  public attribute: scoringGrid
+ *  public read-only attribute: gsize, grid, mergedGroups, killedGroups, garbageGroups
  */
 function Goban(gsize) {
     if (gsize === undefined) gsize = 19;
@@ -1444,6 +1772,7 @@ function Goban(gsize) {
 
     this.history = [];
     this._initSuperko(false);
+
     // this._moveIdStack = [];
     // this._moveIdGen = this.moveId = 0; // moveId is unique per tried move
 
@@ -1474,6 +1803,7 @@ Goban.prototype.clear = function () {
 
     this.history.clear();
     this._initSuperko(false);
+
     // this._moveIdStack.clear();
     // this._moveIdGen = this.moveId = 0;
 };
@@ -1485,15 +1815,6 @@ Goban.prototype.setRules = function (rules) {
         case 'positionalSuperko': this._initSuperko(setting); break;
         default: main.log.warn('Ignoring unsupported rule: ' + rule + ': ' + setting);
         }
-    }
-};
-
-Goban.prototype._initSuperko = function (isRuleOn) {
-    this.useSuperko = isRuleOn;
-    if (isRuleOn) {
-        this.positionHistory = [];
-        this.currentPosition = this.buildCompressedImage();
-        this.allSeenPositions = {};
     }
 };
 
@@ -1544,13 +1865,11 @@ Goban.prototype.getAllGroups = function () {
 };
 
 // For debugging only
-Goban.prototype.debugDisplay = function () {
-    if (!main.debug) return;
-    main.log.debug('Board:');
-    main.log.debug(this.grid.toText(function (s) { return Grid.colorToChar(s.color); }));
-    main.log.debug('Groups:');
-    main.log.debug(this.grid.toText(function (s) { return s.group ? '' + s.group.ndx : '.'; }));
-    main.log.debug('Full info on groups and stones:');
+Goban.prototype.debugDump = function () {
+    var res = 'Board:\n' + this.toString() +
+        '\nGroups:\n' +
+        this.grid.toText(function (s) { return s.group ? '' + s.group.ndx : '.'; }) +
+        '\nStones in groups:\n';
     var groups = {};
     for (var row, row_array = this.grid.yx, row_ndx = 0; row=row_array[row_ndx], row_ndx < row_array.length; row_ndx++) {
         for (var s, s_array = row, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
@@ -1558,8 +1877,9 @@ Goban.prototype.debugDisplay = function () {
         }
     }
     for (var ndx = 1; ndx <= this.numGroups; ndx++) {
-        if (groups[ndx]) main.log.debug(groups[ndx].debugDump());
+        if (groups[ndx]) res += groups[ndx].debugDump() + '\n';
     }
+    return res;
 };
 
 // This display is for debugging and text-only game
@@ -1575,18 +1895,17 @@ Goban.prototype.isValidMove = function (i, j, color) {
     var stone = this.ban[j][i];
     if (stone.color !== EMPTY) return false;
 
-    if (this.useSuperko) {
-        // Check this is not a superko (already seen position)
-        var pos = this.nextMoveImage(i, j, color);
-        if (this.allSeenPositions[pos]) {
-            return false;
-        }
-    }
     if (stone.moveIsSuicide(color)) {
         return false;
     }
     if (stone.moveIsKo(color)) {
         return false;
+    }
+    if (this.useSuperko) {
+        // Check this is not a superko (already seen position)
+        if (this.allSeenPositions[this.nextMoveImage(i, j, color)]) {
+            return false;
+        }
     }
     return true;
 };
@@ -1595,12 +1914,9 @@ Goban.prototype.stoneAt = function (i, j) {
     return this.ban[j][i];
 };
 
-Goban.prototype.color = function (i, j) {
+Goban.prototype.colorAt = function (i, j) {
     var stone = this.ban[j][i];
-    if (stone) { // works because BORDER == nil
-        return stone.color;
-    }
-    return BORDER;
+    return stone ? stone.color : BORDER;
 };
 
 // No validity test here
@@ -1613,15 +1929,9 @@ Goban.prototype.moveNumber = function () {
 };
 
 Goban.prototype.playAt = function (i, j, color) {
+    this._updatePositionSignature(i, j, color);
     var stone = this._putDown(i, j);
     stone.putDown(color);
-
-    if (this.useSuperko) {
-        this.positionHistory.push(this.currentPosition);
-        this.allSeenPositions[this.currentPosition] = this.history.length;
-        //TODO: use nextMoveImage(i, j, color) or better
-        this.currentPosition = this.buildCompressedImage();
-    }
     return stone;
 };
 
@@ -1630,11 +1940,7 @@ Goban.prototype.undo = function () {
     var stone = this._takeBack();
     if (!stone) throw new Error('Extra undo');
     stone.takeBack();
-
-    if (this.useSuperko) {
-        this.currentPosition = this.positionHistory.pop();
-        delete this.allSeenPositions[this.currentPosition];
-    }
+    this._updatePositionSignature();
 };
 
 Goban.prototype.tryAt = function (i, j, color) {
@@ -1680,51 +1986,103 @@ Goban.prototype._takeBack = function () {
 // };
 
 Goban.prototype.previousStone = function () {
-    return this.history[this.history.length-1];
+    return this.history[this.history.length - 1];
 };
 
-/** Compresses 4 stones into a single character.
- * buf contains the 4 stones, each one coded as 0: empty, 1: black, 2: white
- * Resulting character has ascii code 33 + n, with n in 0..81
- */
-function compress4(buf) {
-    return String.fromCharCode(33 + // 33 is "!" - we avoid 32/space on purpose
-        buf[0] +
-        buf[1] * 3 +
-        buf[2] * 9 +
-        buf[3] * 27);
-}
-
-/** Returns a string which describes a unique game position */
-Goban.prototype.buildCompressedImage = function () {
-    var buf = [], img = '';
-    var ndx = 0, gsize = this.gsize;
-    for (var j = 1; j <= gsize; j++) {
-        var yxj = this.ban[j];
-        for (var i = 1; i <= gsize; i++) {
-            buf[ndx++] = yxj[i].color + 1;
-            if (ndx === 4) {
-                img += compress4(buf);
-                ndx = 0;
-            }
-        }
+Goban.prototype._initSuperko = function (isRuleOn) {
+    this.useSuperko = isRuleOn;
+    if (isRuleOn) {
+        this.currentPosition = this.buildCompressedImage();
+        this.positionHistory = [];
+        this.allSeenPositions = {};
+    } else {
+        this.currentPosition = null;
+        this.positionHistory = this.allSeenPositions = null;
     }
-    if (ndx > 0) {
-        for (var n = ndx; n < 4; n++) buf[n] = 0;
-        img += compress4(buf);
+};
+
+Goban.prototype._updatePositionSignature = function (i, j, color) {
+    if (this.useSuperko) {
+        if (i) { // play
+            this.positionHistory.push(this.currentPosition);
+            this.allSeenPositions[this.currentPosition] = this.history.length;
+            this.currentPosition = this.nextMoveImage(i, j, color);
+        } else { // undo
+            this.currentPosition = this.positionHistory.pop();
+            this.allSeenPositions[this.currentPosition] = null;
+        }
+    } else {
+        this.currentPosition = null;
+    }
+};
+
+Goban.prototype.nextMoveImage = function (i, j, color) {
+    var img = this._modifyCompressedImage(this.currentPosition, i, j, color);
+
+    // Remove all dead stones from image
+    var enemies = this.stoneAt(i, j).uniqueAllies(1 - color);
+    for (var e = enemies.length - 1; e >= 0; e--) {
+        if (enemies[e].lives > 1) continue;
+        var stones = enemies[e].stones;
+        for (var n = stones.length - 1; n >= 0; n--) {
+            var s = stones[n];
+            img = this._modifyCompressedImage(img, s.i, s.j, EMPTY);
+        }
     }
     return img;
 };
 
-Goban.prototype.nextMoveImage = function (i, j, color) {
-    var stoneNdx = (j - 1) * this.gsize + i - 1;
-    var img = this.currentPosition;
-    var ndx = ~~(stoneNdx / 4);
-    var newChar = img.charCodeAt(ndx) - 33 + ((1 << color) * Math.pow(3, stoneNdx % 4));
-    return img.substr(0, ndx) + String.fromCharCode(newChar + 33) + img.substr(ndx + 1);
+Goban.prototype.getPositionSignature = function () {
+    if (this.useSuperko) {
+        return this.currentPosition;
+    } else {
+        if (!this.currentPosition) this.currentPosition = this.image();
+        return this.currentPosition;
+    }
 };
 
-},{"./Grid":10,"./Group":11,"./Stone":16,"./main":51}],10:[function(require,module,exports){
+var COMPRESS_CHAR0 = 33; // 33 is "!" - we avoid 32/space on purpose
+var ZERO = '0'.charCodeAt();
+
+/** Returns a string which describes a unique game position.
+ * 4 stones (0: empty, 1: black, 2: white) are coded into a single character.
+ * Resulting character has ascii code COMPRESS_CHAR0 + n, with n in 0..80
+ */
+Goban.prototype.buildCompressedImage = function () {
+    var buf = '', img = '';
+    var gsize = this.gsize;
+    for (var j = 1; j <= gsize; j++) {
+        var yxj = this.ban[j];
+        for (var i = 1; i <= gsize; i++) {
+            buf += String.fromCharCode(ZERO + yxj[i].color + 1);
+            if (buf.length === 4) {
+                img += String.fromCharCode(parseInt(buf, 3) + COMPRESS_CHAR0);
+                buf = '';
+            }
+        }
+    }
+    if (buf.length) {
+        buf = (buf + '000').substr(0, 4);
+        img += String.fromCharCode(parseInt(buf, 3) + COMPRESS_CHAR0);
+    }
+    return img;
+};
+
+Goban.prototype._modifyCompressedImage = function (img, i, j, color) {
+    var stoneNum = (j - 1) * this.gsize + (i - 1);
+    var ndx = ~~(stoneNum / 4), subNdx = stoneNum % 4;
+    var newChar;
+    if (color === EMPTY) {
+        var asStr = ('000' + (img.charCodeAt(ndx) - COMPRESS_CHAR0).toString(3)).slice(-4);
+        var newStr = asStr.substr(0, subNdx) + '0' + asStr.substr(subNdx + 1);
+        newChar = parseInt(newStr, 3) + COMPRESS_CHAR0;
+    } else {
+        newChar = img.charCodeAt(ndx) + (1 << color) * Math.pow(3, 3 - subNdx);
+    }
+    return img.substr(0, ndx) + String.fromCharCode(newChar) + img.substr(ndx + 1);
+};
+
+},{"./Grid":11,"./Group":12,"./Stone":17,"./main":70}],11:[function(require,module,exports){
 //Translated from grid.rb using babyruby2js
 'use strict';
 
@@ -1898,7 +2256,7 @@ Grid.prototype.toString = function () {
 // Image is upside-down to help compare with a copy paste from console log.
 // So last row (j==gsize) comes first in image
 Grid.prototype.image = function () {
-    if (main.instanceOf(Object, this.yx[1][1])) {
+    if (typeof this.yx[1][1] === 'object') {
         return this.toLine(function (s) {
             return Grid.colorToChar(s.color);
         });
@@ -1945,7 +2303,7 @@ Grid.xLabel = function (i) {
     return COLUMNS[i - 1];
 };
 
-},{"./main":51}],11:[function(require,module,exports){
+},{"./main":70}],12:[function(require,module,exports){
 //Translated from group.rb using babyruby2js
 'use strict';
 
@@ -2225,46 +2583,46 @@ Group.countPrisoners = function (goban) {
     return prisoners;
 };
 
-},{"./Grid":10,"./main":51}],12:[function(require,module,exports){
+},{"./Grid":11,"./main":70}],13:[function(require,module,exports){
 //Translated from handicap_setter.rb using babyruby2js
 'use strict';
 
 var main = require('./main');
-var HandicapSetter = require('./HandicapSetter');
 var Grid = require('./Grid');
 
+var BLACK = main.BLACK, WHITE = main.WHITE;
 
-/** @class */
+
+/** @class Used for setting handicap stones,
+ * and for setting a position "by hand", which is exactly the same. */
 function HandicapSetter() {
 }
 module.exports = HandicapSetter;
 
 // Initializes the handicap points
 // h can be a number or a string
-// string examples: "3" or "3=d4-p16-p4" or "d4-p16-p4"
+// string examples: "3" or "B=d4-p16-p4" or "W=d4-p16-p4"
 // Returns the handicap actual count
 HandicapSetter.setHandicap = function (goban, h) {
     if (h === 0 || h === '0') return 0;
     
-    // Standard handicap?
-    var posEqual = -1;
-    if (typeof h === 'string') {
-        posEqual = h.indexOf('=');
-        if (h[0].between('0', '9') && posEqual < 0) {
-            h = parseInt(h);
-        }
+    // Standard handicap if simple number - no "=..."
+    if (typeof h === 'number' || h.indexOf('=') < 0) {
+        return HandicapSetter.setStandardHandicap(goban, ~~h);
     }
-    if (typeof h === 'number') { // e.g. 3
-        return HandicapSetter.setStandardHandicap(goban, h);
+
+    var color;
+    switch (h[0]) {
+    case 'B': color = BLACK; break;
+    case 'W': color = WHITE; break;
+    default: throw new Error('Invalid "hand" command: ' + h);
     }
-    // Could be standard or not but we are given the stones so use them   
-    if (posEqual !== -1) { // "3=d4-p16-p4" would become "d4-p16-p4"
-        h = h.substring(posEqual + 1);
-    }
-    var moves = h.split('-');
+    
+    var posEqual = h.indexOf('=');
+    var moves = h.substring(posEqual + 1).split('-');
     for (var move, move_array = moves, move_ndx = 0; move=move_array[move_ndx], move_ndx < move_array.length; move_ndx++) {
         var coords = Grid.move2xy(move);
-        goban.playAt(coords[0], coords[1], main.BLACK);
+        goban.playAt(coords[0], coords[1], color);
     }
     return moves.length;
 };
@@ -2341,7 +2699,7 @@ HandicapSetter.setStandardHandicap = function (goban, count) {
     return count;
 };
 
-},{"./Grid":10,"./HandicapSetter":12,"./main":51}],13:[function(require,module,exports){
+},{"./Grid":11,"./main":70}],14:[function(require,module,exports){
 'use strict';
 
 var systemConsole = console;
@@ -2350,6 +2708,7 @@ var systemConsole = console;
 /** @class */
 function Logger() {
     this.level = Logger.INFO;
+    this.logfunc = null;
 
     Logger.prototype.debug = this._newLogFn(Logger.DEBUG, systemConsole.debug);
     Logger.prototype.info = this._newLogFn(Logger.INFO, systemConsole.info);
@@ -2378,7 +2737,7 @@ Logger.prototype._newLogFn = function (lvl, consoleFn) {
     };
 };
 
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 //Translated from score_analyser.rb using babyruby2js
 'use strict';
 
@@ -2440,6 +2799,10 @@ ScoreAnalyser.prototype.getScore = function () {
     return this.scoreInfoToS(this.scoreInfo);
 };
 
+ScoreAnalyser.prototype.getScoringGrid = function () {
+    return this.analyser.getScoringGrid();
+};
+
 function pointsToString(n) {
     return ( n !== 1 ? n + ' points' : '1 point' );
 }
@@ -2487,200 +2850,311 @@ ScoreAnalyser.prototype.scoreDiffToS = function (diff) {
     return Grid.colorName(win) + ' wins by ' + pointsToString(Math.abs(diff));
 };
 
-},{"./Grid":10,"./main":51}],15:[function(require,module,exports){
+},{"./Grid":11,"./main":70}],16:[function(require,module,exports){
 //Translated from sgf_reader.rb using babyruby2js
 'use strict';
 
 var main = require('./main');
+
+var BLACK = main.BLACK, WHITE = main.WHITE;
+var colorName = ['B', 'W'];
+var defaultBoardSize = 19;
+
 // Example:
 // (;FF[4]EV[go19.ch.10.4.3]PB[kyy]PW[Olivier Lombart]KM[6.5]SZ[19]
 // SO[http://www.littlegolem.com];B[pd];W[pp];
 // B[ce];W[dc]...;B[tt];W[tt];B[tt];W[aq])
 
+var infoTags = {
+    GM: ['int', null], // 1: Go - other values are considered invalid
+    FF: ['int', 'fileFormat'],
+    SZ: ['int', 'boardSize'], // NB: necessary for 'move' type conversions
+    AB: ['move', null], // add a move (or handicap) for Black
+    AW: ['move', null], // add a move for White
+    HA: ['int', 'handicap'],
+    KM: ['real', 'komi'],
+    RU: ['text', 'rules'],
+    RE: ['text', 'result'],
+    PB: ['text', 'playerBlack'],
+    PW: ['text', 'playerWhite'],
+    BS: ['int', 'blackSpecies'], // 0: human, >0: computer
+    WS: ['int', 'whiteSpecies'],
+    LT: ['flag', 'enforceLosingOnTime'],
+    SO: ['text', 'source'],
+    ID: ['text', 'gameId'],
+    AP: ['text', 'application'], // used to create the SGF file
+    BR: ['text', 'blackRank'],
+    WR: ['text', 'whiteRank'],
+    BT: ['text', 'blackTeam'], // Black's Team
+    WT: ['text', 'whiteTeam'], // White's Team
+    TM: ['text', 'timeLimit'], // per player
+    OT: ['text', 'overtimeMethod'],
+    EV: ['text', 'event'], // e.g. tournament name
+    RO: ['text', 'round'],
+    DT: ['text', 'date'],
+    PC: ['text', 'place'],
+    GN: ['text', 'gameName'],
+    ON: ['text', 'openingPlayed'],
+    GC: ['text', 'gameComment'],
+    C:  ['text', 'comment'],
+    N:  ['text', 'nodeName'],
+    US: ['text', 'userName'], // user who entered the game
+    AN: ['text', 'analyseAuthor'],
+    CP: ['text', 'copyright'],
+    CA: ['text', 'characterSet'], // e.g. UTF-8
+    ST: ['text', null] // method used to display variations
+};
 
-/** @class public read-only attribute: boardSize, komi, handicap, handicapStones
- */
-function SgfReader(sgf) {
-    this.text = sgf;
-    this.nodes = [];
-    this.boardSize = 19;
-    this.handicap = 0;
-    this.handicapStones = [];
-    this.komi = 6.5;
-    this.parseGameTree(sgf + '');
-    return this.getGameInfo();
+var gameTags = {
+    B: 'move',
+    W: 'move',
+    AB: 'move',
+    AW: 'move',
+    BL: null, // Black's time Left
+    WL: null, // White's time Left
+    C:  null, // comments
+    CR: null, // circle
+    BM: null, // bad move
+    N:  null  // node name
+};
+
+
+
+/** @class */
+function SgfReader() {
+    this.text = null;
+    this.nodes = null;
+    this.boardSize = 0;
+    this.handMoves = null;
+    this.infos = null;
+    this.curColor = BLACK;
+    this.moves = null;
+    this.moveNumber = 0;
 }
 module.exports = SgfReader;
 
+
+SgfReader.isSgf = function (game) {
+    return game.trimLeft().startWith('(;');
+};
+
 // Raises an exception if we could not convert the format
+SgfReader.prototype.readGame = function (sgf, upToMoveNumber) {
+    if (!SgfReader.isSgf(sgf)) throw new Error('Not an SGF file');
+    this.text = sgf;
+    this.nodes = [];
+    this.handMoves = [[], []];
+    this._parseGameTree(sgf);
+    this._processGameInfo();
+    this._processMoves(upToMoveNumber);
+    return this.infos;
+};
+
 SgfReader.prototype.toMoveList = function () {
-    // NB: we verify the expected player since our internal move format
-    // does not mention the player each time.
-    var expectedPlayer = 'B';
-    var moves = '';
-    if (this.handicap > 0) {
-        expectedPlayer = 'W';
-        if (this.handicapStones.length !== 0) {
-            if (this.handicapStones.length !== this.handicap) {
-                throw new Error('List of ' + this.handicapStones.length + ' handicap stones given does not match the handicap number of ' + this.handicap);
-            }
-            moves = 'hand:' + this.handicap + '=' + this.handicapStones.join('-') + ',';
-        } else {
-            moves = 'hand:' + this.handicap + ',';
-        }
-    }
-    for (var i = 1; i <= this.nodes.length - 1; i++) {
-        var name = this.nodes[i][0];
-        var value = this.nodes[i][1];
-        if (name !== 'B' && name !== 'W') {
-            if (name !== 'C') { // comments can be ignored
-                main.log.warn('Unknown property ' + name + '[' + value + '] ignored');
-            }
-            continue;
-        }
-        if (name !== expectedPlayer) {
-            throw new Error('Move for ' + expectedPlayer + ' was expected and we got ' + name + ' instead');
-        }
-        moves += this.convertMove(value) + ',';
-        expectedPlayer = (( expectedPlayer === 'B' ? 'W' : 'B' ));
-    }
-    return moves.chop();
+    return this.moves;
 };
 
-//private;
-SgfReader.prototype.getGameInfo = function () {
-    var header = this.nodes[0];
-    if (!header || header[0] !== 'FF') {
-        throw new Error('SGF header missing');
-    }
-    for (var p = 0; p <= header.length - 1; p += 2) {
-        var name = header[p];
-        var val = header[p + 1];
-        switch (name) {
-        case 'FF':
-            if (parseInt(val) < 4) {
-                main.log.warn('SGF version FF[' + val + ']. Not sure we handle it.');
-            }
-            break;
-        case 'SZ':
-            this.boardSize = parseInt(val);
-            break;
-        case 'HA':
-            this.handicap = parseInt(val);
-            break;
-        case 'AB':
-            this.handicapStones.push(this.convertMove(val));
-            break;
-        case 'KM':
-            this.komi = parseFloat(val);
-            break;
-        case 'RU':
-        case 'RE':
-        case 'PB':
-        case 'PW':
-        case 'BR':
-        case 'WR':
-        case 'BT':
-        case 'WT':
-        case 'TM':
-        case 'DT':
-        case 'EV':
-        case 'RO':
-        case 'PC':
-        case 'GN':
-        case 'ON':
-        case 'GC':
-        case 'SO':
-        case 'US':
-        case 'AN':
-        case 'CP':
-            //NOP
-            break;
-        default: 
-            main.log.info('Unknown property in SGF header: ' + name + '[' + val + ']');
-        }
-    }
+function letterToCoord(c) {
+    if (c.between('a', 'z')) return c.charCodeAt() - 97; // - 'a'
+    if (c.between('A', 'Z')) return c.charCodeAt() - 65; // - 'A'
+    throw new Error('Invalid coordinate value: ' + c);
+}
+
+var COLUMNS = 'abcdefghjklmnopqrstuvwxyz'; // NB: "i" is skipped + not handling > z
+
+// this.boardSize (tag SZ) must be known before we can convert moves
+// If SZ is unknown while we start generating moves, we suppose size as default.
+// Once boardSize is set, changing it throws an exception.
+SgfReader.prototype._setBoardSize = function (size) {
+    if (this.boardSize) throw new Error('Size (SZ) set twice or after the first move');
+    this.boardSize = size;
 };
 
-SgfReader.prototype.convertMove = function (sgfMove) {
-    if (sgfMove === 'tt') {
+SgfReader.prototype._convertMove = function (sgfMove) {
+    if (!this.boardSize) this._setBoardSize(defaultBoardSize);
+
+    if (sgfMove === '' || (sgfMove === 'tt' && this.boardSize <= 19)) {
         return 'pass';
     }
-    var i = sgfMove[0];
-    if (i >= 'i') i = String.fromCharCode(i.charCodeAt() + 1);
-    return i + (this.boardSize - (sgfMove[1].charCodeAt() - 'a'.charCodeAt())).toString();
+    var i = COLUMNS[letterToCoord(sgfMove[0])];
+    var j = this.boardSize - letterToCoord(sgfMove[1]);
+    return i + j;
 };
 
-SgfReader.prototype.parseGameTree = function (t) {
-    t = this.skip(t);
-    t = this.get('(', t);
-    t = this.parseNode(t);
+SgfReader.prototype._addMove = function (color, move, isHand) {
+    // Keep count of "real" moves (not handicap or "added" moves)
+    if (!isHand) this.moveNumber++;
+    
+    // Add color info to the move if this was not the expected color
+    var colorStr = color === this.curColor ? '' : colorName[color];
+    // If real game started...
+    if (this.moveNumber) {
+        this.curColor = 1 - color;
+        this.moves.push(colorStr + move);
+    } else {
+        this.handMoves[color].push(move);
+    }
+};
+
+SgfReader.prototype._convertValue = function (rawVal, valType) {
+    switch (valType) {
+    case 'text': return rawVal;
+    case 'int': return parseInt(rawVal);
+    case 'real': return parseFloat(rawVal);
+    case 'flag': return true;
+    case 'move': return this._convertMove(rawVal);
+    default: throw new Error('Invalid tag type: ' + valType);
+    }
+};
+
+SgfReader.prototype._processGameTag = function (name, rawVal) {
+    var valType = gameTags[name];
+    if (valType === undefined) {
+        return main.log.warn('Unknown property ' + name + '[' + rawVal + '] ignored');
+    }
+    if (!valType) return; // fine to ignore
+
+    var value = this._convertValue(rawVal, valType);
+
+    switch (name) {
+    case 'B': return this._addMove(BLACK, value);
+    case 'W': return this._addMove(WHITE, value);
+    case 'AB': return this._addMove(BLACK, value, /*isHand=*/true);
+    case 'AW': return this._addMove(WHITE, value, /*isHand=*/true);
+    }
+};
+
+SgfReader.prototype._genHandMoves = function (color) {
+    var moves = this.handMoves[color];
+    if (!moves.length) return '';
+
+    return 'hand:' + colorName[color] + '=' + moves.join('-') + ',';
+};
+
+SgfReader.prototype._processMoves = function (upToMoveNumber) {
+    this.moves = [];
+    this.moveNumber = 0;
+    this.curColor = null;
+
+    for (var i = 1; i < this.nodes.length; i++) {
+        var node = this.nodes[i];
+        for (var n = 0; n < node.length; n += 2) {
+            var name = node[n] || name;
+            var rawVal = node[n + 1];
+            this._processGameTag(name, rawVal);
+        }
+    }
+    var beforeMove = upToMoveNumber ? upToMoveNumber - 1 : this.moves.length;
+    this.moves = (this._genHandMoves(BLACK) + this._genHandMoves(WHITE) +
+        this.moves.slice(0, beforeMove).join(',')).chomp(',');
+};
+
+SgfReader.prototype._storeInfoTag = function (name, rawVal) {
+    var tag = infoTags[name];
+    if (tag === undefined) {
+        this.infos[name] = rawVal;
+        return main.log.info('Unknown property in SGF header: ' + name + '[' + rawVal + ']');
+    }
+    var infoType = tag[0], infoName = tag[1];
+
+    var value = this._convertValue(rawVal, infoType);
+    if (infoName) this.infos[infoName] = value;
+    return value;
+};
+
+SgfReader.prototype._processGameInfo = function () {
+    this.boardSize = null;
+    this.infos = { boardSize: defaultBoardSize, komi: 0, handicap: 0 };
+    var header = this.nodes[0];
+    for (var p = 0; p <= header.length - 1; p += 2) {
+        var name = header[p];
+        var rawVal = header[p + 1];
+
+        var value = this._storeInfoTag(name, rawVal);
+
+        switch (name) {
+        case 'GM':
+            if (value !== 1) throw new Error('SGF game is not a GO game');
+            break;
+        case 'FF': // FileFormat
+            if (value < 3 || value > 4) {
+                main.log.warn('SGF format ' + value + '. Not sure we handle it well.');
+            }
+            break;
+        case 'SZ': this._setBoardSize(value); break;
+        case 'AB': this._addMove(BLACK, value, /*isHand=*/true); break;
+        case 'AW': this._addMove(WHITE, value, /*isHand=*/true); break;
+        }
+    }
+};
+
+SgfReader.prototype._parseGameTree = function (t) {
+    t = this._skip(t);
+    t = this._get('(', t);
+    t = this._parseNode(t);
     this.finished = false;
     while (!this.finished) {
-        t = this.parseNode(t);
+        t = this._parseNode(t);
     }
-    return this.get(')', t);
+    return this._get(')', t);
 };
 
-SgfReader.prototype.parseNode = function (t) {
-    t = this.skip(t);
+function indexOfClosingBrace(t) {
+    var pos = 0;
+    for (;;) {
+        var brace = t.indexOf(']', pos);
+        if (brace === -1) return -1;
+        if (t[brace - 1] !== '\\') return brace;
+        pos = brace + 1;
+    }
+}
+
+SgfReader.prototype._parseNode = function (t) {
+    t = this._skip(t);
     if (t[0] !== ';') {
         this.finished = true;
         return t;
     }
-    t = this.get(';', t);
+    t = this._get(';', t);
     var node = [];
-    while (true) {
+    for (;;) {
         var i = 0;
-        while (t[i] && t[i].between('A', 'Z')) {
-            i += 1;
-        }
+        while (t[i] && t[i].between('A', 'Z')) { i++; }
         var propIdent = t.substr(0, i);
-        if (propIdent === '') {
-            this.error('Property name expected', t);
-        }
+        if (propIdent === '') this._error('Property name expected', t);
         node.push(propIdent);
-        t = this.get(propIdent, t);
-        while (true) {
-            t = this.get('[', t);
-            var brace = t.indexOf(']');
-            if (brace < 0) {
-                this.error('Missing \']\'', t);
-            }
+        t = this._get(propIdent, t);
+        for (;;) {
+            t = this._get('[', t);
+            var brace = indexOfClosingBrace(t);
+            if (brace < 0) this._error('Missing \']\'', t);
+
             var val = t.substr(0, brace);
             node.push(val);
-            t = this.get(val + ']', t);
-            if (t[0] !== '[') {
-                break;
-            }
+            t = this._get(val + ']', t);
+            if (t[0] !== '[') break;
             node.push(null); // multiple values, we use nil as name for 2nd, 3rd, etc.
         }
-        if (!t[0] || !t[0].between('A', 'Z')) {
-            break;
-        }
+        if (!t[0] || !t[0].between('A', 'Z')) break;
     }
     this.nodes.push(node);
     return t;
 };
 
-SgfReader.prototype.skip = function (t) {
+SgfReader.prototype._skip = function (t) {
     return t.trimLeft();
 };
 
-SgfReader.prototype.get = function (lex, t) {
-    if (!t.startWith(lex)) {
-        this.error(lex + ' expected', t);
-    }
+SgfReader.prototype._get = function (lex, t) {
+    if (!t.startWith(lex)) this._error(lex + ' expected', t);
     return t.replace(lex, '').trimLeft();
 };
 
-SgfReader.prototype.error = function (reason, t) {
+SgfReader.prototype._error = function (reason, t) {
     throw new Error('Syntax error: \'' + reason + '\' at ...' + t.substr(0, 20) + '...');
 };
 
-// E02: unknown method: info(...)
-// E02: unknown method: index(...)
-},{"./main":51}],16:[function(require,module,exports){
+},{"./main":70}],17:[function(require,module,exports){
 //Translated from stone.rb using babyruby2js
 'use strict';
 
@@ -2744,10 +3218,6 @@ Stone.prototype.toString = function () {
 // Returns "c3" for a stone in 3,3
 Stone.prototype.asMove = function () {
     return Grid.xy2move(this.i, this.j);
-};
-
-Stone.prototype.debugDump = function () {
-    return this.toString(); // we could add more info
 };
 
 // Returns a string with the list of empty points, sorted (debug only)
@@ -2940,7 +3410,7 @@ Stone.prototype.isNextTo = function (group) {
     return false;
 };
 
-},{"./Grid":10,"./Group":11,"./main":51}],17:[function(require,module,exports){
+},{"./Grid":11,"./Group":12,"./main":70}],18:[function(require,module,exports){
 'use strict';
 
 var Connector = require('./Connector');
@@ -2971,7 +3441,7 @@ var allHeuristics = function () {
 };
 module.exports = allHeuristics;
 
-},{"./Connector":18,"./GroupAnalyser":19,"./Hunter":21,"./Influence":22,"./NoEasyPrisoner":23,"./PotentialTerritory":24,"./Pusher":25,"./Savior":26,"./Shaper":27,"./Spacer":28}],18:[function(require,module,exports){
+},{"./Connector":19,"./GroupAnalyser":20,"./Hunter":22,"./Influence":23,"./NoEasyPrisoner":24,"./PotentialTerritory":25,"./Pusher":26,"./Savior":27,"./Shaper":28,"./Spacer":29}],19:[function(require,module,exports){
 //Translated from connector.rb using babyruby2js
 'use strict';
 
@@ -3149,7 +3619,7 @@ Connector.prototype._connectsMyGroups = function (stone, color) {
     return this._diagonalConnect(stone, color);
 };
 
-},{"../../Grid":10,"../../main":51,"./Heuristic":20,"util":4}],19:[function(require,module,exports){
+},{"../../Grid":11,"../../main":70,"./Heuristic":21,"util":6}],20:[function(require,module,exports){
 'use strict';
 
 var BoardAnalyser = require('./boan/BoardAnalyser');
@@ -3185,7 +3655,7 @@ GroupAnalyser.prototype._initGroupState = function () {
     }
 };
 
-},{"./Heuristic":20,"./boan/BoardAnalyser":30,"util":4}],20:[function(require,module,exports){
+},{"./Heuristic":21,"./boan/BoardAnalyser":31,"util":6}],21:[function(require,module,exports){
 //Translated from heuristic.rb using babyruby2js
 'use strict';
 
@@ -3489,7 +3959,7 @@ Heuristic.prototype.canEscapeAlongBorder = function (group, i, j) {
     }
 };
 
-},{"../../Grid":10,"../../Stone":16,"../../main":51}],21:[function(require,module,exports){
+},{"../../Grid":11,"../../Stone":17,"../../main":70}],22:[function(require,module,exports){
 //Translated from hunter.rb using babyruby2js
 'use strict';
 
@@ -3707,7 +4177,7 @@ function basicSort(a, b) { return a - b; }
  *  Some of these chases might fail, but even so, the enemy can only defend one.
  *  Rule of thumb:
  *  - if 0 can escape => we capture the bigger one
- *  - if　1 or more can escape => we capture nothing if only 1, or the 2nd bigger if the 1st can escape
+ *  - if 1 or more can escape => we capture nothing if only 1, or the 2nd bigger if the 1st can escape
  */
 Hunter.prototype._getMultipleChaseThreat = function (egroups, canEscape) {
     switch (egroups.length) {
@@ -3802,7 +4272,7 @@ Hunter.prototype.isSnapback = function (stone) {
     return this.snapbacks.indexOf(stone) !== -1;
 };
 
-},{"../../Grid":10,"../../main":51,"./Heuristic":20,"util":4}],22:[function(require,module,exports){
+},{"../../Grid":11,"../../main":70,"./Heuristic":21,"util":6}],23:[function(require,module,exports){
 'use strict';
 
 var main = require('../../main');
@@ -3894,7 +4364,7 @@ Influence.prototype.debugDump = function () {
     }
 };
 
-},{"../../Grid":10,"../../main":51,"./Heuristic":20,"util":4}],23:[function(require,module,exports){
+},{"../../Grid":11,"../../main":70,"./Heuristic":21,"util":6}],24:[function(require,module,exports){
 //Translated from no_easy_prisoner.rb using babyruby2js
 'use strict';
 
@@ -3951,7 +4421,7 @@ NoEasyPrisoner.prototype._evalMove = function (i, j, color) {
     return score;
 };
 
-},{"../../Grid":10,"../../main":51,"./Heuristic":20,"util":4}],24:[function(require,module,exports){
+},{"../../Grid":11,"../../main":70,"./Heuristic":21,"util":6}],25:[function(require,module,exports){
 'use strict';
 
 var main = require('../../main');
@@ -4269,7 +4739,7 @@ PotentialTerritory.prototype.connectToBorders = function (yx) {
     }
 };
 
-},{"../../Grid":10,"../../Stone":16,"../../main":51,"./Heuristic":20,"util":4}],25:[function(require,module,exports){
+},{"../../Grid":11,"../../Stone":17,"../../main":70,"./Heuristic":21,"util":6}],26:[function(require,module,exports){
 //Translated from pusher.rb using babyruby2js
 'use strict';
 
@@ -4319,7 +4789,7 @@ Pusher.prototype._evalMove = function (i, j, color) {
     return score;
 };
 
-},{"../../Grid":10,"../../main":51,"./Heuristic":20,"util":4}],26:[function(require,module,exports){
+},{"../../Grid":11,"../../main":70,"./Heuristic":21,"util":6}],27:[function(require,module,exports){
 //Translated from savior.rb using babyruby2js
 'use strict';
 
@@ -4419,7 +4889,7 @@ Savior.prototype._evalEscape = function (i, j, stone) {
     return 0; // nothing we can do to help
 };
 
-},{"../../Grid":10,"../../main":51,"./Heuristic":20,"util":4}],27:[function(require,module,exports){
+},{"../../Grid":11,"../../main":70,"./Heuristic":21,"util":6}],28:[function(require,module,exports){
 'use strict';
 
 var main = require('../../main');
@@ -4543,7 +5013,7 @@ Shaper.prototype._eyeCloser = function (i, j, color) {
     return 0;
 };
 
-},{"../../Grid":10,"../../main":51,"./Heuristic":20,"util":4}],28:[function(require,module,exports){
+},{"../../Grid":11,"../../main":70,"./Heuristic":21,"util":6}],29:[function(require,module,exports){
 //Translated from spacer.rb using babyruby2js
 'use strict';
 
@@ -4596,7 +5066,7 @@ Spacer.prototype.distanceFromBorder = function (n) {
     return Math.min(n - 1, this.gsize - n);
 };
 
-},{"../../main":51,"./Heuristic":20,"util":4}],29:[function(require,module,exports){
+},{"../../main":70,"./Heuristic":21,"util":6}],30:[function(require,module,exports){
 'use strict';
 
 var main = require('../../../main');
@@ -4664,7 +5134,7 @@ Band.gather = function (groups) {
     }
 };
 
-},{"../../../main":51}],30:[function(require,module,exports){
+},{"../../../main":70}],31:[function(require,module,exports){
 'use strict';
 
 var main = require('../../../main');
@@ -4694,11 +5164,9 @@ function BoardAnalyser() {
 module.exports = BoardAnalyser;
 
 
-var BOAN_VERSION = BoardAnalyser.VERSION = 'droopy';
+var BOAN_VERSION = BoardAnalyser.VERSION = 'chuckie';
 
 
-/** Calling this method updates the goban to show the detected result.
- */
 BoardAnalyser.prototype.countScore = function (goban) {
     if (main.debug) main.log.debug('Counting score...');
     this.scores[BLACK] = this.scores[WHITE] = 0;
@@ -4709,6 +5177,10 @@ BoardAnalyser.prototype.countScore = function (goban) {
     this._runAnalysis();
     this._finalColoring();
     if (main.debug) main.log.debug(grid.toText(function (c) { return Grid.colorToChar(c); }));
+};
+
+BoardAnalyser.prototype.getScoringGrid = function () {
+    return this.goban.scoringGrid;
 };
 
 BoardAnalyser.prototype.analyse = function (goban, grid, first2play) {
@@ -4723,26 +5195,22 @@ BoardAnalyser.prototype.image = function () {
 };
 
 BoardAnalyser.prototype.debugDump = function () {
-    main.log.debug(this.goban.analyseGrid.toText(function (c) {
-        return Grid.colorToChar(c);
-    }));
+    var res = 'Grid:\n' +
+        this.goban.analyseGrid.toText(function (c) { return Grid.colorToChar(c); }) +
+        'Voids:\n';
     for (var v, v_array = this.allVoids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
-        v.debugDump();
+        res += v.toString() + '\n';
+    }
+    res += 'Groups:\n';
+    for (var ndx in this.allGroups) {
+        res += this.allGroups[~~ndx].toString() + '\n';
     }
     if (this.scores) {
-        var eyes = [[], [], []];
-        for (var ndx in this.allGroups) {
-            var gi = this.allGroups[~~ndx];
-            var numEyes = gi.eyeCount;
-            eyes[numEyes >= 2 ? 2 : numEyes].push(gi);
-        }
-        main.log.debug('\nGroups with 2 eyes or more: ' + eyes[2].map(GroupInfo.giNdx));
-        main.log.debug('Groups with 1 eye: ' + eyes[1].map(GroupInfo.giNdx));
-        main.log.debug('Groups with no eye: ' + eyes[0].map(GroupInfo.giNdx));
-        main.log.debug('Score:' + this.scores.map(function (s, i) {
+        res += 'Score:' + this.scores.map(function (s, i) {
             return ' player ' + i + ': ' + s + ' points';
-        }));
+        });
     }
+    return res;
 };
 
 BoardAnalyser.prototype._initAnalysis = function (mode, goban, grid) {
@@ -4924,7 +5392,7 @@ var finalCheck = { name: 'final', run: function (gi) { return gi.checkLiveliness
 var midGameLifeChecks = [
     parentCheck,
     brotherCheck,
-    singleEyeCheck,
+    singleEyeCheck
     // We don't expect a final liveliness (2) in mid-game
 ];
 var scoringLifeChecks = [
@@ -5049,7 +5517,7 @@ BoardAnalyser.prototype._colorVoids = function () {
     }
 };
 
-},{"../../../Grid":10,"../../../Group":11,"../../../main":51,"./GroupInfo":31,"./Void":32,"./ZoneFiller":33}],31:[function(require,module,exports){
+},{"../../../Grid":11,"../../../Group":12,"../../../main":70,"./GroupInfo":32,"./Void":33,"./ZoneFiller":34}],32:[function(require,module,exports){
 'use strict';
 
 var main = require('../../../main');
@@ -5435,7 +5903,7 @@ GroupInfo.prototype.countPotentialEyes = function () {
     return this._count(this._countPotEyes);
 };
 
-},{"../../../main":51,"./Band":29}],32:[function(require,module,exports){
+},{"../../../main":70,"./Band":30}],33:[function(require,module,exports){
 'use strict';
 
 var main = require('../../../main');
@@ -5620,23 +6088,15 @@ Void.prototype.isTouching = function (gi) {
     return this.groups[g.color].indexOf(g) > -1;
 };
 
-Void.prototype.toString = function () {
-    var s = vtype2str(this.vtype) + ' ' + this.code + '-' + Grid.colorToChar(this.code) + ' (' + Grid.xy2move(this.i, this.j) + '), vcount ' + this.vcount;
-    for (var color = 0; color < this.groups.length; color++) {
-        s += ', ' + this.groups[color].length + ' ' + Grid.colorName(color) + ' neighbors';
-    }
-    return s;
-};
-
 function grpNdx(g) { return '#' + g.ndx; }
 
-Void.prototype.debugDump = function () {
-    main.log.debug(this.toString());
-    main.log.debug('   black: ' + this.groups[BLACK].map(grpNdx));
-    main.log.debug('   white: ' + this.groups[WHITE].map(grpNdx));
+Void.prototype.toString = function () {
+    return vtype2str(this.vtype) + '-' + Grid.xy2move(this.i, this.j) + ', vcount:' + this.vcount +
+        ', black:' + (this.groups[BLACK].map(grpNdx).toString() || '-') +
+        ', white:' + (this.groups[WHITE].map(grpNdx).toString() || '-');
 };
 
-},{"../../../Grid":10,"../../../main":51}],33:[function(require,module,exports){
+},{"../../../Grid":11,"../../../main":70}],34:[function(require,module,exports){
 //Translated from zone_filler.rb using babyruby2js
 'use strict';
 
@@ -5720,7 +6180,665 @@ ZoneFiller.prototype._check = function (i, j) {
     return false;
 };
 
-},{"../../../main":51}],34:[function(require,module,exports){
+},{"../../../main":70}],35:[function(require,module,exports){
+'use strict';
+
+var main = require('../../main');
+
+var allHeuristics = require('./AllHeuristics');
+var BoardAnalyser = require('./boan/BoardAnalyser');
+var Genes = require('../../Genes');
+var Grid = require('../../Grid');
+var ZoneFiller = require('./boan/ZoneFiller');
+
+var sOK = main.sOK, sINVALID = main.sINVALID, sBLUNDER = main.sBLUNDER, sDEBUG = main.sDEBUG;
+
+var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
+
+
+/** @class */
+function Chuckie(goban, color, genes) {
+    this.version = 'Chuckie-1.0';
+    this.goban = goban;
+    this.genes = genes || new Genes();
+    this.gsize = this.goban.gsize;
+    this.stateGrid = new Grid(this.gsize);
+    this.scoreGrid = new Grid(this.gsize);
+
+    // genes need to exist before we create heuristics
+    this.minimumScore = this.getGene('smallerMove', 0.03, 0.01, 0.1);
+
+    this._createHeuristics();
+    this.setColor(color);
+    this.prepareGame();
+}
+module.exports = Chuckie;
+
+// Used only by tests
+Chuckie.BoardAnalyser = BoardAnalyser;
+Chuckie.ZoneFiller = ZoneFiller;
+
+
+Chuckie.prototype._createHeuristics = function () {
+    this.heuristics = [];
+    var heuristics = allHeuristics();
+    for (var n = 0; n < heuristics.length; n++) {
+        var h = new (heuristics[n])(this);
+        this.heuristics.push(h);
+    }
+};
+
+Chuckie.prototype.setColor = function (color) {
+    this.color = color;
+    for (var n = 0; n < this.heuristics.length; n++) {
+        this.heuristics[n].initColor(color);
+    }
+};
+
+/** Can be called from Breeder with different genes */
+Chuckie.prototype.prepareGame = function (genes) {
+    if (genes) this.genes = genes;
+    this.numMoves = 0;
+
+    this.bestScore = this.bestI = this.bestJ = 0;
+    this.testI = this.testJ = NO_MOVE;
+    this.debugHeuristic = null;
+};
+
+Chuckie.prototype.getHeuristic = function (heuristicName) {
+    for (var n = 0; n < this.heuristics.length; n++) {
+        var h = this.heuristics[n];
+        if (h.name === heuristicName) return h;
+    }
+    return null;
+};
+
+Chuckie.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
+    if (lowLimit === undefined) lowLimit = null;
+    if (highLimit === undefined) highLimit = null;
+    return this.genes.get(this.constructor.name + '-' + name, defVal, lowLimit, highLimit);
+};
+
+Chuckie.prototype._foundBestMove = function(i, j, score) {
+    this.bestScore = score;
+    this.bestI = i; this.bestJ = j;
+};
+
+Chuckie.prototype._keepBestMove = function(i, j, score) {
+    if (score > this.bestScore) {
+        this.numBestTwins = 1; // number of moves with same best score (we randomly pick one of them)
+        this._foundBestMove(i, j, score);
+    } else { // score === this.bestScore
+        this.numBestTwins++;
+        if (Math.random() * this.numBestTwins >= 1) return; // keep current twin if it does not win
+        this._foundBestMove(i, j, score);
+    }
+};
+
+// Returns the move chosen (e.g. c4 or pass)
+Chuckie.prototype.getMove = function () {
+    this.numMoves++;
+    if (this.numMoves >= this.gsize * this.gsize) { // force pass after too many moves
+        main.log.error('Forcing AI pass since we already played ' + this.numMoves);
+        return 'pass';
+    }
+    var stateYx = this.stateGrid.yx;
+    var scoreYx = this.scoreGrid.yx;
+
+    this._prepareEval();
+    this._initScoringGrid(stateYx, scoreYx);
+    this._runHeuristics(stateYx, scoreYx);
+    var move = this._collectBestMove(stateYx, scoreYx);
+
+    main.debug = this.debugMode;
+    return move;
+};
+
+Chuckie.prototype._prepareEval = function () {
+    this.bestScore = this.minimumScore - 0.001;
+    this.bestI = NO_MOVE;
+
+    this.debugMode = main.debug;
+    main.debug = false;
+};
+
+/** Init grids (and mark invalid moves) */
+Chuckie.prototype._initScoringGrid = function (stateYx, scoreYx) {
+    for (var j = 1; j <= this.gsize; j++) {
+        for (var i = 1; i <= this.gsize; i++) {
+            if (!this.goban.isValidMove(i, j, this.color)) {
+                stateYx[j][i] = sINVALID;
+                continue;
+            }
+            stateYx[j][i] = sOK;
+            scoreYx[j][i] = 0;
+        }
+    }
+    if (this.testI !== NO_MOVE) {
+        stateYx[this.testJ][this.testI] = sDEBUG;
+    }
+};
+
+/** Do eval using each heuristic (NB: order is important) */
+Chuckie.prototype._runHeuristics = function (stateYx, scoreYx) {
+    for (var n = 0; n < this.heuristics.length; n++) {
+        var h = this.heuristics[n];
+        main.debug = this.debugMode && this.debugHeuristic === h.name;
+        var t0 = Date.now();
+
+        if (h._beforeEvalBoard) h._beforeEvalBoard();
+        h.evalBoard(stateYx, scoreYx);
+
+        var time = Date.now() - t0;
+        if (time > 1 && !main.isCoverTest) {
+            main.log.warn('Slowness: ' + h.name + ' took ' + time + 'ms');
+        }
+    }
+};
+
+/** Returns the move which got the best score */
+Chuckie.prototype._collectBestMove = function (stateYx, scoreYx) {
+    for (var j = 1; j <= this.gsize; j++) {
+        for (var i = 1; i <= this.gsize; i++) {
+            if (stateYx[j][i] < sOK || scoreYx[j][i] < this.bestScore) continue;
+            this._keepBestMove(i, j, scoreYx[j][i]);
+        }
+    }
+    if (this.bestScore < this.minimumScore) return 'pass';
+    return Grid.xy2move(this.bestI, this.bestJ);
+};
+
+/** Called by heuristics if they decide to stop looking further (rare cases) */
+Chuckie.prototype.markMoveAsBlunder = function (i, j, reason) {
+    this.stateGrid.yx[j][i] = sBLUNDER;
+    main.log.debug(Grid.xy2move(i, j) + ' seen as blunder: ' + reason);
+};
+Chuckie.prototype.isBlunderMove = function (i, j) {
+    return this.stateGrid.yx[j][i] === sBLUNDER;
+};
+
+Chuckie.prototype.guessTerritories = function () {
+    this.pot.evalBoard();
+    return this.pot.territory.yx;
+};
+
+Chuckie.prototype._getMoveForTest = function (i, j) {
+    this.testI = i;
+    this.testJ = j;
+
+    this.getMove();
+
+    this.testI = NO_MOVE;
+};
+
+Chuckie.prototype._getMoveSurvey = function (i, j) {
+    var survey = {};
+    for (var n = 0; n < this.heuristics.length; n++) {
+        var h = this.heuristics[n];
+        var s = h.scoreGrid.yx[j][i];
+        if (s) survey[h.name] = s; // s can be 0 or null too
+    }
+    return survey;
+};
+
+/** For tests */
+Chuckie.prototype.testMoveEval = function (i, j) {
+    this._getMoveForTest(i, j);
+    return this.scoreGrid.yx[j][i];
+};
+
+/** For tests */
+Chuckie.prototype.testHeuristic = function (i, j, heuristicName) {
+    this._getMoveForTest(i, j);
+    var h = this.getHeuristic(heuristicName);
+    return h.scoreGrid.yx[j][i];
+};
+
+/** For tests */
+Chuckie.prototype.setDebugHeuristic = function (heuristicName) {
+    this.debugHeuristic = heuristicName;
+};
+
+function surveySort(h1, h2) { return h2[1] - h1[1]; }
+
+Chuckie.prototype.getMoveSurveyText = function (move, isTest) {
+    if (move[1] > '9') return '';
+    var coords = Grid.move2xy(move), i = coords[0], j = coords[1];
+    if (isTest) this._getMoveForTest(i, j);
+    var survey = this._getMoveSurvey(i, j);
+    var score = this.scoreGrid.yx[j][i];
+
+    var sortedSurvey = [];
+    for (var h in survey) {
+        if (survey[h] === 0) continue;
+        sortedSurvey.push([h, survey[h]]);
+    }
+    sortedSurvey.sort(surveySort);
+
+    var txt = move + ' (' + score.toFixed(2) + ')\n';
+    for (var n = 0; n < sortedSurvey.length; n++) {
+        txt += '- ' + sortedSurvey[n][0] + ': ' + sortedSurvey[n][1].toFixed(2) + '\n';
+    }
+    return txt;
+};
+
+
+},{"../../Genes":9,"../../Grid":11,"../../main":70,"./AllHeuristics":18,"./boan/BoardAnalyser":31,"./boan/ZoneFiller":34}],36:[function(require,module,exports){
+arguments[4][18][0].apply(exports,arguments)
+},{"./Connector":37,"./GroupAnalyser":38,"./Hunter":40,"./Influence":41,"./NoEasyPrisoner":42,"./PotentialTerritory":43,"./Pusher":44,"./Savior":45,"./Shaper":46,"./Spacer":47,"dup":18}],37:[function(require,module,exports){
+arguments[4][19][0].apply(exports,arguments)
+},{"../../Grid":11,"../../main":70,"./Heuristic":39,"dup":19,"util":6}],38:[function(require,module,exports){
+arguments[4][20][0].apply(exports,arguments)
+},{"./Heuristic":39,"./boan/BoardAnalyser":49,"dup":20,"util":6}],39:[function(require,module,exports){
+arguments[4][21][0].apply(exports,arguments)
+},{"../../Grid":11,"../../Stone":17,"../../main":70,"dup":21}],40:[function(require,module,exports){
+arguments[4][22][0].apply(exports,arguments)
+},{"../../Grid":11,"../../main":70,"./Heuristic":39,"dup":22,"util":6}],41:[function(require,module,exports){
+arguments[4][23][0].apply(exports,arguments)
+},{"../../Grid":11,"../../main":70,"./Heuristic":39,"dup":23,"util":6}],42:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"../../Grid":11,"../../main":70,"./Heuristic":39,"dup":24,"util":6}],43:[function(require,module,exports){
+arguments[4][25][0].apply(exports,arguments)
+},{"../../Grid":11,"../../Stone":17,"../../main":70,"./Heuristic":39,"dup":25,"util":6}],44:[function(require,module,exports){
+arguments[4][26][0].apply(exports,arguments)
+},{"../../Grid":11,"../../main":70,"./Heuristic":39,"dup":26,"util":6}],45:[function(require,module,exports){
+arguments[4][27][0].apply(exports,arguments)
+},{"../../Grid":11,"../../main":70,"./Heuristic":39,"dup":27,"util":6}],46:[function(require,module,exports){
+arguments[4][28][0].apply(exports,arguments)
+},{"../../Grid":11,"../../main":70,"./Heuristic":39,"dup":28,"util":6}],47:[function(require,module,exports){
+arguments[4][29][0].apply(exports,arguments)
+},{"../../main":70,"./Heuristic":39,"dup":29,"util":6}],48:[function(require,module,exports){
+arguments[4][30][0].apply(exports,arguments)
+},{"../../../main":70,"dup":30}],49:[function(require,module,exports){
+'use strict';
+
+var main = require('../../../main');
+var Grid = require('../../../Grid');
+var Group = require('../../../Group');
+var GroupInfo = require('./GroupInfo');
+var Void = require('./Void');
+var ZoneFiller = require('./ZoneFiller');
+
+var EMPTY = main.EMPTY, BLACK = main.BLACK, WHITE = main.WHITE;
+var ALIVE = GroupInfo.ALIVE;
+var FAILS = GroupInfo.FAILS, LIVES = GroupInfo.LIVES;
+
+
+/** @class Our main board analyser / score counter etc.
+ */
+function BoardAnalyser() {
+    this.version = BoardAnalyser.VERSION;
+    this.mode = null;
+    this.goban = null;
+    this.allVoids = [];
+    this.allGroups = null;
+    this.scores = [0, 0];
+    this.prisoners = [0, 0];
+    this.filler = null;
+}
+module.exports = BoardAnalyser;
+
+
+var BOAN_VERSION = BoardAnalyser.VERSION = 'droopy';
+
+
+BoardAnalyser.prototype.countScore = function (goban) {
+    if (main.debug) main.log.debug('Counting score...');
+    this.scores[BLACK] = this.scores[WHITE] = 0;
+    this.prisoners = Group.countPrisoners(goban);
+
+    var grid = goban.scoringGrid.initFromGoban(goban);
+    if (!this._initAnalysis('SCORE', goban, grid)) return;
+    this._runAnalysis();
+    this._finalColoring();
+    if (main.debug) main.log.debug(grid.toText(function (c) { return Grid.colorToChar(c); }));
+};
+
+BoardAnalyser.prototype.getScoringGrid = function () {
+    return this.goban.scoringGrid;
+};
+
+BoardAnalyser.prototype.analyse = function (goban, grid, first2play) {
+    var mode = first2play === undefined ? 'MOVE' : 'TERRITORY';
+    if (!this._initAnalysis(mode, goban, grid)) return;
+    this._runAnalysis(first2play);
+    if (mode === 'TERRITORY') this._finalColoring();
+};
+
+BoardAnalyser.prototype.image = function () {
+    return this.goban.analyseGrid.image();
+};
+
+BoardAnalyser.prototype.debugDump = function () {
+    var res = 'Grid:\n' +
+        this.goban.analyseGrid.toText(function (c) { return Grid.colorToChar(c); }) +
+        'Voids:\n';
+    for (var v, v_array = this.allVoids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
+        res += v.toString() + '\n';
+    }
+    res += 'Groups:\n';
+    for (var ndx in this.allGroups) {
+        res += this.allGroups[~~ndx].toString() + '\n';
+    }
+    if (this.scores) {
+        res += 'Score:' + this.scores.map(function (s, i) {
+            return ' player ' + i + ': ' + s + ' points';
+        });
+    }
+    return res;
+};
+
+BoardAnalyser.prototype._initAnalysis = function (mode, goban, grid) {
+    this.mode = mode;
+    this.goban = goban;
+    goban.analyseGrid = grid;
+    this.filler = new ZoneFiller(goban, grid);
+    if (goban.moveNumber() === 0) return false;
+
+    this._initVoidsAndGroups();
+    return true;
+};
+
+BoardAnalyser.prototype._addGroup = function (g, v) {
+    var gi = this.allGroups[g.ndx];
+    if (!gi) {
+        if (!g._info || g._info.version !== BOAN_VERSION) {
+            g._info = new GroupInfo(g, BOAN_VERSION);
+        } else {
+            g._info.resetAnalysis(g);
+        }
+        gi = this.allGroups[g.ndx] = g._info;
+    }
+    gi.nearVoids.push(v);
+};
+
+/** Create the list of voids and groups.
+ * Voids know which groups are around them, but groups do not own any void yet.
+ */
+BoardAnalyser.prototype._initVoidsAndGroups = function () {
+    if (main.debug) main.log.debug('---Initialising voids & groups...');
+    var voidCode = Grid.ZONE_CODE;
+    this.allGroups = {};
+    this.allVoids.clear();
+    var neighbors = [[], []], n, groups;
+    var v = new Void(voidCode++);
+    for (var j = 1; j <= this.goban.gsize; j++) {
+        for (var i = 1; i <= this.goban.gsize; i++) {
+            var vcount = this.filler.fillWithColor(i, j, EMPTY, v, neighbors);
+            if (vcount === 0) continue;
+
+            // 1 new void created
+            v.init(i, j, vcount, neighbors);
+            this.allVoids.push(v);
+
+            // keep all the groups
+            groups = neighbors[BLACK];
+            for (n = groups.length - 1; n >= 0; n--) this._addGroup(groups[n], v);
+            groups = neighbors[WHITE];
+            for (n = groups.length - 1; n >= 0; n--) this._addGroup(groups[n], v);
+
+            neighbors = [[], []];
+            v = new Void(voidCode++);
+        }
+    }
+};
+
+BoardAnalyser.prototype._runAnalysis = function (first2play) {
+    this._findBrothers();
+    this._findEyeOwners();
+    this._findBattleWinners();
+    this._lifeOrDeathLoop(first2play);
+    this._findDameVoids();
+};
+
+BoardAnalyser.prototype._findBrothers = function () {
+    for (var ndx in this.allGroups) {
+        this.allGroups[~~ndx].findBrothers();
+    }
+};
+
+// Find voids surrounded by a single color -> eyes
+BoardAnalyser.prototype._findEyeOwners = function () {
+    if (main.debug) main.log.debug('---Finding eye owners...');
+    for (var n = this.allVoids.length - 1; n >= 0; n--) {
+        this.allVoids[n].findOwner();
+    }
+};
+
+function normalizeLiveliness(life) {
+    // Remove 1 if we have only 1 eye - a single-eye group is not more "resistant"
+    if (life > 1 && life < 2) {
+        return life - 1;
+    }
+    return life;
+}
+
+function compareLiveliness(life) {
+    // make sure we have a winner, not a tie
+    if (life[BLACK] === life[WHITE] || (life[BLACK] >= ALIVE && life[WHITE] >= ALIVE)) {
+        return undefined;
+    }
+    life[BLACK] = normalizeLiveliness(life[BLACK]);
+    life[WHITE] = normalizeLiveliness(life[WHITE]);
+    return life[BLACK] > life[WHITE] ? BLACK : WHITE;
+}
+
+BoardAnalyser.prototype._findBattleWinners = function () {
+    var life = [0, 0];
+    for (;;) {
+        var foundOne = false;
+        for (var i = this.allVoids.length - 1; i >= 0; i--) {
+            var v = this.allVoids[i];
+            if (v.color !== undefined) continue;
+            life[BLACK] = life[WHITE] = 0;
+            for (var color = BLACK; color <= WHITE; color++) {
+                // NB: we don't check for brothers' liveliness counted twice.
+                // No issue noticed so far - see testUnconnectedBrothers / b4
+                for (var n = v.groups[color].length - 1; n >= 0; n--) {
+                    var gi = v.groups[color][n]._info;
+                    life[color] += gi.liveliness() + gi.group.lives / 10000; // is gi.group.lives still necessary?
+                }
+            }
+            var winner = compareLiveliness(life);
+            // make sure we have a winner, not a tie
+            if (winner === undefined) {
+                if (main.debug) main.log.debug('BATTLED VOID in dispute: ' + v + ' with ' + life[0]);
+                continue;
+            }
+            if (main.debug) main.log.debug('BATTLED VOID: ' + Grid.colorName(winner) +
+                ' wins with ' + life[winner].toFixed(4) + ' VS ' + life[1 - winner].toFixed(4));
+            v.setVoidOwner(winner);
+            foundOne = true;
+        }
+        if (!foundOne) break;
+    }
+};
+
+// Review which groups are dead after a "liveliness" check
+function killWeakest(check, fails) {
+    // For all groups that failed the test, filter out these that have a weaker neighbor
+    for (var i = 0; i < fails.length; i++) {
+        var fail = fails[i];
+        var enemies = fail.group.allEnemies();
+        for (var e = 0; e < enemies.length; e++) {
+            var enemy = enemies[e]._info;
+            var cmp = fail._liveliness - enemy.liveliness();
+            if (main.debug) main.log.debug('FAIL: group #' + fail.group.ndx + ' with ' +
+                fail._liveliness + ' against ' + (fail._liveliness - cmp) + ' for enemy group #' + enemy.group.ndx);
+            if (cmp > 0) {
+                if (main.debug) main.log.debug(check.name + ' would fail ' + fail +
+                    ' BUT keept alive since it is stronger than ' + enemy);
+                fails[i] = null;
+                break;
+            } else if (cmp === 0) {
+                if (main.debug) main.log.debug('RACE between ' + fail.group + ' and ' + enemy.group);
+                fail.group.xInRaceWith = enemy.group;
+                enemy.group.xInRaceWith = fail.group;
+                fails[i] = null;
+                break;
+            }
+        }
+    }
+    var count = 0;
+    for (i = 0; i < fails.length; i++) {
+        if (!fails[i]) continue;
+        fails[i].considerDead(check.name + ': liveliness=' + fails[i]._liveliness.toFixed(4));
+        count++;
+    }
+    return count;
+}
+
+function killAllFails(check, fails) {
+    for (var i = 0; i < fails.length; i++) {
+        fails[i].considerDead(check.name);
+    }
+    return fails.length;
+}
+
+var parentCheck =      { name: 'parents',     run: function (gi) { return gi.checkParents(); } };
+var brotherCheck =     { name: 'brothers',    run: function (gi) { return gi.checkBrothers(); } };
+var singleEyeCheck = {
+    name: 'singleEye',   
+    run: function (gi, first) { return gi.checkSingleEye(first); },
+    kill: killWeakest
+};
+var finalCheck = { name: 'final', run: function (gi) { return gi.checkLiveliness(2); } };
+
+var midGameLifeChecks = [
+    parentCheck,
+    brotherCheck,
+    singleEyeCheck
+    // We don't expect a final liveliness (2) in mid-game
+];
+var scoringLifeChecks = [
+    parentCheck,
+    brotherCheck,
+    singleEyeCheck,
+    finalCheck
+];
+
+// NB: order of group should not matter; we must remember this especially when killing some of them
+BoardAnalyser.prototype._reviewGroups = function (check, first2play) {
+    if (main.debug) main.log.debug('---REVIEWING groups for "' + check.name + '" checks');
+    var count = 0, reviewedCount = 0, fails = [];
+    for (var ndx in this.allGroups) {
+        var gi = this.allGroups[~~ndx];
+        if (gi.isAlive || gi.isDead) continue;
+        reviewedCount++;
+
+        switch (check.run(gi, first2play)) {
+        case FAILS:
+            fails.push(gi);
+            break;
+        case LIVES:
+            count++;
+            break;
+        }
+    }
+    if (fails.length) {
+        // if no dedicated method is given, simply kill them all
+        count += check.kill ? check.kill(check, fails) : killAllFails(check, fails);
+    }
+    if (main.debug && count) main.log.debug('==> "' + check.name + '" checks found ' +
+        count + '/' + reviewedCount + ' groups alive/dead');
+    if (count === reviewedCount) return 0; // really finished
+    if (count === 0) return reviewedCount; // remaining count
+    return -count; // processed count
+};
+
+// Reviews the groups and declare "dead" the ones who do not own enough eyes or voids
+BoardAnalyser.prototype._lifeOrDeathLoop = function (first2play) {
+    var checks = this.mode === 'SCORE' ? scoringLifeChecks : midGameLifeChecks;
+    var stepNum = 0, count;
+    while (stepNum < checks.length) {
+        count = this._reviewGroups(checks[stepNum++], first2play);
+        if (count === 0) {
+            this._findEyeOwners();
+            return;
+        }
+        if (count < 0) {
+            // we found dead/alive groups => rerun all the checks from start
+            stepNum = 0;
+            this._findEyeOwners();
+            continue;
+        }
+    }
+    if (main.debug && count > 0) main.log.debug('*** UNDECIDED groups after _lifeOrDeathLoop:' + count);
+};
+
+// Looks for "dame" = neutral voids (if alive groups from more than one color are around)
+BoardAnalyser.prototype._findDameVoids = function () {
+    var aliveColors = [];
+    for (var i = this.allVoids.length - 1; i >= 0; i--) {
+        var v = this.allVoids[i];
+        aliveColors[BLACK] = aliveColors[WHITE] = false;
+        for (var c = BLACK; c <= WHITE; c++) {
+            for (var g, g_array = v.groups[c], g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
+                if (g._info.liveliness() >= 2) {
+                    aliveColors[c] = true;
+                    break;
+                }
+            }
+        }
+        if (aliveColors[BLACK] && aliveColors[WHITE]) {
+            v.setAsDame();
+        }
+    }
+};
+
+BoardAnalyser.prototype._finalColoring = function () {
+    this._colorDeadGroups();
+    this._colorVoids();
+};
+
+BoardAnalyser.prototype._colorDeadGroups = function () {
+    for (var ndx in this.allGroups) {
+        var gi = this.allGroups[~~ndx];
+        if (!gi.isDead) continue;
+
+        // At least 1 enemy around must be alive 
+        var reallyDead = false;
+        for (var n = gi.killers.length - 1; n >= 0; n--) {
+            if (!gi.killers[n]._info.isDead) reallyDead = true;
+        }
+        var color = gi.group.color;
+        if (gi.killers.length && !reallyDead) {
+            for (var i = gi.nearVoids.length - 1; i >= 0; i--) {
+                gi.nearVoids[i].setVoidOwner(color);
+            }
+            continue;
+        }
+
+        var stone = gi.group.stones[0];
+        var taken = this.filler.fillWithColor(stone.i, stone.j, color, Grid.DEAD_COLOR + color);
+        this.prisoners[color] += taken;
+        this.scores[1 - color] += taken;
+    }
+};
+
+// Colors the voids with owner's color
+BoardAnalyser.prototype._colorVoids = function () {
+    var color;
+    for (var i = this.allVoids.length - 1; i >= 0; i--) {
+        var v = this.allVoids[i];
+        var score = v.finalScore();
+        if (score) {
+            this.scores[v.color] += score;
+            color = Grid.TERRITORY_COLOR + v.color;
+        } else {
+            color = Grid.DAME_COLOR;
+        }
+        this.filler.fillWithColor(v.i, v.j, v, color);
+    }
+};
+
+},{"../../../Grid":11,"../../../Group":12,"../../../main":70,"./GroupInfo":50,"./Void":51,"./ZoneFiller":52}],50:[function(require,module,exports){
+arguments[4][32][0].apply(exports,arguments)
+},{"../../../main":70,"./Band":48,"dup":32}],51:[function(require,module,exports){
+arguments[4][33][0].apply(exports,arguments)
+},{"../../../Grid":11,"../../../main":70,"dup":33}],52:[function(require,module,exports){
+arguments[4][34][0].apply(exports,arguments)
+},{"../../../main":70,"dup":34}],53:[function(require,module,exports){
 //Translated from ai1_player.rb using babyruby2js
 'use strict';
 
@@ -5964,7 +7082,7 @@ Droopy.prototype.getMoveSurveyText = function (move, isTest) {
 };
 
 
-},{"../../Genes":8,"../../Grid":10,"../../main":51,"./AllHeuristics":17,"./boan/BoardAnalyser":30,"./boan/ZoneFiller":33}],35:[function(require,module,exports){
+},{"../../Genes":9,"../../Grid":11,"../../main":70,"./AllHeuristics":36,"./boan/BoardAnalyser":49,"./boan/ZoneFiller":52}],54:[function(require,module,exports){
 //Translated from all_heuristics.rb using babyruby2js
 'use strict';
 
@@ -5991,7 +7109,7 @@ var allHeuristics = function () {
 };
 module.exports = allHeuristics;
 
-},{"./Connector":36,"./Hunter":38,"./NoEasyPrisoner":39,"./Pusher":40,"./Savior":41,"./Shaper":42,"./Spacer":43}],36:[function(require,module,exports){
+},{"./Connector":55,"./Hunter":57,"./NoEasyPrisoner":58,"./Pusher":59,"./Savior":60,"./Shaper":61,"./Spacer":62}],55:[function(require,module,exports){
 //Translated from connector.rb using babyruby2js
 'use strict';
 
@@ -6071,7 +7189,7 @@ Connector.prototype.connectsMyGroups = function (i, j, color) {
     return score;
 };
 
-},{"../../Grid":10,"../../main":51,"./Heuristic":37,"util":4}],37:[function(require,module,exports){
+},{"../../Grid":11,"../../main":70,"./Heuristic":56,"util":6}],56:[function(require,module,exports){
 //Translated from heuristic.rb using babyruby2js
 'use strict';
 
@@ -6318,7 +7436,7 @@ Heuristic.prototype.canConnectAlongBorder = function (i, j, color) {
     }
 };
 
-},{"../../Grid":10,"../../Stone":16,"../../main":51}],38:[function(require,module,exports){
+},{"../../Grid":11,"../../Stone":17,"../../main":70}],57:[function(require,module,exports){
 //Translated from hunter.rb using babyruby2js
 'use strict';
 
@@ -6475,7 +7593,7 @@ Hunter.prototype.evalMove = function (i, j, color, level) {
  *  Some of these chases might fail, but even so, the enemy can only defend one.
  *  Rule of thumb:
  *  - if 0 can escape => we capture the bigger one
- *  - if　1 or more can escape => we capture nothing if only 1, or the 2nd bigger if the 1st can escape
+ *  - if 1 or more can escape => we capture nothing if only 1, or the 2nd bigger if the 1st can escape
  */
 Hunter.prototype._getMultipleChaseThreat = function (egroups, canEscape) {
     switch (egroups.length) {
@@ -6553,7 +7671,7 @@ Hunter.prototype.isEscapingAtariCaught = function (stone, level) {
     return (this.evalMove(e1.i, e1.j, color, level) > 0 || this.evalMove(e2.i, e2.j, color, level) > 0);
 };
 
-},{"../../Grid":10,"../../main":51,"./Heuristic":37,"util":4}],39:[function(require,module,exports){
+},{"../../Grid":11,"../../main":70,"./Heuristic":56,"util":6}],58:[function(require,module,exports){
 //Translated from no_easy_prisoner.rb using babyruby2js
 'use strict';
 
@@ -6613,7 +7731,7 @@ NoEasyPrisoner.prototype.evalMove = function (i, j) {
     return score;
 };
 
-},{"../../Grid":10,"../../main":51,"./Heuristic":37,"util":4}],40:[function(require,module,exports){
+},{"../../Grid":11,"../../main":70,"./Heuristic":56,"util":6}],59:[function(require,module,exports){
 //Translated from pusher.rb using babyruby2js
 'use strict';
 
@@ -6666,7 +7784,7 @@ Pusher.prototype.evalMove = function (i, j) {
     return score;
 };
 
-},{"../../Grid":10,"../../main":51,"./Heuristic":37,"util":4}],41:[function(require,module,exports){
+},{"../../Grid":11,"../../main":70,"./Heuristic":56,"util":6}],60:[function(require,module,exports){
 //Translated from savior.rb using babyruby2js
 'use strict';
 
@@ -6754,7 +7872,7 @@ Savior.prototype._evalEscape = function (i, j, stone) {
     return 0; // nothing we can do to help
 };
 
-},{"../../Grid":10,"../../main":51,"./Heuristic":37,"util":4}],42:[function(require,module,exports){
+},{"../../Grid":11,"../../main":70,"./Heuristic":56,"util":6}],61:[function(require,module,exports){
 'use strict';
 
 var main = require('../../main');
@@ -6841,7 +7959,7 @@ Shaper.getEyeMakerMove = function (goban, i, j, vcount, coords) {
     return 2;
 };
 
-},{"../../main":51,"./Heuristic":37,"util":4}],43:[function(require,module,exports){
+},{"../../main":70,"./Heuristic":56,"util":6}],62:[function(require,module,exports){
 //Translated from spacer.rb using babyruby2js
 'use strict';
 
@@ -6893,7 +8011,7 @@ Spacer.prototype.distanceFromBorder = function (n) {
     return Math.min(n - 1, this.gsize - n);
 };
 
-},{"../../main":51,"./Heuristic":37,"util":4}],44:[function(require,module,exports){
+},{"../../main":70,"./Heuristic":56,"util":6}],63:[function(require,module,exports){
 //Translated from board_analyser.rb using babyruby2js
 'use strict';
 
@@ -7052,9 +8170,9 @@ Void.prototype.toString = function () {
 };
 
 Void.prototype.debugDump = function () {
-    console.log(this.toString());
+    main.log.debug(this.toString());
     for (var color = 0; color < this.groups.length; color++) {
-        console.log('    Color ' + color + ' (' + Grid.colorToChar(color) + '): ' +
+        main.log.debug('    Color ' + color + ' (' + Grid.colorToChar(color) + '): ' +
             this.groups[color].map(grpNdx));
     }
 };
@@ -7369,8 +8487,6 @@ function BoardAnalyser() {
 module.exports = BoardAnalyser;
 
 
-/** Calling this method updates the goban to show the detected result.
- */
 BoardAnalyser.prototype.countScore = function (goban) {
     if (main.debug) main.log.debug('Counting score...');
     this.scores[BLACK] = this.scores[WHITE] = 0;
@@ -7382,8 +8498,12 @@ BoardAnalyser.prototype.countScore = function (goban) {
     if (main.debug) main.log.debug(this.filler.grid.toText(function (c) { return Grid.colorToChar(c); }));
 };
 
+BoardAnalyser.prototype.getScoringGrid = function () {
+    return this.goban.scoringGrid;
+};
+
 /** If grid is not given a new one will be created from goban */
-BoardAnalyser.prototype.analyse = function (first, goban, grid) {
+BoardAnalyser.prototype.analyse = function (goban, grid, first) {
     if (!this._initAnalysis(goban, grid)) return;
     this._runAnalysis(first);
     this._finalColoring();
@@ -7394,7 +8514,7 @@ BoardAnalyser.prototype.image = function () {
 };
 
 BoardAnalyser.prototype.debugDump = function () {
-    console.log(this.filler.grid.toText(function (c) {
+    main.log.debug(this.filler.grid.toText(function (c) {
         return Grid.colorToChar(c);
     }));
     for (var v, v_array = this.allVoids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
@@ -7407,10 +8527,10 @@ BoardAnalyser.prototype.debugDump = function () {
             var numEyes = g._info.eyeCount;
             eyes[numEyes >= 2 ? 2 : numEyes].push(g);
         }
-        console.log('\nGroups with 2 eyes or more: ' + eyes[2].map(grpNdx));
-        console.log('Groups with 1 eye: ' + eyes[1].map(grpNdx));
-        console.log('Groups with no eye: ' + eyes[0].map(grpNdx));
-        console.log('Score:' + this.scores.map(function (s, i) {
+        main.log.debug('\nGroups with 2 eyes or more: ' + eyes[2].map(grpNdx));
+        main.log.debug('Groups with 1 eye: ' + eyes[1].map(grpNdx));
+        main.log.debug('Groups with no eye: ' + eyes[0].map(grpNdx));
+        main.log.debug('Score:' + this.scores.map(function (s, i) {
             return ' player ' + i + ': ' + s + ' points';
         }));
     }
@@ -7633,7 +8753,7 @@ BoardAnalyser.prototype._colorDeadGroups = function () {
     }
 };
 
-},{"../../../Grid":10,"../../../Group":11,"../../../main":51,"../Shaper":42,"./ZoneFiller":47}],45:[function(require,module,exports){
+},{"../../../Grid":11,"../../../Group":12,"../../../main":70,"../Shaper":61,"./ZoneFiller":66}],64:[function(require,module,exports){
 //Translated from influence_map.rb using babyruby2js
 'use strict';
 
@@ -7704,18 +8824,18 @@ InfluenceMap.prototype.debugDump = function () {
     function inf2str(inf) { return '%2d'.format(inf[c]); }
 
     for (c = 0; c < 2; c++) {
-        console.log('Influence map for ' + Grid.COLOR_NAMES[c] + ':');
+        main.log.debug('Influence map for ' + Grid.COLOR_NAMES[c] + ':');
         for (var j = this.gsize; j >= 1; j--) {
-            console.log('' + '%2d'.format(j) +
+            main.log.debug('' + '%2d'.format(j) +
                 this.map[j].slice(1, this.gsize + 1).map(inf2str).join('|'));
         }
         var cols = '  ';
         for (var i = 1; i <= this.gsize; i++) { cols += ' ' + Grid.xLabel(i) + ' '; }
-        console.log(cols);
+        main.log.debug(cols);
     }
 };
 
-},{"../../../Grid":10,"../../../main":51}],46:[function(require,module,exports){
+},{"../../../Grid":11,"../../../main":70}],65:[function(require,module,exports){
 //Translated from potential_territory.rb using babyruby2js
 'use strict';
 
@@ -7799,7 +8919,7 @@ PotentialTerritory.prototype._foresee = function (grid, first, second) {
 
     // passed grid will receive the result (scoring grid)
     this._connectThings(grid, first, second);
-    this.boan.analyse(first, this.goban, grid.initFromGoban(this.goban));
+    this.boan.analyse(this.goban, grid.initFromGoban(this.goban), first);
     this._collectGroupState();
 
     // restore goban
@@ -8022,7 +9142,7 @@ PotentialTerritory.prototype.connectToBorders = function (yx) {
     }
 };
 
-},{"../../../Grid":10,"../../../Stone":16,"../../../main":51,"./BoardAnalyser":44}],47:[function(require,module,exports){
+},{"../../../Grid":11,"../../../Stone":17,"../../../main":70,"./BoardAnalyser":63}],66:[function(require,module,exports){
 //Translated from zone_filler.rb using babyruby2js
 'use strict';
 
@@ -8109,7 +9229,7 @@ ZoneFiller.prototype._check = function (i, j) {
     return false;
 };
 
-},{"../../../main":51}],48:[function(require,module,exports){
+},{"../../../main":70}],67:[function(require,module,exports){
 //Translated from ai1_player.rb using babyruby2js
 'use strict';
 
@@ -8295,7 +9415,7 @@ Frankie.prototype._prepareEval = function () {
     this.ter.guessTerritories();
 
     // get "raw" group info
-    this.boan.analyse(this.color, this.goban);
+    this.boan.analyse(this.goban, null, this.color);
 };
 
 /** Called by heuristics if they decide to stop looking further (rare cases) */
@@ -8374,7 +9494,7 @@ Frankie.prototype.getMoveSurveyText = function (move) {
     return txt;
 };
 
-},{"../../Genes":8,"../../Grid":10,"../../main":51,"./AllHeuristics":35,"./boan/BoardAnalyser":44,"./boan/InfluenceMap":45,"./boan/PotentialTerritory":46,"./boan/ZoneFiller":47}],49:[function(require,module,exports){
+},{"../../Genes":9,"../../Grid":11,"../../main":70,"./AllHeuristics":54,"./boan/BoardAnalyser":63,"./boan/InfluenceMap":64,"./boan/PotentialTerritory":65,"./boan/ZoneFiller":66}],68:[function(require,module,exports){
 'use strict';
 
 // First we define "main" on which global things attach
@@ -8395,9 +9515,10 @@ require('./test/TestAll'); // one day this will only be in the testing build
 // Known AIs and default one
 main.ais = {
     Frankie: require('./ai/frankie'),
-    Droopy: require('./ai/droopy')
+    Droopy: require('./ai/droopy'),
+    Chuckie: require('./ai/chuckie')
 };
-main.defaultAi = main.latestAi = main.ais.Droopy;
+main.defaultAi = main.latestAi = main.ais.Chuckie;
 
 if (typeof window !== 'undefined') {
     // In a browser: create the UI
@@ -8411,7 +9532,7 @@ if (typeof window !== 'undefined') {
 }
 
 
-},{"../package.json":128,"./ai/droopy":34,"./ai/frankie":48,"./constants":50,"./main":51,"./rb":55,"./test/TestAll":57,"./ui/TestUi":75,"./ui/Ui":76,"./ui/style.less":77}],50:[function(require,module,exports){
+},{"../package.json":102,"./ai/chuckie":35,"./ai/droopy":53,"./ai/frankie":67,"./constants":69,"./main":70,"./rb":74,"./test/TestAll":76,"./ui/TestUi":95,"./ui/Ui":96,"./ui/style.less":97}],69:[function(require,module,exports){
 //Translated from stone_constants.rb using babyruby2js
 'use strict';
 
@@ -8439,7 +9560,7 @@ main.RIGHT = 1;
 main.DOWN = 2;
 main.LEFT = 3;
 
-},{"./main":51}],51:[function(require,module,exports){
+},{"./main":70}],70:[function(require,module,exports){
 'use strict';
 
 /** Singleton "main" before everything else */
@@ -8500,94 +9621,50 @@ main.clone = function (obj) {
     return clone;
 };
 
-},{"./Logger":13,"./test/TestCase":60,"./test/TestSeries":65}],52:[function(require,module,exports){
-/** GTP Engine interface for UI */
+},{"./Logger":14,"./test/TestCase":79,"./test/TestSeries":85}],71:[function(require,module,exports){
 'use strict';
+/* eslint no-console: 0 */
 
-var main = require('../main');
+var EventEmitter = require('events').EventEmitter;
+var fs = require('fs');
+var inherits = require('util').inherits;
 
-var WHITE = main.WHITE, BLACK = main.BLACK;
+var commands = {};
 
-
-function UiEngine(ui) {
-    this.ui = ui;
-}
-module.exports = UiEngine;
-
-
-UiEngine.prototype._initGame = function () {
-    this.ui.refreshBoard();
-    // make sure both AI exist
-    this.ui.getAiPlayer(BLACK);
-    this.ui.getAiPlayer(WHITE);
-};
-
-UiEngine.prototype.name = function () {
-    return main.appName;
-};
-
-UiEngine.prototype.version = function () {
-    // TODO: we would like to answer Droopy-1.0 instead of rubigolo package.json version,
-    //       but which AI do we ask to? (B or W)
-    return main.appVersion;
-};
-
-UiEngine.prototype.initBoardSize = function (size) {
-    var ok = this.ui.game.newGame(size);
-    this._initGame();
-    return ok;
-};
-
-UiEngine.prototype.clearBoard = function () {
-    var game = this.ui.game;
-    game.newGame(game.goban.gsize, game.handicap, game.komi);
-    this._initGame();
-};
-
-UiEngine.prototype.setKomi = function (komi) {
-    this.ui.game.komi = komi;
-};
-
-UiEngine.prototype._forceCurPlayer = function (color) {
-    this.ui.game.curColor = color === 'b' ? BLACK : WHITE;
-};
-
-UiEngine.prototype.genMove = function (color) {
-    this._forceCurPlayer(color);
-    return this.ui.letAiPlay();
-};
-
-UiEngine.prototype.playMove = function (color, vertex) {
-    this._forceCurPlayer(color); // this follows GTP2 spec
-    if (!this.ui.game.playOneMove(vertex)) return false;
-    this.ui.refreshBoard();
-    return true;
-};
-
-UiEngine.prototype.computeScore = function () {
-    var game = this.ui.game;
-    var scorer = this.ui.scorer;
-    if (!game.gameEnding && !game.gameEnded) return null;
-    return scorer.computeScoreDiff(game.goban, game.komi);
-};
-
-},{"../main":51}],53:[function(require,module,exports){
-'use strict';
-
-
+/** @class
+ * GTP protocol parser. Speaks to a GtpEngine.
+ * - input: gtp.runCommand(cmdline)
+ * - output: engine.send(response)
+ */
 function Gtp() {
     this.engine = null;
-    this.commands = {};
+    this.cpuTime = 0;
 }
+inherits(Gtp, EventEmitter);
+module.exports = Gtp;
 
-var gtp = new Gtp();
-module.exports = gtp;
-
-window.gtp = gtp //TMP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// Stone status
+var ALIVE = Gtp.ALIVE = 1;
+var SEKI =  Gtp.SEKI =  0;
+var DEAD =  Gtp.DEAD = -1;
 
 
 Gtp.prototype.init = function (engine) {
     this.engine = engine;
+};
+
+Gtp.prototype.runCommand = function (line) {
+    var cmd = this._parseCommand(line);
+    var fn = commands[cmd.command];
+    if (!fn) return this.fail('unknown command ' + cmd.command);
+
+    this.cmd = cmd;
+    try {
+        fn.call(this, cmd);
+    } catch (exc) {
+        console.error(exc.stack);
+        this.fail('exception running ' + line + ': ' + exc);
+    }
 };
 
 Gtp.prototype._parseRawLine = function (rawline) {
@@ -8600,7 +9677,7 @@ Gtp.prototype._parseRawLine = function (rawline) {
             line += ' ';
             break;
         default:
-            if (c < ' ' || c.codePointAt() === 127) break;
+            if (c < ' ' || c.charCodeAt() === 127) break;
             line += c;
         }
     }
@@ -8622,33 +9699,21 @@ Gtp.prototype._parseCommand = function (rawline) {
     return cmd;
 };
 
-Gtp.prototype.runCommand = function (line) {
-    var cmd = this._parseCommand(line);
-    var fn = gtp.commands[cmd.command];
-    if (!fn) return this.fail('unknown command');
-
-    this.cmd = cmd;
-    fn.call(this, cmd);
-};
-
-Gtp.prototype._send = function (msg) {
-    console.info('GTP sends: [' + msg + ']');
-};
-
 Gtp.prototype.success = function (response) {
     var msg = '=' + this.cmd.id;
     if (response) msg += ' ' + response;
     msg += '\n\n';
-    this._send(msg);
+    this.engine.send(msg);
 };
 
 Gtp.prototype.fail = function (errorMsg) {
-    var msg = '?' + this.cmd.id + ' ' + errorMsg + '\n\n';
-    this._send(msg);
+    var id = this.cmd ? this.cmd.id : '';
+    var msg = '?' + id + ' ' + errorMsg + '\n\n';
+    this.engine.send(msg);
 };
 
 function commandHandler(cmdName, fn) {
-    gtp.commands[cmdName] = fn;
+    commands[cmdName] = fn;
 }
 
 commandHandler('protocol_version', function () {
@@ -8664,20 +9729,22 @@ commandHandler('version', function () {
 });
 
 commandHandler('known_command', function (cmd) {
-    return this.success(this.commands[cmd.args[0]] ? 'true' : 'false');
+    return this.success(commands[cmd.args[0]] ? 'true' : 'false');
 });
 
 commandHandler('list_commands', function () {
     var cmds = '';
-    for (var command in this.commands) {
+    for (var command in commands) {
         cmds += command + '\n';
     }
     return this.success(cmds + '\n');
 });
 
 commandHandler('quit', function () {
-    //TODO: doc says full response must be processed (Sent) before we close the connection. how?
-    return this.success('');
+    // Doc says full response must be sent/processed before we close the connection
+    this.success('');
+    this.engine.quit();
+    this.emit('quit');
 });
 
 commandHandler('boardsize', function (cmd) {
@@ -8733,12 +9800,48 @@ commandHandler('play', function (cmd) {
     return this.success();
 });
 
+commandHandler('undo', function () {
+    if (!this.engine.undo()) return this.fail('cannot undo');
+    return this.success();
+});
+
 commandHandler('genmove', function (cmd) {
     var color = parseColor(cmd.args[0]);
     if (!color) return this.fail('syntax error');
 
     var vertex = this.engine.genMove(color);
-    return this.success(vertex);
+    return this.success(vertex.toUpperCase());
+});
+
+// Reg test command
+commandHandler('reg_genmove', function (cmd) {
+    var color = parseColor(cmd.args[0]);
+    if (!color) return this.fail('syntax error');
+
+    var t0 = Date.now();
+    var vertex = this.engine.regGenMove(color);
+    this.cpuTime += Date.now() - t0;
+    return this.success(vertex.toUpperCase());
+});
+
+// Reg test command (only in node)
+commandHandler('loadsgf', function (cmd) {
+    if (typeof window !== 'undefined') return this.fail('loadsgf unavailable here');
+    var fname = cmd.args[0];
+    var game = fs.readFileSync(fname, { encoding: 'utf8' });
+    if (!game) return this.fail('cannot load file ' + fname);
+
+    var upToMoveNumber = cmd.args[1];
+    var err = this.engine.loadSgf(game, upToMoveNumber);
+    if (err) return this.fail('loadsgf ' + fname + ' failed: ' + err);
+    return this.success();
+});
+
+// Reg test command
+commandHandler('cputime', function () {
+    var elapsed = this.cpuTime;
+    this.cpuTime = 0;
+    return this.success(elapsed / 1000);
 });
 
 // Tournament command
@@ -8757,126 +9860,215 @@ commandHandler('final_score', function () {
     return this.success(score); // e.g. W+2.5 or B+31 or 0
 });
 
-// TODO: final_status_list
+var stoneStatus = {
+    dead: DEAD,
+    seki: SEKI,
+    alive: ALIVE
+};
 
-},{}],54:[function(require,module,exports){
+// Tournament command
+commandHandler('final_status_list', function (cmd) {
+    var status = stoneStatus[cmd.args[0]]; // dead, alive or seki
+    if (status === undefined) return this.fail('syntax error: ' + cmd.args[0]);
+
+    var vertexes = this.engine.getStonesWithStatus(status);
+    return this.success(vertexes.join('\n').toUpperCase());
+});
+
+},{"events":2,"fs":1,"util":6}],72:[function(require,module,exports){
+'use strict';
+/* eslint no-console: 0 */
+
+var main = require('../main');
+var GameLogic = require('../GameLogic');
+var Grid = require('../Grid');
+var Gtp = require('./Gtp');
+var ScoreAnalyser = require('../ScoreAnalyser');
+
+var WHITE = main.WHITE, BLACK = main.BLACK, EMPTY = main.EMPTY;
+var DEAD_COLOR = Grid.DEAD_COLOR;
+var DEAD = Gtp.DEAD, ALIVE = Gtp.ALIVE;
+
+var GAME_NOT_STARTED = '00';
+
+
+/** @class
+ * Interface between the game engine (GameLogic, etc.) and Gtp.
+ */
+function GtpEngine(game, scorer) {
+    this.game = game || new GameLogic();
+    this.scorer = scorer || new ScoreAnalyser();
+    this.players = [];
+    this.scoreComputedAt = null;
+}
+module.exports = GtpEngine;
+
+
+GtpEngine.prototype.quit = function () {
+    console.error('GTP quit command received'); // cannot be on stdout
+};
+
+GtpEngine.prototype.send = function (msg) {
+    console.log(msg); // stdout is default
+};
+
+GtpEngine.prototype.refreshDisplay = function () {
+};
+
+GtpEngine.prototype.getAiPlayer = function (color) {
+    var player = this.players[color];
+    if (player) return player;
+    player = this.players[color] = new main.defaultAi(this.game.goban, color);
+    return player;
+};
+
+GtpEngine.prototype.name = function () {
+    return main.appName;
+};
+
+GtpEngine.prototype.version = function () {
+    return main.appVersion;
+};
+
+GtpEngine.prototype.initBoardSize = function (size) {
+    var ok = this.game.newGame(size);
+    this._beginGame();
+    return ok;
+};
+
+GtpEngine.prototype.clearBoard = function () {
+    var game = this.game;
+    game.newGame(game.goban.gsize, game.handicap, game.komi);
+    this._beginGame();
+};
+
+GtpEngine.prototype.setKomi = function (komi) {
+    this.game.komi = komi;
+};
+
+GtpEngine.prototype.loadSgf = function (game, moveNumber) {
+    var errors = [];
+    if (!this.game.loadSgf(game, errors, moveNumber)) return errors[0];
+    this._beginGame();
+    return '';
+};
+
+GtpEngine.prototype.regGenMove = function (color) {
+    if (!this._forceCurPlayer(color)) return GAME_NOT_STARTED;
+    return this.players[this.game.curColor].getMove();
+};
+
+GtpEngine.prototype.genMove = function (color) {
+    if (!this._forceCurPlayer(color)) return GAME_NOT_STARTED;
+    return this._letAiPlay();
+};
+
+GtpEngine.prototype.playMove = function (color, vertex) {
+    if (!this._forceCurPlayer(color)) return false;
+    if (!this.game.playOneMove(vertex)) return false;
+    this.refreshDisplay();
+    return true;
+};
+
+GtpEngine.prototype.undo = function () {
+    return this.game.playOneMove('half_undo');
+};
+
+GtpEngine.prototype.computeScore = function () {
+    var game = this.game;
+    this.scoreComputedAt = game.goban.getPositionSignature();
+    return this.scorer.computeScoreDiff(game.goban, game.komi);
+};
+
+// status: -1: dead, 0: seki, +1: alive
+GtpEngine.prototype.getStonesWithStatus = function (status) {
+    var goban = this.game.goban;
+    if (goban.getPositionSignature() !== this.scoreComputedAt) {
+        this.computeScore();
+    }
+    var scoringYx = this.scorer.getScoringGrid().yx;
+    var stones = [];
+    for (var j = goban.gsize; j >= 1; j--) {
+        for (var i = goban.gsize; i >= 1; i--) {
+            var s = goban.stoneAt(i, j);
+            if (s.color === EMPTY) continue;
+
+            switch (scoringYx[j][i]) {
+            case DEAD_COLOR + WHITE:
+            case DEAD_COLOR + BLACK:
+                if (status === DEAD) stones.push(s.asMove());
+                break;
+            default:
+                if (status === ALIVE) stones.push(s.asMove());
+            }
+            // TODO: handle seki status when we can
+        }
+    }
+    return stones;
+};
+
+
+//--- private
+
+GtpEngine.prototype._beginGame = function () {
+    this.refreshDisplay();
+    // make sure both AI exist
+    this.getAiPlayer(BLACK);
+    this.getAiPlayer(WHITE);
+};
+
+GtpEngine.prototype._forceCurPlayer = function (color) {
+    if (!this.players[BLACK]) return false;
+    this.game.curColor = color === 'b' ? BLACK : WHITE;
+    return true;
+};
+
+GtpEngine.prototype._letAiPlay = function () {
+    var move = this.players[this.game.curColor].getMove();
+    this.game.playOneMove(move);
+    return move;
+};
+
+},{"../GameLogic":8,"../Grid":11,"../ScoreAnalyser":15,"../main":70,"./Gtp":71}],73:[function(require,module,exports){
 'use strict';
 
-var io = require('socket.io-client');
-
-var cfg = require('../../config/ogs.json');
-
-var PROD_URL = 'ggs.online-go.com';
-var BETA_URL = 'ggsbeta.online-go.com';
-
-var ignorable_notifications = {
-    'gameStarted': true,
-    'gameEnded': true,
-    'gameDeclined': true,
-    'gameResumedFromStoneRemoval': true,
-    'tournamentStarted': true,
-    'tournamentEnded': true,
-};
+//var main = require('../main');
+var GtpEngine = require('./GtpEngine');
+var inherits = require('util').inherits;
 
 
-function Connection() {
-    var protocol = cfg.useSsl ? 'https' : 'http';
-    var host = cfg.server === 'prod' ? PROD_URL : BETA_URL;
-    var port = cfg.useSsl ? 443 : 80;
-    var url = protocol + '://' + host + ':' + port;
-
-    var socket = this.socket = io(url, { timeout: 5000 });
-    socket.io.skipReconnect = true;
-
-    this.connected_games = {};
-    this.connected_game_timeouts = {};
-    this.connected = false;
-
-    this.botId = cfg.accountName;
-
-    var self = this;
-    setTimeout(function () {
-        self.disconnect();
-    }, 60000);
-
-    socket.on('connect', function() {
-        self.connected = true;
-        console.info('Connected to', url);
-
-        socket.emit('bot/id', { 'id': cfg.accountName }, function (id) {
-            // if (!id) {
-            //     return self.disconnect('Error: unknown bot account: ' + cfg.accountName);
-            // }
-            console.info('Bot is user id:', id);
-            //self.botId = id;
-            socket.emit('notification/connect', self.auth({}), function (x) {
-                console.info(x);
-            });
-            socket.emit('bot/connect', self.auth({}), function (x) {
-                console.info(x);
-            });
-        });
-    });
-
-    socket.on('error', function (err) {
-        console.error('Socket closing after error:', err);
-        self.disconnect(err);
-    });
-
-    socket.on('event', function(data) {
-        self.log('socket.on event:', data);
-    });
-
-    socket.on('disconnect', function() {
-        self.connected = false;
-        self.log('Disconnected');
-        // for (var game_id in self.connected_games) {
-        //     self.disconnectFromGame(game_id);
-        // }
-    });
-
-    socket.on('notification', function(notification) {
-        if (self['on_' + notification.type]) {
-            self['on_' + notification.type](notification);
-        }
-        else if (!(notification.type in ignorable_notifications)) {
-            console.log('Unhandled notification type: ', notification.type, notification);
-        }
-    });
+/** @class
+ * GTP Engine interface for UI (extends GtpEngine)
+ */
+function UiGtpEngine(ui) {
+    GtpEngine.call(this, ui.game, ui.scorer);
+    this.ui = ui;
 }
+inherits(UiGtpEngine, GtpEngine);
+module.exports = UiGtpEngine;
 
-Connection.prototype.log = function() {
-    var arr = '';
-    for (var i=0; i < arguments.length; ++i) {
-        arr += arguments[i] + ' ';
-    }
-    console.log(arr);
+
+UiGtpEngine.prototype.quit = function () {
+    this.ui.message('GTP quit command received');
 };
 
-Connection.prototype.auth = function (obj) {
-    obj.apikey = cfg.apiKey;
-    obj.bot_id = this.botId;
-    return obj;
+UiGtpEngine.prototype.send = function (msg) {
+    console.log(msg); // TODO UI will probably connect via socket etc.
 };
 
-Connection.prototype.disconnect = function (reason) {
-    reason = reason || 'VOLUNTARY DISCONNECT';
-    console.info('Disconnecting. Reason: ', reason);
-    this.socket.close();
-    this.connected = false;
+UiGtpEngine.prototype.getAiPlayer = function (color) {
+    return this.ui.getAiPlayer(color);
 };
 
-function OgsApi() {
-    this.conn = null;
-}
-var ogsApi = new OgsApi();
-module.exports = ogsApi;
-
-OgsApi.prototype.init = function () {
-    this.conn = new Connection();
+UiGtpEngine.prototype.refreshDisplay = function () {
+    this.ui.refreshBoard();
 };
 
-},{"../../config/ogs.json":5,"socket.io-client":81}],55:[function(require,module,exports){
+UiGtpEngine.prototype._letAiPlay = function () {
+    return this.ui.letAiPlay();
+};
+
+},{"./GtpEngine":72,"util":6}],74:[function(require,module,exports){
 'use strict';
 
 
@@ -9045,7 +10237,7 @@ Array.prototype.range = function (begin, end) {
     return this.slice(begin, end + 1);
 };
 
-},{}],56:[function(require,module,exports){
+},{}],75:[function(require,module,exports){
 //Translated from test_ai.rb using babyruby2js
 'use strict';
 
@@ -9074,10 +10266,6 @@ TestAi.prototype.initBoard = function (size, handicap) {
         new main.defaultAi(this.goban, BLACK),
         new main.defaultAi(this.goban, WHITE)
     ];
-};
-
-TestAi.prototype.showInUi = function (msg) {
-    if (main.testUi) main.testUi.showTestGame(this.name, msg, this.game);
 };
 
 TestAi.prototype.logErrorContext = function (player, move) {
@@ -9246,6 +10434,11 @@ TestAi.prototype.checkGame = function (moves, checks, gsize) {
 
 
 //--- Tests are below
+
+TestAi.prototype.testAiInternals = function () {
+    this.initBoard(5);
+    this.assertEqual('c3 (6.40)\n- Spacer: 6.40\n', this.players[BLACK].getMoveSurveyText('c3', true));
+};
 
 TestAi.prototype.testEyeMaking = function () {
     // ++@@@
@@ -9750,22 +10943,14 @@ TestAi.prototype.testKillRace2 = function () {
         'a2>53, a2=b2, #pass, b5>41, b5=c5', 9);
 };
 
-TestAi.prototype.testSuperko = function () {
-    this.initBoard(5);
-    this.goban.setRules({ positionalSuperko: true });
-    this.game.loadMoves('a3,b3,a2,b2,pass,a1,b1,c1,pass,a1,pass,a4,a2,pass,b1,pass,a3,a1');
-    if (!this.goban.isValidMove(1, 2, BLACK)) return;
-    this.showInUi('a2 should be invalid: superko');
-    this.assertEqual(true, false);
-};
-
-},{"../GameLogic":7,"../Grid":10,"../main":51,"util":4}],57:[function(require,module,exports){
+},{"../GameLogic":8,"../Grid":11,"../main":70,"util":6}],76:[function(require,module,exports){
 'use strict';
 
 require('./TestAi');
 require('./TestBoardAnalyser');
 require('./TestBreeder');
 require('./TestGameLogic');
+require('./TestGoban');
 require('./TestGroup');
 require('./TestPotentialTerritory');
 require('./TestScoreAnalyser');
@@ -9774,7 +10959,7 @@ require('./TestSpeed');
 require('./TestStone');
 require('./TestZoneFiller');
 
-},{"./TestAi":56,"./TestBoardAnalyser":58,"./TestBreeder":59,"./TestGameLogic":61,"./TestGroup":62,"./TestPotentialTerritory":63,"./TestScoreAnalyser":64,"./TestSgfReader":66,"./TestSpeed":67,"./TestStone":68,"./TestZoneFiller":69}],58:[function(require,module,exports){
+},{"./TestAi":75,"./TestBoardAnalyser":77,"./TestBreeder":78,"./TestGameLogic":80,"./TestGoban":81,"./TestGroup":82,"./TestPotentialTerritory":83,"./TestScoreAnalyser":84,"./TestSgfReader":86,"./TestSpeed":87,"./TestStone":88,"./TestZoneFiller":89}],77:[function(require,module,exports){
 //Translated from test_board_analyser.rb using babyruby2js
 'use strict';
 
@@ -9812,7 +10997,7 @@ TestBoardAnalyser.prototype.checkGame = function (moves, expScore, gsize, finalP
     this.boan = new main.defaultAi.BoardAnalyser();
     this.boan.countScore(this.goban);
 
-    var score = this.goban.scoringGrid.image();
+    var score = this.boan.getScoringGrid().image();
     if (score === expScore) return;
     this.showInUi('Expected scoring grid was:<br>' + expScore + ' but we got:<br>' + score);
     this.assertEqual(expScore, score);
@@ -9828,12 +11013,29 @@ TestBoardAnalyser.prototype.checkScore = function (prisoners, dead, score) {
     this.assertEqual(score, this.boan.scores);
 };
 
-TestBoardAnalyser.prototype.showInUi = function (msg) {
-    if (main.testUi) main.testUi.showTestGame(this.name, msg, this.game);
-};
-
 //---
 
+
+// Coverage & base methods
+TestBoardAnalyser.prototype.testInternals = function () {
+    this.initBoard(5);
+    // same game as testDoomedGivesEye2 below
+    this.game.loadMoves('a2,a4,b2,b4,c2,b5,b1,c5,d2,c4,d1');
+    var grid = this.goban.scoringGrid.initFromGoban(this.goban);
+    var ba = this.boan = new main.defaultAi.BoardAnalyser();
+    ba.analyse(this.goban, grid, WHITE);
+
+    // Voids
+    var v = ba.allVoids[0];
+    var gi = ba.allGroups[1];
+    this.assertEqual(true, v.isTouching(gi));
+    this.assertEqual(false, v.isTouching(ba.allGroups[2]));
+    this.assertEqual('eye-a1, vcount:1, black:#1, white:-', v.toString());
+    this.assertEqual('void-e1, vcount:11, black:#1, white:#2', ba.allVoids[2].toString());
+
+    //Coverage
+    this.assertEqual(true, ba.debugDump().length > 100);
+};
 
 TestBoardAnalyser.prototype.testWeirdEmptyBoard = function () {
     // Just makes sure the analyser does not crash on empty boards.
@@ -9917,7 +11119,7 @@ TestBoardAnalyser.prototype.testNoTwoEyes3_1 = function () {
         '-----,-----,@@@@@,####@,-@-#@');
 };
 
- TestBoardAnalyser.prototype.testNoTwoEyes3_2 = function () {
+TestBoardAnalyser.prototype.testNoTwoEyes3_2 = function () {
     // White group is dead - having a dead kamikaze + an empty spot in NE corner should not change that
     this.checkGame('c3,d3,c2,d2,c4,c1,b1,d1,b2,d4,d5,e4,e2,pass,c5',
         '--@@-,' +
@@ -10120,13 +11322,12 @@ TestBoardAnalyser.prototype.testBigGame2 = function () {
     this.checkScore([11, 6], [3, 3], [44, 55]);
 };
 
-},{"../GameLogic":7,"../Group":11,"../main":51,"util":4}],59:[function(require,module,exports){
+},{"../GameLogic":8,"../Group":12,"../main":70,"util":6}],78:[function(require,module,exports){
 //Translated from test_breeder.rb using babyruby2js
 'use strict';
 
 var main = require('../main');
 var inherits = require('util').inherits;
-main.test = true;
 var Breeder = require('../Breeder');
 
 
@@ -10141,8 +11342,8 @@ module.exports = main.tests.add(TestBreeder);
 TestBreeder.prototype.testBwBalance = function () {
     var numGames = 100;
     var numLostGamesShowed = 5;
-    var expectedWins = 0.95 * numGames; // number going up shows new AI gets stronger compared to default AI
-    var tolerance = numGames / 10; // + or -; the more games you play the lower tolerance you can set
+    var expectedWins = 0.60 * numGames; // number going up shows new AI gets stronger compared to default AI
+    var tolerance = numGames * 0.15; // + or -; the more games you play the lower tolerance you can set
     var size = 9;
 
     // For coverage tests no need to run many games
@@ -10154,7 +11355,7 @@ TestBreeder.prototype.testBwBalance = function () {
     if (!main.isCoverTest) this.assertInDelta(numWins, expectedWins, tolerance);
 };
 
-},{"../Breeder":6,"../main":51,"util":4}],60:[function(require,module,exports){
+},{"../Breeder":7,"../main":70,"util":6}],79:[function(require,module,exports){
 'use strict';
 
 var main = require('../main');
@@ -10229,7 +11430,13 @@ TestCase.prototype.todo = function (comment) {
     main.log.info('TODO: ' + comment);
 };
 
-},{"../main":51,"./TestSeries":65}],61:[function(require,module,exports){
+TestCase.prototype.showInUi = function (msg) {
+    if (main.testUi && this.game) {
+        main.testUi.showTestGame(this.name, msg, this.game);
+    }
+};
+
+},{"../main":70,"./TestSeries":85}],80:[function(require,module,exports){
 //Translated from test_game_logic.rb using babyruby2js
 'use strict';
 
@@ -10306,7 +11513,119 @@ TestGameLogic.prototype.testGetErrors = function () {
     this.assertEqual([], this.game.getErrors());
 };
 
-},{"../GameLogic":7,"../main":51,"util":4}],62:[function(require,module,exports){
+},{"../GameLogic":8,"../main":70,"util":6}],81:[function(require,module,exports){
+// NB Stone & Goban can hardly be tested separately
+'use strict';
+
+var main = require('../main');
+var inherits = require('util').inherits;
+var GameLogic = require('../GameLogic');
+var Goban = require('../Goban');
+var Grid = require('../Grid');
+
+var BLACK = main.BLACK, WHITE = main.WHITE;
+
+
+/** @class */
+function TestGoban(testName) {
+    main.TestCase.call(this, testName);
+    this.goban = new Goban(5);
+}
+inherits(TestGoban, main.TestCase);
+module.exports = main.tests.add(TestGoban);
+
+
+// Coverage etc.
+TestGoban.prototype.testInternals = function () {
+    var goban = this.goban;
+    goban.playAt(1, 2, BLACK);
+    goban.playAt(2, 2, WHITE);
+    this.assertEqual(BLACK, goban.colorAt(1, 2));
+    this.assertEqual(WHITE, goban.colorAt(2, 2));
+    // Coverage
+    this.assertEqual(true, goban.debugDump().length > 100);
+    // 2 Grid methods
+    this.assertEqual(goban.image(), goban.grid.image()); // these 2 could change, actually
+    this.assertEqual('undefinedundefined', goban.scoringGrid.toString().substr(0, 18));
+};
+
+TestGoban.prototype.testSignature = function () {
+    var goban = this.goban;
+    goban.setRules({ positionalSuperko: true });
+    var moves = 'a5,b5,a4,b4,c5,a3,d4,c4,d3,d5,c3,b3,a2,c2,e4,d2,e2,e1,e5,e3,b1,b2,c1,a1'.split(',');
+    var color = BLACK;
+    for (var n = 0; n < moves.length; n++) {
+        var coord = Grid.move2xy(moves[n]), i = coord[0], j = coord[1];
+
+        var incrementalImg = goban.nextMoveImage(i, j, color);
+
+        goban.playAt(i, j, color);
+        color = 1 - color;
+
+        var curImg = goban.getPositionSignature();
+        this.assertEqual(curImg, incrementalImg);
+        this.assertEqual(goban.buildCompressedImage(), curImg);
+    }
+};
+
+TestGoban.prototype.testSuicide = function () {
+    // a2 b2 b1 a3 pass c1
+    var goban = this.goban;
+    goban.playAt(1, 2, BLACK);
+    goban.playAt(2, 2, WHITE);
+    goban.playAt(2, 1, BLACK);
+    this.assertEqual(false, goban.isValidMove(1, 1, WHITE)); // suicide invalid
+    goban.playAt(1, 3, WHITE);
+    this.assertEqual(true, goban.isValidMove(1, 1, WHITE)); // now this would be a kill
+    this.assertEqual(true, goban.isValidMove(1, 1, BLACK)); // black could a1 too (merge)
+    goban.playAt(3, 1, WHITE); // now 2 black stones share a last life
+    this.assertEqual(false, goban.isValidMove(1, 1, BLACK)); // so this would be a suicide with merge
+};
+
+TestGoban.prototype.testKo = function () {
+    // pass b2 a2 a3 b1 a1
+    var goban = this.goban;
+    goban.playAt(2, 2, WHITE);
+    goban.playAt(1, 2, BLACK);
+    goban.playAt(1, 3, WHITE);
+    goban.playAt(2, 1, BLACK);
+    goban.playAt(1, 1, WHITE); // kill!
+    this.assertEqual(false, goban.isValidMove(1, 2, BLACK)); // now this is a ko
+    goban.playAt(4, 4, BLACK); // play once anywhere else
+    goban.playAt(4, 5, WHITE);
+    this.assertEqual(true, goban.isValidMove(1, 2, BLACK)); // ko can be taken by black
+    goban.playAt(1, 2, BLACK); // black takes the ko
+    this.assertEqual(false, goban.isValidMove(1, 1, WHITE)); // white cannot take the ko
+    goban.playAt(5, 5, WHITE); // play once anywhere else
+    goban.playAt(5, 4, BLACK);
+    this.assertEqual(true, goban.isValidMove(1, 1, WHITE)); // ko can be taken back by white
+    goban.playAt(1, 1, WHITE); // white takes the ko
+    this.assertEqual(false, goban.isValidMove(1, 2, BLACK)); // and black cannot take it now
+};
+
+TestGoban.prototype.testSuperko = function () {
+    this.game = new GameLogic();
+    this.game.newGame(5);
+    var goban = this.goban = this.game.goban;
+
+    goban.setRules({ positionalSuperko: true });
+
+    this.game.loadMoves('a3,b3,a2,b2,pass,a1,b1,c1,pass,a1,pass,a4,a2,pass,b1,pass,a3');
+    // W-a1 now would repeat position we had after W-a4
+    if (goban.isValidMove(1, 1, WHITE)) {
+        this.showInUi('a1 should be invalid: superko');
+        this.assertEqual(true, false);
+    }
+    // undo, redo and verify superko is still detected
+    goban.undo();
+    goban.playAt(1, 3, BLACK);
+    this.assertEqual(false, goban.isValidMove(1, 1, WHITE));
+    // a1 is allowed again after another stone is added anywhere
+    goban.playAt(4, 2, BLACK);
+    this.assertEqual(true, goban.isValidMove(1, 1, WHITE));
+};
+
+},{"../GameLogic":8,"../Goban":10,"../Grid":11,"../main":70,"util":6}],82:[function(require,module,exports){
 //Translated from test_group.rb using babyruby2js
 'use strict';
 
@@ -10619,9 +11938,9 @@ TestGroup.prototype.testUndo3 = function () {
     this.assertEqual(5, b2.lives);
 };
 
-},{"../GameLogic":7,"../main":51,"util":4}],63:[function(require,module,exports){
-//Translated from test_potential_territory.rb using babyruby2js
+},{"../GameLogic":8,"../main":70,"util":6}],83:[function(require,module,exports){
 'use strict';
+/* eslint quotes: 0 */
 /* jshint quotmark: false */
 
 var main = require('../main');
@@ -10660,9 +11979,7 @@ TestPotentialTerritory.prototype.checkBasicGame = function (moves, expected, gsi
     this.assertEqual(expected, territory);
 };
 
-TestPotentialTerritory.prototype.showInUi = function (msg) {
-    if (main.testUi) main.testUi.showTestGame(this.name, msg, this.game);
-};
+//---
 
 
 TestPotentialTerritory.prototype.testBigEmptySpace = function () {
@@ -10779,7 +12096,7 @@ TestPotentialTerritory.prototype.testConnectBordersNoC7 = function () {
         "------?::,------:::,-----::::,-----?:::,-----?:::,----?::::,---::::::,----:::::,----:::::", 9);
 };
 
-},{"../GameLogic":7,"../main":51,"util":4}],64:[function(require,module,exports){
+},{"../GameLogic":8,"../main":70,"util":6}],84:[function(require,module,exports){
 //Translated from test_score_analyser.rb using babyruby2js
 'use strict';
 
@@ -10848,9 +12165,10 @@ TestScoreAnalyser.prototype.testStartScoring = function () {
 TestScoreAnalyser.prototype.testScoringGrid = function () {
     this.initGame(7);
     this.sa.startScoring(this.goban, 1.5, null);
+    var sgridYx = this.sa.getScoringGrid().yx;
     this.assertEqual(main.EMPTY, this.goban.stoneAt(1, 1).color); // score analyser leaves the goban untouched
-    this.assertEqual(Grid.TERRITORY_COLOR + main.WHITE, this.goban.scoringGrid.yx[1][1]); // a1
-    this.assertEqual(Grid.TERRITORY_COLOR + main.BLACK, this.goban.scoringGrid.yx[6][2]); // b6
+    this.assertEqual(Grid.TERRITORY_COLOR + main.WHITE, sgridYx[1][1]); // a1
+    this.assertEqual(Grid.TERRITORY_COLOR + main.BLACK, sgridYx[6][2]); // b6
 };
 
 TestScoreAnalyser.prototype.testScoreInfoToS = function () {
@@ -10872,7 +12190,7 @@ TestScoreAnalyser.prototype.testScoreDiffToS = function () {
     this.assertEqual('Tie game', this.sa.scoreDiffToS(0));
 };
 
-},{"../GameLogic":7,"../Grid":10,"../ScoreAnalyser":14,"../main":51,"util":4}],65:[function(require,module,exports){
+},{"../GameLogic":8,"../Grid":11,"../ScoreAnalyser":15,"../main":70,"util":6}],85:[function(require,module,exports){
 'use strict';
 
 var main = require('../main');
@@ -10918,13 +12236,11 @@ TestSeries.prototype.testOneClass = function (Klass, methodPattern) {
 };
 
 /** Runs the registered test cases
- * @param {func} [logfunc] - logfn(level, msg) if not given or if it returns true, console will show the msg too.
  * @param {string} [specificClass] - name of single class to test. E.g. "TestSpeed"
  * @param {string} [methodPattern] - if given, only test names containing this pattern are run
  * @return {number} - number of issues detected (exceptions + errors + warnings); 0 if all fine
  */
-TestSeries.prototype.run = function (logfunc, specificClass, methodPattern) {
-    main.log.setLogFunc(logfunc);
+TestSeries.prototype.run = function (specificClass, methodPattern) {
     var logLevel = main.log.level;
     var classCount = 0;
     this.testCount = this.checkCount = this.count = 0;
@@ -10964,7 +12280,7 @@ TestSeries.prototype._logReport = function (specificClass, classCount, duration)
     return numIssues;
 };
 
-},{"../main":51}],66:[function(require,module,exports){
+},{"../main":70}],86:[function(require,module,exports){
 //Translated from test_sgf_reader.rb using babyruby2js
 'use strict';
 
@@ -10981,31 +12297,61 @@ inherits(TestSgfReader, main.TestCase);
 module.exports = main.tests.add(TestSgfReader);
 
 
-TestSgfReader.prototype.test1 = function () {
-    var game1 = '(;FF[4]EV[go19.ch.10.4.3]PB[kyy]PW[Olivier Lombart]KM[6.5]SZ[19]SO[http://www.littlegolem.com];B[pd];W[pp];B[ce];W[dc];B[dp];W[ee];B[dg];W[cn];B[fq];W[bp];B[cq];W[bq];B[br];W[cp];B[dq];W[dj];B[cc];W[cb];B[bc];W[nc];B[qf];W[pb];B[qc];W[jc];B[qn];W[nq];B[pj];W[ch];B[cg];W[bh];B[bg];W[iq];B[en];W[gr];B[fr];W[ol];B[ql];W[rp];B[ro];W[qo];B[po];W[qp];B[pn];W[no];B[cl];W[dm];B[cj];W[dl];B[di];W[ck];B[ej];W[dk];B[ci];W[bj];B[bi];W[bk];B[ah];W[gc];B[lc];W[ld];B[kd];W[md];B[kc];W[jd];B[ke];W[nf];B[kg];W[oh];B[qh];W[nj];B[hf];W[ff];B[fg];W[gf];B[gg];W[he];B[if];W[ki];B[jp];W[ip];B[jo];W[io];B[jn];W[im];B[in];W[hn];B[jm];W[il];B[jl];W[ik];B[jk];W[jj];B[ho];W[go];B[hm];W[gn];B[ij];W[hj];B[ii];W[gk];B[kj];W[ji];B[lj];W[li];B[mj];W[mi];B[nk];W[ok];B[ni];W[oj];B[nh];W[ng];B[mh];W[lh];B[mg];W[lg];B[nn];W[pi];B[om];W[ml];B[mo];W[mp];B[ln];W[mk];B[qj];W[qi];B[jq];W[ir];B[ar];W[mm];B[oo];W[np];B[mn];W[ri];B[dd];W[ec];B[bb];W[rk];B[pl];W[rg];B[qb];W[pf];B[pe];W[of];B[qg];W[rh];B[ob];W[nb];B[pc];W[sd];B[rc];W[re];B[qe];W[ih];B[hi];W[hh];B[gi];W[hg];B[jh];W[lf];B[kf];W[lp];B[nm];W[kk];B[lr];W[lq];B[kr];W[jr];B[kq];W[mr];B[kb];W[jb];B[ja];W[ia];B[ka];W[hb];B[ie];W[id];B[ed];W[fd];B[db];W[eb];B[ca];W[de];B[cd];W[ek];B[ei];W[em];B[gq];W[gp];B[hr];W[hq];B[gs];W[eo];B[do];W[dn];B[co];W[bo];B[ep];W[fo];B[kl];W[lk];B[lm];W[rm];B[rn];W[rl];B[rj];W[sj];B[rf];W[sf];B[rd];W[se];B[sc];W[sg];B[qm];W[oc];B[pa];W[ko];B[kn];W[ea];B[op];W[oq];B[df];W[fe];B[ef];W[da];B[cb];W[aq];B[gj];W[hk];B[na];W[ma];B[oa];W[mc];B[le];W[me];B[oe];W[nl];B[sp];W[sq];B[so];W[qq];B[ne];W[ls];B[ks];W[aj];B[ms];W[ns];B[ls];W[ai];B[dh];W[fj];B[fi];W[fk];B[je];W[is];B[hs];W[sm];B[sk];W[sl];B[si];W[sh];B[ph];W[oi];B[pg];W[kp];B[og];W[mf];B[kh];W[qk];B[pk];W[si];B[ig];W[fp];B[js];W[hp];B[tt];W[tt];B[tt])';
-    var reader = new SgfReader(game1);
-    this.assertEqual(6.5, reader.komi);
-    this.assertEqual(0, reader.handicap);
-    this.assertEqual(19, reader.boardSize);
-    this.assertEqual([], reader.handicapStones);
-    var moves = reader.toMoveList();
-    var expMoves = 'q16,q4,c15,d17,d4,e15,d13,c6,f3,b4,c3,b3,b2,c4,d3,d10,c17,c18,b17,o17,r14,q18,r17,k17,r6,o3,q10,c12,c13,b12,b13,j3,e6,g2,f2,p8,r8,s4,s5,r5,q5,r4,q6,o5,c8,d7,c10,d8,d11,c9,e10,d9,c11,b10,b11,b9,a12,g17,m17,m16,l16,n16,l17,k16,l15,o14,l13,p12,r12,o10,h14,f14,f13,g14,g13,h15,j14,l11,k4,j4,k5,j5,k6,j7,j6,h6,k7,j8,k8,j9,k9,k10,h5,g5,h7,g6,j10,h10,j11,g9,l10,k11,m10,m11,n10,n11,o9,p9,o11,p10,o12,o13,n12,m12,n13,m13,o6,q11,p7,n8,n5,n4,m6,n9,r10,r11,k3,j2,a2,n7,p5,o4,n6,s11,d16,e17,b18,s9,q8,s13,r18,q14,q15,p14,r13,s12,p18,o18,q17,t16,s17,s15,r15,j12,h11,h12,g11,h13,k12,m14,l14,m4,o7,l9,m2,m3,l2,k2,l3,n2,l18,k18,k19,j19,l19,h18,j15,j16,e16,f16,d18,e18,c19,d15,c16,e9,e11,e7,g3,g4,h2,h3,g1,e5,d5,d6,c5,b5,e4,f5,l8,m9,m7,s7,s6,s8,s10,t10,s14,t14,s16,t15,t17,t13,r7,p17,q19,l5,l6,e19,p4,p3,d14,f15,e14,d19,c18,a3,g10,h9,o19,n19,p19,n17,m15,n15,p15,o8,t4,t3,t5,r3,o15,m1,l1,a10,n1,o1,m1,a11,d12,f10,f11,f9,k15,j1,h1,t7,t9,t8,t11,t12,q12,p11,q13,l4,p13,n14,l12,r9,q9,t11,j13,f4,k1,h4,pass,pass,pass';
-    this.assertEqual(expMoves, moves);
+TestSgfReader.prototype.testSgfNoHandicap = function () {
+    // Game from LittleGolem
+    var game = '(;FF[4]EV[go19.ch.10.4.3]PB[kyy]PW[Olivier Lombart]KM[6.5]SZ[19]SO[http://www.littlegolem.com];B[pd];W[pp];B[ce];W[dc];B[dp];W[ee];B[dg];W[cn];B[fq];W[bp];B[cq];W[bq];B[br];W[cp];B[dq];W[dj];B[cc];W[cb];B[bc];W[nc];B[qf];W[pb];B[qc];W[jc];B[qn];W[nq];B[pj];W[ch];B[cg];W[bh];B[bg];W[iq];B[en];W[gr];B[fr];W[ol];B[ql];W[rp];B[ro];W[qo];B[po];W[qp];B[pn];W[no];B[cl];W[dm];B[cj];W[dl];B[di];W[ck];B[ej];W[dk];B[ci];W[bj];B[bi];W[bk];B[ah];W[gc];B[lc];W[ld];B[kd];W[md];B[kc];W[jd];B[ke];W[nf];B[kg];W[oh];B[qh];W[nj];B[hf];W[ff];B[fg];W[gf];B[gg];W[he];B[if];W[ki];B[jp];W[ip];B[jo];W[io];B[jn];W[im];B[in];W[hn];B[jm];W[il];B[jl];W[ik];B[jk];W[jj];B[ho];W[go];B[hm];W[gn];B[ij];W[hj];B[ii];W[gk];B[kj];W[ji];B[lj];W[li];B[mj];W[mi];B[nk];W[ok];B[ni];W[oj];B[nh];W[ng];B[mh];W[lh];B[mg];W[lg];B[nn];W[pi];B[om];W[ml];B[mo];W[mp];B[ln];W[mk];B[qj];W[qi];B[jq];W[ir];B[ar];W[mm];B[oo];W[np];B[mn];W[ri];B[dd];W[ec];B[bb];W[rk];B[pl];W[rg];B[qb];W[pf];B[pe];W[of];B[qg];W[rh];B[ob];W[nb];B[pc];W[sd];B[rc];W[re];B[qe];W[ih];B[hi];W[hh];B[gi];W[hg];B[jh];W[lf];B[kf];W[lp];B[nm];W[kk];B[lr];W[lq];B[kr];W[jr];B[kq];W[mr];B[kb];W[jb];B[ja];W[ia];B[ka];W[hb];B[ie];W[id];B[ed];W[fd];B[db];W[eb];B[ca];W[de];B[cd];W[ek];B[ei];W[em];B[gq];W[gp];B[hr];W[hq];B[gs];W[eo];B[do];W[dn];B[co];W[bo];B[ep];W[fo];B[kl];W[lk];B[lm];W[rm];B[rn];W[rl];B[rj];W[sj];B[rf];W[sf];B[rd];W[se];B[sc];W[sg];B[qm];W[oc];B[pa];W[ko];B[kn];W[ea];B[op];W[oq];B[df];W[fe];B[ef];W[da];B[cb];W[aq];B[gj];W[hk];B[na];W[ma];B[oa];W[mc];B[le];W[me];B[oe];W[nl];B[sp];W[sq];B[so];W[qq];B[ne];W[ls];B[ks];W[aj];B[ms];W[ns];B[ls];W[ai];B[dh];W[fj];B[fi];W[fk];B[je];W[is];B[hs];W[sm];B[sk];W[sl];B[si];W[sh];B[ph];W[oi];B[pg];W[kp];B[og];W[mf];B[kh];W[qk];B[pk];W[si];B[ig];W[fp];B[js];W[hp];B[tt];W[tt];B[tt])';
+    var reader = new SgfReader();
+    var infos = reader.readGame(game);
+    this.assertEqual(19, infos.boardSize);
+    this.assertEqual(6.5, infos.komi);
+    this.assertEqual(0, infos.handicap);
+    this.assertEqual('Bq16,q4,c15,d17,d4,e15,d13,c6,f3,b4,c3,b3,b2,c4,d3,d10,c17,c18,b17,o17,r14,q18,r17,k17,r6,o3,q10,c12,c13,b12,b13,j3,e6,g2,f2,p8,r8,s4,s5,r5,q5,r4,q6,o5,c8,d7,c10,d8,d11,c9,e10,d9,c11,b10,b11,b9,a12,g17,m17,m16,l16,n16,l17,k16,l15,o14,l13,p12,r12,o10,h14,f14,f13,g14,g13,h15,j14,l11,k4,j4,k5,j5,k6,j7,j6,h6,k7,j8,k8,j9,k9,k10,h5,g5,h7,g6,j10,h10,j11,g9,l10,k11,m10,m11,n10,n11,o9,p9,o11,p10,o12,o13,n12,m12,n13,m13,o6,q11,p7,n8,n5,n4,m6,n9,r10,r11,k3,j2,a2,n7,p5,o4,n6,s11,d16,e17,b18,s9,q8,s13,r18,q14,q15,p14,r13,s12,p18,o18,q17,t16,s17,s15,r15,j12,h11,h12,g11,h13,k12,m14,l14,m4,o7,l9,m2,m3,l2,k2,l3,n2,l18,k18,k19,j19,l19,h18,j15,j16,e16,f16,d18,e18,c19,d15,c16,e9,e11,e7,g3,g4,h2,h3,g1,e5,d5,d6,c5,b5,e4,f5,l8,m9,m7,s7,s6,s8,s10,t10,s14,t14,s16,t15,t17,t13,r7,p17,q19,l5,l6,e19,p4,p3,d14,f15,e14,d19,c18,a3,g10,h9,o19,n19,p19,n17,m15,n15,p15,o8,t4,t3,t5,r3,o15,m1,l1,a10,n1,o1,m1,a11,d12,f10,f11,f9,k15,j1,h1,t7,t9,t8,t11,t12,q12,p11,q13,l4,p13,n14,l12,r9,q9,t11,j13,f4,k1,h4,pass,pass,pass',
+        reader.toMoveList());
 };
 
-TestSgfReader.prototype.test2 = function () {
-    var game2 = '(;FF[4]EV[go19.mc.2010.mar.1.21]PB[fuego19 bot]PW[Olivier Lombart]KM[0.5]SZ[19]SO[http://www.littlegolem.com]HA[6]AB[pd]AB[dp]AB[pp]AB[dd]AB[pj]AB[dj];W[fq];B[fp];W[dq];B[eq];W[er];B[ep];W[cq];B[fr];W[cp];B[cn];W[co];B[dn];W[nq];B[oc];W[fc];B[ql];W[pr];B[cg];W[qq];B[mc];W[pg];B[nh];W[qi];B[dr];W[cr];B[nk];W[qe];B[hc];W[db];B[jc];W[cc];B[qj];W[qc];B[qd];W[rd];B[re];W[rc];B[qf];W[rf];B[pe];W[se];B[rg];W[qe];B[qg];W[jq];B[es];W[fe];B[ci];W[no];B[bn];W[bo];B[cs];W[bs];B[pb];W[ef];B[ao];W[ap];B[ip];W[pn];B[qn];W[qo];B[jp];W[iq];B[kq];W[lq];B[kr];W[kp];B[hq];W[lr];B[ko];W[lp];B[kg];W[hh];B[ir];W[ce];B[pm];W[rn];B[ek];W[an];B[am];W[ao];B[re];W[sk];B[qm];W[rm];B[ro];W[rp];B[qp];W[po];B[oo];W[on];B[om];W[nn];B[ii];W[bm];B[cm];W[bl];B[cl];W[bk];B[gi];W[ll];B[lm];W[km];B[kl];W[jm];B[lk];W[ln];B[hi];W[hf];B[kc];W[hm];B[ml];W[jo];B[io];W[jn];B[in];W[im];B[bf];W[be];B[bj];W[ri];B[rj];W[sj];B[rl];W[sl];B[qb];W[ph];B[pi];W[qh];B[ae];W[ad];B[ck];W[ds];B[gm];W[ik];B[kj];W[of];B[gb];W[hn];B[gl];W[ho];B[hp];W[fo];B[nf];W[ne];B[oe];W[ng];B[mf];W[mg];B[mh];W[lg];B[lh];W[lf];B[me];W[le];B[md];W[kf];B[jg];W[eh];B[af];W[cd];B[ak];W[fn];B[sf];W[gh];B[hk];W[fi];B[nm];W[ih];B[ji];W[jh];B[kh];W[er];B[fs];W[oh];B[ib];W[oi];B[oj];W[ni];B[mi];W[nj];B[jk];W[hl];B[ij];W[em];B[ls];W[ms];B[dh];W[ks];B[jr];W[cf];B[bg];W[fj];B[gj];W[fk];B[gk];W[fb];B[hd];W[gc];B[fa];W[ea];B[ga];W[dg];B[mj];W[dl];B[il];W[ej];B[gd];W[fd];B[el];W[fl];B[dk];W[dm];B[sd];W[dr];B[ge];W[gf];B[id];W[jl];B[ik];W[ig];B[jf];W[ld];B[lc];W[di];B[ei];W[ha];B[hb];W[di];B[ch];W[ei];B[fm];W[en];B[do];W[mn];B[mm];W[je];B[kd];W[go];B[gq];W[js];B[is];W[ls];B[ke];W[og];B[ie];W[sh];B[if];W[so];B[he];W[fg];B[pf];W[si];B[sg];W[kn];B[rh];W[sm];B[rk];W[gn];B[eo];W[tt];B[tt];W[tt];B[tt])';
-    var reader = new SgfReader(game2);
-    this.assertEqual(0.5, reader.komi);
-    this.assertEqual(6, reader.handicap);
-    this.assertEqual(19, reader.boardSize);
-    this.assertEqual(['q16', 'd4', 'q4', 'd16', 'q10', 'd10'], reader.handicapStones);
-    var moves = reader.toMoveList();
-    var expMoves = 'hand:6=q16-d4-q4-d16-q10-d10,f3,f4,d3,e3,e2,e4,c3,f2,c4,c6,c5,d6,o3,p17,f17,r8,q2,c13,r3,n17,q13,o12,r11,d2,c2,o9,r15,h17,d18,k17,c17,r10,r17,r16,s16,s15,s17,r14,s14,q15,t15,s13,r15,r13,k3,e1,f15,c11,o5,b6,b5,c1,b1,q18,e14,a5,a4,j4,q6,r6,r5,k4,j3,l3,m3,l2,l4,h3,m2,l5,m4,l13,h12,j2,c15,q7,s6,e9,a6,a7,a5,s15,t9,r7,s7,s5,s4,r4,q5,p5,p6,p7,o6,j11,b7,c7,b8,c8,b9,g11,m8,m7,l7,l8,k7,m9,m6,h11,h14,l17,h7,n8,k5,j5,k6,j6,j7,b14,b15,b10,s11,s10,t10,s8,t8,r18,q12,q11,r12,a15,a16,c9,d1,g7,j9,l10,p14,g18,h6,g8,h5,h4,f5,o14,o15,p15,o13,n14,n13,n12,m13,m12,m14,n15,m15,n16,l14,k13,e12,a14,c16,a9,f6,t14,g12,h9,f11,o7,j12,k11,k12,l12,e2,f1,p12,j18,p11,p10,o11,n11,o10,k9,h8,j10,e7,m1,n1,d12,l1,k2,c14,b13,f10,g10,f9,g9,f18,h16,g17,f19,e19,g19,d13,n10,d8,j8,e10,g16,f16,e8,f8,d9,d7,t16,d2,g15,g14,j16,k8,j9,j13,k14,m16,m17,d11,e11,h19,h18,d11,c12,e11,f7,e6,d5,n6,n7,k15,l16,g5,g3,k1,j1,m1,l15,p13,j15,t12,j14,t5,h15,f13,q14,t11,t13,l6,s12,t7,s9,g6,e5,pass,pass,pass,pass';
-    this.assertEqual(expMoves, moves);
+TestSgfReader.prototype.testSgfWithHandicap = function () {
+    // Game 2 from LittleGolem - with handicap; +replaced pass moves "tt" by ""
+    var game = '(;FF[4]EV[go19.mc.2010.mar.1.21]PB[fuego19 bot]PW[Olivier Lombart]KM[0.5]SZ[19]SO[http://www.littlegolem.com]HA[6]AB[pd]AB[dp]AB[pp]AB[dd]AB[pj]AB[dj];W[fq];B[fp];W[dq];B[eq];W[er];B[ep];W[cq];B[fr];W[cp];B[cn];W[co];B[dn];W[nq];B[oc];W[fc];B[ql];W[pr];B[cg];W[qq];B[mc];W[pg];B[nh];W[qi];B[dr];W[cr];B[nk];W[qe];B[hc];W[db];B[jc];W[cc];B[qj];W[qc];B[qd];W[rd];B[re];W[rc];B[qf];W[rf];B[pe];W[se];B[rg];W[qe];B[qg];W[jq];B[es];W[fe];B[ci];W[no];B[bn];W[bo];B[cs];W[bs];B[pb];W[ef];B[ao];W[ap];B[ip];W[pn];B[qn];W[qo];B[jp];W[iq];B[kq];W[lq];B[kr];W[kp];B[hq];W[lr];B[ko];W[lp];B[kg];W[hh];B[ir];W[ce];B[pm];W[rn];B[ek];W[an];B[am];W[ao];B[re];W[sk];B[qm];W[rm];B[ro];W[rp];B[qp];W[po];B[oo];W[on];B[om];W[nn];B[ii];W[bm];B[cm];W[bl];B[cl];W[bk];B[gi];W[ll];B[lm];W[km];B[kl];W[jm];B[lk];W[ln];B[hi];W[hf];B[kc];W[hm];B[ml];W[jo];B[io];W[jn];B[in];W[im];B[bf];W[be];B[bj];W[ri];B[rj];W[sj];B[rl];W[sl];B[qb];W[ph];B[pi];W[qh];B[ae];W[ad];B[ck];W[ds];B[gm];W[ik];B[kj];W[of];B[gb];W[hn];B[gl];W[ho];B[hp];W[fo];B[nf];W[ne];B[oe];W[ng];B[mf];W[mg];B[mh];W[lg];B[lh];W[lf];B[me];W[le];B[md];W[kf];B[jg];W[eh];B[af];W[cd];B[ak];W[fn];B[sf];W[gh];B[hk];W[fi];B[nm];W[ih];B[ji];W[jh];B[kh];W[er];B[fs];W[oh];B[ib];W[oi];B[oj];W[ni];B[mi];W[nj];B[jk];W[hl];B[ij];W[em];B[ls];W[ms];B[dh];W[ks];B[jr];W[cf];B[bg];W[fj];B[gj];W[fk];B[gk];W[fb];B[hd];W[gc];B[fa];W[ea];B[ga];W[dg];B[mj];W[dl];B[il];W[ej];B[gd];W[fd];B[el];W[fl];B[dk];W[dm];B[sd];W[dr];B[ge];W[gf];B[id];W[jl];B[ik];W[ig];B[jf];W[ld];B[lc];W[di];B[ei];W[ha];B[hb];W[di];B[ch];W[ei];B[fm];W[en];B[do];W[mn];B[mm];W[je];B[kd];W[go];B[gq];W[js];B[is];W[ls];B[ke];W[og];B[ie];W[sh];B[if];W[so];B[he];W[fg];B[pf];W[si];B[sg];W[kn];B[rh];W[sm];B[rk];W[gn];B[eo];W[];B[];W[];B[])';
+    var reader = new SgfReader();
+    var infos = reader.readGame(game);
+    this.assertEqual(19, infos.boardSize);
+    this.assertEqual(0.5, infos.komi);
+    this.assertEqual(6, infos.handicap);
+    this.assertEqual('hand:B=q16-d4-q4-d16-q10-d10,Wf3,f4,d3,e3,e2,e4,c3,f2,c4,c6,c5,d6,o3,p17,f17,r8,q2,c13,r3,n17,q13,o12,r11,d2,c2,o9,r15,h17,d18,k17,c17,r10,r17,r16,s16,s15,s17,r14,s14,q15,t15,s13,r15,r13,k3,e1,f15,c11,o5,b6,b5,c1,b1,q18,e14,a5,a4,j4,q6,r6,r5,k4,j3,l3,m3,l2,l4,h3,m2,l5,m4,l13,h12,j2,c15,q7,s6,e9,a6,a7,a5,s15,t9,r7,s7,s5,s4,r4,q5,p5,p6,p7,o6,j11,b7,c7,b8,c8,b9,g11,m8,m7,l7,l8,k7,m9,m6,h11,h14,l17,h7,n8,k5,j5,k6,j6,j7,b14,b15,b10,s11,s10,t10,s8,t8,r18,q12,q11,r12,a15,a16,c9,d1,g7,j9,l10,p14,g18,h6,g8,h5,h4,f5,o14,o15,p15,o13,n14,n13,n12,m13,m12,m14,n15,m15,n16,l14,k13,e12,a14,c16,a9,f6,t14,g12,h9,f11,o7,j12,k11,k12,l12,e2,f1,p12,j18,p11,p10,o11,n11,o10,k9,h8,j10,e7,m1,n1,d12,l1,k2,c14,b13,f10,g10,f9,g9,f18,h16,g17,f19,e19,g19,d13,n10,d8,j8,e10,g16,f16,e8,f8,d9,d7,t16,d2,g15,g14,j16,k8,j9,j13,k14,m16,m17,d11,e11,h19,h18,d11,c12,e11,f7,e6,d5,n6,n7,k15,l16,g5,g3,k1,j1,m1,l15,p13,j15,t12,j14,t5,h15,f13,q14,t11,t13,l6,s12,t7,s9,g6,e5,pass,pass,pass,pass',
+        reader.toMoveList());
 };
 
-},{"../SgfReader":15,"../main":51,"util":4}],67:[function(require,module,exports){
+TestSgfReader.prototype.testSgfWithCommentsAndEscapedChars = function () {
+    // Game from KGS Bot tournament (contains "\]")
+    var game = '(;GM[1]FF[4]CA[UTF-8]AP[CGoban:3]ST[2] RU[Chinese]SZ[13]KM[7.50]TM[540]OT[10/30 Canadian] PW[AyaMC]PB[abakus]WR[3d]BR[5d]DT[2015-12-06]PC[The KGS Go Server at http://www.gokgs.com/]C[abakus [5d\\]: GTP Engine for abakus (black): Abakus version 20151124. Have a nice game! AyaMC [3d\\]: GTP Engine for AyaMC (white): Aya version 7.85x ]RE[B+Resign] ;B[kd]BL[538.796] ;W[dd]WL[534.304] ;B[dj]BL[533.672] ;W[jk]WL[528.911] ;B[cc]BL[528.49] ;W[jg]WL[518.219] ;B[hd]BL[523.244] ;W[dc]WL[506.076] ;B[kk]BL[517.912] ;W[jj]WL[497.504] ;B[kj]BL[512.541] ;W[ji]WL[487.283] ;B[kh]BL[506.973] ;W[ci]WL[476.303] ;B[cf]BL[501.478] ;W[di]WL[465.306] ;B[cd]BL[495.775] ;W[de]WL[457.758] ;B[cj]BL[490.122] ;W[ej]WL[450.304] ;B[ek]BL[484.394] ;W[bj]WL[439.151] ;B[bk]BL[478.509] ;W[fk]WL[431.785] ;B[ei]BL[472.607] ;W[fj]WL[425.918] ;B[bi]BL[466.64] ;W[bh]WL[418.984] ;B[aj]BL[460.592] ;W[ce]WL[418.079] ;B[ch]BL[454.562] ;W[dh]WL[412.067] ;B[cg]BL[448.411] ;W[jc]WL[403.129] ;B[jd]BL[442.046]C[HYamashita [?\\]: Aya thinks 54% for w. ] ;W[ic]WL[392.818] ;B[hc]BL[435.676] ;W[id]WL[382.391] ;B[ie]BL[429.243] ;W[he]WL[374.706] ;B[kc]BL[422.684] ;W[be]WL[366.623] ;B[fd]BL[415.99] ;W[fc]WL[355.717] ;B[fb]BL[409.184] ;W[hf]WL[344.867] ;B[ib]BL[402.253] ;W[ki]WL[338.787] ;B[eh]BL[395.166] ;W[li]WL[333.51] ;B[hl]BL[387.955]C[HYamashita [?\\]: hmm... similar shape. ] ;W[il]WL[327.9] ;B[gi]BL[380.558] ;W[el]WL[318.677]C[gogonuts [3d\\]: abakus seems to be playing those 3-3 invasions too early ] ;B[db]BL[373.018]C[HYamashita [?\\]: D7 is ladder? ] ;W[eb]WL[313.967] ;B[ea]BL[365.31] ;W[cb]WL[313.305] ;B[ec]BL[357.407] ;W[bb]WL[312.599] ;B[hh]BL[349.515]C[gogonuts [3d\\]: y ] ;W[ed]WL[303.707]C[HYamashita [?\\]: thx. 52% for w. ] ;B[hk]BL[341.303] ;W[hj]WL[302.873] ;B[gj]BL[332.984] ;W[dg]WL[302.008]C[gogonuts [3d\\]: not anymore HYamashita [?\\]: oh ] ;B[gk]BL[324.465]C[gogonuts [3d\\]: e10 broke it ] ;W[dk]WL[292.138] ;B[fl]BL[315.67] ;W[ck]WL[289.354] ;B[bj]BL[306.853] ;W[if]WL[280.722] ;B[fi]BL[298.178] ;W[je]WL[271.173]C[HYamashita [?\\]: big furikawari gogonuts [3d\\]: bots play rough on 13*13 :-) ] ;B[jb]BL[289.728] ;W[fg]WL[269.17]C[HYamashita [?\\]: I like rough play :-) ] ;B[gc]BL[281.567]C[gogonuts [3d\\]: lol ] ;W[bg]WL[263.706] ;B[lf]BL[273.64]C[HYamashita [?\\]: oops 41% for w. ] ;W[lg]WL[254.75] ;B[kg]BL[265.924] ;W[le]WL[254.081] ;B[ke]BL[258.429] ;W[kf]WL[253.414]C[gogonuts [3d\\]: nasty ko ] ;B[jf]BL[251.058] ;W[fm]WL[250.004] ;B[ek]BL[243.875] ;W[kf]WL[249.152]C[HYamashita [?\\]: 39% for w. ] ;B[jl]BL[236.855] ;W[kl]WL[243.202] ;B[jf]BL[230.089] ;W[hm]WL[241.051] ;B[ie]BL[223.604] ;W[mf]WL[233.697] ;B[kf]BL[217.374] ;W[eg]WL[232.283]C[gogonuts [3d\\]: ko wasnt really playable ] ;B[dl]BL[211.285]C[gogonuts [3d\\]: the last hurah ] ;W[lh]WL[225.674] ;B[gm]BL[205.35]C[HYamashita [?\\]: 18% resign soon HYamashita [?\\]: thx for the game. farg [7k\\]: thx ])';
+    var reader = new SgfReader();
+    var infos = reader.readGame(game);
+    this.assertEqual(13, infos.boardSize);
+    this.assertEqual(7.5, infos.komi);
+    this.assertEqual(0, infos.handicap);
+    this.assertEqual('Bl10,d10,d4,k3,c11,k7,h10,d11,l3,k4,l4,k5,l6,c5,c8,d5,c10,d9,c4,e4,e3,b4,b3,f3,e5,f4,b5,b6,a4,c9,c6,d6,c7,k11,k10,j11,h11,j10,j9,h9,l11,b9,f10,f11,f12,h8,j12,l5,e6,m5,h2,j2,g5,e2,d12,e12,e13,c12,e11,b12,h6,e10,h3,h4,g4,d7,g3,d3,f2,c3,b4,j8,f5,k9,k12,f7,g11,b7,m8,m7,l7,m9,l9,l8,k8,f1,e3,l8,k2,l2,k8,h1,j9,n8,l8,e7,d2,m6,g1',
+        reader.toMoveList());
+};
+
+TestSgfReader.prototype.testSgf3AndPartialLoad = function () {
+    // From Computer Go Test Collection; Format FF[3]
+    // + stones set by hand before a single move + marked vertex using BM, CR, etc.
+    var game = '(;GM[1]FF[3]SZ[19]AP[Explorer:0]N[Territory]ID[Territory]BS[0]WS[0];AB[oc][pd][qf][op][qp][lq]AW[dd][cj][co][dq][iq]CR[jc][jd];W[ch]BM[1]CR[fc][ic][id][jd][jc])';
+    var reader = new SgfReader();
+    var infos = reader.readGame(game);
+    this.assertEqual(0, infos.komi);
+    this.assertEqual(0, infos.handicap);
+    this.assertEqual(19, infos.boardSize);
+
+    this.assertEqual('hand:B=p17-q16-r14-p4-r4-m3,hand:W=d16-c10-c5-d3-j3,Wc12',
+        reader.toMoveList());
+    // and this time stopping *before* move #1
+    infos = reader.readGame(game, 1);
+    this.assertEqual('hand:B=p17-q16-r14-p4-r4-m3,hand:W=d16-c10-c5-d3-j3',
+        reader.toMoveList());
+};
+
+},{"../SgfReader":16,"../main":70,"util":6}],87:[function(require,module,exports){
 //Translated from test_speed.rb using babyruby2js
 'use strict';
 
@@ -11179,13 +12525,11 @@ TestSpeed.prototype.play10Stones = function () {
     }
 };
 
-},{"../Goban":9,"../Grid":10,"../main":51,"./TimeKeeper":70,"util":4}],68:[function(require,module,exports){
-//Translated from test_stone.rb using babyruby2js
+},{"../Goban":10,"../Grid":11,"../main":70,"./TimeKeeper":90,"util":6}],88:[function(require,module,exports){
 'use strict';
 
 var main = require('../main');
 var inherits = require('util').inherits;
-var Stone = require('../Stone');
 var Goban = require('../Goban');
 
 var BLACK = main.BLACK, WHITE = main.WHITE;
@@ -11194,14 +12538,16 @@ var BLACK = main.BLACK, WHITE = main.WHITE;
 /** @class */
 function TestStone(testName) {
     main.TestCase.call(this, testName);
-    this.initBoard();
+    this.goban = new Goban(5);
 }
 inherits(TestStone, main.TestCase);
 module.exports = main.tests.add(TestStone);
 
 
-TestStone.prototype.initBoard = function () {
-    this.goban = new Goban(5);
+TestStone.prototype.testStoneInternals = function () {
+    var s = this.goban.playAt(5, 4, BLACK);
+    this.assertEqual('B-e4', s.toString());
+    this.assertEqual('e3', this.goban.stoneAt(5,3).toString());
 };
 
 TestStone.prototype.howManyLives = function (i, j) {
@@ -11247,40 +12593,7 @@ TestStone.prototype.testPlayAt = function () {
     this.assertEqual(4, s.j);
 };
 
-TestStone.prototype.testSuicide = function () {
-    // a2 b2 b1 a3 pass c1
-    this.goban.playAt(1, 2, BLACK);
-    this.goban.playAt(2, 2, WHITE);
-    this.goban.playAt(2, 1, BLACK);
-    this.assertEqual(false, this.goban.isValidMove(1, 1, WHITE)); // suicide invalid
-    this.goban.playAt(1, 3, WHITE);
-    this.assertEqual(true, this.goban.isValidMove(1, 1, WHITE)); // now this would be a kill
-    this.assertEqual(true, this.goban.isValidMove(1, 1, BLACK)); // black could a1 too (merge)
-    this.goban.playAt(3, 1, WHITE); // now 2 black stones share a last life
-    this.assertEqual(false, this.goban.isValidMove(1, 1, BLACK)); // so this would be a suicide with merge
-};
-
-TestStone.prototype.testKo = function () {
-    // pass b2 a2 a3 b1 a1
-    this.goban.playAt(2, 2, WHITE);
-    this.goban.playAt(1, 2, BLACK);
-    this.goban.playAt(1, 3, WHITE);
-    this.goban.playAt(2, 1, BLACK);
-    this.goban.playAt(1, 1, WHITE); // kill!
-    this.assertEqual(false, this.goban.isValidMove(1, 2, BLACK)); // now this is a ko
-    this.goban.playAt(4, 4, BLACK); // play once anywhere else
-    this.goban.playAt(4, 5, WHITE);
-    this.assertEqual(true, this.goban.isValidMove(1, 2, BLACK)); // ko can be taken by black
-    this.goban.playAt(1, 2, BLACK); // black takes the ko
-    this.assertEqual(false, this.goban.isValidMove(1, 1, WHITE)); // white cannot take the ko
-    this.goban.playAt(5, 5, WHITE); // play once anywhere else
-    this.goban.playAt(5, 4, BLACK);
-    this.assertEqual(true, this.goban.isValidMove(1, 1, WHITE)); // ko can be taken back by white
-    this.goban.playAt(1, 1, WHITE); // white takes the ko
-    this.assertEqual(false, this.goban.isValidMove(1, 2, BLACK)); // and black cannot take it now
-};
-
-},{"../Goban":9,"../Stone":16,"../main":51,"util":4}],69:[function(require,module,exports){
+},{"../Goban":10,"../main":70,"util":6}],89:[function(require,module,exports){
 //Translated from test_zone_filler.rb using babyruby2js
 'use strict';
 
@@ -11367,12 +12680,13 @@ TestZoneFiller.prototype.testFill3 = function () {
     this.assertEqual('+++OX,+++OO,+O+++,++OO+,+O+O+', this.grid.image());
 };
 
-},{"../GameLogic":7,"../Grid":10,"../main":51,"util":4}],70:[function(require,module,exports){
+},{"../GameLogic":8,"../Grid":11,"../main":70,"util":6}],90:[function(require,module,exports){
 //Translated from time_keeper.rb using babyruby2js
 'use strict';
 
 var main = require('../main');
 
+var DELAY_THRESHOLD = 5; // we tolerate delays under this value
 var systemPerf = null;
 
 
@@ -11471,17 +12785,20 @@ TimeKeeper.prototype.resultReport = function () {
 
 TimeKeeper.prototype._checkLimits = function (lenientIfSlow) {
     if (!this.expectedTime || main.isCoverTest) return '';
-    if (this.duration <= this.expectedTime * this.tolerance) return '';
+    var diff = this.duration - this.expectedTime * this.tolerance;
+    if (diff <= 0) return '';
 
     var msg = 'Duration over limit: ' + this.duration.toFixed(2) +
         ' instead of ' + this.expectedTime.toFixed(2);
     this.log.warn(this.taskName + ': ' + msg);
 
-    if (!lenientIfSlow) main.tests.warningCount++;
+    if (!lenientIfSlow && !main.isCiTest && diff > DELAY_THRESHOLD) {
+        main.tests.warningCount++;
+    }
     return msg;
 };
 
-},{"../main":51}],71:[function(require,module,exports){
+},{"../main":70}],91:[function(require,module,exports){
 'use strict';
 
 var main = require('../main');
@@ -11601,7 +12918,7 @@ Board.prototype.onTap = function (x, y) {
         return this.tapHandlerFn('!' + (i >= 1 && i <= this.gsize ? Grid.xLabel(i) : j));
     }
 
-    if (this.goban.color(i, j) !== EMPTY) return;
+    if (this.goban.colorAt(i, j) !== EMPTY) return;
     var move = Grid.xy2move(i, j);
     this.tapHandlerFn(move);
 };
@@ -11626,7 +12943,7 @@ Board.prototype.refresh = function () {
     }
     for (var j = 0; j < this.gsize; j++) {
         for (var i = 0; i < this.gsize; i++) {
-            var color = this.goban.color(i + 1, this.gsize - j);
+            var color = this.goban.colorAt(i + 1, this.gsize - j);
             var wgoColor = toWgoColor[color];
 
             var obj = this.board.obj_arr[i][j][0];
@@ -11721,8 +13038,9 @@ Board.prototype.showScoring = function (yx) {
     this.show('scoring', yx, scoringDisplay);
 };
 
-},{"../Grid":10,"../main":51,"./touchManager.js":78}],72:[function(require,module,exports){
+},{"../Grid":11,"../main":70,"./touchManager.js":98}],92:[function(require,module,exports){
 'use strict';
+/* eslint no-console: 0 */
 
 var curGroup = null;
 var uniqueId = 1;
@@ -11813,6 +13131,13 @@ Dome.newButton = function (parent, name, label, action) {
     button.elt.innerText = label;
     button.on('click', action);
     return button;
+};
+
+Dome.newLink = function (parent, name, label, url) {
+    var link = new Dome(parent, 'a', name + 'Link', name);
+    link.setAttribute('href', url);
+    link.setText(label);
+    return link;
 };
 
 /** A label is a span = helps to write text on the left of an element */
@@ -11953,12 +13278,11 @@ Dome.getSelectedText = function () {
     return text.substring(range.startOffset, range.endOffset);
 };
 
-},{}],73:[function(require,module,exports){
+},{}],93:[function(require,module,exports){
 'use strict';
 
 var main = require('../main');
 var Dome = require('./Dome');
-var PopupDlg = require('./PopupDlg');
 
 
 function NewGameDlg(options, validateFn) {
@@ -11998,16 +13322,17 @@ function NewGameDlg(options, validateFn) {
 }
 module.exports = NewGameDlg;
 
-},{"../main":51,"./Dome":72,"./PopupDlg":74}],74:[function(require,module,exports){
+},{"../main":70,"./Dome":92}],94:[function(require,module,exports){
 'use strict';
 
 var Dome = require('./Dome');
 
 
 function action() {
+    // "this" is the button
     var dlg = this.dlg;
     if (dlg.options) dlg.options.choice = this.id;
-    Dome.removeChild(document.body, dlg.dialogRoot);
+    Dome.removeChild(dlg.parent, dlg.dialogRoot);
     if (dlg.validateFn) dlg.validateFn(dlg.options);
 }
 
@@ -12017,11 +13342,12 @@ function newButton(div, dlg, label, id) {
     btn.id = id;
 }
 
-function PopupDlg(msg, title, options, validateFn) {
+function PopupDlg(parent, msg, title, options, validateFn) {
+    this.parent = parent || document.body;
     this.options = options;
     this.validateFn = validateFn;
 
-    this.dialogRoot = Dome.newDiv(document.body, 'popupBackground');
+    this.dialogRoot = Dome.newDiv(this.parent, 'popupBackground');
     var dialog = this.dialogRoot.newDiv('popupDlg dialog');
     dialog.newDiv('dialogTitle').setText(title || 'Problem');
 
@@ -12036,7 +13362,7 @@ function PopupDlg(msg, title, options, validateFn) {
 }
 module.exports = PopupDlg;
 
-},{"./Dome":72}],75:[function(require,module,exports){
+},{"./Dome":92}],95:[function(require,module,exports){
 'use strict';
 
 var main = require('../main');
@@ -12066,11 +13392,10 @@ TestUi.prototype.runTest = function (name) {
         main.debug = false; // dead slow if debug is ON
     }
     main.log.level = main.debug ? Logger.DEBUG : Logger.INFO;
-    var self = this;
-    var logfn = function (lvl, msg) { return self.logfn(lvl, msg); };
+    main.log.setLogFunc(this.logfn.bind(this));
 
-    var numIssues = main.tests.run(logfn, specificClass, this.namePattern.value());
-    if (numIssues) logfn(Logger.INFO, '\n*** ' + numIssues + ' ISSUE' + (numIssues !== 1 ? 'S' : '') + ' - See below ***');
+    var numIssues = main.tests.run(specificClass, this.namePattern.value());
+    if (numIssues) this.logfn(Logger.INFO, '\n*** ' + numIssues + ' ISSUE' + (numIssues !== 1 ? 'S' : '') + ' - See below ***');
 
     this.output.scrollToBottom();
     this.errors.scrollToBottom();
@@ -12136,7 +13461,7 @@ TestUi.prototype.showTestGame = function (title, msg, game) {
     ui.loadFromTest(this.gameDiv, title, msg);
 };
 
-},{"../Logger":13,"../main":51,"./Dome":72,"./Ui":76}],76:[function(require,module,exports){
+},{"../Logger":14,"../main":70,"./Dome":92,"./Ui":96}],96:[function(require,module,exports){
 'use strict';
 
 var main = require('../main');
@@ -12145,13 +13470,13 @@ var Board = require('./Board');
 var Dome = require('./Dome');
 var GameLogic = require('../GameLogic');
 var Grid = require('../Grid');
-var gtp = require('../net/gtp');
+var Gtp = require('../net/Gtp');
 var Logger = require('../Logger');
-var ogsApi = require('../net/ogsApi');
 var NewGameDlg = require('./NewGameDlg');
 var PopupDlg = require('./PopupDlg');
 var ScoreAnalyser = require('../ScoreAnalyser');
-var UiEngine = require('../net/UiEngine');
+var UiGtpEngine = require('../net/UiGtpEngine');
+var userPref = require('../userPreferences');
 
 var WHITE = main.WHITE, BLACK = main.BLACK;
 var sOK = main.sOK;
@@ -12190,7 +13515,11 @@ Ui.prototype.loadFromTest = function (parent, testName, msg) {
     this.createGameUi('compact', parent, testName, msg);
     this.aiPlays = 'both';
     this.startGame(null, /*isLoaded=*/true);
-    this.message(this.whoPlaysNow());
+    if (this.game.gameEnding) {
+        this.proposeScore();
+    } else {
+        this.message(this.whoPlaysNow());
+    }
 };
 
 Ui.prototype.createGameUi = function (layout, parent, title, descr) {
@@ -12297,8 +13626,9 @@ Ui.prototype.createPlayers = function () {
 
 Ui.prototype.getAiPlayer = function (color) {
     var player = this.players[color];
+    if (player) return player;
     var Ai = color === BLACK ? main.defaultAi : main.latestAi;
-    if (!player) player = this.players[color] = new Ai(this.game.goban, color);
+    player = this.players[color] = new Ai(this.game.goban, color);
     return player;
 };
 
@@ -12308,7 +13638,7 @@ Ui.prototype.startGame = function (firstMoves, isLoaded) {
     if (firstMoves) {
         var errors = [];
         if (!game.loadMoves(firstMoves, errors)) {
-            new PopupDlg(errors.join('\n'));
+            new PopupDlg(this.gameDiv, errors.join('\n'));
             return false;
         }
     }
@@ -12355,7 +13685,7 @@ Ui.prototype.proposeScore = function () {
     this.message(this.scoreMsg);
     this.message('<br><br>Do you accept this score?', true);
     this.toggleControls();
-    this.board.showScoring(this.game.goban.scoringGrid.yx);
+    this.board.showScoring(this.scorer.getScoringGrid().yx);
 };
 
 Ui.prototype.acceptScore = function (acceptEnd) {
@@ -12416,7 +13746,7 @@ Ui.prototype.playerMove = function (move) {
 Ui.prototype.playerResigns = function () {
     var self = this;
     var options = { buttons: ['YES', 'NO'] };
-    new PopupDlg('Do you really want to resign?', 'Confirm', options, function (options) {
+    new PopupDlg(this.gameDiv, 'Do you really want to resign?', 'Confirm', options, function (options) {
         if (options.choice !== 0) return;
         self.game.playOneMove('resi');
         self.computeScore();
@@ -12470,11 +13800,15 @@ Ui.prototype.automaticAiPlay = function (turns) {
     }, animated ? 100 : 0);
 };
 
+window.addEventListener('beforeunload', function () {
+    userPref.close();
+});
+
 
 //--- DEV UI
 
 Ui.prototype.initDev = function () {
-    this.inDevMode = false;
+    this.inDevMode = userPref.getValue('devMode', false);
     this.debugHeuristic = null;
     this.inEvalMode = false;
     this.devKeys = '';
@@ -12484,12 +13818,13 @@ Ui.prototype.onDevKey = function (key) {
     this.devKeys = this.devKeys.slice(-9) + key;
     if (this.devKeys.slice(-2) === 'db') {
         this.inDevMode = !this.inDevMode;
+        userPref.setValue('devMode', this.inDevMode);
         return this.toggleControls();
     }
     if (this.devKeys.slice(-2) === '0g') {
-        gtp.init(new UiEngine(this));
-        this.ogsApi = ogsApi;
-        return ogsApi.init();
+        // TODO: WIP
+        var gtp = main.gtp = new Gtp();
+        return gtp.init(new UiGtpEngine(this));
     }
 };
 
@@ -12513,7 +13848,7 @@ Ui.prototype.evalMove = function (move) {
 Ui.prototype.scoreTest = function () {
     var score = this.scorer.computeScore(this.game.goban, this.game.komi);
     this.message(score);
-    this.board.showSpecial('scoring', this.game.goban.scoringGrid.yx);
+    this.board.showSpecial('scoring', this.scorer.getScoringGrid().yx);
 };
 
 Ui.prototype.territoryTest = function () {
@@ -12572,7 +13907,7 @@ var evalTests = [
     'Score',
     'Territory',
     'Influence B',
-    'Influence W',
+    'Influence W'
 ];
 
 Ui.prototype.createDevControls = function () {
@@ -12587,6 +13922,11 @@ Ui.prototype.createDevControls = function () {
         main.debug = this.isChecked();
         main.log.level = main.debug ? Logger.DEBUG : Logger.INFO;
     });
+
+    Dome.newLink(col2, 'emailGame', 'Email game',
+        'mailto:kubicle@yahoo.com?subject=' + main.appName + '%20game' +
+        '&body=' + this.game.historyString());
+
     this.evalTestDropdown = Dome.newDropdown(col2, '#evalTest', evalTests, null, '');
     this.evalTestDropdown.on('change', function () {
         switch (this.value()) {
@@ -12604,10 +13944,11 @@ Ui.prototype.createDevControls = function () {
     this.devOutput = devDiv.newDiv('logBox devLogBox');
 };
 
-},{"../GameLogic":7,"../Grid":10,"../Logger":13,"../ScoreAnalyser":14,"../main":51,"../net/UiEngine":52,"../net/gtp":53,"../net/ogsApi":54,"./Board":71,"./Dome":72,"./NewGameDlg":73,"./PopupDlg":74}],77:[function(require,module,exports){
-var css = "body {\n  background-color: #AB8274;\n  font-family: \"Arial\";\n  margin: 7px;\n}\n.pageTitle {\n  margin-top: 7px;\n  margin-bottom: 7px;\n  font-size: 40px;\n  font-weight: bold;\n}\n.subTitle {\n  font-size: 30px;\n  margin-top: 0.5em;\n  margin-bottom: 5px;\n}\n.logBox {\n  font-size: 28px;\n  font-family: \"Arial\";\n  background-color: white;\n  border: solid #cca 1px;\n  border-radius: 8px;\n  padding: 5px;\n  overflow-y: auto;\n  word-wrap: break-word;\n}\n.inputLbl {\n  margin-left: 10px;\n  font-size: 28px;\n}\n.inputBox {\n  margin: 17px 13px 17px 13px;\n  min-height: 1cm;\n  text-align: left;\n  font-size: 42px;\n}\nbutton {\n  margin-right: 10px;\n  margin-bottom: 10px;\n  border-radius: 13px;\n  width: 160px;\n  height: 120px;\n  font-size: 28px;\n  border-color: #987;\n  background-color: #765;\n  color: #fed;\n}\nbutton.toggled {\n  background-color: #08d;\n}\n.chkBoxDiv {\n  display: flex;\n}\n.chkBox {\n  margin: 5px 3px 14px 2px;\n  width: 29px;\n  height: 1.5em;\n}\n.chkLbl {\n  font-size: 28px;\n}\n.dropDwn {\n  font-size: 42px;\n  margin: 17px 13px 17px 13px;\n}\n.radioBtn {\n  margin: 17px 0px 17px 13px;\n  width: 29px;\n  height: 1.5em;\n}\n.radioLbl {\n  margin-right: 13px;\n}\n.dialog {\n  z-index: 1000;\n  position: relative;\n  margin: 0 auto;\n  top: 200px;\n  width: 45%;\n  padding: 10px;\n  background-color: #ffe;\n  border: solid #cca 1px;\n  border-radius: 10px;\n  font-family: Arial;\n  font-size: 42px;\n}\n.dialogTitle {\n  font-size: 50px;\n  background-color: #ffebce;\n  border: solid 1px rgba(195, 50, 50, 0.2);\n  border-radius: 10px;\n  margin: -6px;\n  margin-bottom: 15px;\n  padding: 10px 0px 10px 12px;\n}\n.popupBackground {\n  z-index: 2000;\n  position: absolute;\n  left: 0;\n  top: 0;\n  width: 100%;\n  height: 100%;\n  background-color: rgba(0, 0, 0, 0.5);\n}\n.popupDlg {\n  position: relative;\n  top: 150px;\n  margin: 0 auto;\n  width: 50%;\n}\n.popupDlg .content {\n  padding: 20px;\n  white-space: pre-wrap;\n}\n.popupDlg .btnDiv {\n  width: 100%;\n  display: inline-block;\n}\n.popupDlg .btnDiv .popupDlgButton {\n  min-width: 220px;\n  height: 100%;\n  min-height: 80px;\n  font-size: 30px;\n  float: right;\n  margin-right: 0;\n  margin-left: 10px;\n}\n.gameUi .board {\n  background-color: #402F23;\n  border-radius: 7px;\n}\n.gameUi .board .wgo-board {\n  margin: 0 auto;\n  /* Below avoid issues when tap-hold on mobile */\n  -webkit-user-select: none;\n  -webkit-touch-callout: none;\n}\n.gameUi .boardDesc {\n  margin-top: 3px;\n  font-weight: bold;\n  font-style: italic;\n}\n.gameUi button {\n  min-width: 160px;\n}\n.gameUi .mainControls {\n  margin-top: 10px;\n  display: flex;\n}\n.gameUi .mainControls .outputBox {\n  width: 410px;\n  min-width: 200px;\n  font-size: 22px;\n  font-weight: bold;\n  margin-right: 10px;\n  margin-bottom: 10px;\n}\n.gameUi .devDiv {\n  display: flex;\n  min-width: 600px;\n  border: #755;\n  border-width: 1px 2px 2px 1px;\n  border-style: solid;\n  border-radius: 10px;\n  background-color: #FAEBD7;\n  padding: 7px;\n}\n.gameUi .devDiv .devControls {\n  display: flex;\n}\n.gameUi .devDiv .devControls button {\n  height: 90px;\n  font-size: 24px;\n}\n.gameUi .devDiv .devControls .dropDwn {\n  font-size: 24px;\n  margin: 0px 10px 5px 0px;\n}\n.gameUi .devDiv .devLogBox {\n  height: 102px;\n  width: 460px;\n  min-width: 200px;\n  font-size: 20px;\n  font-weight: bold;\n}\n.testTitle {\n  margin-top: 40px;\n  margin-bottom: 10px;\n  font-size: 20px;\n  font-weight: bold;\n}\n.testOutputBox {\n  height: 160px;\n  font-size: 14px;\n}\n.testErrorBox {\n  word-wrap: break-word;\n  height: 250px;\n  font-size: 14px;\n  font-family: 'Courier';\n}\n.boardDesc {\n  font-family: 'Courier';\n}\n.newGameBackground {\n  background-image: url(\"js/ui/photo.jpg\");\n  background-repeat: repeat-y;\n  background-size: cover;\n  height: 1500px;\n}\n.newGameDialog {\n  min-width: 800px;\n}\n.newGameDialog .handicapInput {\n  width: 20px;\n  text-align: center;\n}\n.newGameDialog .movesInput {\n  width: 50%;\n}\n.newGameDialog .defAiInfo {\n  font-size: 50%;\n  font-style: italic;\n  width: 400px;\n  display: inline-block;\n}\n.newGameDialog .btnDiv {\n  width: 100%;\n  height: 100px;\n}\n.newGameDialog .btnDiv .startButton {\n  width: 240px;\n  height: 100%;\n  font-size: 30px;\n  float: right;\n  margin-right: 0;\n}\n";(require('lessify'))(css); module.exports = css;
-},{"lessify":80}],78:[function(require,module,exports){
+},{"../GameLogic":8,"../Grid":11,"../Logger":14,"../ScoreAnalyser":15,"../main":70,"../net/Gtp":71,"../net/UiGtpEngine":73,"../userPreferences":99,"./Board":91,"./Dome":92,"./NewGameDlg":93,"./PopupDlg":94}],97:[function(require,module,exports){
+var css = "body {\n  background-color: #AB8274;\n  font-family: \"Arial\";\n  margin: 7px;\n}\n.pageTitle {\n  margin-top: 7px;\n  margin-bottom: 7px;\n  font-size: 40px;\n  font-weight: bold;\n}\n.subTitle {\n  font-size: 30px;\n  margin-top: 0.5em;\n  margin-bottom: 5px;\n}\n.logBox {\n  font-size: 28px;\n  font-family: \"Arial\";\n  background-color: white;\n  border: solid #cca 1px;\n  border-radius: 8px;\n  padding: 5px;\n  overflow-y: auto;\n  word-wrap: break-word;\n}\n.inputLbl {\n  margin-left: 10px;\n  font-size: 28px;\n}\n.inputBox {\n  margin: 17px 13px 17px 13px;\n  min-height: 1cm;\n  text-align: left;\n  font-size: 42px;\n}\nbutton {\n  margin-right: 10px;\n  margin-bottom: 10px;\n  border-radius: 13px;\n  width: 160px;\n  height: 120px;\n  font-size: 28px;\n  border-color: #987;\n  background-color: #765;\n  color: #fed;\n}\nbutton.toggled {\n  background-color: #08d;\n}\n.chkBoxDiv {\n  display: inline-block;\n  margin-right: 10px;\n}\n.chkBox {\n  margin: 5px 3px 14px 2px;\n  width: 29px;\n  height: 1.5em;\n}\n.chkLbl {\n  font-size: 28px;\n}\n.dropDwn {\n  font-size: 42px;\n  margin: 17px 13px 17px 13px;\n}\n.radioBtn {\n  margin: 17px 0px 17px 13px;\n  width: 29px;\n  height: 1.5em;\n}\n.radioLbl {\n  margin-right: 13px;\n}\n.dialog {\n  z-index: 1000;\n  position: relative;\n  margin: 0 auto;\n  top: 200px;\n  width: 45%;\n  padding: 10px;\n  background-color: #ffe;\n  border: solid #cca 1px;\n  border-radius: 10px;\n  font-family: Arial;\n  font-size: 42px;\n}\n.dialogTitle {\n  font-size: 50px;\n  background-color: #ffebce;\n  border: solid 1px rgba(195, 50, 50, 0.2);\n  border-radius: 10px;\n  margin: -6px;\n  margin-bottom: 15px;\n  padding: 10px 0px 10px 12px;\n}\n.popupBackground {\n  z-index: 2000;\n  position: absolute;\n  left: 0;\n  top: 0;\n  width: 100%;\n  height: 100%;\n  background-color: rgba(0, 0, 0, 0.5);\n}\n.popupDlg {\n  position: relative;\n  top: 150px;\n  margin: 0 auto;\n  width: 50%;\n}\n.popupDlg .content {\n  padding: 20px;\n  white-space: pre-wrap;\n}\n.popupDlg .btnDiv {\n  width: 100%;\n  display: inline-block;\n}\n.popupDlg .btnDiv .popupDlgButton {\n  min-width: 220px;\n  height: 100%;\n  min-height: 80px;\n  font-size: 30px;\n  float: right;\n  margin-right: 0;\n  margin-left: 10px;\n}\n.gameUi .board {\n  background-color: #402F23;\n  border-radius: 7px;\n}\n.gameUi .board .wgo-board {\n  margin: 0 auto;\n  /* Below avoid issues when tap-hold on mobile */\n  -webkit-user-select: none;\n  -webkit-touch-callout: none;\n}\n.gameUi .boardDesc {\n  margin-top: 3px;\n  font-weight: bold;\n  font-style: italic;\n}\n.gameUi button {\n  min-width: 160px;\n}\n.gameUi .mainControls {\n  margin-top: 10px;\n  display: flex;\n}\n.gameUi .mainControls .outputBox {\n  width: 410px;\n  min-width: 200px;\n  font-size: 22px;\n  font-weight: bold;\n  margin-right: 10px;\n  margin-bottom: 10px;\n}\n.gameUi .devDiv {\n  display: flex;\n  min-width: 600px;\n  border: #755;\n  border-width: 1px 2px 2px 1px;\n  border-style: solid;\n  border-radius: 10px;\n  background-color: #FAEBD7;\n  padding: 7px;\n}\n.gameUi .devDiv .devControls {\n  display: flex;\n}\n.gameUi .devDiv .devControls .emailGameLink {\n  display: inline-block;\n  margin-right: 10px;\n}\n.gameUi .devDiv .devControls button {\n  height: 90px;\n  font-size: 24px;\n}\n.gameUi .devDiv .devControls .dropDwn {\n  font-size: 24px;\n  margin: 0px 10px 5px 0px;\n}\n.gameUi .devDiv .devLogBox {\n  height: 102px;\n  width: 460px;\n  min-width: 200px;\n  font-size: 20px;\n  font-weight: bold;\n}\n.testTitle {\n  margin-top: 40px;\n  margin-bottom: 10px;\n  font-size: 20px;\n  font-weight: bold;\n}\n.testOutputBox {\n  height: 160px;\n  font-size: 14px;\n}\n.testErrorBox {\n  word-wrap: break-word;\n  height: 250px;\n  font-size: 14px;\n  font-family: 'Courier';\n}\n.boardDesc {\n  font-family: 'Courier';\n}\n.newGameBackground {\n  background-image: url(\"js/ui/photo.jpg\");\n  background-repeat: repeat-y;\n  background-size: cover;\n  height: 1500px;\n}\n.newGameDialog {\n  min-width: 800px;\n}\n.newGameDialog .handicapInput {\n  width: 20px;\n  text-align: center;\n}\n.newGameDialog .movesInput {\n  width: 50%;\n}\n.newGameDialog .defAiInfo {\n  font-size: 50%;\n  font-style: italic;\n  width: 400px;\n  display: inline-block;\n}\n.newGameDialog .btnDiv {\n  width: 100%;\n  height: 100px;\n}\n.newGameDialog .btnDiv .startButton {\n  width: 240px;\n  height: 100%;\n  font-size: 30px;\n  float: right;\n  margin-right: 0;\n}\n";(require('lessify'))(css); module.exports = css;
+},{"lessify":101}],98:[function(require,module,exports){
 'use strict';
+/* eslint no-console: 0 */
 
 var DISTANCE_THRESHOLD = 10; // px
 var MIN_MOVE_DELAY = 50; // ms, how often do we emit a drag event
@@ -12778,7 +14119,122 @@ TouchManager.prototype.listenOn = function (elt, handlerFn) {
     elt.addEventListener('mousedown', mousedownHandler);
 };
 
-},{}],79:[function(require,module,exports){
+},{}],99:[function(require,module,exports){
+'use strict';
+
+var main = require('./main');
+
+var PREF_NAME = main.appName;
+var DEFAULT_SAVE_DELAY = 180; //in seconds
+var ALL_USERS_KEY = 'all'; //prefix for global "all users" keys
+
+
+/** @class */
+function UserPreferences() {
+    this.autosave = null;
+    this.nextSaveTime = 0;
+    this.accountName = null;
+    this.prefs = {};
+    this._load();
+}
+
+/** Call "close" if your app is terminating now. This will make sure latest data changes are saved. */
+UserPreferences.prototype.close = function () {
+    this.setAccount(null);
+};
+
+/** Sets the "scope" of stored values with the current account name
+ *  @param {string|null} accountName - the account name or null to "exit" previous account scope */
+UserPreferences.prototype.setAccount = function (accountName) {
+    if (this.autosave) {
+        this._save();
+    }
+    this.accountName = accountName;
+};
+
+/** @private */
+UserPreferences.prototype._load = function () {
+    try {
+        var content = window.localStorage.getItem(PREF_NAME);
+        if (content) {
+            this.prefs = JSON.parse(content);
+        }
+    } catch (err) {
+        main.log.warn('Failed to load user preferences: ' + err);
+    }
+};
+
+/** Schedules the next autosave
+ *  @private
+ *  @param {int} [saveAfter] - maximum delay before next autosave (in second); NB: could be saved earlier */
+UserPreferences.prototype._scheduleNextSave = function (saveAfter) {
+    var self = this;
+    if (!saveAfter) {
+        //NB: we refuse "0" as delay, sign of someone ignoring the API doc
+        saveAfter = DEFAULT_SAVE_DELAY;
+    }
+    var nextSaveTime = Date.now() + saveAfter * 1000;
+
+    //if already scheduled and for a time coming before the current request, we are fine just doing nothing
+    if (this.autosave && this.nextSaveTime <= nextSaveTime) {
+        return;
+    }
+
+    //we need to schedule (or reschedule) the next save
+    if (this.autosave) {
+        window.clearTimeout(this.autosave);
+    }
+    this.nextSaveTime = nextSaveTime;
+    this.autosave = window.setTimeout(function () {
+        self.autosave = null;
+        self._save();
+    }, saveAfter * 1000);
+};
+
+/** Saves all modified values right now.
+ *  @private */
+UserPreferences.prototype._save = function () {
+    try {
+        if (this.autosave) {
+            //cancel the current scheduling since we have been called "by force"
+            window.clearTimeout(this.autosave);
+            this.autosave = null;
+        }
+        window.localStorage.setItem(PREF_NAME, JSON.stringify(this.prefs));
+    } catch (err) {
+        main.log.warn('Failed to save user preferences: ' + err);
+    }
+};
+
+/** Gets a value from user preferences
+ *  @param {string} key - key name
+ *  @param {any} defValue - value to be returned as default if no previous value was set
+ *  @param {boolean} [global] - pass true to read a global (all accounts) value; false is default
+ *  @return {any} the value (any type) */
+UserPreferences.prototype.getValue = function (key, defValue, global) {
+    key = (this.accountName && !global ? this.accountName : ALL_USERS_KEY) + '#' + key;
+    var value = this.prefs[key];
+    if (value === undefined) {
+        return defValue;
+    }
+    return value;
+};
+
+/** Sets a value into user preferences
+ *  @param {string} key - key name
+ *  @param {any} value - value to be set, any type
+ *  @param {int} [saveAfter] - maximum delay before next autosave (in second); NB: could be saved earlier */
+UserPreferences.prototype.setValue = function (key, value, saveAfter) {
+    key = (this.accountName ? this.accountName : ALL_USERS_KEY) + '#' + key;
+    this.prefs[key] = value;
+
+    this._scheduleNextSave(saveAfter);
+};
+
+var prefs = new UserPreferences();
+module.exports = prefs;
+
+},{"./main":70}],100:[function(require,module,exports){
 module.exports = function (css, customDocument) {
   var doc = customDocument || document;
   if (doc.createStyleSheet) {
@@ -12817,6729 +14273,19 @@ module.exports.byUrl = function(url) {
   }
 };
 
-},{}],80:[function(require,module,exports){
+},{}],101:[function(require,module,exports){
 module.exports = require('cssify');
 
-},{"cssify":79}],81:[function(require,module,exports){
-
-module.exports = require('./lib/');
-
-},{"./lib/":82}],82:[function(require,module,exports){
-
-/**
- * Module dependencies.
- */
-
-var url = require('./url');
-var parser = require('socket.io-parser');
-var Manager = require('./manager');
-var debug = require('debug')('socket.io-client');
-
-/**
- * Module exports.
- */
-
-module.exports = exports = lookup;
-
-/**
- * Managers cache.
- */
-
-var cache = exports.managers = {};
-
-/**
- * Looks up an existing `Manager` for multiplexing.
- * If the user summons:
- *
- *   `io('http://localhost/a');`
- *   `io('http://localhost/b');`
- *
- * We reuse the existing instance based on same scheme/port/host,
- * and we initialize sockets for each namespace.
- *
- * @api public
- */
-
-function lookup(uri, opts) {
-  if (typeof uri == 'object') {
-    opts = uri;
-    uri = undefined;
-  }
-
-  opts = opts || {};
-
-  var parsed = url(uri);
-  var source = parsed.source;
-  var id = parsed.id;
-  var io;
-
-  if (opts.forceNew || opts['force new connection'] || false === opts.multiplex) {
-    debug('ignoring socket cache for %s', source);
-    io = Manager(source, opts);
-  } else {
-    if (!cache[id]) {
-      debug('new io instance for %s', source);
-      cache[id] = Manager(source, opts);
-    }
-    io = cache[id];
-  }
-
-  return io.socket(parsed.path);
-}
-
-/**
- * Protocol version.
- *
- * @api public
- */
-
-exports.protocol = parser.protocol;
-
-/**
- * `connect`.
- *
- * @param {String} uri
- * @api public
- */
-
-exports.connect = lookup;
-
-/**
- * Expose constructors for standalone build.
- *
- * @api public
- */
-
-exports.Manager = require('./manager');
-exports.Socket = require('./socket');
-
-},{"./manager":83,"./socket":85,"./url":86,"debug":89,"socket.io-parser":123}],83:[function(require,module,exports){
-
-/**
- * Module dependencies.
- */
-
-var url = require('./url');
-var eio = require('engine.io-client');
-var Socket = require('./socket');
-var Emitter = require('component-emitter');
-var parser = require('socket.io-parser');
-var on = require('./on');
-var bind = require('component-bind');
-var object = require('object-component');
-var debug = require('debug')('socket.io-client:manager');
-var indexOf = require('indexof');
-
-/**
- * Module exports
- */
-
-module.exports = Manager;
-
-/**
- * `Manager` constructor.
- *
- * @param {String} engine instance or engine uri/opts
- * @param {Object} options
- * @api public
- */
-
-function Manager(uri, opts){
-  if (!(this instanceof Manager)) return new Manager(uri, opts);
-  if (uri && ('object' == typeof uri)) {
-    opts = uri;
-    uri = undefined;
-  }
-  opts = opts || {};
-
-  opts.path = opts.path || '/socket.io';
-  this.nsps = {};
-  this.subs = [];
-  this.opts = opts;
-  this.reconnection(opts.reconnection !== false);
-  this.reconnectionAttempts(opts.reconnectionAttempts || Infinity);
-  this.reconnectionDelay(opts.reconnectionDelay || 1000);
-  this.reconnectionDelayMax(opts.reconnectionDelayMax || 5000);
-  this.timeout(null == opts.timeout ? 20000 : opts.timeout);
-  this.readyState = 'closed';
-  this.uri = uri;
-  this.connected = [];
-  this.attempts = 0;
-  this.encoding = false;
-  this.packetBuffer = [];
-  this.encoder = new parser.Encoder();
-  this.decoder = new parser.Decoder();
-  this.autoConnect = opts.autoConnect !== false;
-  if (this.autoConnect) this.open();
-}
-
-/**
- * Propagate given event to sockets and emit on `this`
- *
- * @api private
- */
-
-Manager.prototype.emitAll = function() {
-  this.emit.apply(this, arguments);
-  for (var nsp in this.nsps) {
-    this.nsps[nsp].emit.apply(this.nsps[nsp], arguments);
-  }
-};
-
-/**
- * Mix in `Emitter`.
- */
-
-Emitter(Manager.prototype);
-
-/**
- * Sets the `reconnection` config.
- *
- * @param {Boolean} true/false if it should automatically reconnect
- * @return {Manager} self or value
- * @api public
- */
-
-Manager.prototype.reconnection = function(v){
-  if (!arguments.length) return this._reconnection;
-  this._reconnection = !!v;
-  return this;
-};
-
-/**
- * Sets the reconnection attempts config.
- *
- * @param {Number} max reconnection attempts before giving up
- * @return {Manager} self or value
- * @api public
- */
-
-Manager.prototype.reconnectionAttempts = function(v){
-  if (!arguments.length) return this._reconnectionAttempts;
-  this._reconnectionAttempts = v;
-  return this;
-};
-
-/**
- * Sets the delay between reconnections.
- *
- * @param {Number} delay
- * @return {Manager} self or value
- * @api public
- */
-
-Manager.prototype.reconnectionDelay = function(v){
-  if (!arguments.length) return this._reconnectionDelay;
-  this._reconnectionDelay = v;
-  return this;
-};
-
-/**
- * Sets the maximum delay between reconnections.
- *
- * @param {Number} delay
- * @return {Manager} self or value
- * @api public
- */
-
-Manager.prototype.reconnectionDelayMax = function(v){
-  if (!arguments.length) return this._reconnectionDelayMax;
-  this._reconnectionDelayMax = v;
-  return this;
-};
-
-/**
- * Sets the connection timeout. `false` to disable
- *
- * @return {Manager} self or value
- * @api public
- */
-
-Manager.prototype.timeout = function(v){
-  if (!arguments.length) return this._timeout;
-  this._timeout = v;
-  return this;
-};
-
-/**
- * Starts trying to reconnect if reconnection is enabled and we have not
- * started reconnecting yet
- *
- * @api private
- */
-
-Manager.prototype.maybeReconnectOnOpen = function() {
-  // Only try to reconnect if it's the first time we're connecting
-  if (!this.openReconnect && !this.reconnecting && this._reconnection && this.attempts === 0) {
-    // keeps reconnection from firing twice for the same reconnection loop
-    this.openReconnect = true;
-    this.reconnect();
-  }
-};
-
-
-/**
- * Sets the current transport `socket`.
- *
- * @param {Function} optional, callback
- * @return {Manager} self
- * @api public
- */
-
-Manager.prototype.open =
-Manager.prototype.connect = function(fn){
-  debug('readyState %s', this.readyState);
-  if (~this.readyState.indexOf('open')) return this;
-
-  debug('opening %s', this.uri);
-  this.engine = eio(this.uri, this.opts);
-  var socket = this.engine;
-  var self = this;
-  this.readyState = 'opening';
-  this.skipReconnect = false;
-
-  // emit `open`
-  var openSub = on(socket, 'open', function() {
-    self.onopen();
-    fn && fn();
-  });
-
-  // emit `connect_error`
-  var errorSub = on(socket, 'error', function(data){
-    debug('connect_error');
-    self.cleanup();
-    self.readyState = 'closed';
-    self.emitAll('connect_error', data);
-    if (fn) {
-      var err = new Error('Connection error');
-      err.data = data;
-      fn(err);
-    }
-
-    self.maybeReconnectOnOpen();
-  });
-
-  // emit `connect_timeout`
-  if (false !== this._timeout) {
-    var timeout = this._timeout;
-    debug('connect attempt will timeout after %d', timeout);
-
-    // set timer
-    var timer = setTimeout(function(){
-      debug('connect attempt timed out after %d', timeout);
-      openSub.destroy();
-      socket.close();
-      socket.emit('error', 'timeout');
-      self.emitAll('connect_timeout', timeout);
-    }, timeout);
-
-    this.subs.push({
-      destroy: function(){
-        clearTimeout(timer);
-      }
-    });
-  }
-
-  this.subs.push(openSub);
-  this.subs.push(errorSub);
-
-  return this;
-};
-
-/**
- * Called upon transport open.
- *
- * @api private
- */
-
-Manager.prototype.onopen = function(){
-  debug('open');
-
-  // clear old subs
-  this.cleanup();
-
-  // mark as open
-  this.readyState = 'open';
-  this.emit('open');
-
-  // add new subs
-  var socket = this.engine;
-  this.subs.push(on(socket, 'data', bind(this, 'ondata')));
-  this.subs.push(on(this.decoder, 'decoded', bind(this, 'ondecoded')));
-  this.subs.push(on(socket, 'error', bind(this, 'onerror')));
-  this.subs.push(on(socket, 'close', bind(this, 'onclose')));
-};
-
-/**
- * Called with data.
- *
- * @api private
- */
-
-Manager.prototype.ondata = function(data){
-  this.decoder.add(data);
-};
-
-/**
- * Called when parser fully decodes a packet.
- *
- * @api private
- */
-
-Manager.prototype.ondecoded = function(packet) {
-  this.emit('packet', packet);
-};
-
-/**
- * Called upon socket error.
- *
- * @api private
- */
-
-Manager.prototype.onerror = function(err){
-  debug('error', err);
-  this.emitAll('error', err);
-};
-
-/**
- * Creates a new socket for the given `nsp`.
- *
- * @return {Socket}
- * @api public
- */
-
-Manager.prototype.socket = function(nsp){
-  var socket = this.nsps[nsp];
-  if (!socket) {
-    socket = new Socket(this, nsp);
-    this.nsps[nsp] = socket;
-    var self = this;
-    socket.on('connect', function(){
-      if (!~indexOf(self.connected, socket)) {
-        self.connected.push(socket);
-      }
-    });
-  }
-  return socket;
-};
-
-/**
- * Called upon a socket close.
- *
- * @param {Socket} socket
- */
-
-Manager.prototype.destroy = function(socket){
-  var index = indexOf(this.connected, socket);
-  if (~index) this.connected.splice(index, 1);
-  if (this.connected.length) return;
-
-  this.close();
-};
-
-/**
- * Writes a packet.
- *
- * @param {Object} packet
- * @api private
- */
-
-Manager.prototype.packet = function(packet){
-  debug('writing packet %j', packet);
-  var self = this;
-
-  if (!self.encoding) {
-    // encode, then write to engine with result
-    self.encoding = true;
-    this.encoder.encode(packet, function(encodedPackets) {
-      for (var i = 0; i < encodedPackets.length; i++) {
-        self.engine.write(encodedPackets[i]);
-      }
-      self.encoding = false;
-      self.processPacketQueue();
-    });
-  } else { // add packet to the queue
-    self.packetBuffer.push(packet);
-  }
-};
-
-/**
- * If packet buffer is non-empty, begins encoding the
- * next packet in line.
- *
- * @api private
- */
-
-Manager.prototype.processPacketQueue = function() {
-  if (this.packetBuffer.length > 0 && !this.encoding) {
-    var pack = this.packetBuffer.shift();
-    this.packet(pack);
-  }
-};
-
-/**
- * Clean up transport subscriptions and packet buffer.
- *
- * @api private
- */
-
-Manager.prototype.cleanup = function(){
-  var sub;
-  while (sub = this.subs.shift()) sub.destroy();
-
-  this.packetBuffer = [];
-  this.encoding = false;
-
-  this.decoder.destroy();
-};
-
-/**
- * Close the current socket.
- *
- * @api private
- */
-
-Manager.prototype.close =
-Manager.prototype.disconnect = function(){
-  this.skipReconnect = true;
-  this.readyState = 'closed';
-  this.engine && this.engine.close();
-};
-
-/**
- * Called upon engine close.
- *
- * @api private
- */
-
-Manager.prototype.onclose = function(reason){
-  debug('close');
-  this.cleanup();
-  this.readyState = 'closed';
-  this.emit('close', reason);
-  if (this._reconnection && !this.skipReconnect) {
-    this.reconnect();
-  }
-};
-
-/**
- * Attempt a reconnection.
- *
- * @api private
- */
-
-Manager.prototype.reconnect = function(){
-  if (this.reconnecting || this.skipReconnect) return this;
-
-  var self = this;
-  this.attempts++;
-
-  if (this.attempts > this._reconnectionAttempts) {
-    debug('reconnect failed');
-    this.emitAll('reconnect_failed');
-    this.reconnecting = false;
-  } else {
-    var delay = this.attempts * this.reconnectionDelay();
-    delay = Math.min(delay, this.reconnectionDelayMax());
-    debug('will wait %dms before reconnect attempt', delay);
-
-    this.reconnecting = true;
-    var timer = setTimeout(function(){
-      if (self.skipReconnect) return;
-
-      debug('attempting reconnect');
-      self.emitAll('reconnect_attempt', self.attempts);
-      self.emitAll('reconnecting', self.attempts);
-
-      // check again for the case socket closed in above events
-      if (self.skipReconnect) return;
-
-      self.open(function(err){
-        if (err) {
-          debug('reconnect attempt error');
-          self.reconnecting = false;
-          self.reconnect();
-          self.emitAll('reconnect_error', err.data);
-        } else {
-          debug('reconnect success');
-          self.onreconnect();
-        }
-      });
-    }, delay);
-
-    this.subs.push({
-      destroy: function(){
-        clearTimeout(timer);
-      }
-    });
-  }
-};
-
-/**
- * Called upon successful reconnect.
- *
- * @api private
- */
-
-Manager.prototype.onreconnect = function(){
-  var attempt = this.attempts;
-  this.attempts = 0;
-  this.reconnecting = false;
-  this.emitAll('reconnect', attempt);
-};
-
-},{"./on":84,"./socket":85,"./url":86,"component-bind":87,"component-emitter":88,"debug":89,"engine.io-client":90,"indexof":119,"object-component":120,"socket.io-parser":123}],84:[function(require,module,exports){
-
-/**
- * Module exports.
- */
-
-module.exports = on;
-
-/**
- * Helper for subscriptions.
- *
- * @param {Object|EventEmitter} obj with `Emitter` mixin or `EventEmitter`
- * @param {String} event name
- * @param {Function} callback
- * @api public
- */
-
-function on(obj, ev, fn) {
-  obj.on(ev, fn);
-  return {
-    destroy: function(){
-      obj.removeListener(ev, fn);
-    }
-  };
-}
-
-},{}],85:[function(require,module,exports){
-
-/**
- * Module dependencies.
- */
-
-var parser = require('socket.io-parser');
-var Emitter = require('component-emitter');
-var toArray = require('to-array');
-var on = require('./on');
-var bind = require('component-bind');
-var debug = require('debug')('socket.io-client:socket');
-var hasBin = require('has-binary');
-
-/**
- * Module exports.
- */
-
-module.exports = exports = Socket;
-
-/**
- * Internal events (blacklisted).
- * These events can't be emitted by the user.
- *
- * @api private
- */
-
-var events = {
-  connect: 1,
-  connect_error: 1,
-  connect_timeout: 1,
-  disconnect: 1,
-  error: 1,
-  reconnect: 1,
-  reconnect_attempt: 1,
-  reconnect_failed: 1,
-  reconnect_error: 1,
-  reconnecting: 1
-};
-
-/**
- * Shortcut to `Emitter#emit`.
- */
-
-var emit = Emitter.prototype.emit;
-
-/**
- * `Socket` constructor.
- *
- * @api public
- */
-
-function Socket(io, nsp){
-  this.io = io;
-  this.nsp = nsp;
-  this.json = this; // compat
-  this.ids = 0;
-  this.acks = {};
-  if (this.io.autoConnect) this.open();
-  this.receiveBuffer = [];
-  this.sendBuffer = [];
-  this.connected = false;
-  this.disconnected = true;
-}
-
-/**
- * Mix in `Emitter`.
- */
-
-Emitter(Socket.prototype);
-
-/**
- * Subscribe to open, close and packet events
- *
- * @api private
- */
-
-Socket.prototype.subEvents = function() {
-  if (this.subs) return;
-
-  var io = this.io;
-  this.subs = [
-    on(io, 'open', bind(this, 'onopen')),
-    on(io, 'packet', bind(this, 'onpacket')),
-    on(io, 'close', bind(this, 'onclose'))
-  ];
-};
-
-/**
- * "Opens" the socket.
- *
- * @api public
- */
-
-Socket.prototype.open =
-Socket.prototype.connect = function(){
-  if (this.connected) return this;
-
-  this.subEvents();
-  this.io.open(); // ensure open
-  if ('open' == this.io.readyState) this.onopen();
-  return this;
-};
-
-/**
- * Sends a `message` event.
- *
- * @return {Socket} self
- * @api public
- */
-
-Socket.prototype.send = function(){
-  var args = toArray(arguments);
-  args.unshift('message');
-  this.emit.apply(this, args);
-  return this;
-};
-
-/**
- * Override `emit`.
- * If the event is in `events`, it's emitted normally.
- *
- * @param {String} event name
- * @return {Socket} self
- * @api public
- */
-
-Socket.prototype.emit = function(ev){
-  if (events.hasOwnProperty(ev)) {
-    emit.apply(this, arguments);
-    return this;
-  }
-
-  var args = toArray(arguments);
-  var parserType = parser.EVENT; // default
-  if (hasBin(args)) { parserType = parser.BINARY_EVENT; } // binary
-  var packet = { type: parserType, data: args };
-
-  // event ack callback
-  if ('function' == typeof args[args.length - 1]) {
-    debug('emitting packet with ack id %d', this.ids);
-    this.acks[this.ids] = args.pop();
-    packet.id = this.ids++;
-  }
-
-  if (this.connected) {
-    this.packet(packet);
-  } else {
-    this.sendBuffer.push(packet);
-  }
-
-  return this;
-};
-
-/**
- * Sends a packet.
- *
- * @param {Object} packet
- * @api private
- */
-
-Socket.prototype.packet = function(packet){
-  packet.nsp = this.nsp;
-  this.io.packet(packet);
-};
-
-/**
- * Called upon engine `open`.
- *
- * @api private
- */
-
-Socket.prototype.onopen = function(){
-  debug('transport is open - connecting');
-
-  // write connect packet if necessary
-  if ('/' != this.nsp) {
-    this.packet({ type: parser.CONNECT });
-  }
-};
-
-/**
- * Called upon engine `close`.
- *
- * @param {String} reason
- * @api private
- */
-
-Socket.prototype.onclose = function(reason){
-  debug('close (%s)', reason);
-  this.connected = false;
-  this.disconnected = true;
-  this.emit('disconnect', reason);
-};
-
-/**
- * Called with socket packet.
- *
- * @param {Object} packet
- * @api private
- */
-
-Socket.prototype.onpacket = function(packet){
-  if (packet.nsp != this.nsp) return;
-
-  switch (packet.type) {
-    case parser.CONNECT:
-      this.onconnect();
-      break;
-
-    case parser.EVENT:
-      this.onevent(packet);
-      break;
-
-    case parser.BINARY_EVENT:
-      this.onevent(packet);
-      break;
-
-    case parser.ACK:
-      this.onack(packet);
-      break;
-
-    case parser.BINARY_ACK:
-      this.onack(packet);
-      break;
-
-    case parser.DISCONNECT:
-      this.ondisconnect();
-      break;
-
-    case parser.ERROR:
-      this.emit('error', packet.data);
-      break;
-  }
-};
-
-/**
- * Called upon a server event.
- *
- * @param {Object} packet
- * @api private
- */
-
-Socket.prototype.onevent = function(packet){
-  var args = packet.data || [];
-  debug('emitting event %j', args);
-
-  if (null != packet.id) {
-    debug('attaching ack callback to event');
-    args.push(this.ack(packet.id));
-  }
-
-  if (this.connected) {
-    emit.apply(this, args);
-  } else {
-    this.receiveBuffer.push(args);
-  }
-};
-
-/**
- * Produces an ack callback to emit with an event.
- *
- * @api private
- */
-
-Socket.prototype.ack = function(id){
-  var self = this;
-  var sent = false;
-  return function(){
-    // prevent double callbacks
-    if (sent) return;
-    sent = true;
-    var args = toArray(arguments);
-    debug('sending ack %j', args);
-
-    var type = hasBin(args) ? parser.BINARY_ACK : parser.ACK;
-    self.packet({
-      type: type,
-      id: id,
-      data: args
-    });
-  };
-};
-
-/**
- * Called upon a server acknowlegement.
- *
- * @param {Object} packet
- * @api private
- */
-
-Socket.prototype.onack = function(packet){
-  debug('calling ack %s with %j', packet.id, packet.data);
-  var fn = this.acks[packet.id];
-  fn.apply(this, packet.data);
-  delete this.acks[packet.id];
-};
-
-/**
- * Called upon server connect.
- *
- * @api private
- */
-
-Socket.prototype.onconnect = function(){
-  this.connected = true;
-  this.disconnected = false;
-  this.emit('connect');
-  this.emitBuffered();
-};
-
-/**
- * Emit buffered events (received and emitted).
- *
- * @api private
- */
-
-Socket.prototype.emitBuffered = function(){
-  var i;
-  for (i = 0; i < this.receiveBuffer.length; i++) {
-    emit.apply(this, this.receiveBuffer[i]);
-  }
-  this.receiveBuffer = [];
-
-  for (i = 0; i < this.sendBuffer.length; i++) {
-    this.packet(this.sendBuffer[i]);
-  }
-  this.sendBuffer = [];
-};
-
-/**
- * Called upon server disconnect.
- *
- * @api private
- */
-
-Socket.prototype.ondisconnect = function(){
-  debug('server disconnect (%s)', this.nsp);
-  this.destroy();
-  this.onclose('io server disconnect');
-};
-
-/**
- * Called upon forced client/server side disconnections,
- * this method ensures the manager stops tracking us and
- * that reconnections don't get triggered for this.
- *
- * @api private.
- */
-
-Socket.prototype.destroy = function(){
-  if (this.subs) {
-    // clean subscriptions to avoid reconnections
-    for (var i = 0; i < this.subs.length; i++) {
-      this.subs[i].destroy();
-    }
-    this.subs = null;
-  }
-
-  this.io.destroy(this);
-};
-
-/**
- * Disconnects the socket manually.
- *
- * @return {Socket} self
- * @api public
- */
-
-Socket.prototype.close =
-Socket.prototype.disconnect = function(){
-  if (this.connected) {
-    debug('performing disconnect (%s)', this.nsp);
-    this.packet({ type: parser.DISCONNECT });
-  }
-
-  // remove socket from pool
-  this.destroy();
-
-  if (this.connected) {
-    // fire events
-    this.onclose('io client disconnect');
-  }
-  return this;
-};
-
-},{"./on":84,"component-bind":87,"component-emitter":88,"debug":89,"has-binary":117,"socket.io-parser":123,"to-array":127}],86:[function(require,module,exports){
-(function (global){
-
-/**
- * Module dependencies.
- */
-
-var parseuri = require('parseuri');
-var debug = require('debug')('socket.io-client:url');
-
-/**
- * Module exports.
- */
-
-module.exports = url;
-
-/**
- * URL parser.
- *
- * @param {String} url
- * @param {Object} An object meant to mimic window.location.
- *                 Defaults to window.location.
- * @api public
- */
-
-function url(uri, loc){
-  var obj = uri;
-
-  // default to window.location
-  var loc = loc || global.location;
-  if (null == uri) uri = loc.protocol + '//' + loc.hostname;
-
-  // relative path support
-  if ('string' == typeof uri) {
-    if ('/' == uri.charAt(0)) {
-      if ('/' == uri.charAt(1)) {
-        uri = loc.protocol + uri;
-      } else {
-        uri = loc.hostname + uri;
-      }
-    }
-
-    if (!/^(https?|wss?):\/\//.test(uri)) {
-      debug('protocol-less url %s', uri);
-      if ('undefined' != typeof loc) {
-        uri = loc.protocol + '//' + uri;
-      } else {
-        uri = 'https://' + uri;
-      }
-    }
-
-    // parse
-    debug('parse %s', uri);
-    obj = parseuri(uri);
-  }
-
-  // make sure we treat `localhost:80` and `localhost` equally
-  if (!obj.port) {
-    if (/^(http|ws)$/.test(obj.protocol)) {
-      obj.port = '80';
-    }
-    else if (/^(http|ws)s$/.test(obj.protocol)) {
-      obj.port = '443';
-    }
-  }
-
-  obj.path = obj.path || '/';
-
-  // define unique id
-  obj.id = obj.protocol + '://' + obj.host + ':' + obj.port;
-  // define href
-  obj.href = obj.protocol + '://' + obj.host + (loc && loc.port == obj.port ? '' : (':' + obj.port));
-
-  return obj;
-}
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"debug":89,"parseuri":121}],87:[function(require,module,exports){
-/**
- * Slice reference.
- */
-
-var slice = [].slice;
-
-/**
- * Bind `obj` to `fn`.
- *
- * @param {Object} obj
- * @param {Function|String} fn or string
- * @return {Function}
- * @api public
- */
-
-module.exports = function(obj, fn){
-  if ('string' == typeof fn) fn = obj[fn];
-  if ('function' != typeof fn) throw new Error('bind() requires a function');
-  var args = slice.call(arguments, 2);
-  return function(){
-    return fn.apply(obj, args.concat(slice.call(arguments)));
-  }
-};
-
-},{}],88:[function(require,module,exports){
-
-/**
- * Expose `Emitter`.
- */
-
-module.exports = Emitter;
-
-/**
- * Initialize a new `Emitter`.
- *
- * @api public
- */
-
-function Emitter(obj) {
-  if (obj) return mixin(obj);
-};
-
-/**
- * Mixin the emitter properties.
- *
- * @param {Object} obj
- * @return {Object}
- * @api private
- */
-
-function mixin(obj) {
-  for (var key in Emitter.prototype) {
-    obj[key] = Emitter.prototype[key];
-  }
-  return obj;
-}
-
-/**
- * Listen on the given `event` with `fn`.
- *
- * @param {String} event
- * @param {Function} fn
- * @return {Emitter}
- * @api public
- */
-
-Emitter.prototype.on =
-Emitter.prototype.addEventListener = function(event, fn){
-  this._callbacks = this._callbacks || {};
-  (this._callbacks[event] = this._callbacks[event] || [])
-    .push(fn);
-  return this;
-};
-
-/**
- * Adds an `event` listener that will be invoked a single
- * time then automatically removed.
- *
- * @param {String} event
- * @param {Function} fn
- * @return {Emitter}
- * @api public
- */
-
-Emitter.prototype.once = function(event, fn){
-  var self = this;
-  this._callbacks = this._callbacks || {};
-
-  function on() {
-    self.off(event, on);
-    fn.apply(this, arguments);
-  }
-
-  on.fn = fn;
-  this.on(event, on);
-  return this;
-};
-
-/**
- * Remove the given callback for `event` or all
- * registered callbacks.
- *
- * @param {String} event
- * @param {Function} fn
- * @return {Emitter}
- * @api public
- */
-
-Emitter.prototype.off =
-Emitter.prototype.removeListener =
-Emitter.prototype.removeAllListeners =
-Emitter.prototype.removeEventListener = function(event, fn){
-  this._callbacks = this._callbacks || {};
-
-  // all
-  if (0 == arguments.length) {
-    this._callbacks = {};
-    return this;
-  }
-
-  // specific event
-  var callbacks = this._callbacks[event];
-  if (!callbacks) return this;
-
-  // remove all handlers
-  if (1 == arguments.length) {
-    delete this._callbacks[event];
-    return this;
-  }
-
-  // remove specific handler
-  var cb;
-  for (var i = 0; i < callbacks.length; i++) {
-    cb = callbacks[i];
-    if (cb === fn || cb.fn === fn) {
-      callbacks.splice(i, 1);
-      break;
-    }
-  }
-  return this;
-};
-
-/**
- * Emit `event` with the given args.
- *
- * @param {String} event
- * @param {Mixed} ...
- * @return {Emitter}
- */
-
-Emitter.prototype.emit = function(event){
-  this._callbacks = this._callbacks || {};
-  var args = [].slice.call(arguments, 1)
-    , callbacks = this._callbacks[event];
-
-  if (callbacks) {
-    callbacks = callbacks.slice(0);
-    for (var i = 0, len = callbacks.length; i < len; ++i) {
-      callbacks[i].apply(this, args);
-    }
-  }
-
-  return this;
-};
-
-/**
- * Return array of callbacks for `event`.
- *
- * @param {String} event
- * @return {Array}
- * @api public
- */
-
-Emitter.prototype.listeners = function(event){
-  this._callbacks = this._callbacks || {};
-  return this._callbacks[event] || [];
-};
-
-/**
- * Check if this emitter has `event` handlers.
- *
- * @param {String} event
- * @return {Boolean}
- * @api public
- */
-
-Emitter.prototype.hasListeners = function(event){
-  return !! this.listeners(event).length;
-};
-
-},{}],89:[function(require,module,exports){
-
-/**
- * Expose `debug()` as the module.
- */
-
-module.exports = debug;
-
-/**
- * Create a debugger with the given `name`.
- *
- * @param {String} name
- * @return {Type}
- * @api public
- */
-
-function debug(name) {
-  if (!debug.enabled(name)) return function(){};
-
-  return function(fmt){
-    fmt = coerce(fmt);
-
-    var curr = new Date;
-    var ms = curr - (debug[name] || curr);
-    debug[name] = curr;
-
-    fmt = name
-      + ' '
-      + fmt
-      + ' +' + debug.humanize(ms);
-
-    // This hackery is required for IE8
-    // where `console.log` doesn't have 'apply'
-    window.console
-      && console.log
-      && Function.prototype.apply.call(console.log, console, arguments);
-  }
-}
-
-/**
- * The currently active debug mode names.
- */
-
-debug.names = [];
-debug.skips = [];
-
-/**
- * Enables a debug mode by name. This can include modes
- * separated by a colon and wildcards.
- *
- * @param {String} name
- * @api public
- */
-
-debug.enable = function(name) {
-  try {
-    localStorage.debug = name;
-  } catch(e){}
-
-  var split = (name || '').split(/[\s,]+/)
-    , len = split.length;
-
-  for (var i = 0; i < len; i++) {
-    name = split[i].replace('*', '.*?');
-    if (name[0] === '-') {
-      debug.skips.push(new RegExp('^' + name.substr(1) + '$'));
-    }
-    else {
-      debug.names.push(new RegExp('^' + name + '$'));
-    }
-  }
-};
-
-/**
- * Disable debug output.
- *
- * @api public
- */
-
-debug.disable = function(){
-  debug.enable('');
-};
-
-/**
- * Humanize the given `ms`.
- *
- * @param {Number} m
- * @return {String}
- * @api private
- */
-
-debug.humanize = function(ms) {
-  var sec = 1000
-    , min = 60 * 1000
-    , hour = 60 * min;
-
-  if (ms >= hour) return (ms / hour).toFixed(1) + 'h';
-  if (ms >= min) return (ms / min).toFixed(1) + 'm';
-  if (ms >= sec) return (ms / sec | 0) + 's';
-  return ms + 'ms';
-};
-
-/**
- * Returns true if the given mode name is enabled, false otherwise.
- *
- * @param {String} name
- * @return {Boolean}
- * @api public
- */
-
-debug.enabled = function(name) {
-  for (var i = 0, len = debug.skips.length; i < len; i++) {
-    if (debug.skips[i].test(name)) {
-      return false;
-    }
-  }
-  for (var i = 0, len = debug.names.length; i < len; i++) {
-    if (debug.names[i].test(name)) {
-      return true;
-    }
-  }
-  return false;
-};
-
-/**
- * Coerce `val`.
- */
-
-function coerce(val) {
-  if (val instanceof Error) return val.stack || val.message;
-  return val;
-}
-
-// persist
-
-try {
-  if (window.localStorage) debug.enable(localStorage.debug);
-} catch(e){}
-
-},{}],90:[function(require,module,exports){
-
-module.exports =  require('./lib/');
-
-},{"./lib/":91}],91:[function(require,module,exports){
-
-module.exports = require('./socket');
-
-/**
- * Exports parser
- *
- * @api public
- *
- */
-module.exports.parser = require('engine.io-parser');
-
-},{"./socket":92,"engine.io-parser":104}],92:[function(require,module,exports){
-(function (global){
-/**
- * Module dependencies.
- */
-
-var transports = require('./transports');
-var Emitter = require('component-emitter');
-var debug = require('debug')('engine.io-client:socket');
-var index = require('indexof');
-var parser = require('engine.io-parser');
-var parseuri = require('parseuri');
-var parsejson = require('parsejson');
-var parseqs = require('parseqs');
-
-/**
- * Module exports.
- */
-
-module.exports = Socket;
-
-/**
- * Noop function.
- *
- * @api private
- */
-
-function noop(){}
-
-/**
- * Socket constructor.
- *
- * @param {String|Object} uri or options
- * @param {Object} options
- * @api public
- */
-
-function Socket(uri, opts){
-  if (!(this instanceof Socket)) return new Socket(uri, opts);
-
-  opts = opts || {};
-
-  if (uri && 'object' == typeof uri) {
-    opts = uri;
-    uri = null;
-  }
-
-  if (uri) {
-    uri = parseuri(uri);
-    opts.host = uri.host;
-    opts.secure = uri.protocol == 'https' || uri.protocol == 'wss';
-    opts.port = uri.port;
-    if (uri.query) opts.query = uri.query;
-  }
-
-  this.secure = null != opts.secure ? opts.secure :
-    (global.location && 'https:' == location.protocol);
-
-  if (opts.host) {
-    var pieces = opts.host.split(':');
-    opts.hostname = pieces.shift();
-    if (pieces.length) opts.port = pieces.pop();
-  }
-
-  this.agent = opts.agent || false;
-  this.hostname = opts.hostname ||
-    (global.location ? location.hostname : 'localhost');
-  this.port = opts.port || (global.location && location.port ?
-       location.port :
-       (this.secure ? 443 : 80));
-  this.query = opts.query || {};
-  if ('string' == typeof this.query) this.query = parseqs.decode(this.query);
-  this.upgrade = false !== opts.upgrade;
-  this.path = (opts.path || '/engine.io').replace(/\/$/, '') + '/';
-  this.forceJSONP = !!opts.forceJSONP;
-  this.jsonp = false !== opts.jsonp;
-  this.forceBase64 = !!opts.forceBase64;
-  this.enablesXDR = !!opts.enablesXDR;
-  this.timestampParam = opts.timestampParam || 't';
-  this.timestampRequests = opts.timestampRequests;
-  this.transports = opts.transports || ['polling', 'websocket'];
-  this.readyState = '';
-  this.writeBuffer = [];
-  this.callbackBuffer = [];
-  this.policyPort = opts.policyPort || 843;
-  this.rememberUpgrade = opts.rememberUpgrade || false;
-  this.open();
-  this.binaryType = null;
-  this.onlyBinaryUpgrades = opts.onlyBinaryUpgrades;
-}
-
-Socket.priorWebsocketSuccess = false;
-
-/**
- * Mix in `Emitter`.
- */
-
-Emitter(Socket.prototype);
-
-/**
- * Protocol version.
- *
- * @api public
- */
-
-Socket.protocol = parser.protocol; // this is an int
-
-/**
- * Expose deps for legacy compatibility
- * and standalone browser access.
- */
-
-Socket.Socket = Socket;
-Socket.Transport = require('./transport');
-Socket.transports = require('./transports');
-Socket.parser = require('engine.io-parser');
-
-/**
- * Creates transport of the given type.
- *
- * @param {String} transport name
- * @return {Transport}
- * @api private
- */
-
-Socket.prototype.createTransport = function (name) {
-  debug('creating transport "%s"', name);
-  var query = clone(this.query);
-
-  // append engine.io protocol identifier
-  query.EIO = parser.protocol;
-
-  // transport name
-  query.transport = name;
-
-  // session id if we already have one
-  if (this.id) query.sid = this.id;
-
-  var transport = new transports[name]({
-    agent: this.agent,
-    hostname: this.hostname,
-    port: this.port,
-    secure: this.secure,
-    path: this.path,
-    query: query,
-    forceJSONP: this.forceJSONP,
-    jsonp: this.jsonp,
-    forceBase64: this.forceBase64,
-    enablesXDR: this.enablesXDR,
-    timestampRequests: this.timestampRequests,
-    timestampParam: this.timestampParam,
-    policyPort: this.policyPort,
-    socket: this
-  });
-
-  return transport;
-};
-
-function clone (obj) {
-  var o = {};
-  for (var i in obj) {
-    if (obj.hasOwnProperty(i)) {
-      o[i] = obj[i];
-    }
-  }
-  return o;
-}
-
-/**
- * Initializes transport to use and starts probe.
- *
- * @api private
- */
-Socket.prototype.open = function () {
-  var transport;
-  if (this.rememberUpgrade && Socket.priorWebsocketSuccess && this.transports.indexOf('websocket') != -1) {
-    transport = 'websocket';
-  } else if (0 == this.transports.length) {
-    // Emit error on next tick so it can be listened to
-    var self = this;
-    setTimeout(function() {
-      self.emit('error', 'No transports available');
-    }, 0);
-    return;
-  } else {
-    transport = this.transports[0];
-  }
-  this.readyState = 'opening';
-
-  // Retry with the next transport if the transport is disabled (jsonp: false)
-  var transport;
-  try {
-    transport = this.createTransport(transport);
-  } catch (e) {
-    this.transports.shift();
-    this.open();
-    return;
-  }
-
-  transport.open();
-  this.setTransport(transport);
-};
-
-/**
- * Sets the current transport. Disables the existing one (if any).
- *
- * @api private
- */
-
-Socket.prototype.setTransport = function(transport){
-  debug('setting transport %s', transport.name);
-  var self = this;
-
-  if (this.transport) {
-    debug('clearing existing transport %s', this.transport.name);
-    this.transport.removeAllListeners();
-  }
-
-  // set up transport
-  this.transport = transport;
-
-  // set up transport listeners
-  transport
-  .on('drain', function(){
-    self.onDrain();
-  })
-  .on('packet', function(packet){
-    self.onPacket(packet);
-  })
-  .on('error', function(e){
-    self.onError(e);
-  })
-  .on('close', function(){
-    self.onClose('transport close');
-  });
-};
-
-/**
- * Probes a transport.
- *
- * @param {String} transport name
- * @api private
- */
-
-Socket.prototype.probe = function (name) {
-  debug('probing transport "%s"', name);
-  var transport = this.createTransport(name, { probe: 1 })
-    , failed = false
-    , self = this;
-
-  Socket.priorWebsocketSuccess = false;
-
-  function onTransportOpen(){
-    if (self.onlyBinaryUpgrades) {
-      var upgradeLosesBinary = !this.supportsBinary && self.transport.supportsBinary;
-      failed = failed || upgradeLosesBinary;
-    }
-    if (failed) return;
-
-    debug('probe transport "%s" opened', name);
-    transport.send([{ type: 'ping', data: 'probe' }]);
-    transport.once('packet', function (msg) {
-      if (failed) return;
-      if ('pong' == msg.type && 'probe' == msg.data) {
-        debug('probe transport "%s" pong', name);
-        self.upgrading = true;
-        self.emit('upgrading', transport);
-        if (!transport) return;
-        Socket.priorWebsocketSuccess = 'websocket' == transport.name;
-
-        debug('pausing current transport "%s"', self.transport.name);
-        self.transport.pause(function () {
-          if (failed) return;
-          if ('closed' == self.readyState) return;
-          debug('changing transport and sending upgrade packet');
-
-          cleanup();
-
-          self.setTransport(transport);
-          transport.send([{ type: 'upgrade' }]);
-          self.emit('upgrade', transport);
-          transport = null;
-          self.upgrading = false;
-          self.flush();
-        });
-      } else {
-        debug('probe transport "%s" failed', name);
-        var err = new Error('probe error');
-        err.transport = transport.name;
-        self.emit('upgradeError', err);
-      }
-    });
-  }
-
-  function freezeTransport() {
-    if (failed) return;
-
-    // Any callback called by transport should be ignored since now
-    failed = true;
-
-    cleanup();
-
-    transport.close();
-    transport = null;
-  }
-
-  //Handle any error that happens while probing
-  function onerror(err) {
-    var error = new Error('probe error: ' + err);
-    error.transport = transport.name;
-
-    freezeTransport();
-
-    debug('probe transport "%s" failed because of error: %s', name, err);
-
-    self.emit('upgradeError', error);
-  }
-
-  function onTransportClose(){
-    onerror("transport closed");
-  }
-
-  //When the socket is closed while we're probing
-  function onclose(){
-    onerror("socket closed");
-  }
-
-  //When the socket is upgraded while we're probing
-  function onupgrade(to){
-    if (transport && to.name != transport.name) {
-      debug('"%s" works - aborting "%s"', to.name, transport.name);
-      freezeTransport();
-    }
-  }
-
-  //Remove all listeners on the transport and on self
-  function cleanup(){
-    transport.removeListener('open', onTransportOpen);
-    transport.removeListener('error', onerror);
-    transport.removeListener('close', onTransportClose);
-    self.removeListener('close', onclose);
-    self.removeListener('upgrading', onupgrade);
-  }
-
-  transport.once('open', onTransportOpen);
-  transport.once('error', onerror);
-  transport.once('close', onTransportClose);
-
-  this.once('close', onclose);
-  this.once('upgrading', onupgrade);
-
-  transport.open();
-
-};
-
-/**
- * Called when connection is deemed open.
- *
- * @api public
- */
-
-Socket.prototype.onOpen = function () {
-  debug('socket open');
-  this.readyState = 'open';
-  Socket.priorWebsocketSuccess = 'websocket' == this.transport.name;
-  this.emit('open');
-  this.flush();
-
-  // we check for `readyState` in case an `open`
-  // listener already closed the socket
-  if ('open' == this.readyState && this.upgrade && this.transport.pause) {
-    debug('starting upgrade probes');
-    for (var i = 0, l = this.upgrades.length; i < l; i++) {
-      this.probe(this.upgrades[i]);
-    }
-  }
-};
-
-/**
- * Handles a packet.
- *
- * @api private
- */
-
-Socket.prototype.onPacket = function (packet) {
-  if ('opening' == this.readyState || 'open' == this.readyState) {
-    debug('socket receive: type "%s", data "%s"', packet.type, packet.data);
-
-    this.emit('packet', packet);
-
-    // Socket is live - any packet counts
-    this.emit('heartbeat');
-
-    switch (packet.type) {
-      case 'open':
-        this.onHandshake(parsejson(packet.data));
-        break;
-
-      case 'pong':
-        this.setPing();
-        break;
-
-      case 'error':
-        var err = new Error('server error');
-        err.code = packet.data;
-        this.emit('error', err);
-        break;
-
-      case 'message':
-        this.emit('data', packet.data);
-        this.emit('message', packet.data);
-        break;
-    }
-  } else {
-    debug('packet received with socket readyState "%s"', this.readyState);
-  }
-};
-
-/**
- * Called upon handshake completion.
- *
- * @param {Object} handshake obj
- * @api private
- */
-
-Socket.prototype.onHandshake = function (data) {
-  this.emit('handshake', data);
-  this.id = data.sid;
-  this.transport.query.sid = data.sid;
-  this.upgrades = this.filterUpgrades(data.upgrades);
-  this.pingInterval = data.pingInterval;
-  this.pingTimeout = data.pingTimeout;
-  this.onOpen();
-  // In case open handler closes socket
-  if  ('closed' == this.readyState) return;
-  this.setPing();
-
-  // Prolong liveness of socket on heartbeat
-  this.removeListener('heartbeat', this.onHeartbeat);
-  this.on('heartbeat', this.onHeartbeat);
-};
-
-/**
- * Resets ping timeout.
- *
- * @api private
- */
-
-Socket.prototype.onHeartbeat = function (timeout) {
-  clearTimeout(this.pingTimeoutTimer);
-  var self = this;
-  self.pingTimeoutTimer = setTimeout(function () {
-    if ('closed' == self.readyState) return;
-    self.onClose('ping timeout');
-  }, timeout || (self.pingInterval + self.pingTimeout));
-};
-
-/**
- * Pings server every `this.pingInterval` and expects response
- * within `this.pingTimeout` or closes connection.
- *
- * @api private
- */
-
-Socket.prototype.setPing = function () {
-  var self = this;
-  clearTimeout(self.pingIntervalTimer);
-  self.pingIntervalTimer = setTimeout(function () {
-    debug('writing ping packet - expecting pong within %sms', self.pingTimeout);
-    self.ping();
-    self.onHeartbeat(self.pingTimeout);
-  }, self.pingInterval);
-};
-
-/**
-* Sends a ping packet.
-*
-* @api public
-*/
-
-Socket.prototype.ping = function () {
-  this.sendPacket('ping');
-};
-
-/**
- * Called on `drain` event
- *
- * @api private
- */
-
-Socket.prototype.onDrain = function() {
-  for (var i = 0; i < this.prevBufferLen; i++) {
-    if (this.callbackBuffer[i]) {
-      this.callbackBuffer[i]();
-    }
-  }
-
-  this.writeBuffer.splice(0, this.prevBufferLen);
-  this.callbackBuffer.splice(0, this.prevBufferLen);
-
-  // setting prevBufferLen = 0 is very important
-  // for example, when upgrading, upgrade packet is sent over,
-  // and a nonzero prevBufferLen could cause problems on `drain`
-  this.prevBufferLen = 0;
-
-  if (this.writeBuffer.length == 0) {
-    this.emit('drain');
-  } else {
-    this.flush();
-  }
-};
-
-/**
- * Flush write buffers.
- *
- * @api private
- */
-
-Socket.prototype.flush = function () {
-  if ('closed' != this.readyState && this.transport.writable &&
-    !this.upgrading && this.writeBuffer.length) {
-    debug('flushing %d packets in socket', this.writeBuffer.length);
-    this.transport.send(this.writeBuffer);
-    // keep track of current length of writeBuffer
-    // splice writeBuffer and callbackBuffer on `drain`
-    this.prevBufferLen = this.writeBuffer.length;
-    this.emit('flush');
-  }
-};
-
-/**
- * Sends a message.
- *
- * @param {String} message.
- * @param {Function} callback function.
- * @return {Socket} for chaining.
- * @api public
- */
-
-Socket.prototype.write =
-Socket.prototype.send = function (msg, fn) {
-  this.sendPacket('message', msg, fn);
-  return this;
-};
-
-/**
- * Sends a packet.
- *
- * @param {String} packet type.
- * @param {String} data.
- * @param {Function} callback function.
- * @api private
- */
-
-Socket.prototype.sendPacket = function (type, data, fn) {
-  if ('closing' == this.readyState || 'closed' == this.readyState) {
-    return;
-  }
-
-  var packet = { type: type, data: data };
-  this.emit('packetCreate', packet);
-  this.writeBuffer.push(packet);
-  this.callbackBuffer.push(fn);
-  this.flush();
-};
-
-/**
- * Closes the connection.
- *
- * @api private
- */
-
-Socket.prototype.close = function () {
-  if ('opening' == this.readyState || 'open' == this.readyState) {
-    this.readyState = 'closing';
-
-    var self = this;
-
-    function close() {
-      self.onClose('forced close');
-      debug('socket closing - telling transport to close');
-      self.transport.close();
-    }
-
-    function cleanupAndClose() {
-      self.removeListener('upgrade', cleanupAndClose);
-      self.removeListener('upgradeError', cleanupAndClose);
-      close();
-    }
-
-    function waitForUpgrade() {
-      // wait for upgrade to finish since we can't send packets while pausing a transport
-      self.once('upgrade', cleanupAndClose);
-      self.once('upgradeError', cleanupAndClose);
-    }
-
-    if (this.writeBuffer.length) {
-      this.once('drain', function() {
-        if (this.upgrading) {
-          waitForUpgrade();
-        } else {
-          close();
-        }
-      });
-    } else if (this.upgrading) {
-      waitForUpgrade();
-    } else {
-      close();
-    }
-  }
-
-  return this;
-};
-
-/**
- * Called upon transport error
- *
- * @api private
- */
-
-Socket.prototype.onError = function (err) {
-  debug('socket error %j', err);
-  Socket.priorWebsocketSuccess = false;
-  this.emit('error', err);
-  this.onClose('transport error', err);
-};
-
-/**
- * Called upon transport close.
- *
- * @api private
- */
-
-Socket.prototype.onClose = function (reason, desc) {
-  if ('opening' == this.readyState || 'open' == this.readyState || 'closing' == this.readyState) {
-    debug('socket close with reason: "%s"', reason);
-    var self = this;
-
-    // clear timers
-    clearTimeout(this.pingIntervalTimer);
-    clearTimeout(this.pingTimeoutTimer);
-
-    // clean buffers in next tick, so developers can still
-    // grab the buffers on `close` event
-    setTimeout(function() {
-      self.writeBuffer = [];
-      self.callbackBuffer = [];
-      self.prevBufferLen = 0;
-    }, 0);
-
-    // stop event from firing again for transport
-    this.transport.removeAllListeners('close');
-
-    // ensure transport won't stay open
-    this.transport.close();
-
-    // ignore further transport communication
-    this.transport.removeAllListeners();
-
-    // set ready state
-    this.readyState = 'closed';
-
-    // clear session id
-    this.id = null;
-
-    // emit close event
-    this.emit('close', reason, desc);
-  }
-};
-
-/**
- * Filters upgrades, returning only those matching client transports.
- *
- * @param {Array} server upgrades
- * @api private
- *
- */
-
-Socket.prototype.filterUpgrades = function (upgrades) {
-  var filteredUpgrades = [];
-  for (var i = 0, j = upgrades.length; i<j; i++) {
-    if (~index(this.transports, upgrades[i])) filteredUpgrades.push(upgrades[i]);
-  }
-  return filteredUpgrades;
-};
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./transport":93,"./transports":94,"component-emitter":88,"debug":101,"engine.io-parser":104,"indexof":119,"parsejson":113,"parseqs":114,"parseuri":115}],93:[function(require,module,exports){
-/**
- * Module dependencies.
- */
-
-var parser = require('engine.io-parser');
-var Emitter = require('component-emitter');
-
-/**
- * Module exports.
- */
-
-module.exports = Transport;
-
-/**
- * Transport abstract constructor.
- *
- * @param {Object} options.
- * @api private
- */
-
-function Transport (opts) {
-  this.path = opts.path;
-  this.hostname = opts.hostname;
-  this.port = opts.port;
-  this.secure = opts.secure;
-  this.query = opts.query;
-  this.timestampParam = opts.timestampParam;
-  this.timestampRequests = opts.timestampRequests;
-  this.readyState = '';
-  this.agent = opts.agent || false;
-  this.socket = opts.socket;
-  this.enablesXDR = opts.enablesXDR;
-}
-
-/**
- * Mix in `Emitter`.
- */
-
-Emitter(Transport.prototype);
-
-/**
- * A counter used to prevent collisions in the timestamps used
- * for cache busting.
- */
-
-Transport.timestamps = 0;
-
-/**
- * Emits an error.
- *
- * @param {String} str
- * @return {Transport} for chaining
- * @api public
- */
-
-Transport.prototype.onError = function (msg, desc) {
-  var err = new Error(msg);
-  err.type = 'TransportError';
-  err.description = desc;
-  this.emit('error', err);
-  return this;
-};
-
-/**
- * Opens the transport.
- *
- * @api public
- */
-
-Transport.prototype.open = function () {
-  if ('closed' == this.readyState || '' == this.readyState) {
-    this.readyState = 'opening';
-    this.doOpen();
-  }
-
-  return this;
-};
-
-/**
- * Closes the transport.
- *
- * @api private
- */
-
-Transport.prototype.close = function () {
-  if ('opening' == this.readyState || 'open' == this.readyState) {
-    this.doClose();
-    this.onClose();
-  }
-
-  return this;
-};
-
-/**
- * Sends multiple packets.
- *
- * @param {Array} packets
- * @api private
- */
-
-Transport.prototype.send = function(packets){
-  if ('open' == this.readyState) {
-    this.write(packets);
-  } else {
-    throw new Error('Transport not open');
-  }
-};
-
-/**
- * Called upon open
- *
- * @api private
- */
-
-Transport.prototype.onOpen = function () {
-  this.readyState = 'open';
-  this.writable = true;
-  this.emit('open');
-};
-
-/**
- * Called with data.
- *
- * @param {String} data
- * @api private
- */
-
-Transport.prototype.onData = function(data){
-  var packet = parser.decodePacket(data, this.socket.binaryType);
-  this.onPacket(packet);
-};
-
-/**
- * Called with a decoded packet.
- */
-
-Transport.prototype.onPacket = function (packet) {
-  this.emit('packet', packet);
-};
-
-/**
- * Called upon close.
- *
- * @api private
- */
-
-Transport.prototype.onClose = function () {
-  this.readyState = 'closed';
-  this.emit('close');
-};
-
-},{"component-emitter":88,"engine.io-parser":104}],94:[function(require,module,exports){
-(function (global){
-/**
- * Module dependencies
- */
-
-var XMLHttpRequest = require('xmlhttprequest');
-var XHR = require('./polling-xhr');
-var JSONP = require('./polling-jsonp');
-var websocket = require('./websocket');
-
-/**
- * Export transports.
- */
-
-exports.polling = polling;
-exports.websocket = websocket;
-
-/**
- * Polling transport polymorphic constructor.
- * Decides on xhr vs jsonp based on feature detection.
- *
- * @api private
- */
-
-function polling(opts){
-  var xhr;
-  var xd = false;
-  var xs = false;
-  var jsonp = false !== opts.jsonp;
-
-  if (global.location) {
-    var isSSL = 'https:' == location.protocol;
-    var port = location.port;
-
-    // some user agents have empty `location.port`
-    if (!port) {
-      port = isSSL ? 443 : 80;
-    }
-
-    xd = opts.hostname != location.hostname || port != opts.port;
-    xs = opts.secure != isSSL;
-  }
-
-  opts.xdomain = xd;
-  opts.xscheme = xs;
-  xhr = new XMLHttpRequest(opts);
-
-  if ('open' in xhr && !opts.forceJSONP) {
-    return new XHR(opts);
-  } else {
-    if (!jsonp) throw new Error('JSONP disabled');
-    return new JSONP(opts);
-  }
-}
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling-jsonp":95,"./polling-xhr":96,"./websocket":98,"xmlhttprequest":99}],95:[function(require,module,exports){
-(function (global){
-
-/**
- * Module requirements.
- */
-
-var Polling = require('./polling');
-var inherit = require('component-inherit');
-
-/**
- * Module exports.
- */
-
-module.exports = JSONPPolling;
-
-/**
- * Cached regular expressions.
- */
-
-var rNewline = /\n/g;
-var rEscapedNewline = /\\n/g;
-
-/**
- * Global JSONP callbacks.
- */
-
-var callbacks;
-
-/**
- * Callbacks count.
- */
-
-var index = 0;
-
-/**
- * Noop.
- */
-
-function empty () { }
-
-/**
- * JSONP Polling constructor.
- *
- * @param {Object} opts.
- * @api public
- */
-
-function JSONPPolling (opts) {
-  Polling.call(this, opts);
-
-  this.query = this.query || {};
-
-  // define global callbacks array if not present
-  // we do this here (lazily) to avoid unneeded global pollution
-  if (!callbacks) {
-    // we need to consider multiple engines in the same page
-    if (!global.___eio) global.___eio = [];
-    callbacks = global.___eio;
-  }
-
-  // callback identifier
-  this.index = callbacks.length;
-
-  // add callback to jsonp global
-  var self = this;
-  callbacks.push(function (msg) {
-    self.onData(msg);
-  });
-
-  // append to query string
-  this.query.j = this.index;
-
-  // prevent spurious errors from being emitted when the window is unloaded
-  if (global.document && global.addEventListener) {
-    global.addEventListener('beforeunload', function () {
-      if (self.script) self.script.onerror = empty;
-    }, false);
-  }
-}
-
-/**
- * Inherits from Polling.
- */
-
-inherit(JSONPPolling, Polling);
-
-/*
- * JSONP only supports binary as base64 encoded strings
- */
-
-JSONPPolling.prototype.supportsBinary = false;
-
-/**
- * Closes the socket.
- *
- * @api private
- */
-
-JSONPPolling.prototype.doClose = function () {
-  if (this.script) {
-    this.script.parentNode.removeChild(this.script);
-    this.script = null;
-  }
-
-  if (this.form) {
-    this.form.parentNode.removeChild(this.form);
-    this.form = null;
-    this.iframe = null;
-  }
-
-  Polling.prototype.doClose.call(this);
-};
-
-/**
- * Starts a poll cycle.
- *
- * @api private
- */
-
-JSONPPolling.prototype.doPoll = function () {
-  var self = this;
-  var script = document.createElement('script');
-
-  if (this.script) {
-    this.script.parentNode.removeChild(this.script);
-    this.script = null;
-  }
-
-  script.async = true;
-  script.src = this.uri();
-  script.onerror = function(e){
-    self.onError('jsonp poll error',e);
-  };
-
-  var insertAt = document.getElementsByTagName('script')[0];
-  insertAt.parentNode.insertBefore(script, insertAt);
-  this.script = script;
-
-  var isUAgecko = 'undefined' != typeof navigator && /gecko/i.test(navigator.userAgent);
-  
-  if (isUAgecko) {
-    setTimeout(function () {
-      var iframe = document.createElement('iframe');
-      document.body.appendChild(iframe);
-      document.body.removeChild(iframe);
-    }, 100);
-  }
-};
-
-/**
- * Writes with a hidden iframe.
- *
- * @param {String} data to send
- * @param {Function} called upon flush.
- * @api private
- */
-
-JSONPPolling.prototype.doWrite = function (data, fn) {
-  var self = this;
-
-  if (!this.form) {
-    var form = document.createElement('form');
-    var area = document.createElement('textarea');
-    var id = this.iframeId = 'eio_iframe_' + this.index;
-    var iframe;
-
-    form.className = 'socketio';
-    form.style.position = 'absolute';
-    form.style.top = '-1000px';
-    form.style.left = '-1000px';
-    form.target = id;
-    form.method = 'POST';
-    form.setAttribute('accept-charset', 'utf-8');
-    area.name = 'd';
-    form.appendChild(area);
-    document.body.appendChild(form);
-
-    this.form = form;
-    this.area = area;
-  }
-
-  this.form.action = this.uri();
-
-  function complete () {
-    initIframe();
-    fn();
-  }
-
-  function initIframe () {
-    if (self.iframe) {
-      try {
-        self.form.removeChild(self.iframe);
-      } catch (e) {
-        self.onError('jsonp polling iframe removal error', e);
-      }
-    }
-
-    try {
-      // ie6 dynamic iframes with target="" support (thanks Chris Lambacher)
-      var html = '<iframe src="javascript:0" name="'+ self.iframeId +'">';
-      iframe = document.createElement(html);
-    } catch (e) {
-      iframe = document.createElement('iframe');
-      iframe.name = self.iframeId;
-      iframe.src = 'javascript:0';
-    }
-
-    iframe.id = self.iframeId;
-
-    self.form.appendChild(iframe);
-    self.iframe = iframe;
-  }
-
-  initIframe();
-
-  // escape \n to prevent it from being converted into \r\n by some UAs
-  // double escaping is required for escaped new lines because unescaping of new lines can be done safely on server-side
-  data = data.replace(rEscapedNewline, '\\\n');
-  this.area.value = data.replace(rNewline, '\\n');
-
-  try {
-    this.form.submit();
-  } catch(e) {}
-
-  if (this.iframe.attachEvent) {
-    this.iframe.onreadystatechange = function(){
-      if (self.iframe.readyState == 'complete') {
-        complete();
-      }
-    };
-  } else {
-    this.iframe.onload = complete;
-  }
-};
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling":97,"component-inherit":100}],96:[function(require,module,exports){
-(function (global){
-/**
- * Module requirements.
- */
-
-var XMLHttpRequest = require('xmlhttprequest');
-var Polling = require('./polling');
-var Emitter = require('component-emitter');
-var inherit = require('component-inherit');
-var debug = require('debug')('engine.io-client:polling-xhr');
-
-/**
- * Module exports.
- */
-
-module.exports = XHR;
-module.exports.Request = Request;
-
-/**
- * Empty function
- */
-
-function empty(){}
-
-/**
- * XHR Polling constructor.
- *
- * @param {Object} opts
- * @api public
- */
-
-function XHR(opts){
-  Polling.call(this, opts);
-
-  if (global.location) {
-    var isSSL = 'https:' == location.protocol;
-    var port = location.port;
-
-    // some user agents have empty `location.port`
-    if (!port) {
-      port = isSSL ? 443 : 80;
-    }
-
-    this.xd = opts.hostname != global.location.hostname ||
-      port != opts.port;
-    this.xs = opts.secure != isSSL;
-  }
-}
-
-/**
- * Inherits from Polling.
- */
-
-inherit(XHR, Polling);
-
-/**
- * XHR supports binary
- */
-
-XHR.prototype.supportsBinary = true;
-
-/**
- * Creates a request.
- *
- * @param {String} method
- * @api private
- */
-
-XHR.prototype.request = function(opts){
-  opts = opts || {};
-  opts.uri = this.uri();
-  opts.xd = this.xd;
-  opts.xs = this.xs;
-  opts.agent = this.agent || false;
-  opts.supportsBinary = this.supportsBinary;
-  opts.enablesXDR = this.enablesXDR;
-  return new Request(opts);
-};
-
-/**
- * Sends data.
- *
- * @param {String} data to send.
- * @param {Function} called upon flush.
- * @api private
- */
-
-XHR.prototype.doWrite = function(data, fn){
-  var isBinary = typeof data !== 'string' && data !== undefined;
-  var req = this.request({ method: 'POST', data: data, isBinary: isBinary });
-  var self = this;
-  req.on('success', fn);
-  req.on('error', function(err){
-    self.onError('xhr post error', err);
-  });
-  this.sendXhr = req;
-};
-
-/**
- * Starts a poll cycle.
- *
- * @api private
- */
-
-XHR.prototype.doPoll = function(){
-  debug('xhr poll');
-  var req = this.request();
-  var self = this;
-  req.on('data', function(data){
-    self.onData(data);
-  });
-  req.on('error', function(err){
-    self.onError('xhr poll error', err);
-  });
-  this.pollXhr = req;
-};
-
-/**
- * Request constructor
- *
- * @param {Object} options
- * @api public
- */
-
-function Request(opts){
-  this.method = opts.method || 'GET';
-  this.uri = opts.uri;
-  this.xd = !!opts.xd;
-  this.xs = !!opts.xs;
-  this.async = false !== opts.async;
-  this.data = undefined != opts.data ? opts.data : null;
-  this.agent = opts.agent;
-  this.isBinary = opts.isBinary;
-  this.supportsBinary = opts.supportsBinary;
-  this.enablesXDR = opts.enablesXDR;
-  this.create();
-}
-
-/**
- * Mix in `Emitter`.
- */
-
-Emitter(Request.prototype);
-
-/**
- * Creates the XHR object and sends the request.
- *
- * @api private
- */
-
-Request.prototype.create = function(){
-  var xhr = this.xhr = new XMLHttpRequest({ agent: this.agent, xdomain: this.xd, xscheme: this.xs, enablesXDR: this.enablesXDR });
-  var self = this;
-
-  try {
-    debug('xhr open %s: %s', this.method, this.uri);
-    xhr.open(this.method, this.uri, this.async);
-    if (this.supportsBinary) {
-      // This has to be done after open because Firefox is stupid
-      // http://stackoverflow.com/questions/13216903/get-binary-data-with-xmlhttprequest-in-a-firefox-extension
-      xhr.responseType = 'arraybuffer';
-    }
-
-    if ('POST' == this.method) {
-      try {
-        if (this.isBinary) {
-          xhr.setRequestHeader('Content-type', 'application/octet-stream');
-        } else {
-          xhr.setRequestHeader('Content-type', 'text/plain;charset=UTF-8');
-        }
-      } catch (e) {}
-    }
-
-    // ie6 check
-    if ('withCredentials' in xhr) {
-      xhr.withCredentials = true;
-    }
-
-    if (this.hasXDR()) {
-      xhr.onload = function(){
-        self.onLoad();
-      };
-      xhr.onerror = function(){
-        self.onError(xhr.responseText);
-      };
-    } else {
-      xhr.onreadystatechange = function(){
-        if (4 != xhr.readyState) return;
-        if (200 == xhr.status || 1223 == xhr.status) {
-          self.onLoad();
-        } else {
-          // make sure the `error` event handler that's user-set
-          // does not throw in the same tick and gets caught here
-          setTimeout(function(){
-            self.onError(xhr.status);
-          }, 0);
-        }
-      };
-    }
-
-    debug('xhr data %s', this.data);
-    xhr.send(this.data);
-  } catch (e) {
-    // Need to defer since .create() is called directly fhrom the constructor
-    // and thus the 'error' event can only be only bound *after* this exception
-    // occurs.  Therefore, also, we cannot throw here at all.
-    setTimeout(function() {
-      self.onError(e);
-    }, 0);
-    return;
-  }
-
-  if (global.document) {
-    this.index = Request.requestsCount++;
-    Request.requests[this.index] = this;
-  }
-};
-
-/**
- * Called upon successful response.
- *
- * @api private
- */
-
-Request.prototype.onSuccess = function(){
-  this.emit('success');
-  this.cleanup();
-};
-
-/**
- * Called if we have data.
- *
- * @api private
- */
-
-Request.prototype.onData = function(data){
-  this.emit('data', data);
-  this.onSuccess();
-};
-
-/**
- * Called upon error.
- *
- * @api private
- */
-
-Request.prototype.onError = function(err){
-  this.emit('error', err);
-  this.cleanup();
-};
-
-/**
- * Cleans up house.
- *
- * @api private
- */
-
-Request.prototype.cleanup = function(){
-  if ('undefined' == typeof this.xhr || null === this.xhr) {
-    return;
-  }
-  // xmlhttprequest
-  if (this.hasXDR()) {
-    this.xhr.onload = this.xhr.onerror = empty;
-  } else {
-    this.xhr.onreadystatechange = empty;
-  }
-
-  try {
-    this.xhr.abort();
-  } catch(e) {}
-
-  if (global.document) {
-    delete Request.requests[this.index];
-  }
-
-  this.xhr = null;
-};
-
-/**
- * Called upon load.
- *
- * @api private
- */
-
-Request.prototype.onLoad = function(){
-  var data;
-  try {
-    var contentType;
-    try {
-      contentType = this.xhr.getResponseHeader('Content-Type').split(';')[0];
-    } catch (e) {}
-    if (contentType === 'application/octet-stream') {
-      data = this.xhr.response;
-    } else {
-      if (!this.supportsBinary) {
-        data = this.xhr.responseText;
-      } else {
-        data = 'ok';
-      }
-    }
-  } catch (e) {
-    this.onError(e);
-  }
-  if (null != data) {
-    this.onData(data);
-  }
-};
-
-/**
- * Check if it has XDomainRequest.
- *
- * @api private
- */
-
-Request.prototype.hasXDR = function(){
-  return 'undefined' !== typeof global.XDomainRequest && !this.xs && this.enablesXDR;
-};
-
-/**
- * Aborts the request.
- *
- * @api public
- */
-
-Request.prototype.abort = function(){
-  this.cleanup();
-};
-
-/**
- * Aborts pending requests when unloading the window. This is needed to prevent
- * memory leaks (e.g. when using IE) and to ensure that no spurious error is
- * emitted.
- */
-
-if (global.document) {
-  Request.requestsCount = 0;
-  Request.requests = {};
-  if (global.attachEvent) {
-    global.attachEvent('onunload', unloadHandler);
-  } else if (global.addEventListener) {
-    global.addEventListener('beforeunload', unloadHandler, false);
-  }
-}
-
-function unloadHandler() {
-  for (var i in Request.requests) {
-    if (Request.requests.hasOwnProperty(i)) {
-      Request.requests[i].abort();
-    }
-  }
-}
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling":97,"component-emitter":88,"component-inherit":100,"debug":101,"xmlhttprequest":99}],97:[function(require,module,exports){
-/**
- * Module dependencies.
- */
-
-var Transport = require('../transport');
-var parseqs = require('parseqs');
-var parser = require('engine.io-parser');
-var inherit = require('component-inherit');
-var debug = require('debug')('engine.io-client:polling');
-
-/**
- * Module exports.
- */
-
-module.exports = Polling;
-
-/**
- * Is XHR2 supported?
- */
-
-var hasXHR2 = (function() {
-  var XMLHttpRequest = require('xmlhttprequest');
-  var xhr = new XMLHttpRequest({ xdomain: false });
-  return null != xhr.responseType;
-})();
-
-/**
- * Polling interface.
- *
- * @param {Object} opts
- * @api private
- */
-
-function Polling(opts){
-  var forceBase64 = (opts && opts.forceBase64);
-  if (!hasXHR2 || forceBase64) {
-    this.supportsBinary = false;
-  }
-  Transport.call(this, opts);
-}
-
-/**
- * Inherits from Transport.
- */
-
-inherit(Polling, Transport);
-
-/**
- * Transport name.
- */
-
-Polling.prototype.name = 'polling';
-
-/**
- * Opens the socket (triggers polling). We write a PING message to determine
- * when the transport is open.
- *
- * @api private
- */
-
-Polling.prototype.doOpen = function(){
-  this.poll();
-};
-
-/**
- * Pauses polling.
- *
- * @param {Function} callback upon buffers are flushed and transport is paused
- * @api private
- */
-
-Polling.prototype.pause = function(onPause){
-  var pending = 0;
-  var self = this;
-
-  this.readyState = 'pausing';
-
-  function pause(){
-    debug('paused');
-    self.readyState = 'paused';
-    onPause();
-  }
-
-  if (this.polling || !this.writable) {
-    var total = 0;
-
-    if (this.polling) {
-      debug('we are currently polling - waiting to pause');
-      total++;
-      this.once('pollComplete', function(){
-        debug('pre-pause polling complete');
-        --total || pause();
-      });
-    }
-
-    if (!this.writable) {
-      debug('we are currently writing - waiting to pause');
-      total++;
-      this.once('drain', function(){
-        debug('pre-pause writing complete');
-        --total || pause();
-      });
-    }
-  } else {
-    pause();
-  }
-};
-
-/**
- * Starts polling cycle.
- *
- * @api public
- */
-
-Polling.prototype.poll = function(){
-  debug('polling');
-  this.polling = true;
-  this.doPoll();
-  this.emit('poll');
-};
-
-/**
- * Overloads onData to detect payloads.
- *
- * @api private
- */
-
-Polling.prototype.onData = function(data){
-  var self = this;
-  debug('polling got data %s', data);
-  var callback = function(packet, index, total) {
-    // if its the first message we consider the transport open
-    if ('opening' == self.readyState) {
-      self.onOpen();
-    }
-
-    // if its a close packet, we close the ongoing requests
-    if ('close' == packet.type) {
-      self.onClose();
-      return false;
-    }
-
-    // otherwise bypass onData and handle the message
-    self.onPacket(packet);
-  };
-
-  // decode payload
-  parser.decodePayload(data, this.socket.binaryType, callback);
-
-  // if an event did not trigger closing
-  if ('closed' != this.readyState) {
-    // if we got data we're not polling
-    this.polling = false;
-    this.emit('pollComplete');
-
-    if ('open' == this.readyState) {
-      this.poll();
-    } else {
-      debug('ignoring poll - transport state "%s"', this.readyState);
-    }
-  }
-};
-
-/**
- * For polling, send a close packet.
- *
- * @api private
- */
-
-Polling.prototype.doClose = function(){
-  var self = this;
-
-  function close(){
-    debug('writing close packet');
-    self.write([{ type: 'close' }]);
-  }
-
-  if ('open' == this.readyState) {
-    debug('transport open - closing');
-    close();
-  } else {
-    // in case we're trying to close while
-    // handshaking is in progress (GH-164)
-    debug('transport not open - deferring close');
-    this.once('open', close);
-  }
-};
-
-/**
- * Writes a packets payload.
- *
- * @param {Array} data packets
- * @param {Function} drain callback
- * @api private
- */
-
-Polling.prototype.write = function(packets){
-  var self = this;
-  this.writable = false;
-  var callbackfn = function() {
-    self.writable = true;
-    self.emit('drain');
-  };
-
-  var self = this;
-  parser.encodePayload(packets, this.supportsBinary, function(data) {
-    self.doWrite(data, callbackfn);
-  });
-};
-
-/**
- * Generates uri for connection.
- *
- * @api private
- */
-
-Polling.prototype.uri = function(){
-  var query = this.query || {};
-  var schema = this.secure ? 'https' : 'http';
-  var port = '';
-
-  // cache busting is forced
-  if (false !== this.timestampRequests) {
-    query[this.timestampParam] = +new Date + '-' + Transport.timestamps++;
-  }
-
-  if (!this.supportsBinary && !query.sid) {
-    query.b64 = 1;
-  }
-
-  query = parseqs.encode(query);
-
-  // avoid port if default for schema
-  if (this.port && (('https' == schema && this.port != 443) ||
-     ('http' == schema && this.port != 80))) {
-    port = ':' + this.port;
-  }
-
-  // prepend ? to query
-  if (query.length) {
-    query = '?' + query;
-  }
-
-  return schema + '://' + this.hostname + port + this.path + query;
-};
-
-},{"../transport":93,"component-inherit":100,"debug":101,"engine.io-parser":104,"parseqs":114,"xmlhttprequest":99}],98:[function(require,module,exports){
-/**
- * Module dependencies.
- */
-
-var Transport = require('../transport');
-var parser = require('engine.io-parser');
-var parseqs = require('parseqs');
-var inherit = require('component-inherit');
-var debug = require('debug')('engine.io-client:websocket');
-
-/**
- * `ws` exposes a WebSocket-compatible interface in
- * Node, or the `WebSocket` or `MozWebSocket` globals
- * in the browser.
- */
-
-var WebSocket = require('ws');
-
-/**
- * Module exports.
- */
-
-module.exports = WS;
-
-/**
- * WebSocket transport constructor.
- *
- * @api {Object} connection options
- * @api public
- */
-
-function WS(opts){
-  var forceBase64 = (opts && opts.forceBase64);
-  if (forceBase64) {
-    this.supportsBinary = false;
-  }
-  Transport.call(this, opts);
-}
-
-/**
- * Inherits from Transport.
- */
-
-inherit(WS, Transport);
-
-/**
- * Transport name.
- *
- * @api public
- */
-
-WS.prototype.name = 'websocket';
-
-/*
- * WebSockets support binary
- */
-
-WS.prototype.supportsBinary = true;
-
-/**
- * Opens socket.
- *
- * @api private
- */
-
-WS.prototype.doOpen = function(){
-  if (!this.check()) {
-    // let probe timeout
-    return;
-  }
-
-  var self = this;
-  var uri = this.uri();
-  var protocols = void(0);
-  var opts = { agent: this.agent };
-
-  this.ws = new WebSocket(uri, protocols, opts);
-
-  if (this.ws.binaryType === undefined) {
-    this.supportsBinary = false;
-  }
-
-  this.ws.binaryType = 'arraybuffer';
-  this.addEventListeners();
-};
-
-/**
- * Adds event listeners to the socket
- *
- * @api private
- */
-
-WS.prototype.addEventListeners = function(){
-  var self = this;
-
-  this.ws.onopen = function(){
-    self.onOpen();
-  };
-  this.ws.onclose = function(){
-    self.onClose();
-  };
-  this.ws.onmessage = function(ev){
-    self.onData(ev.data);
-  };
-  this.ws.onerror = function(e){
-    self.onError('websocket error', e);
-  };
-};
-
-/**
- * Override `onData` to use a timer on iOS.
- * See: https://gist.github.com/mloughran/2052006
- *
- * @api private
- */
-
-if ('undefined' != typeof navigator
-  && /iPad|iPhone|iPod/i.test(navigator.userAgent)) {
-  WS.prototype.onData = function(data){
-    var self = this;
-    setTimeout(function(){
-      Transport.prototype.onData.call(self, data);
-    }, 0);
-  };
-}
-
-/**
- * Writes data to socket.
- *
- * @param {Array} array of packets.
- * @api private
- */
-
-WS.prototype.write = function(packets){
-  var self = this;
-  this.writable = false;
-  // encodePacket efficient as it uses WS framing
-  // no need for encodePayload
-  for (var i = 0, l = packets.length; i < l; i++) {
-    parser.encodePacket(packets[i], this.supportsBinary, function(data) {
-      //Sometimes the websocket has already been closed but the browser didn't
-      //have a chance of informing us about it yet, in that case send will
-      //throw an error
-      try {
-        self.ws.send(data);
-      } catch (e){
-        debug('websocket closed before onclose event');
-      }
-    });
-  }
-
-  function ondrain() {
-    self.writable = true;
-    self.emit('drain');
-  }
-  // fake drain
-  // defer to next tick to allow Socket to clear writeBuffer
-  setTimeout(ondrain, 0);
-};
-
-/**
- * Called upon close
- *
- * @api private
- */
-
-WS.prototype.onClose = function(){
-  Transport.prototype.onClose.call(this);
-};
-
-/**
- * Closes socket.
- *
- * @api private
- */
-
-WS.prototype.doClose = function(){
-  if (typeof this.ws !== 'undefined') {
-    this.ws.close();
-  }
-};
-
-/**
- * Generates uri for connection.
- *
- * @api private
- */
-
-WS.prototype.uri = function(){
-  var query = this.query || {};
-  var schema = this.secure ? 'wss' : 'ws';
-  var port = '';
-
-  // avoid port if default for schema
-  if (this.port && (('wss' == schema && this.port != 443)
-    || ('ws' == schema && this.port != 80))) {
-    port = ':' + this.port;
-  }
-
-  // append timestamp to URI
-  if (this.timestampRequests) {
-    query[this.timestampParam] = +new Date;
-  }
-
-  // communicate binary support capabilities
-  if (!this.supportsBinary) {
-    query.b64 = 1;
-  }
-
-  query = parseqs.encode(query);
-
-  // prepend ? to query
-  if (query.length) {
-    query = '?' + query;
-  }
-
-  return schema + '://' + this.hostname + port + this.path + query;
-};
-
-/**
- * Feature detection for WebSocket.
- *
- * @return {Boolean} whether this transport is available.
- * @api public
- */
-
-WS.prototype.check = function(){
-  return !!WebSocket && !('__initialize' in WebSocket && this.name === WS.prototype.name);
-};
-
-},{"../transport":93,"component-inherit":100,"debug":101,"engine.io-parser":104,"parseqs":114,"ws":116}],99:[function(require,module,exports){
-// browser shim for xmlhttprequest module
-var hasCORS = require('has-cors');
-
-module.exports = function(opts) {
-  var xdomain = opts.xdomain;
-
-  // scheme must be same when usign XDomainRequest
-  // http://blogs.msdn.com/b/ieinternals/archive/2010/05/13/xdomainrequest-restrictions-limitations-and-workarounds.aspx
-  var xscheme = opts.xscheme;
-
-  // XDomainRequest has a flow of not sending cookie, therefore it should be disabled as a default.
-  // https://github.com/Automattic/engine.io-client/pull/217
-  var enablesXDR = opts.enablesXDR;
-
-  // XMLHttpRequest can be disabled on IE
-  try {
-    if ('undefined' != typeof XMLHttpRequest && (!xdomain || hasCORS)) {
-      return new XMLHttpRequest();
-    }
-  } catch (e) { }
-
-  // Use XDomainRequest for IE8 if enablesXDR is true
-  // because loading bar keeps flashing when using jsonp-polling
-  // https://github.com/yujiosaka/socke.io-ie8-loading-example
-  try {
-    if ('undefined' != typeof XDomainRequest && !xscheme && enablesXDR) {
-      return new XDomainRequest();
-    }
-  } catch (e) { }
-
-  if (!xdomain) {
-    try {
-      return new ActiveXObject('Microsoft.XMLHTTP');
-    } catch(e) { }
-  }
-}
-
-},{"has-cors":111}],100:[function(require,module,exports){
-
-module.exports = function(a, b){
-  var fn = function(){};
-  fn.prototype = b.prototype;
-  a.prototype = new fn;
-  a.prototype.constructor = a;
-};
-},{}],101:[function(require,module,exports){
-
-/**
- * This is the web browser implementation of `debug()`.
- *
- * Expose `debug()` as the module.
- */
-
-exports = module.exports = require('./debug');
-exports.log = log;
-exports.formatArgs = formatArgs;
-exports.save = save;
-exports.load = load;
-exports.useColors = useColors;
-
-/**
- * Colors.
- */
-
-exports.colors = [
-  'lightseagreen',
-  'forestgreen',
-  'goldenrod',
-  'dodgerblue',
-  'darkorchid',
-  'crimson'
-];
-
-/**
- * Currently only WebKit-based Web Inspectors, Firefox >= v31,
- * and the Firebug extension (any Firefox version) are known
- * to support "%c" CSS customizations.
- *
- * TODO: add a `localStorage` variable to explicitly enable/disable colors
- */
-
-function useColors() {
-  // is webkit? http://stackoverflow.com/a/16459606/376773
-  return ('WebkitAppearance' in document.documentElement.style) ||
-    // is firebug? http://stackoverflow.com/a/398120/376773
-    (window.console && (console.firebug || (console.exception && console.table))) ||
-    // is firefox >= v31?
-    // https://developer.mozilla.org/en-US/docs/Tools/Web_Console#Styling_messages
-    (navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/) && parseInt(RegExp.$1, 10) >= 31);
-}
-
-/**
- * Map %j to `JSON.stringify()`, since no Web Inspectors do that by default.
- */
-
-exports.formatters.j = function(v) {
-  return JSON.stringify(v);
-};
-
-
-/**
- * Colorize log arguments if enabled.
- *
- * @api public
- */
-
-function formatArgs() {
-  var args = arguments;
-  var useColors = this.useColors;
-
-  args[0] = (useColors ? '%c' : '')
-    + this.namespace
-    + (useColors ? ' %c' : ' ')
-    + args[0]
-    + (useColors ? '%c ' : ' ')
-    + '+' + exports.humanize(this.diff);
-
-  if (!useColors) return args;
-
-  var c = 'color: ' + this.color;
-  args = [args[0], c, 'color: inherit'].concat(Array.prototype.slice.call(args, 1));
-
-  // the final "%c" is somewhat tricky, because there could be other
-  // arguments passed either before or after the %c, so we need to
-  // figure out the correct index to insert the CSS into
-  var index = 0;
-  var lastC = 0;
-  args[0].replace(/%[a-z%]/g, function(match) {
-    if ('%%' === match) return;
-    index++;
-    if ('%c' === match) {
-      // we only are interested in the *last* %c
-      // (the user may have provided their own)
-      lastC = index;
-    }
-  });
-
-  args.splice(lastC, 0, c);
-  return args;
-}
-
-/**
- * Invokes `console.log()` when available.
- * No-op when `console.log` is not a "function".
- *
- * @api public
- */
-
-function log() {
-  // This hackery is required for IE8,
-  // where the `console.log` function doesn't have 'apply'
-  return 'object' == typeof console
-    && 'function' == typeof console.log
-    && Function.prototype.apply.call(console.log, console, arguments);
-}
-
-/**
- * Save `namespaces`.
- *
- * @param {String} namespaces
- * @api private
- */
-
-function save(namespaces) {
-  try {
-    if (null == namespaces) {
-      localStorage.removeItem('debug');
-    } else {
-      localStorage.debug = namespaces;
-    }
-  } catch(e) {}
-}
-
-/**
- * Load `namespaces`.
- *
- * @return {String} returns the previously persisted debug modes
- * @api private
- */
-
-function load() {
-  var r;
-  try {
-    r = localStorage.debug;
-  } catch(e) {}
-  return r;
-}
-
-/**
- * Enable namespaces listed in `localStorage.debug` initially.
- */
-
-exports.enable(load());
-
-},{"./debug":102}],102:[function(require,module,exports){
-
-/**
- * This is the common logic for both the Node.js and web browser
- * implementations of `debug()`.
- *
- * Expose `debug()` as the module.
- */
-
-exports = module.exports = debug;
-exports.coerce = coerce;
-exports.disable = disable;
-exports.enable = enable;
-exports.enabled = enabled;
-exports.humanize = require('ms');
-
-/**
- * The currently active debug mode names, and names to skip.
- */
-
-exports.names = [];
-exports.skips = [];
-
-/**
- * Map of special "%n" handling functions, for the debug "format" argument.
- *
- * Valid key names are a single, lowercased letter, i.e. "n".
- */
-
-exports.formatters = {};
-
-/**
- * Previously assigned color.
- */
-
-var prevColor = 0;
-
-/**
- * Previous log timestamp.
- */
-
-var prevTime;
-
-/**
- * Select a color.
- *
- * @return {Number}
- * @api private
- */
-
-function selectColor() {
-  return exports.colors[prevColor++ % exports.colors.length];
-}
-
-/**
- * Create a debugger with the given `namespace`.
- *
- * @param {String} namespace
- * @return {Function}
- * @api public
- */
-
-function debug(namespace) {
-
-  // define the `disabled` version
-  function disabled() {
-  }
-  disabled.enabled = false;
-
-  // define the `enabled` version
-  function enabled() {
-
-    var self = enabled;
-
-    // set `diff` timestamp
-    var curr = +new Date();
-    var ms = curr - (prevTime || curr);
-    self.diff = ms;
-    self.prev = prevTime;
-    self.curr = curr;
-    prevTime = curr;
-
-    // add the `color` if not set
-    if (null == self.useColors) self.useColors = exports.useColors();
-    if (null == self.color && self.useColors) self.color = selectColor();
-
-    var args = Array.prototype.slice.call(arguments);
-
-    args[0] = exports.coerce(args[0]);
-
-    if ('string' !== typeof args[0]) {
-      // anything else let's inspect with %o
-      args = ['%o'].concat(args);
-    }
-
-    // apply any `formatters` transformations
-    var index = 0;
-    args[0] = args[0].replace(/%([a-z%])/g, function(match, format) {
-      // if we encounter an escaped % then don't increase the array index
-      if (match === '%%') return match;
-      index++;
-      var formatter = exports.formatters[format];
-      if ('function' === typeof formatter) {
-        var val = args[index];
-        match = formatter.call(self, val);
-
-        // now we need to remove `args[index]` since it's inlined in the `format`
-        args.splice(index, 1);
-        index--;
-      }
-      return match;
-    });
-
-    if ('function' === typeof exports.formatArgs) {
-      args = exports.formatArgs.apply(self, args);
-    }
-    var logFn = enabled.log || exports.log || console.log.bind(console);
-    logFn.apply(self, args);
-  }
-  enabled.enabled = true;
-
-  var fn = exports.enabled(namespace) ? enabled : disabled;
-
-  fn.namespace = namespace;
-
-  return fn;
-}
-
-/**
- * Enables a debug mode by namespaces. This can include modes
- * separated by a colon and wildcards.
- *
- * @param {String} namespaces
- * @api public
- */
-
-function enable(namespaces) {
-  exports.save(namespaces);
-
-  var split = (namespaces || '').split(/[\s,]+/);
-  var len = split.length;
-
-  for (var i = 0; i < len; i++) {
-    if (!split[i]) continue; // ignore empty strings
-    namespaces = split[i].replace(/\*/g, '.*?');
-    if (namespaces[0] === '-') {
-      exports.skips.push(new RegExp('^' + namespaces.substr(1) + '$'));
-    } else {
-      exports.names.push(new RegExp('^' + namespaces + '$'));
-    }
-  }
-}
-
-/**
- * Disable debug output.
- *
- * @api public
- */
-
-function disable() {
-  exports.enable('');
-}
-
-/**
- * Returns true if the given mode name is enabled, false otherwise.
- *
- * @param {String} name
- * @return {Boolean}
- * @api public
- */
-
-function enabled(name) {
-  var i, len;
-  for (i = 0, len = exports.skips.length; i < len; i++) {
-    if (exports.skips[i].test(name)) {
-      return false;
-    }
-  }
-  for (i = 0, len = exports.names.length; i < len; i++) {
-    if (exports.names[i].test(name)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Coerce `val`.
- *
- * @param {Mixed} val
- * @return {Mixed}
- * @api private
- */
-
-function coerce(val) {
-  if (val instanceof Error) return val.stack || val.message;
-  return val;
-}
-
-},{"ms":103}],103:[function(require,module,exports){
-/**
- * Helpers.
- */
-
-var s = 1000;
-var m = s * 60;
-var h = m * 60;
-var d = h * 24;
-var y = d * 365.25;
-
-/**
- * Parse or format the given `val`.
- *
- * Options:
- *
- *  - `long` verbose formatting [false]
- *
- * @param {String|Number} val
- * @param {Object} options
- * @return {String|Number}
- * @api public
- */
-
-module.exports = function(val, options){
-  options = options || {};
-  if ('string' == typeof val) return parse(val);
-  return options.long
-    ? long(val)
-    : short(val);
-};
-
-/**
- * Parse the given `str` and return milliseconds.
- *
- * @param {String} str
- * @return {Number}
- * @api private
- */
-
-function parse(str) {
-  var match = /^((?:\d+)?\.?\d+) *(ms|seconds?|s|minutes?|m|hours?|h|days?|d|years?|y)?$/i.exec(str);
-  if (!match) return;
-  var n = parseFloat(match[1]);
-  var type = (match[2] || 'ms').toLowerCase();
-  switch (type) {
-    case 'years':
-    case 'year':
-    case 'y':
-      return n * y;
-    case 'days':
-    case 'day':
-    case 'd':
-      return n * d;
-    case 'hours':
-    case 'hour':
-    case 'h':
-      return n * h;
-    case 'minutes':
-    case 'minute':
-    case 'm':
-      return n * m;
-    case 'seconds':
-    case 'second':
-    case 's':
-      return n * s;
-    case 'ms':
-      return n;
-  }
-}
-
-/**
- * Short format for `ms`.
- *
- * @param {Number} ms
- * @return {String}
- * @api private
- */
-
-function short(ms) {
-  if (ms >= d) return Math.round(ms / d) + 'd';
-  if (ms >= h) return Math.round(ms / h) + 'h';
-  if (ms >= m) return Math.round(ms / m) + 'm';
-  if (ms >= s) return Math.round(ms / s) + 's';
-  return ms + 'ms';
-}
-
-/**
- * Long format for `ms`.
- *
- * @param {Number} ms
- * @return {String}
- * @api private
- */
-
-function long(ms) {
-  return plural(ms, d, 'day')
-    || plural(ms, h, 'hour')
-    || plural(ms, m, 'minute')
-    || plural(ms, s, 'second')
-    || ms + ' ms';
-}
-
-/**
- * Pluralization helper.
- */
-
-function plural(ms, n, name) {
-  if (ms < n) return;
-  if (ms < n * 1.5) return Math.floor(ms / n) + ' ' + name;
-  return Math.ceil(ms / n) + ' ' + name + 's';
-}
-
-},{}],104:[function(require,module,exports){
-(function (global){
-/**
- * Module dependencies.
- */
-
-var keys = require('./keys');
-var sliceBuffer = require('arraybuffer.slice');
-var base64encoder = require('base64-arraybuffer');
-var after = require('after');
-var utf8 = require('utf8');
-
-/**
- * Check if we are running an android browser. That requires us to use
- * ArrayBuffer with polling transports...
- *
- * http://ghinda.net/jpeg-blob-ajax-android/
- */
-
-var isAndroid = navigator.userAgent.match(/Android/i);
-
-/**
- * Current protocol version.
- */
-
-exports.protocol = 3;
-
-/**
- * Packet types.
- */
-
-var packets = exports.packets = {
-    open:     0    // non-ws
-  , close:    1    // non-ws
-  , ping:     2
-  , pong:     3
-  , message:  4
-  , upgrade:  5
-  , noop:     6
-};
-
-var packetslist = keys(packets);
-
-/**
- * Premade error packet.
- */
-
-var err = { type: 'error', data: 'parser error' };
-
-/**
- * Create a blob api even for blob builder when vendor prefixes exist
- */
-
-var Blob = require('blob');
-
-/**
- * Encodes a packet.
- *
- *     <packet type id> [ <data> ]
- *
- * Example:
- *
- *     5hello world
- *     3
- *     4
- *
- * Binary is encoded in an identical principle
- *
- * @api private
- */
-
-exports.encodePacket = function (packet, supportsBinary, utf8encode, callback) {
-  if ('function' == typeof supportsBinary) {
-    callback = supportsBinary;
-    supportsBinary = false;
-  }
-
-  if ('function' == typeof utf8encode) {
-    callback = utf8encode;
-    utf8encode = null;
-  }
-
-  var data = (packet.data === undefined)
-    ? undefined
-    : packet.data.buffer || packet.data;
-
-  if (global.ArrayBuffer && data instanceof ArrayBuffer) {
-    return encodeArrayBuffer(packet, supportsBinary, callback);
-  } else if (Blob && data instanceof global.Blob) {
-    return encodeBlob(packet, supportsBinary, callback);
-  }
-
-  // Sending data as a utf-8 string
-  var encoded = packets[packet.type];
-
-  // data fragment is optional
-  if (undefined !== packet.data) {
-    encoded += utf8encode ? utf8.encode(String(packet.data)) : String(packet.data);
-  }
-
-  return callback('' + encoded);
-
-};
-
-/**
- * Encode packet helpers for binary types
- */
-
-function encodeArrayBuffer(packet, supportsBinary, callback) {
-  if (!supportsBinary) {
-    return exports.encodeBase64Packet(packet, callback);
-  }
-
-  var data = packet.data;
-  var contentArray = new Uint8Array(data);
-  var resultBuffer = new Uint8Array(1 + data.byteLength);
-
-  resultBuffer[0] = packets[packet.type];
-  for (var i = 0; i < contentArray.length; i++) {
-    resultBuffer[i+1] = contentArray[i];
-  }
-
-  return callback(resultBuffer.buffer);
-}
-
-function encodeBlobAsArrayBuffer(packet, supportsBinary, callback) {
-  if (!supportsBinary) {
-    return exports.encodeBase64Packet(packet, callback);
-  }
-
-  var fr = new FileReader();
-  fr.onload = function() {
-    packet.data = fr.result;
-    exports.encodePacket(packet, supportsBinary, true, callback);
-  };
-  return fr.readAsArrayBuffer(packet.data);
-}
-
-function encodeBlob(packet, supportsBinary, callback) {
-  if (!supportsBinary) {
-    return exports.encodeBase64Packet(packet, callback);
-  }
-
-  if (isAndroid) {
-    return encodeBlobAsArrayBuffer(packet, supportsBinary, callback);
-  }
-
-  var length = new Uint8Array(1);
-  length[0] = packets[packet.type];
-  var blob = new Blob([length.buffer, packet.data]);
-
-  return callback(blob);
-}
-
-/**
- * Encodes a packet with binary data in a base64 string
- *
- * @param {Object} packet, has `type` and `data`
- * @return {String} base64 encoded message
- */
-
-exports.encodeBase64Packet = function(packet, callback) {
-  var message = 'b' + exports.packets[packet.type];
-  if (Blob && packet.data instanceof Blob) {
-    var fr = new FileReader();
-    fr.onload = function() {
-      var b64 = fr.result.split(',')[1];
-      callback(message + b64);
-    };
-    return fr.readAsDataURL(packet.data);
-  }
-
-  var b64data;
-  try {
-    b64data = String.fromCharCode.apply(null, new Uint8Array(packet.data));
-  } catch (e) {
-    // iPhone Safari doesn't let you apply with typed arrays
-    var typed = new Uint8Array(packet.data);
-    var basic = new Array(typed.length);
-    for (var i = 0; i < typed.length; i++) {
-      basic[i] = typed[i];
-    }
-    b64data = String.fromCharCode.apply(null, basic);
-  }
-  message += global.btoa(b64data);
-  return callback(message);
-};
-
-/**
- * Decodes a packet. Changes format to Blob if requested.
- *
- * @return {Object} with `type` and `data` (if any)
- * @api private
- */
-
-exports.decodePacket = function (data, binaryType, utf8decode) {
-  // String data
-  if (typeof data == 'string' || data === undefined) {
-    if (data.charAt(0) == 'b') {
-      return exports.decodeBase64Packet(data.substr(1), binaryType);
-    }
-
-    if (utf8decode) {
-      try {
-        data = utf8.decode(data);
-      } catch (e) {
-        return err;
-      }
-    }
-    var type = data.charAt(0);
-
-    if (Number(type) != type || !packetslist[type]) {
-      return err;
-    }
-
-    if (data.length > 1) {
-      return { type: packetslist[type], data: data.substring(1) };
-    } else {
-      return { type: packetslist[type] };
-    }
-  }
-
-  var asArray = new Uint8Array(data);
-  var type = asArray[0];
-  var rest = sliceBuffer(data, 1);
-  if (Blob && binaryType === 'blob') {
-    rest = new Blob([rest]);
-  }
-  return { type: packetslist[type], data: rest };
-};
-
-/**
- * Decodes a packet encoded in a base64 string
- *
- * @param {String} base64 encoded message
- * @return {Object} with `type` and `data` (if any)
- */
-
-exports.decodeBase64Packet = function(msg, binaryType) {
-  var type = packetslist[msg.charAt(0)];
-  if (!global.ArrayBuffer) {
-    return { type: type, data: { base64: true, data: msg.substr(1) } };
-  }
-
-  var data = base64encoder.decode(msg.substr(1));
-
-  if (binaryType === 'blob' && Blob) {
-    data = new Blob([data]);
-  }
-
-  return { type: type, data: data };
-};
-
-/**
- * Encodes multiple messages (payload).
- *
- *     <length>:data
- *
- * Example:
- *
- *     11:hello world2:hi
- *
- * If any contents are binary, they will be encoded as base64 strings. Base64
- * encoded strings are marked with a b before the length specifier
- *
- * @param {Array} packets
- * @api private
- */
-
-exports.encodePayload = function (packets, supportsBinary, callback) {
-  if (typeof supportsBinary == 'function') {
-    callback = supportsBinary;
-    supportsBinary = null;
-  }
-
-  if (supportsBinary) {
-    if (Blob && !isAndroid) {
-      return exports.encodePayloadAsBlob(packets, callback);
-    }
-
-    return exports.encodePayloadAsArrayBuffer(packets, callback);
-  }
-
-  if (!packets.length) {
-    return callback('0:');
-  }
-
-  function setLengthHeader(message) {
-    return message.length + ':' + message;
-  }
-
-  function encodeOne(packet, doneCallback) {
-    exports.encodePacket(packet, supportsBinary, true, function(message) {
-      doneCallback(null, setLengthHeader(message));
-    });
-  }
-
-  map(packets, encodeOne, function(err, results) {
-    return callback(results.join(''));
-  });
-};
-
-/**
- * Async array map using after
- */
-
-function map(ary, each, done) {
-  var result = new Array(ary.length);
-  var next = after(ary.length, done);
-
-  var eachWithIndex = function(i, el, cb) {
-    each(el, function(error, msg) {
-      result[i] = msg;
-      cb(error, result);
-    });
-  };
-
-  for (var i = 0; i < ary.length; i++) {
-    eachWithIndex(i, ary[i], next);
-  }
-}
-
-/*
- * Decodes data when a payload is maybe expected. Possible binary contents are
- * decoded from their base64 representation
- *
- * @param {String} data, callback method
- * @api public
- */
-
-exports.decodePayload = function (data, binaryType, callback) {
-  if (typeof data != 'string') {
-    return exports.decodePayloadAsBinary(data, binaryType, callback);
-  }
-
-  if (typeof binaryType === 'function') {
-    callback = binaryType;
-    binaryType = null;
-  }
-
-  var packet;
-  if (data == '') {
-    // parser error - ignoring payload
-    return callback(err, 0, 1);
-  }
-
-  var length = ''
-    , n, msg;
-
-  for (var i = 0, l = data.length; i < l; i++) {
-    var chr = data.charAt(i);
-
-    if (':' != chr) {
-      length += chr;
-    } else {
-      if ('' == length || (length != (n = Number(length)))) {
-        // parser error - ignoring payload
-        return callback(err, 0, 1);
-      }
-
-      msg = data.substr(i + 1, n);
-
-      if (length != msg.length) {
-        // parser error - ignoring payload
-        return callback(err, 0, 1);
-      }
-
-      if (msg.length) {
-        packet = exports.decodePacket(msg, binaryType, true);
-
-        if (err.type == packet.type && err.data == packet.data) {
-          // parser error in individual packet - ignoring payload
-          return callback(err, 0, 1);
-        }
-
-        var ret = callback(packet, i + n, l);
-        if (false === ret) return;
-      }
-
-      // advance cursor
-      i += n;
-      length = '';
-    }
-  }
-
-  if (length != '') {
-    // parser error - ignoring payload
-    return callback(err, 0, 1);
-  }
-
-};
-
-/**
- * Encodes multiple messages (payload) as binary.
- *
- * <1 = binary, 0 = string><number from 0-9><number from 0-9>[...]<number
- * 255><data>
- *
- * Example:
- * 1 3 255 1 2 3, if the binary contents are interpreted as 8 bit integers
- *
- * @param {Array} packets
- * @return {ArrayBuffer} encoded payload
- * @api private
- */
-
-exports.encodePayloadAsArrayBuffer = function(packets, callback) {
-  if (!packets.length) {
-    return callback(new ArrayBuffer(0));
-  }
-
-  function encodeOne(packet, doneCallback) {
-    exports.encodePacket(packet, true, true, function(data) {
-      return doneCallback(null, data);
-    });
-  }
-
-  map(packets, encodeOne, function(err, encodedPackets) {
-    var totalLength = encodedPackets.reduce(function(acc, p) {
-      var len;
-      if (typeof p === 'string'){
-        len = p.length;
-      } else {
-        len = p.byteLength;
-      }
-      return acc + len.toString().length + len + 2; // string/binary identifier + separator = 2
-    }, 0);
-
-    var resultArray = new Uint8Array(totalLength);
-
-    var bufferIndex = 0;
-    encodedPackets.forEach(function(p) {
-      var isString = typeof p === 'string';
-      var ab = p;
-      if (isString) {
-        var view = new Uint8Array(p.length);
-        for (var i = 0; i < p.length; i++) {
-          view[i] = p.charCodeAt(i);
-        }
-        ab = view.buffer;
-      }
-
-      if (isString) { // not true binary
-        resultArray[bufferIndex++] = 0;
-      } else { // true binary
-        resultArray[bufferIndex++] = 1;
-      }
-
-      var lenStr = ab.byteLength.toString();
-      for (var i = 0; i < lenStr.length; i++) {
-        resultArray[bufferIndex++] = parseInt(lenStr[i]);
-      }
-      resultArray[bufferIndex++] = 255;
-
-      var view = new Uint8Array(ab);
-      for (var i = 0; i < view.length; i++) {
-        resultArray[bufferIndex++] = view[i];
-      }
-    });
-
-    return callback(resultArray.buffer);
-  });
-};
-
-/**
- * Encode as Blob
- */
-
-exports.encodePayloadAsBlob = function(packets, callback) {
-  function encodeOne(packet, doneCallback) {
-    exports.encodePacket(packet, true, true, function(encoded) {
-      var binaryIdentifier = new Uint8Array(1);
-      binaryIdentifier[0] = 1;
-      if (typeof encoded === 'string') {
-        var view = new Uint8Array(encoded.length);
-        for (var i = 0; i < encoded.length; i++) {
-          view[i] = encoded.charCodeAt(i);
-        }
-        encoded = view.buffer;
-        binaryIdentifier[0] = 0;
-      }
-
-      var len = (encoded instanceof ArrayBuffer)
-        ? encoded.byteLength
-        : encoded.size;
-
-      var lenStr = len.toString();
-      var lengthAry = new Uint8Array(lenStr.length + 1);
-      for (var i = 0; i < lenStr.length; i++) {
-        lengthAry[i] = parseInt(lenStr[i]);
-      }
-      lengthAry[lenStr.length] = 255;
-
-      if (Blob) {
-        var blob = new Blob([binaryIdentifier.buffer, lengthAry.buffer, encoded]);
-        doneCallback(null, blob);
-      }
-    });
-  }
-
-  map(packets, encodeOne, function(err, results) {
-    return callback(new Blob(results));
-  });
-};
-
-/*
- * Decodes data when a payload is maybe expected. Strings are decoded by
- * interpreting each byte as a key code for entries marked to start with 0. See
- * description of encodePayloadAsBinary
- *
- * @param {ArrayBuffer} data, callback method
- * @api public
- */
-
-exports.decodePayloadAsBinary = function (data, binaryType, callback) {
-  if (typeof binaryType === 'function') {
-    callback = binaryType;
-    binaryType = null;
-  }
-
-  var bufferTail = data;
-  var buffers = [];
-
-  var numberTooLong = false;
-  while (bufferTail.byteLength > 0) {
-    var tailArray = new Uint8Array(bufferTail);
-    var isString = tailArray[0] === 0;
-    var msgLength = '';
-
-    for (var i = 1; ; i++) {
-      if (tailArray[i] == 255) break;
-
-      if (msgLength.length > 310) {
-        numberTooLong = true;
-        break;
-      }
-
-      msgLength += tailArray[i];
-    }
-
-    if(numberTooLong) return callback(err, 0, 1);
-
-    bufferTail = sliceBuffer(bufferTail, 2 + msgLength.length);
-    msgLength = parseInt(msgLength);
-
-    var msg = sliceBuffer(bufferTail, 0, msgLength);
-    if (isString) {
-      try {
-        msg = String.fromCharCode.apply(null, new Uint8Array(msg));
-      } catch (e) {
-        // iPhone Safari doesn't let you apply to typed arrays
-        var typed = new Uint8Array(msg);
-        msg = '';
-        for (var i = 0; i < typed.length; i++) {
-          msg += String.fromCharCode(typed[i]);
-        }
-      }
-    }
-
-    buffers.push(msg);
-    bufferTail = sliceBuffer(bufferTail, msgLength);
-  }
-
-  var total = buffers.length;
-  buffers.forEach(function(buffer, i) {
-    callback(exports.decodePacket(buffer, binaryType, true), i, total);
-  });
-};
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./keys":105,"after":106,"arraybuffer.slice":107,"base64-arraybuffer":108,"blob":109,"utf8":110}],105:[function(require,module,exports){
-
-/**
- * Gets the keys for an object.
- *
- * @return {Array} keys
- * @api private
- */
-
-module.exports = Object.keys || function keys (obj){
-  var arr = [];
-  var has = Object.prototype.hasOwnProperty;
-
-  for (var i in obj) {
-    if (has.call(obj, i)) {
-      arr.push(i);
-    }
-  }
-  return arr;
-};
-
-},{}],106:[function(require,module,exports){
-module.exports = after
-
-function after(count, callback, err_cb) {
-    var bail = false
-    err_cb = err_cb || noop
-    proxy.count = count
-
-    return (count === 0) ? callback() : proxy
-
-    function proxy(err, result) {
-        if (proxy.count <= 0) {
-            throw new Error('after called too many times')
-        }
-        --proxy.count
-
-        // after first error, rest are passed to err_cb
-        if (err) {
-            bail = true
-            callback(err)
-            // future error callbacks will go to error handler
-            callback = err_cb
-        } else if (proxy.count === 0 && !bail) {
-            callback(null, result)
-        }
-    }
-}
-
-function noop() {}
-
-},{}],107:[function(require,module,exports){
-/**
- * An abstraction for slicing an arraybuffer even when
- * ArrayBuffer.prototype.slice is not supported
- *
- * @api public
- */
-
-module.exports = function(arraybuffer, start, end) {
-  var bytes = arraybuffer.byteLength;
-  start = start || 0;
-  end = end || bytes;
-
-  if (arraybuffer.slice) { return arraybuffer.slice(start, end); }
-
-  if (start < 0) { start += bytes; }
-  if (end < 0) { end += bytes; }
-  if (end > bytes) { end = bytes; }
-
-  if (start >= bytes || start >= end || bytes === 0) {
-    return new ArrayBuffer(0);
-  }
-
-  var abv = new Uint8Array(arraybuffer);
-  var result = new Uint8Array(end - start);
-  for (var i = start, ii = 0; i < end; i++, ii++) {
-    result[ii] = abv[i];
-  }
-  return result.buffer;
-};
-
-},{}],108:[function(require,module,exports){
-/*
- * base64-arraybuffer
- * https://github.com/niklasvh/base64-arraybuffer
- *
- * Copyright (c) 2012 Niklas von Hertzen
- * Licensed under the MIT license.
- */
-(function(chars){
-  "use strict";
-
-  exports.encode = function(arraybuffer) {
-    var bytes = new Uint8Array(arraybuffer),
-    i, len = bytes.length, base64 = "";
-
-    for (i = 0; i < len; i+=3) {
-      base64 += chars[bytes[i] >> 2];
-      base64 += chars[((bytes[i] & 3) << 4) | (bytes[i + 1] >> 4)];
-      base64 += chars[((bytes[i + 1] & 15) << 2) | (bytes[i + 2] >> 6)];
-      base64 += chars[bytes[i + 2] & 63];
-    }
-
-    if ((len % 3) === 2) {
-      base64 = base64.substring(0, base64.length - 1) + "=";
-    } else if (len % 3 === 1) {
-      base64 = base64.substring(0, base64.length - 2) + "==";
-    }
-
-    return base64;
-  };
-
-  exports.decode =  function(base64) {
-    var bufferLength = base64.length * 0.75,
-    len = base64.length, i, p = 0,
-    encoded1, encoded2, encoded3, encoded4;
-
-    if (base64[base64.length - 1] === "=") {
-      bufferLength--;
-      if (base64[base64.length - 2] === "=") {
-        bufferLength--;
-      }
-    }
-
-    var arraybuffer = new ArrayBuffer(bufferLength),
-    bytes = new Uint8Array(arraybuffer);
-
-    for (i = 0; i < len; i+=4) {
-      encoded1 = chars.indexOf(base64[i]);
-      encoded2 = chars.indexOf(base64[i+1]);
-      encoded3 = chars.indexOf(base64[i+2]);
-      encoded4 = chars.indexOf(base64[i+3]);
-
-      bytes[p++] = (encoded1 << 2) | (encoded2 >> 4);
-      bytes[p++] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
-      bytes[p++] = ((encoded3 & 3) << 6) | (encoded4 & 63);
-    }
-
-    return arraybuffer;
-  };
-})("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/");
-
-},{}],109:[function(require,module,exports){
-(function (global){
-/**
- * Create a blob builder even when vendor prefixes exist
- */
-
-var BlobBuilder = global.BlobBuilder
-  || global.WebKitBlobBuilder
-  || global.MSBlobBuilder
-  || global.MozBlobBuilder;
-
-/**
- * Check if Blob constructor is supported
- */
-
-var blobSupported = (function() {
-  try {
-    var b = new Blob(['hi']);
-    return b.size == 2;
-  } catch(e) {
-    return false;
-  }
-})();
-
-/**
- * Check if BlobBuilder is supported
- */
-
-var blobBuilderSupported = BlobBuilder
-  && BlobBuilder.prototype.append
-  && BlobBuilder.prototype.getBlob;
-
-function BlobBuilderConstructor(ary, options) {
-  options = options || {};
-
-  var bb = new BlobBuilder();
-  for (var i = 0; i < ary.length; i++) {
-    bb.append(ary[i]);
-  }
-  return (options.type) ? bb.getBlob(options.type) : bb.getBlob();
-};
-
-module.exports = (function() {
-  if (blobSupported) {
-    return global.Blob;
-  } else if (blobBuilderSupported) {
-    return BlobBuilderConstructor;
-  } else {
-    return undefined;
-  }
-})();
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],110:[function(require,module,exports){
-(function (global){
-/*! http://mths.be/utf8js v2.0.0 by @mathias */
-;(function(root) {
-
-	// Detect free variables `exports`
-	var freeExports = typeof exports == 'object' && exports;
-
-	// Detect free variable `module`
-	var freeModule = typeof module == 'object' && module &&
-		module.exports == freeExports && module;
-
-	// Detect free variable `global`, from Node.js or Browserified code,
-	// and use it as `root`
-	var freeGlobal = typeof global == 'object' && global;
-	if (freeGlobal.global === freeGlobal || freeGlobal.window === freeGlobal) {
-		root = freeGlobal;
-	}
-
-	/*--------------------------------------------------------------------------*/
-
-	var stringFromCharCode = String.fromCharCode;
-
-	// Taken from http://mths.be/punycode
-	function ucs2decode(string) {
-		var output = [];
-		var counter = 0;
-		var length = string.length;
-		var value;
-		var extra;
-		while (counter < length) {
-			value = string.charCodeAt(counter++);
-			if (value >= 0xD800 && value <= 0xDBFF && counter < length) {
-				// high surrogate, and there is a next character
-				extra = string.charCodeAt(counter++);
-				if ((extra & 0xFC00) == 0xDC00) { // low surrogate
-					output.push(((value & 0x3FF) << 10) + (extra & 0x3FF) + 0x10000);
-				} else {
-					// unmatched surrogate; only append this code unit, in case the next
-					// code unit is the high surrogate of a surrogate pair
-					output.push(value);
-					counter--;
-				}
-			} else {
-				output.push(value);
-			}
-		}
-		return output;
-	}
-
-	// Taken from http://mths.be/punycode
-	function ucs2encode(array) {
-		var length = array.length;
-		var index = -1;
-		var value;
-		var output = '';
-		while (++index < length) {
-			value = array[index];
-			if (value > 0xFFFF) {
-				value -= 0x10000;
-				output += stringFromCharCode(value >>> 10 & 0x3FF | 0xD800);
-				value = 0xDC00 | value & 0x3FF;
-			}
-			output += stringFromCharCode(value);
-		}
-		return output;
-	}
-
-	/*--------------------------------------------------------------------------*/
-
-	function createByte(codePoint, shift) {
-		return stringFromCharCode(((codePoint >> shift) & 0x3F) | 0x80);
-	}
-
-	function encodeCodePoint(codePoint) {
-		if ((codePoint & 0xFFFFFF80) == 0) { // 1-byte sequence
-			return stringFromCharCode(codePoint);
-		}
-		var symbol = '';
-		if ((codePoint & 0xFFFFF800) == 0) { // 2-byte sequence
-			symbol = stringFromCharCode(((codePoint >> 6) & 0x1F) | 0xC0);
-		}
-		else if ((codePoint & 0xFFFF0000) == 0) { // 3-byte sequence
-			symbol = stringFromCharCode(((codePoint >> 12) & 0x0F) | 0xE0);
-			symbol += createByte(codePoint, 6);
-		}
-		else if ((codePoint & 0xFFE00000) == 0) { // 4-byte sequence
-			symbol = stringFromCharCode(((codePoint >> 18) & 0x07) | 0xF0);
-			symbol += createByte(codePoint, 12);
-			symbol += createByte(codePoint, 6);
-		}
-		symbol += stringFromCharCode((codePoint & 0x3F) | 0x80);
-		return symbol;
-	}
-
-	function utf8encode(string) {
-		var codePoints = ucs2decode(string);
-
-		// console.log(JSON.stringify(codePoints.map(function(x) {
-		// 	return 'U+' + x.toString(16).toUpperCase();
-		// })));
-
-		var length = codePoints.length;
-		var index = -1;
-		var codePoint;
-		var byteString = '';
-		while (++index < length) {
-			codePoint = codePoints[index];
-			byteString += encodeCodePoint(codePoint);
-		}
-		return byteString;
-	}
-
-	/*--------------------------------------------------------------------------*/
-
-	function readContinuationByte() {
-		if (byteIndex >= byteCount) {
-			throw Error('Invalid byte index');
-		}
-
-		var continuationByte = byteArray[byteIndex] & 0xFF;
-		byteIndex++;
-
-		if ((continuationByte & 0xC0) == 0x80) {
-			return continuationByte & 0x3F;
-		}
-
-		// If we end up here, it’s not a continuation byte
-		throw Error('Invalid continuation byte');
-	}
-
-	function decodeSymbol() {
-		var byte1;
-		var byte2;
-		var byte3;
-		var byte4;
-		var codePoint;
-
-		if (byteIndex > byteCount) {
-			throw Error('Invalid byte index');
-		}
-
-		if (byteIndex == byteCount) {
-			return false;
-		}
-
-		// Read first byte
-		byte1 = byteArray[byteIndex] & 0xFF;
-		byteIndex++;
-
-		// 1-byte sequence (no continuation bytes)
-		if ((byte1 & 0x80) == 0) {
-			return byte1;
-		}
-
-		// 2-byte sequence
-		if ((byte1 & 0xE0) == 0xC0) {
-			var byte2 = readContinuationByte();
-			codePoint = ((byte1 & 0x1F) << 6) | byte2;
-			if (codePoint >= 0x80) {
-				return codePoint;
-			} else {
-				throw Error('Invalid continuation byte');
-			}
-		}
-
-		// 3-byte sequence (may include unpaired surrogates)
-		if ((byte1 & 0xF0) == 0xE0) {
-			byte2 = readContinuationByte();
-			byte3 = readContinuationByte();
-			codePoint = ((byte1 & 0x0F) << 12) | (byte2 << 6) | byte3;
-			if (codePoint >= 0x0800) {
-				return codePoint;
-			} else {
-				throw Error('Invalid continuation byte');
-			}
-		}
-
-		// 4-byte sequence
-		if ((byte1 & 0xF8) == 0xF0) {
-			byte2 = readContinuationByte();
-			byte3 = readContinuationByte();
-			byte4 = readContinuationByte();
-			codePoint = ((byte1 & 0x0F) << 0x12) | (byte2 << 0x0C) |
-				(byte3 << 0x06) | byte4;
-			if (codePoint >= 0x010000 && codePoint <= 0x10FFFF) {
-				return codePoint;
-			}
-		}
-
-		throw Error('Invalid UTF-8 detected');
-	}
-
-	var byteArray;
-	var byteCount;
-	var byteIndex;
-	function utf8decode(byteString) {
-		byteArray = ucs2decode(byteString);
-		byteCount = byteArray.length;
-		byteIndex = 0;
-		var codePoints = [];
-		var tmp;
-		while ((tmp = decodeSymbol()) !== false) {
-			codePoints.push(tmp);
-		}
-		return ucs2encode(codePoints);
-	}
-
-	/*--------------------------------------------------------------------------*/
-
-	var utf8 = {
-		'version': '2.0.0',
-		'encode': utf8encode,
-		'decode': utf8decode
-	};
-
-	// Some AMD build optimizers, like r.js, check for specific condition patterns
-	// like the following:
-	if (
-		typeof define == 'function' &&
-		typeof define.amd == 'object' &&
-		define.amd
-	) {
-		define(function() {
-			return utf8;
-		});
-	}	else if (freeExports && !freeExports.nodeType) {
-		if (freeModule) { // in Node.js or RingoJS v0.8.0+
-			freeModule.exports = utf8;
-		} else { // in Narwhal or RingoJS v0.7.0-
-			var object = {};
-			var hasOwnProperty = object.hasOwnProperty;
-			for (var key in utf8) {
-				hasOwnProperty.call(utf8, key) && (freeExports[key] = utf8[key]);
-			}
-		}
-	} else { // in Rhino or a web browser
-		root.utf8 = utf8;
-	}
-
-}(this));
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],111:[function(require,module,exports){
-
-/**
- * Module dependencies.
- */
-
-var global = require('global');
-
-/**
- * Module exports.
- *
- * Logic borrowed from Modernizr:
- *
- *   - https://github.com/Modernizr/Modernizr/blob/master/feature-detects/cors.js
- */
-
-try {
-  module.exports = 'XMLHttpRequest' in global &&
-    'withCredentials' in new global.XMLHttpRequest();
-} catch (err) {
-  // if XMLHttp support is disabled in IE then it will throw
-  // when trying to create
-  module.exports = false;
-}
-
-},{"global":112}],112:[function(require,module,exports){
-
-/**
- * Returns `this`. Execute this without a "context" (i.e. without it being
- * attached to an object of the left-hand side), and `this` points to the
- * "global" scope of the current JS execution.
- */
-
-module.exports = (function () { return this; })();
-
-},{}],113:[function(require,module,exports){
-(function (global){
-/**
- * JSON parse.
- *
- * @see Based on jQuery#parseJSON (MIT) and JSON2
- * @api private
- */
-
-var rvalidchars = /^[\],:{}\s]*$/;
-var rvalidescape = /\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g;
-var rvalidtokens = /"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g;
-var rvalidbraces = /(?:^|:|,)(?:\s*\[)+/g;
-var rtrimLeft = /^\s+/;
-var rtrimRight = /\s+$/;
-
-module.exports = function parsejson(data) {
-  if ('string' != typeof data || !data) {
-    return null;
-  }
-
-  data = data.replace(rtrimLeft, '').replace(rtrimRight, '');
-
-  // Attempt to parse using the native JSON parser first
-  if (global.JSON && JSON.parse) {
-    return JSON.parse(data);
-  }
-
-  if (rvalidchars.test(data.replace(rvalidescape, '@')
-      .replace(rvalidtokens, ']')
-      .replace(rvalidbraces, ''))) {
-    return (new Function('return ' + data))();
-  }
-};
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],114:[function(require,module,exports){
-/**
- * Compiles a querystring
- * Returns string representation of the object
- *
- * @param {Object}
- * @api private
- */
-
-exports.encode = function (obj) {
-  var str = '';
-
-  for (var i in obj) {
-    if (obj.hasOwnProperty(i)) {
-      if (str.length) str += '&';
-      str += encodeURIComponent(i) + '=' + encodeURIComponent(obj[i]);
-    }
-  }
-
-  return str;
-};
-
-/**
- * Parses a simple querystring into an object
- *
- * @param {String} qs
- * @api private
- */
-
-exports.decode = function(qs){
-  var qry = {};
-  var pairs = qs.split('&');
-  for (var i = 0, l = pairs.length; i < l; i++) {
-    var pair = pairs[i].split('=');
-    qry[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
-  }
-  return qry;
-};
-
-},{}],115:[function(require,module,exports){
-/**
- * Parses an URI
- *
- * @author Steven Levithan <stevenlevithan.com> (MIT license)
- * @api private
- */
-
-var re = /^(?:(?![^:@]+:[^:@\/]*@)(http|https|ws|wss):\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?((?:[a-f0-9]{0,4}:){2,7}[a-f0-9]{0,4}|[^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/;
-
-var parts = [
-    'source', 'protocol', 'authority', 'userInfo', 'user', 'password', 'host', 'port', 'relative', 'path', 'directory', 'file', 'query', 'anchor'
-];
-
-module.exports = function parseuri(str) {
-    var src = str,
-        b = str.indexOf('['),
-        e = str.indexOf(']');
-
-    if (b != -1 && e != -1) {
-        str = str.substring(0, b) + str.substring(b, e).replace(/:/g, ';') + str.substring(e, str.length);
-    }
-
-    var m = re.exec(str || ''),
-        uri = {},
-        i = 14;
-
-    while (i--) {
-        uri[parts[i]] = m[i] || '';
-    }
-
-    if (b != -1 && e != -1) {
-        uri.source = src;
-        uri.host = uri.host.substring(1, uri.host.length - 1).replace(/;/g, ':');
-        uri.authority = uri.authority.replace('[', '').replace(']', '').replace(/;/g, ':');
-        uri.ipv6uri = true;
-    }
-
-    return uri;
-};
-
-},{}],116:[function(require,module,exports){
-
-/**
- * Module dependencies.
- */
-
-var global = (function() { return this; })();
-
-/**
- * WebSocket constructor.
- */
-
-var WebSocket = global.WebSocket || global.MozWebSocket;
-
-/**
- * Module exports.
- */
-
-module.exports = WebSocket ? ws : null;
-
-/**
- * WebSocket constructor.
- *
- * The third `opts` options object gets ignored in web browsers, since it's
- * non-standard, and throws a TypeError if passed to the constructor.
- * See: https://github.com/einaros/ws/issues/227
- *
- * @param {String} uri
- * @param {Array} protocols (optional)
- * @param {Object) opts (optional)
- * @api public
- */
-
-function ws(uri, protocols, opts) {
-  var instance;
-  if (protocols) {
-    instance = new WebSocket(uri, protocols);
-  } else {
-    instance = new WebSocket(uri);
-  }
-  return instance;
-}
-
-if (WebSocket) ws.prototype = WebSocket.prototype;
-
-},{}],117:[function(require,module,exports){
-(function (global){
-
-/*
- * Module requirements.
- */
-
-var isArray = require('isarray');
-
-/**
- * Module exports.
- */
-
-module.exports = hasBinary;
-
-/**
- * Checks for binary data.
- *
- * Right now only Buffer and ArrayBuffer are supported..
- *
- * @param {Object} anything
- * @api public
- */
-
-function hasBinary(data) {
-
-  function _hasBinary(obj) {
-    if (!obj) return false;
-
-    if ( (global.Buffer && global.Buffer.isBuffer(obj)) ||
-         (global.ArrayBuffer && obj instanceof ArrayBuffer) ||
-         (global.Blob && obj instanceof Blob) ||
-         (global.File && obj instanceof File)
-        ) {
-      return true;
-    }
-
-    if (isArray(obj)) {
-      for (var i = 0; i < obj.length; i++) {
-          if (_hasBinary(obj[i])) {
-              return true;
-          }
-      }
-    } else if (obj && 'object' == typeof obj) {
-      if (obj.toJSON) {
-        obj = obj.toJSON();
-      }
-
-      for (var key in obj) {
-        if (obj.hasOwnProperty(key) && _hasBinary(obj[key])) {
-          return true;
-        }
-      }
-    }
-
-    return false;
-  }
-
-  return _hasBinary(data);
-}
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"isarray":118}],118:[function(require,module,exports){
-module.exports = Array.isArray || function (arr) {
-  return Object.prototype.toString.call(arr) == '[object Array]';
-};
-
-},{}],119:[function(require,module,exports){
-
-var indexOf = [].indexOf;
-
-module.exports = function(arr, obj){
-  if (indexOf) return arr.indexOf(obj);
-  for (var i = 0; i < arr.length; ++i) {
-    if (arr[i] === obj) return i;
-  }
-  return -1;
-};
-},{}],120:[function(require,module,exports){
-
-/**
- * HOP ref.
- */
-
-var has = Object.prototype.hasOwnProperty;
-
-/**
- * Return own keys in `obj`.
- *
- * @param {Object} obj
- * @return {Array}
- * @api public
- */
-
-exports.keys = Object.keys || function(obj){
-  var keys = [];
-  for (var key in obj) {
-    if (has.call(obj, key)) {
-      keys.push(key);
-    }
-  }
-  return keys;
-};
-
-/**
- * Return own values in `obj`.
- *
- * @param {Object} obj
- * @return {Array}
- * @api public
- */
-
-exports.values = function(obj){
-  var vals = [];
-  for (var key in obj) {
-    if (has.call(obj, key)) {
-      vals.push(obj[key]);
-    }
-  }
-  return vals;
-};
-
-/**
- * Merge `b` into `a`.
- *
- * @param {Object} a
- * @param {Object} b
- * @return {Object} a
- * @api public
- */
-
-exports.merge = function(a, b){
-  for (var key in b) {
-    if (has.call(b, key)) {
-      a[key] = b[key];
-    }
-  }
-  return a;
-};
-
-/**
- * Return length of `obj`.
- *
- * @param {Object} obj
- * @return {Number}
- * @api public
- */
-
-exports.length = function(obj){
-  return exports.keys(obj).length;
-};
-
-/**
- * Check if `obj` is empty.
- *
- * @param {Object} obj
- * @return {Boolean}
- * @api public
- */
-
-exports.isEmpty = function(obj){
-  return 0 == exports.length(obj);
-};
-},{}],121:[function(require,module,exports){
-/**
- * Parses an URI
- *
- * @author Steven Levithan <stevenlevithan.com> (MIT license)
- * @api private
- */
-
-var re = /^(?:(?![^:@]+:[^:@\/]*@)(http|https|ws|wss):\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?((?:[a-f0-9]{0,4}:){2,7}[a-f0-9]{0,4}|[^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/;
-
-var parts = [
-    'source', 'protocol', 'authority', 'userInfo', 'user', 'password', 'host'
-  , 'port', 'relative', 'path', 'directory', 'file', 'query', 'anchor'
-];
-
-module.exports = function parseuri(str) {
-  var m = re.exec(str || '')
-    , uri = {}
-    , i = 14;
-
-  while (i--) {
-    uri[parts[i]] = m[i] || '';
-  }
-
-  return uri;
-};
-
-},{}],122:[function(require,module,exports){
-(function (global){
-/*global Blob,File*/
-
-/**
- * Module requirements
- */
-
-var isArray = require('isarray');
-var isBuf = require('./is-buffer');
-
-/**
- * Replaces every Buffer | ArrayBuffer in packet with a numbered placeholder.
- * Anything with blobs or files should be fed through removeBlobs before coming
- * here.
- *
- * @param {Object} packet - socket.io event packet
- * @return {Object} with deconstructed packet and list of buffers
- * @api public
- */
-
-exports.deconstructPacket = function(packet){
-  var buffers = [];
-  var packetData = packet.data;
-
-  function _deconstructPacket(data) {
-    if (!data) return data;
-
-    if (isBuf(data)) {
-      var placeholder = { _placeholder: true, num: buffers.length };
-      buffers.push(data);
-      return placeholder;
-    } else if (isArray(data)) {
-      var newData = new Array(data.length);
-      for (var i = 0; i < data.length; i++) {
-        newData[i] = _deconstructPacket(data[i]);
-      }
-      return newData;
-    } else if ('object' == typeof data && !(data instanceof Date)) {
-      var newData = {};
-      for (var key in data) {
-        newData[key] = _deconstructPacket(data[key]);
-      }
-      return newData;
-    }
-    return data;
-  }
-
-  var pack = packet;
-  pack.data = _deconstructPacket(packetData);
-  pack.attachments = buffers.length; // number of binary 'attachments'
-  return {packet: pack, buffers: buffers};
-};
-
-/**
- * Reconstructs a binary packet from its placeholder packet and buffers
- *
- * @param {Object} packet - event packet with placeholders
- * @param {Array} buffers - binary buffers to put in placeholder positions
- * @return {Object} reconstructed packet
- * @api public
- */
-
-exports.reconstructPacket = function(packet, buffers) {
-  var curPlaceHolder = 0;
-
-  function _reconstructPacket(data) {
-    if (data && data._placeholder) {
-      var buf = buffers[data.num]; // appropriate buffer (should be natural order anyway)
-      return buf;
-    } else if (isArray(data)) {
-      for (var i = 0; i < data.length; i++) {
-        data[i] = _reconstructPacket(data[i]);
-      }
-      return data;
-    } else if (data && 'object' == typeof data) {
-      for (var key in data) {
-        data[key] = _reconstructPacket(data[key]);
-      }
-      return data;
-    }
-    return data;
-  }
-
-  packet.data = _reconstructPacket(packet.data);
-  packet.attachments = undefined; // no longer useful
-  return packet;
-};
-
-/**
- * Asynchronously removes Blobs or Files from data via
- * FileReader's readAsArrayBuffer method. Used before encoding
- * data as msgpack. Calls callback with the blobless data.
- *
- * @param {Object} data
- * @param {Function} callback
- * @api private
- */
-
-exports.removeBlobs = function(data, callback) {
-  function _removeBlobs(obj, curKey, containingObject) {
-    if (!obj) return obj;
-
-    // convert any blob
-    if ((global.Blob && obj instanceof Blob) ||
-        (global.File && obj instanceof File)) {
-      pendingBlobs++;
-
-      // async filereader
-      var fileReader = new FileReader();
-      fileReader.onload = function() { // this.result == arraybuffer
-        if (containingObject) {
-          containingObject[curKey] = this.result;
-        }
-        else {
-          bloblessData = this.result;
-        }
-
-        // if nothing pending its callback time
-        if(! --pendingBlobs) {
-          callback(bloblessData);
-        }
-      };
-
-      fileReader.readAsArrayBuffer(obj); // blob -> arraybuffer
-    } else if (isArray(obj)) { // handle array
-      for (var i = 0; i < obj.length; i++) {
-        _removeBlobs(obj[i], i, obj);
-      }
-    } else if (obj && 'object' == typeof obj && !isBuf(obj)) { // and object
-      for (var key in obj) {
-        _removeBlobs(obj[key], key, obj);
-      }
-    }
-  }
-
-  var pendingBlobs = 0;
-  var bloblessData = data;
-  _removeBlobs(bloblessData);
-  if (!pendingBlobs) {
-    callback(bloblessData);
-  }
-};
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./is-buffer":124,"isarray":125}],123:[function(require,module,exports){
-
-/**
- * Module dependencies.
- */
-
-var debug = require('debug')('socket.io-parser');
-var json = require('json3');
-var isArray = require('isarray');
-var Emitter = require('component-emitter');
-var binary = require('./binary');
-var isBuf = require('./is-buffer');
-
-/**
- * Protocol version.
- *
- * @api public
- */
-
-exports.protocol = 4;
-
-/**
- * Packet types.
- *
- * @api public
- */
-
-exports.types = [
-  'CONNECT',
-  'DISCONNECT',
-  'EVENT',
-  'BINARY_EVENT',
-  'ACK',
-  'BINARY_ACK',
-  'ERROR'
-];
-
-/**
- * Packet type `connect`.
- *
- * @api public
- */
-
-exports.CONNECT = 0;
-
-/**
- * Packet type `disconnect`.
- *
- * @api public
- */
-
-exports.DISCONNECT = 1;
-
-/**
- * Packet type `event`.
- *
- * @api public
- */
-
-exports.EVENT = 2;
-
-/**
- * Packet type `ack`.
- *
- * @api public
- */
-
-exports.ACK = 3;
-
-/**
- * Packet type `error`.
- *
- * @api public
- */
-
-exports.ERROR = 4;
-
-/**
- * Packet type 'binary event'
- *
- * @api public
- */
-
-exports.BINARY_EVENT = 5;
-
-/**
- * Packet type `binary ack`. For acks with binary arguments.
- *
- * @api public
- */
-
-exports.BINARY_ACK = 6;
-
-/**
- * Encoder constructor.
- *
- * @api public
- */
-
-exports.Encoder = Encoder;
-
-/**
- * Decoder constructor.
- *
- * @api public
- */
-
-exports.Decoder = Decoder;
-
-/**
- * A socket.io Encoder instance
- *
- * @api public
- */
-
-function Encoder() {}
-
-/**
- * Encode a packet as a single string if non-binary, or as a
- * buffer sequence, depending on packet type.
- *
- * @param {Object} obj - packet object
- * @param {Function} callback - function to handle encodings (likely engine.write)
- * @return Calls callback with Array of encodings
- * @api public
- */
-
-Encoder.prototype.encode = function(obj, callback){
-  debug('encoding packet %j', obj);
-
-  if (exports.BINARY_EVENT == obj.type || exports.BINARY_ACK == obj.type) {
-    encodeAsBinary(obj, callback);
-  }
-  else {
-    var encoding = encodeAsString(obj);
-    callback([encoding]);
-  }
-};
-
-/**
- * Encode packet as string.
- *
- * @param {Object} packet
- * @return {String} encoded
- * @api private
- */
-
-function encodeAsString(obj) {
-  var str = '';
-  var nsp = false;
-
-  // first is type
-  str += obj.type;
-
-  // attachments if we have them
-  if (exports.BINARY_EVENT == obj.type || exports.BINARY_ACK == obj.type) {
-    str += obj.attachments;
-    str += '-';
-  }
-
-  // if we have a namespace other than `/`
-  // we append it followed by a comma `,`
-  if (obj.nsp && '/' != obj.nsp) {
-    nsp = true;
-    str += obj.nsp;
-  }
-
-  // immediately followed by the id
-  if (null != obj.id) {
-    if (nsp) {
-      str += ',';
-      nsp = false;
-    }
-    str += obj.id;
-  }
-
-  // json data
-  if (null != obj.data) {
-    if (nsp) str += ',';
-    str += json.stringify(obj.data);
-  }
-
-  debug('encoded %j as %s', obj, str);
-  return str;
-}
-
-/**
- * Encode packet as 'buffer sequence' by removing blobs, and
- * deconstructing packet into object with placeholders and
- * a list of buffers.
- *
- * @param {Object} packet
- * @return {Buffer} encoded
- * @api private
- */
-
-function encodeAsBinary(obj, callback) {
-
-  function writeEncoding(bloblessData) {
-    var deconstruction = binary.deconstructPacket(bloblessData);
-    var pack = encodeAsString(deconstruction.packet);
-    var buffers = deconstruction.buffers;
-
-    buffers.unshift(pack); // add packet info to beginning of data list
-    callback(buffers); // write all the buffers
-  }
-
-  binary.removeBlobs(obj, writeEncoding);
-}
-
-/**
- * A socket.io Decoder instance
- *
- * @return {Object} decoder
- * @api public
- */
-
-function Decoder() {
-  this.reconstructor = null;
-}
-
-/**
- * Mix in `Emitter` with Decoder.
- */
-
-Emitter(Decoder.prototype);
-
-/**
- * Decodes an ecoded packet string into packet JSON.
- *
- * @param {String} obj - encoded packet
- * @return {Object} packet
- * @api public
- */
-
-Decoder.prototype.add = function(obj) {
-  var packet;
-  if ('string' == typeof obj) {
-    packet = decodeString(obj);
-    if (exports.BINARY_EVENT == packet.type || exports.BINARY_ACK == packet.type) { // binary packet's json
-      this.reconstructor = new BinaryReconstructor(packet);
-
-      // no attachments, labeled binary but no binary data to follow
-      if (this.reconstructor.reconPack.attachments == 0) {
-        this.emit('decoded', packet);
-      }
-    } else { // non-binary full packet
-      this.emit('decoded', packet);
-    }
-  }
-  else if (isBuf(obj) || obj.base64) { // raw binary data
-    if (!this.reconstructor) {
-      throw new Error('got binary data when not reconstructing a packet');
-    } else {
-      packet = this.reconstructor.takeBinaryData(obj);
-      if (packet) { // received final buffer
-        this.reconstructor = null;
-        this.emit('decoded', packet);
-      }
-    }
-  }
-  else {
-    throw new Error('Unknown type: ' + obj);
-  }
-};
-
-/**
- * Decode a packet String (JSON data)
- *
- * @param {String} str
- * @return {Object} packet
- * @api private
- */
-
-function decodeString(str) {
-  var p = {};
-  var i = 0;
-
-  // look up type
-  p.type = Number(str.charAt(0));
-  if (null == exports.types[p.type]) return error();
-
-  // look up attachments if type binary
-  if (exports.BINARY_EVENT == p.type || exports.BINARY_ACK == p.type) {
-    p.attachments = '';
-    while (str.charAt(++i) != '-') {
-      p.attachments += str.charAt(i);
-    }
-    p.attachments = Number(p.attachments);
-  }
-
-  // look up namespace (if any)
-  if ('/' == str.charAt(i + 1)) {
-    p.nsp = '';
-    while (++i) {
-      var c = str.charAt(i);
-      if (',' == c) break;
-      p.nsp += c;
-      if (i + 1 == str.length) break;
-    }
-  } else {
-    p.nsp = '/';
-  }
-
-  // look up id
-  var next = str.charAt(i + 1);
-  if ('' != next && Number(next) == next) {
-    p.id = '';
-    while (++i) {
-      var c = str.charAt(i);
-      if (null == c || Number(c) != c) {
-        --i;
-        break;
-      }
-      p.id += str.charAt(i);
-      if (i + 1 == str.length) break;
-    }
-    p.id = Number(p.id);
-  }
-
-  // look up json data
-  if (str.charAt(++i)) {
-    try {
-      p.data = json.parse(str.substr(i));
-    } catch(e){
-      return error();
-    }
-  }
-
-  debug('decoded %s as %j', str, p);
-  return p;
-}
-
-/**
- * Deallocates a parser's resources
- *
- * @api public
- */
-
-Decoder.prototype.destroy = function() {
-  if (this.reconstructor) {
-    this.reconstructor.finishedReconstruction();
-  }
-};
-
-/**
- * A manager of a binary event's 'buffer sequence'. Should
- * be constructed whenever a packet of type BINARY_EVENT is
- * decoded.
- *
- * @param {Object} packet
- * @return {BinaryReconstructor} initialized reconstructor
- * @api private
- */
-
-function BinaryReconstructor(packet) {
-  this.reconPack = packet;
-  this.buffers = [];
-}
-
-/**
- * Method to be called when binary data received from connection
- * after a BINARY_EVENT packet.
- *
- * @param {Buffer | ArrayBuffer} binData - the raw binary data received
- * @return {null | Object} returns null if more binary data is expected or
- *   a reconstructed packet object if all buffers have been received.
- * @api private
- */
-
-BinaryReconstructor.prototype.takeBinaryData = function(binData) {
-  this.buffers.push(binData);
-  if (this.buffers.length == this.reconPack.attachments) { // done with buffer list
-    var packet = binary.reconstructPacket(this.reconPack, this.buffers);
-    this.finishedReconstruction();
-    return packet;
-  }
-  return null;
-};
-
-/**
- * Cleans up binary packet reconstruction variables.
- *
- * @api private
- */
-
-BinaryReconstructor.prototype.finishedReconstruction = function() {
-  this.reconPack = null;
-  this.buffers = [];
-};
-
-function error(data){
-  return {
-    type: exports.ERROR,
-    data: 'parser error'
-  };
-}
-
-},{"./binary":122,"./is-buffer":124,"component-emitter":88,"debug":89,"isarray":125,"json3":126}],124:[function(require,module,exports){
-(function (global){
-
-module.exports = isBuf;
-
-/**
- * Returns true if obj is a buffer or an arraybuffer.
- *
- * @api private
- */
-
-function isBuf(obj) {
-  return (global.Buffer && global.Buffer.isBuffer(obj)) ||
-         (global.ArrayBuffer && obj instanceof ArrayBuffer);
-}
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],125:[function(require,module,exports){
-arguments[4][118][0].apply(exports,arguments)
-},{"dup":118}],126:[function(require,module,exports){
-/*! JSON v3.2.6 | http://bestiejs.github.io/json3 | Copyright 2012-2013, Kit Cambridge | http://kit.mit-license.org */
-;(function (window) {
-  // Convenience aliases.
-  var getClass = {}.toString, isProperty, forEach, undef;
-
-  // Detect the `define` function exposed by asynchronous module loaders. The
-  // strict `define` check is necessary for compatibility with `r.js`.
-  var isLoader = typeof define === "function" && define.amd;
-
-  // Detect native implementations.
-  var nativeJSON = typeof JSON == "object" && JSON;
-
-  // Set up the JSON 3 namespace, preferring the CommonJS `exports` object if
-  // available.
-  var JSON3 = typeof exports == "object" && exports && !exports.nodeType && exports;
-
-  if (JSON3 && nativeJSON) {
-    // Explicitly delegate to the native `stringify` and `parse`
-    // implementations in CommonJS environments.
-    JSON3.stringify = nativeJSON.stringify;
-    JSON3.parse = nativeJSON.parse;
-  } else {
-    // Export for web browsers, JavaScript engines, and asynchronous module
-    // loaders, using the global `JSON` object if available.
-    JSON3 = window.JSON = nativeJSON || {};
-  }
-
-  // Test the `Date#getUTC*` methods. Based on work by @Yaffle.
-  var isExtended = new Date(-3509827334573292);
-  try {
-    // The `getUTCFullYear`, `Month`, and `Date` methods return nonsensical
-    // results for certain dates in Opera >= 10.53.
-    isExtended = isExtended.getUTCFullYear() == -109252 && isExtended.getUTCMonth() === 0 && isExtended.getUTCDate() === 1 &&
-      // Safari < 2.0.2 stores the internal millisecond time value correctly,
-      // but clips the values returned by the date methods to the range of
-      // signed 32-bit integers ([-2 ** 31, 2 ** 31 - 1]).
-      isExtended.getUTCHours() == 10 && isExtended.getUTCMinutes() == 37 && isExtended.getUTCSeconds() == 6 && isExtended.getUTCMilliseconds() == 708;
-  } catch (exception) {}
-
-  // Internal: Determines whether the native `JSON.stringify` and `parse`
-  // implementations are spec-compliant. Based on work by Ken Snyder.
-  function has(name) {
-    if (has[name] !== undef) {
-      // Return cached feature test result.
-      return has[name];
-    }
-
-    var isSupported;
-    if (name == "bug-string-char-index") {
-      // IE <= 7 doesn't support accessing string characters using square
-      // bracket notation. IE 8 only supports this for primitives.
-      isSupported = "a"[0] != "a";
-    } else if (name == "json") {
-      // Indicates whether both `JSON.stringify` and `JSON.parse` are
-      // supported.
-      isSupported = has("json-stringify") && has("json-parse");
-    } else {
-      var value, serialized = '{"a":[1,true,false,null,"\\u0000\\b\\n\\f\\r\\t"]}';
-      // Test `JSON.stringify`.
-      if (name == "json-stringify") {
-        var stringify = JSON3.stringify, stringifySupported = typeof stringify == "function" && isExtended;
-        if (stringifySupported) {
-          // A test function object with a custom `toJSON` method.
-          (value = function () {
-            return 1;
-          }).toJSON = value;
-          try {
-            stringifySupported =
-              // Firefox 3.1b1 and b2 serialize string, number, and boolean
-              // primitives as object literals.
-              stringify(0) === "0" &&
-              // FF 3.1b1, b2, and JSON 2 serialize wrapped primitives as object
-              // literals.
-              stringify(new Number()) === "0" &&
-              stringify(new String()) == '""' &&
-              // FF 3.1b1, 2 throw an error if the value is `null`, `undefined`, or
-              // does not define a canonical JSON representation (this applies to
-              // objects with `toJSON` properties as well, *unless* they are nested
-              // within an object or array).
-              stringify(getClass) === undef &&
-              // IE 8 serializes `undefined` as `"undefined"`. Safari <= 5.1.7 and
-              // FF 3.1b3 pass this test.
-              stringify(undef) === undef &&
-              // Safari <= 5.1.7 and FF 3.1b3 throw `Error`s and `TypeError`s,
-              // respectively, if the value is omitted entirely.
-              stringify() === undef &&
-              // FF 3.1b1, 2 throw an error if the given value is not a number,
-              // string, array, object, Boolean, or `null` literal. This applies to
-              // objects with custom `toJSON` methods as well, unless they are nested
-              // inside object or array literals. YUI 3.0.0b1 ignores custom `toJSON`
-              // methods entirely.
-              stringify(value) === "1" &&
-              stringify([value]) == "[1]" &&
-              // Prototype <= 1.6.1 serializes `[undefined]` as `"[]"` instead of
-              // `"[null]"`.
-              stringify([undef]) == "[null]" &&
-              // YUI 3.0.0b1 fails to serialize `null` literals.
-              stringify(null) == "null" &&
-              // FF 3.1b1, 2 halts serialization if an array contains a function:
-              // `[1, true, getClass, 1]` serializes as "[1,true,],". FF 3.1b3
-              // elides non-JSON values from objects and arrays, unless they
-              // define custom `toJSON` methods.
-              stringify([undef, getClass, null]) == "[null,null,null]" &&
-              // Simple serialization test. FF 3.1b1 uses Unicode escape sequences
-              // where character escape codes are expected (e.g., `\b` => `\u0008`).
-              stringify({ "a": [value, true, false, null, "\x00\b\n\f\r\t"] }) == serialized &&
-              // FF 3.1b1 and b2 ignore the `filter` and `width` arguments.
-              stringify(null, value) === "1" &&
-              stringify([1, 2], null, 1) == "[\n 1,\n 2\n]" &&
-              // JSON 2, Prototype <= 1.7, and older WebKit builds incorrectly
-              // serialize extended years.
-              stringify(new Date(-8.64e15)) == '"-271821-04-20T00:00:00.000Z"' &&
-              // The milliseconds are optional in ES 5, but required in 5.1.
-              stringify(new Date(8.64e15)) == '"+275760-09-13T00:00:00.000Z"' &&
-              // Firefox <= 11.0 incorrectly serializes years prior to 0 as negative
-              // four-digit years instead of six-digit years. Credits: @Yaffle.
-              stringify(new Date(-621987552e5)) == '"-000001-01-01T00:00:00.000Z"' &&
-              // Safari <= 5.1.5 and Opera >= 10.53 incorrectly serialize millisecond
-              // values less than 1000. Credits: @Yaffle.
-              stringify(new Date(-1)) == '"1969-12-31T23:59:59.999Z"';
-          } catch (exception) {
-            stringifySupported = false;
-          }
-        }
-        isSupported = stringifySupported;
-      }
-      // Test `JSON.parse`.
-      if (name == "json-parse") {
-        var parse = JSON3.parse;
-        if (typeof parse == "function") {
-          try {
-            // FF 3.1b1, b2 will throw an exception if a bare literal is provided.
-            // Conforming implementations should also coerce the initial argument to
-            // a string prior to parsing.
-            if (parse("0") === 0 && !parse(false)) {
-              // Simple parsing test.
-              value = parse(serialized);
-              var parseSupported = value["a"].length == 5 && value["a"][0] === 1;
-              if (parseSupported) {
-                try {
-                  // Safari <= 5.1.2 and FF 3.1b1 allow unescaped tabs in strings.
-                  parseSupported = !parse('"\t"');
-                } catch (exception) {}
-                if (parseSupported) {
-                  try {
-                    // FF 4.0 and 4.0.1 allow leading `+` signs and leading
-                    // decimal points. FF 4.0, 4.0.1, and IE 9-10 also allow
-                    // certain octal literals.
-                    parseSupported = parse("01") !== 1;
-                  } catch (exception) {}
-                }
-                if (parseSupported) {
-                  try {
-                    // FF 4.0, 4.0.1, and Rhino 1.7R3-R4 allow trailing decimal
-                    // points. These environments, along with FF 3.1b1 and 2,
-                    // also allow trailing commas in JSON objects and arrays.
-                    parseSupported = parse("1.") !== 1;
-                  } catch (exception) {}
-                }
-              }
-            }
-          } catch (exception) {
-            parseSupported = false;
-          }
-        }
-        isSupported = parseSupported;
-      }
-    }
-    return has[name] = !!isSupported;
-  }
-
-  if (!has("json")) {
-    // Common `[[Class]]` name aliases.
-    var functionClass = "[object Function]";
-    var dateClass = "[object Date]";
-    var numberClass = "[object Number]";
-    var stringClass = "[object String]";
-    var arrayClass = "[object Array]";
-    var booleanClass = "[object Boolean]";
-
-    // Detect incomplete support for accessing string characters by index.
-    var charIndexBuggy = has("bug-string-char-index");
-
-    // Define additional utility methods if the `Date` methods are buggy.
-    if (!isExtended) {
-      var floor = Math.floor;
-      // A mapping between the months of the year and the number of days between
-      // January 1st and the first of the respective month.
-      var Months = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-      // Internal: Calculates the number of days between the Unix epoch and the
-      // first day of the given month.
-      var getDay = function (year, month) {
-        return Months[month] + 365 * (year - 1970) + floor((year - 1969 + (month = +(month > 1))) / 4) - floor((year - 1901 + month) / 100) + floor((year - 1601 + month) / 400);
-      };
-    }
-
-    // Internal: Determines if a property is a direct property of the given
-    // object. Delegates to the native `Object#hasOwnProperty` method.
-    if (!(isProperty = {}.hasOwnProperty)) {
-      isProperty = function (property) {
-        var members = {}, constructor;
-        if ((members.__proto__ = null, members.__proto__ = {
-          // The *proto* property cannot be set multiple times in recent
-          // versions of Firefox and SeaMonkey.
-          "toString": 1
-        }, members).toString != getClass) {
-          // Safari <= 2.0.3 doesn't implement `Object#hasOwnProperty`, but
-          // supports the mutable *proto* property.
-          isProperty = function (property) {
-            // Capture and break the object's prototype chain (see section 8.6.2
-            // of the ES 5.1 spec). The parenthesized expression prevents an
-            // unsafe transformation by the Closure Compiler.
-            var original = this.__proto__, result = property in (this.__proto__ = null, this);
-            // Restore the original prototype chain.
-            this.__proto__ = original;
-            return result;
-          };
-        } else {
-          // Capture a reference to the top-level `Object` constructor.
-          constructor = members.constructor;
-          // Use the `constructor` property to simulate `Object#hasOwnProperty` in
-          // other environments.
-          isProperty = function (property) {
-            var parent = (this.constructor || constructor).prototype;
-            return property in this && !(property in parent && this[property] === parent[property]);
-          };
-        }
-        members = null;
-        return isProperty.call(this, property);
-      };
-    }
-
-    // Internal: A set of primitive types used by `isHostType`.
-    var PrimitiveTypes = {
-      'boolean': 1,
-      'number': 1,
-      'string': 1,
-      'undefined': 1
-    };
-
-    // Internal: Determines if the given object `property` value is a
-    // non-primitive.
-    var isHostType = function (object, property) {
-      var type = typeof object[property];
-      return type == 'object' ? !!object[property] : !PrimitiveTypes[type];
-    };
-
-    // Internal: Normalizes the `for...in` iteration algorithm across
-    // environments. Each enumerated key is yielded to a `callback` function.
-    forEach = function (object, callback) {
-      var size = 0, Properties, members, property;
-
-      // Tests for bugs in the current environment's `for...in` algorithm. The
-      // `valueOf` property inherits the non-enumerable flag from
-      // `Object.prototype` in older versions of IE, Netscape, and Mozilla.
-      (Properties = function () {
-        this.valueOf = 0;
-      }).prototype.valueOf = 0;
-
-      // Iterate over a new instance of the `Properties` class.
-      members = new Properties();
-      for (property in members) {
-        // Ignore all properties inherited from `Object.prototype`.
-        if (isProperty.call(members, property)) {
-          size++;
-        }
-      }
-      Properties = members = null;
-
-      // Normalize the iteration algorithm.
-      if (!size) {
-        // A list of non-enumerable properties inherited from `Object.prototype`.
-        members = ["valueOf", "toString", "toLocaleString", "propertyIsEnumerable", "isPrototypeOf", "hasOwnProperty", "constructor"];
-        // IE <= 8, Mozilla 1.0, and Netscape 6.2 ignore shadowed non-enumerable
-        // properties.
-        forEach = function (object, callback) {
-          var isFunction = getClass.call(object) == functionClass, property, length;
-          var hasProperty = !isFunction && typeof object.constructor != 'function' && isHostType(object, 'hasOwnProperty') ? object.hasOwnProperty : isProperty;
-          for (property in object) {
-            // Gecko <= 1.0 enumerates the `prototype` property of functions under
-            // certain conditions; IE does not.
-            if (!(isFunction && property == "prototype") && hasProperty.call(object, property)) {
-              callback(property);
-            }
-          }
-          // Manually invoke the callback for each non-enumerable property.
-          for (length = members.length; property = members[--length]; hasProperty.call(object, property) && callback(property));
-        };
-      } else if (size == 2) {
-        // Safari <= 2.0.4 enumerates shadowed properties twice.
-        forEach = function (object, callback) {
-          // Create a set of iterated properties.
-          var members = {}, isFunction = getClass.call(object) == functionClass, property;
-          for (property in object) {
-            // Store each property name to prevent double enumeration. The
-            // `prototype` property of functions is not enumerated due to cross-
-            // environment inconsistencies.
-            if (!(isFunction && property == "prototype") && !isProperty.call(members, property) && (members[property] = 1) && isProperty.call(object, property)) {
-              callback(property);
-            }
-          }
-        };
-      } else {
-        // No bugs detected; use the standard `for...in` algorithm.
-        forEach = function (object, callback) {
-          var isFunction = getClass.call(object) == functionClass, property, isConstructor;
-          for (property in object) {
-            if (!(isFunction && property == "prototype") && isProperty.call(object, property) && !(isConstructor = property === "constructor")) {
-              callback(property);
-            }
-          }
-          // Manually invoke the callback for the `constructor` property due to
-          // cross-environment inconsistencies.
-          if (isConstructor || isProperty.call(object, (property = "constructor"))) {
-            callback(property);
-          }
-        };
-      }
-      return forEach(object, callback);
-    };
-
-    // Public: Serializes a JavaScript `value` as a JSON string. The optional
-    // `filter` argument may specify either a function that alters how object and
-    // array members are serialized, or an array of strings and numbers that
-    // indicates which properties should be serialized. The optional `width`
-    // argument may be either a string or number that specifies the indentation
-    // level of the output.
-    if (!has("json-stringify")) {
-      // Internal: A map of control characters and their escaped equivalents.
-      var Escapes = {
-        92: "\\\\",
-        34: '\\"',
-        8: "\\b",
-        12: "\\f",
-        10: "\\n",
-        13: "\\r",
-        9: "\\t"
-      };
-
-      // Internal: Converts `value` into a zero-padded string such that its
-      // length is at least equal to `width`. The `width` must be <= 6.
-      var leadingZeroes = "000000";
-      var toPaddedString = function (width, value) {
-        // The `|| 0` expression is necessary to work around a bug in
-        // Opera <= 7.54u2 where `0 == -0`, but `String(-0) !== "0"`.
-        return (leadingZeroes + (value || 0)).slice(-width);
-      };
-
-      // Internal: Double-quotes a string `value`, replacing all ASCII control
-      // characters (characters with code unit values between 0 and 31) with
-      // their escaped equivalents. This is an implementation of the
-      // `Quote(value)` operation defined in ES 5.1 section 15.12.3.
-      var unicodePrefix = "\\u00";
-      var quote = function (value) {
-        var result = '"', index = 0, length = value.length, isLarge = length > 10 && charIndexBuggy, symbols;
-        if (isLarge) {
-          symbols = value.split("");
-        }
-        for (; index < length; index++) {
-          var charCode = value.charCodeAt(index);
-          // If the character is a control character, append its Unicode or
-          // shorthand escape sequence; otherwise, append the character as-is.
-          switch (charCode) {
-            case 8: case 9: case 10: case 12: case 13: case 34: case 92:
-              result += Escapes[charCode];
-              break;
-            default:
-              if (charCode < 32) {
-                result += unicodePrefix + toPaddedString(2, charCode.toString(16));
-                break;
-              }
-              result += isLarge ? symbols[index] : charIndexBuggy ? value.charAt(index) : value[index];
-          }
-        }
-        return result + '"';
-      };
-
-      // Internal: Recursively serializes an object. Implements the
-      // `Str(key, holder)`, `JO(value)`, and `JA(value)` operations.
-      var serialize = function (property, object, callback, properties, whitespace, indentation, stack) {
-        var value, className, year, month, date, time, hours, minutes, seconds, milliseconds, results, element, index, length, prefix, result;
-        try {
-          // Necessary for host object support.
-          value = object[property];
-        } catch (exception) {}
-        if (typeof value == "object" && value) {
-          className = getClass.call(value);
-          if (className == dateClass && !isProperty.call(value, "toJSON")) {
-            if (value > -1 / 0 && value < 1 / 0) {
-              // Dates are serialized according to the `Date#toJSON` method
-              // specified in ES 5.1 section 15.9.5.44. See section 15.9.1.15
-              // for the ISO 8601 date time string format.
-              if (getDay) {
-                // Manually compute the year, month, date, hours, minutes,
-                // seconds, and milliseconds if the `getUTC*` methods are
-                // buggy. Adapted from @Yaffle's `date-shim` project.
-                date = floor(value / 864e5);
-                for (year = floor(date / 365.2425) + 1970 - 1; getDay(year + 1, 0) <= date; year++);
-                for (month = floor((date - getDay(year, 0)) / 30.42); getDay(year, month + 1) <= date; month++);
-                date = 1 + date - getDay(year, month);
-                // The `time` value specifies the time within the day (see ES
-                // 5.1 section 15.9.1.2). The formula `(A % B + B) % B` is used
-                // to compute `A modulo B`, as the `%` operator does not
-                // correspond to the `modulo` operation for negative numbers.
-                time = (value % 864e5 + 864e5) % 864e5;
-                // The hours, minutes, seconds, and milliseconds are obtained by
-                // decomposing the time within the day. See section 15.9.1.10.
-                hours = floor(time / 36e5) % 24;
-                minutes = floor(time / 6e4) % 60;
-                seconds = floor(time / 1e3) % 60;
-                milliseconds = time % 1e3;
-              } else {
-                year = value.getUTCFullYear();
-                month = value.getUTCMonth();
-                date = value.getUTCDate();
-                hours = value.getUTCHours();
-                minutes = value.getUTCMinutes();
-                seconds = value.getUTCSeconds();
-                milliseconds = value.getUTCMilliseconds();
-              }
-              // Serialize extended years correctly.
-              value = (year <= 0 || year >= 1e4 ? (year < 0 ? "-" : "+") + toPaddedString(6, year < 0 ? -year : year) : toPaddedString(4, year)) +
-                "-" + toPaddedString(2, month + 1) + "-" + toPaddedString(2, date) +
-                // Months, dates, hours, minutes, and seconds should have two
-                // digits; milliseconds should have three.
-                "T" + toPaddedString(2, hours) + ":" + toPaddedString(2, minutes) + ":" + toPaddedString(2, seconds) +
-                // Milliseconds are optional in ES 5.0, but required in 5.1.
-                "." + toPaddedString(3, milliseconds) + "Z";
-            } else {
-              value = null;
-            }
-          } else if (typeof value.toJSON == "function" && ((className != numberClass && className != stringClass && className != arrayClass) || isProperty.call(value, "toJSON"))) {
-            // Prototype <= 1.6.1 adds non-standard `toJSON` methods to the
-            // `Number`, `String`, `Date`, and `Array` prototypes. JSON 3
-            // ignores all `toJSON` methods on these objects unless they are
-            // defined directly on an instance.
-            value = value.toJSON(property);
-          }
-        }
-        if (callback) {
-          // If a replacement function was provided, call it to obtain the value
-          // for serialization.
-          value = callback.call(object, property, value);
-        }
-        if (value === null) {
-          return "null";
-        }
-        className = getClass.call(value);
-        if (className == booleanClass) {
-          // Booleans are represented literally.
-          return "" + value;
-        } else if (className == numberClass) {
-          // JSON numbers must be finite. `Infinity` and `NaN` are serialized as
-          // `"null"`.
-          return value > -1 / 0 && value < 1 / 0 ? "" + value : "null";
-        } else if (className == stringClass) {
-          // Strings are double-quoted and escaped.
-          return quote("" + value);
-        }
-        // Recursively serialize objects and arrays.
-        if (typeof value == "object") {
-          // Check for cyclic structures. This is a linear search; performance
-          // is inversely proportional to the number of unique nested objects.
-          for (length = stack.length; length--;) {
-            if (stack[length] === value) {
-              // Cyclic structures cannot be serialized by `JSON.stringify`.
-              throw TypeError();
-            }
-          }
-          // Add the object to the stack of traversed objects.
-          stack.push(value);
-          results = [];
-          // Save the current indentation level and indent one additional level.
-          prefix = indentation;
-          indentation += whitespace;
-          if (className == arrayClass) {
-            // Recursively serialize array elements.
-            for (index = 0, length = value.length; index < length; index++) {
-              element = serialize(index, value, callback, properties, whitespace, indentation, stack);
-              results.push(element === undef ? "null" : element);
-            }
-            result = results.length ? (whitespace ? "[\n" + indentation + results.join(",\n" + indentation) + "\n" + prefix + "]" : ("[" + results.join(",") + "]")) : "[]";
-          } else {
-            // Recursively serialize object members. Members are selected from
-            // either a user-specified list of property names, or the object
-            // itself.
-            forEach(properties || value, function (property) {
-              var element = serialize(property, value, callback, properties, whitespace, indentation, stack);
-              if (element !== undef) {
-                // According to ES 5.1 section 15.12.3: "If `gap` {whitespace}
-                // is not the empty string, let `member` {quote(property) + ":"}
-                // be the concatenation of `member` and the `space` character."
-                // The "`space` character" refers to the literal space
-                // character, not the `space` {width} argument provided to
-                // `JSON.stringify`.
-                results.push(quote(property) + ":" + (whitespace ? " " : "") + element);
-              }
-            });
-            result = results.length ? (whitespace ? "{\n" + indentation + results.join(",\n" + indentation) + "\n" + prefix + "}" : ("{" + results.join(",") + "}")) : "{}";
-          }
-          // Remove the object from the traversed object stack.
-          stack.pop();
-          return result;
-        }
-      };
-
-      // Public: `JSON.stringify`. See ES 5.1 section 15.12.3.
-      JSON3.stringify = function (source, filter, width) {
-        var whitespace, callback, properties, className;
-        if (typeof filter == "function" || typeof filter == "object" && filter) {
-          if ((className = getClass.call(filter)) == functionClass) {
-            callback = filter;
-          } else if (className == arrayClass) {
-            // Convert the property names array into a makeshift set.
-            properties = {};
-            for (var index = 0, length = filter.length, value; index < length; value = filter[index++], ((className = getClass.call(value)), className == stringClass || className == numberClass) && (properties[value] = 1));
-          }
-        }
-        if (width) {
-          if ((className = getClass.call(width)) == numberClass) {
-            // Convert the `width` to an integer and create a string containing
-            // `width` number of space characters.
-            if ((width -= width % 1) > 0) {
-              for (whitespace = "", width > 10 && (width = 10); whitespace.length < width; whitespace += " ");
-            }
-          } else if (className == stringClass) {
-            whitespace = width.length <= 10 ? width : width.slice(0, 10);
-          }
-        }
-        // Opera <= 7.54u2 discards the values associated with empty string keys
-        // (`""`) only if they are used directly within an object member list
-        // (e.g., `!("" in { "": 1})`).
-        return serialize("", (value = {}, value[""] = source, value), callback, properties, whitespace, "", []);
-      };
-    }
-
-    // Public: Parses a JSON source string.
-    if (!has("json-parse")) {
-      var fromCharCode = String.fromCharCode;
-
-      // Internal: A map of escaped control characters and their unescaped
-      // equivalents.
-      var Unescapes = {
-        92: "\\",
-        34: '"',
-        47: "/",
-        98: "\b",
-        116: "\t",
-        110: "\n",
-        102: "\f",
-        114: "\r"
-      };
-
-      // Internal: Stores the parser state.
-      var Index, Source;
-
-      // Internal: Resets the parser state and throws a `SyntaxError`.
-      var abort = function() {
-        Index = Source = null;
-        throw SyntaxError();
-      };
-
-      // Internal: Returns the next token, or `"$"` if the parser has reached
-      // the end of the source string. A token may be a string, number, `null`
-      // literal, or Boolean literal.
-      var lex = function () {
-        var source = Source, length = source.length, value, begin, position, isSigned, charCode;
-        while (Index < length) {
-          charCode = source.charCodeAt(Index);
-          switch (charCode) {
-            case 9: case 10: case 13: case 32:
-              // Skip whitespace tokens, including tabs, carriage returns, line
-              // feeds, and space characters.
-              Index++;
-              break;
-            case 123: case 125: case 91: case 93: case 58: case 44:
-              // Parse a punctuator token (`{`, `}`, `[`, `]`, `:`, or `,`) at
-              // the current position.
-              value = charIndexBuggy ? source.charAt(Index) : source[Index];
-              Index++;
-              return value;
-            case 34:
-              // `"` delimits a JSON string; advance to the next character and
-              // begin parsing the string. String tokens are prefixed with the
-              // sentinel `@` character to distinguish them from punctuators and
-              // end-of-string tokens.
-              for (value = "@", Index++; Index < length;) {
-                charCode = source.charCodeAt(Index);
-                if (charCode < 32) {
-                  // Unescaped ASCII control characters (those with a code unit
-                  // less than the space character) are not permitted.
-                  abort();
-                } else if (charCode == 92) {
-                  // A reverse solidus (`\`) marks the beginning of an escaped
-                  // control character (including `"`, `\`, and `/`) or Unicode
-                  // escape sequence.
-                  charCode = source.charCodeAt(++Index);
-                  switch (charCode) {
-                    case 92: case 34: case 47: case 98: case 116: case 110: case 102: case 114:
-                      // Revive escaped control characters.
-                      value += Unescapes[charCode];
-                      Index++;
-                      break;
-                    case 117:
-                      // `\u` marks the beginning of a Unicode escape sequence.
-                      // Advance to the first character and validate the
-                      // four-digit code point.
-                      begin = ++Index;
-                      for (position = Index + 4; Index < position; Index++) {
-                        charCode = source.charCodeAt(Index);
-                        // A valid sequence comprises four hexdigits (case-
-                        // insensitive) that form a single hexadecimal value.
-                        if (!(charCode >= 48 && charCode <= 57 || charCode >= 97 && charCode <= 102 || charCode >= 65 && charCode <= 70)) {
-                          // Invalid Unicode escape sequence.
-                          abort();
-                        }
-                      }
-                      // Revive the escaped character.
-                      value += fromCharCode("0x" + source.slice(begin, Index));
-                      break;
-                    default:
-                      // Invalid escape sequence.
-                      abort();
-                  }
-                } else {
-                  if (charCode == 34) {
-                    // An unescaped double-quote character marks the end of the
-                    // string.
-                    break;
-                  }
-                  charCode = source.charCodeAt(Index);
-                  begin = Index;
-                  // Optimize for the common case where a string is valid.
-                  while (charCode >= 32 && charCode != 92 && charCode != 34) {
-                    charCode = source.charCodeAt(++Index);
-                  }
-                  // Append the string as-is.
-                  value += source.slice(begin, Index);
-                }
-              }
-              if (source.charCodeAt(Index) == 34) {
-                // Advance to the next character and return the revived string.
-                Index++;
-                return value;
-              }
-              // Unterminated string.
-              abort();
-            default:
-              // Parse numbers and literals.
-              begin = Index;
-              // Advance past the negative sign, if one is specified.
-              if (charCode == 45) {
-                isSigned = true;
-                charCode = source.charCodeAt(++Index);
-              }
-              // Parse an integer or floating-point value.
-              if (charCode >= 48 && charCode <= 57) {
-                // Leading zeroes are interpreted as octal literals.
-                if (charCode == 48 && ((charCode = source.charCodeAt(Index + 1)), charCode >= 48 && charCode <= 57)) {
-                  // Illegal octal literal.
-                  abort();
-                }
-                isSigned = false;
-                // Parse the integer component.
-                for (; Index < length && ((charCode = source.charCodeAt(Index)), charCode >= 48 && charCode <= 57); Index++);
-                // Floats cannot contain a leading decimal point; however, this
-                // case is already accounted for by the parser.
-                if (source.charCodeAt(Index) == 46) {
-                  position = ++Index;
-                  // Parse the decimal component.
-                  for (; position < length && ((charCode = source.charCodeAt(position)), charCode >= 48 && charCode <= 57); position++);
-                  if (position == Index) {
-                    // Illegal trailing decimal.
-                    abort();
-                  }
-                  Index = position;
-                }
-                // Parse exponents. The `e` denoting the exponent is
-                // case-insensitive.
-                charCode = source.charCodeAt(Index);
-                if (charCode == 101 || charCode == 69) {
-                  charCode = source.charCodeAt(++Index);
-                  // Skip past the sign following the exponent, if one is
-                  // specified.
-                  if (charCode == 43 || charCode == 45) {
-                    Index++;
-                  }
-                  // Parse the exponential component.
-                  for (position = Index; position < length && ((charCode = source.charCodeAt(position)), charCode >= 48 && charCode <= 57); position++);
-                  if (position == Index) {
-                    // Illegal empty exponent.
-                    abort();
-                  }
-                  Index = position;
-                }
-                // Coerce the parsed value to a JavaScript number.
-                return +source.slice(begin, Index);
-              }
-              // A negative sign may only precede numbers.
-              if (isSigned) {
-                abort();
-              }
-              // `true`, `false`, and `null` literals.
-              if (source.slice(Index, Index + 4) == "true") {
-                Index += 4;
-                return true;
-              } else if (source.slice(Index, Index + 5) == "false") {
-                Index += 5;
-                return false;
-              } else if (source.slice(Index, Index + 4) == "null") {
-                Index += 4;
-                return null;
-              }
-              // Unrecognized token.
-              abort();
-          }
-        }
-        // Return the sentinel `$` character if the parser has reached the end
-        // of the source string.
-        return "$";
-      };
-
-      // Internal: Parses a JSON `value` token.
-      var get = function (value) {
-        var results, hasMembers;
-        if (value == "$") {
-          // Unexpected end of input.
-          abort();
-        }
-        if (typeof value == "string") {
-          if ((charIndexBuggy ? value.charAt(0) : value[0]) == "@") {
-            // Remove the sentinel `@` character.
-            return value.slice(1);
-          }
-          // Parse object and array literals.
-          if (value == "[") {
-            // Parses a JSON array, returning a new JavaScript array.
-            results = [];
-            for (;; hasMembers || (hasMembers = true)) {
-              value = lex();
-              // A closing square bracket marks the end of the array literal.
-              if (value == "]") {
-                break;
-              }
-              // If the array literal contains elements, the current token
-              // should be a comma separating the previous element from the
-              // next.
-              if (hasMembers) {
-                if (value == ",") {
-                  value = lex();
-                  if (value == "]") {
-                    // Unexpected trailing `,` in array literal.
-                    abort();
-                  }
-                } else {
-                  // A `,` must separate each array element.
-                  abort();
-                }
-              }
-              // Elisions and leading commas are not permitted.
-              if (value == ",") {
-                abort();
-              }
-              results.push(get(value));
-            }
-            return results;
-          } else if (value == "{") {
-            // Parses a JSON object, returning a new JavaScript object.
-            results = {};
-            for (;; hasMembers || (hasMembers = true)) {
-              value = lex();
-              // A closing curly brace marks the end of the object literal.
-              if (value == "}") {
-                break;
-              }
-              // If the object literal contains members, the current token
-              // should be a comma separator.
-              if (hasMembers) {
-                if (value == ",") {
-                  value = lex();
-                  if (value == "}") {
-                    // Unexpected trailing `,` in object literal.
-                    abort();
-                  }
-                } else {
-                  // A `,` must separate each object member.
-                  abort();
-                }
-              }
-              // Leading commas are not permitted, object property names must be
-              // double-quoted strings, and a `:` must separate each property
-              // name and value.
-              if (value == "," || typeof value != "string" || (charIndexBuggy ? value.charAt(0) : value[0]) != "@" || lex() != ":") {
-                abort();
-              }
-              results[value.slice(1)] = get(lex());
-            }
-            return results;
-          }
-          // Unexpected token encountered.
-          abort();
-        }
-        return value;
-      };
-
-      // Internal: Updates a traversed object member.
-      var update = function(source, property, callback) {
-        var element = walk(source, property, callback);
-        if (element === undef) {
-          delete source[property];
-        } else {
-          source[property] = element;
-        }
-      };
-
-      // Internal: Recursively traverses a parsed JSON object, invoking the
-      // `callback` function for each value. This is an implementation of the
-      // `Walk(holder, name)` operation defined in ES 5.1 section 15.12.2.
-      var walk = function (source, property, callback) {
-        var value = source[property], length;
-        if (typeof value == "object" && value) {
-          // `forEach` can't be used to traverse an array in Opera <= 8.54
-          // because its `Object#hasOwnProperty` implementation returns `false`
-          // for array indices (e.g., `![1, 2, 3].hasOwnProperty("0")`).
-          if (getClass.call(value) == arrayClass) {
-            for (length = value.length; length--;) {
-              update(value, length, callback);
-            }
-          } else {
-            forEach(value, function (property) {
-              update(value, property, callback);
-            });
-          }
-        }
-        return callback.call(source, property, value);
-      };
-
-      // Public: `JSON.parse`. See ES 5.1 section 15.12.2.
-      JSON3.parse = function (source, callback) {
-        var result, value;
-        Index = 0;
-        Source = "" + source;
-        result = get(lex());
-        // If a JSON string contains multiple tokens, it is invalid.
-        if (lex() != "$") {
-          abort();
-        }
-        // Reset the parser state.
-        Index = Source = null;
-        return callback && getClass.call(callback) == functionClass ? walk((value = {}, value[""] = result, value), "", callback) : result;
-      };
-    }
-  }
-
-  // Export for asynchronous module loaders.
-  if (isLoader) {
-    define(function () {
-      return JSON3;
-    });
-  }
-}(this));
-
-},{}],127:[function(require,module,exports){
-module.exports = toArray
-
-function toArray(list, index) {
-    var array = []
-
-    index = index || 0
-
-    for (var i = index || 0; i < list.length; i++) {
-        array[i - index] = list[i]
-    }
-
-    return array
-}
-
-},{}],128:[function(require,module,exports){
+},{"cssify":100}],102:[function(require,module,exports){
 module.exports={
   "name": "rubigolo",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "",
   "author": "Olivier Lombart (kubicle)",
   "license": "MIT",
   "scripts": {
     "start": "watchify js/app.js -o js/build.js -t lessify -v",
-    "test": "node js/test/ciTestMain.js"
+    "test": "node js/test/ciTestMain.js --ci"
   },
   "main": "js/app.js",
   "repository": {
@@ -19567,4 +14313,4 @@ module.exports={
   }
 }
 
-},{}]},{},[49]);
+},{}]},{},[68]);
