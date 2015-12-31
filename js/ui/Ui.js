@@ -6,7 +6,7 @@ var Board = require('./Board');
 var Dome = require('./Dome');
 var GameLogic = require('../GameLogic');
 var Grid = require('../Grid');
-var gtp = require('../net/gtp');
+var Gtp = require('../net/Gtp');
 var Logger = require('../Logger');
 var ogsApi = require('../net/ogsApi');
 var NewGameDlg = require('./NewGameDlg');
@@ -360,7 +360,7 @@ Ui.prototype.onDevKey = function (key) {
     }
     if (this.devKeys.slice(-2) === '0g') {
         // TODO: WIP OGS
-        main.gtp = gtp;
+        var gtp = main.gtp = new Gtp();
         gtp.init(new UiGtpEngine(this));
         this.ogsApi = ogsApi;
         return ogsApi.init();

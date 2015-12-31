@@ -3,7 +3,7 @@
 require('./app');
 
 var main = require('./main');
-var gtp = require('./net/gtp');
+var Gtp = require('./net/Gtp');
 var GtpEngine = require('./net/GtpEngine');
 var Logger = require('./Logger');
 var readline = require('readline');
@@ -13,6 +13,7 @@ function run() {
     // NB: any unexpected log on stdout will break GTP
     main.log.level = Logger.ERROR;
 
+    var gtp = new Gtp();
     gtp.init(new GtpEngine());
 
     var rl = readline.createInterface({

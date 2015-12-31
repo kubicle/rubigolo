@@ -4,22 +4,24 @@ var EventEmitter = require('events').EventEmitter;
 var fs = require('fs');
 var inherits = require('util').inherits;
 
+var commands = {};
 
 /** @class
- * GTP protocol parser (singleton).
- * Speaks to a GtpEngine.
+ * GTP protocol parser. Speaks to a GtpEngine.
  * - input: gtp.runCommand(cmdline)
  * - output: engine.send(response)
  */
 function Gtp() {
     this.engine = null;
-    this.commands = {};
     this.cpuTime = 0;
 }
 inherits(Gtp, EventEmitter);
+module.exports = Gtp;
 
-var gtp = new Gtp();
-module.exports = gtp;
+// Stone status
+var ALIVE = Gtp.ALIVE = 1;
+var SEKI =  Gtp.SEKI =  0;
+var DEAD =  Gtp.DEAD = -1;
 
 
 Gtp.prototype.init = function (engine) {
@@ -28,14 +30,15 @@ Gtp.prototype.init = function (engine) {
 
 Gtp.prototype.runCommand = function (line) {
     var cmd = this._parseCommand(line);
-    var fn = gtp.commands[cmd.command];
+    var fn = commands[cmd.command];
     if (!fn) return this.fail('unknown command ' + cmd.command);
 
     this.cmd = cmd;
     try {
         fn.call(this, cmd);
     } catch (exc) {
-        this.fail('exception running ' + line + '\n' + exc.stack);
+        console.error(exc.stack);
+        this.fail('exception running ' + line + ': ' + exc);
     }
 };
 
@@ -85,7 +88,7 @@ Gtp.prototype.fail = function (errorMsg) {
 };
 
 function commandHandler(cmdName, fn) {
-    gtp.commands[cmdName] = fn;
+    commands[cmdName] = fn;
 }
 
 commandHandler('protocol_version', function () {
@@ -101,12 +104,12 @@ commandHandler('version', function () {
 });
 
 commandHandler('known_command', function (cmd) {
-    return this.success(this.commands[cmd.args[0]] ? 'true' : 'false');
+    return this.success(commands[cmd.args[0]] ? 'true' : 'false');
 });
 
 commandHandler('list_commands', function () {
     var cmds = '';
-    for (var command in this.commands) {
+    for (var command in commands) {
         cmds += command + '\n';
     }
     return this.success(cmds + '\n');
