@@ -235,4 +235,17 @@ commandHandler('final_score', function () {
     return this.success(score); // e.g. W+2.5 or B+31 or 0
 });
 
-// TODO: final_status_list
+var stoneStatus = {
+    dead: DEAD,
+    seki: SEKI,
+    alive: ALIVE
+};
+
+// Tournament command
+commandHandler('final_status_list', function (cmd) {
+    var status = stoneStatus[cmd.args[0]]; // dead, alive or seki
+    if (status === undefined) return this.fail('syntax error: ' + cmd.args[0]);
+
+    var vertexes = this.engine.getStonesWithStatus(status);
+    return this.success(vertexes.join('\n').toUpperCase());
+});
