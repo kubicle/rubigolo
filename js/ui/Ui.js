@@ -222,7 +222,7 @@ Ui.prototype.proposeScore = function () {
     this.message(this.scoreMsg);
     this.message('<br><br>Do you accept this score?', true);
     this.toggleControls();
-    this.board.showScoring(this.game.goban.scoringGrid.yx);
+    this.board.showScoring(this.scorer.getScoringGrid().yx);
 };
 
 Ui.prototype.acceptScore = function (acceptEnd) {
@@ -387,7 +387,7 @@ Ui.prototype.evalMove = function (move) {
 Ui.prototype.scoreTest = function () {
     var score = this.scorer.computeScore(this.game.goban, this.game.komi);
     this.message(score);
-    this.board.showSpecial('scoring', this.game.goban.scoringGrid.yx);
+    this.board.showSpecial('scoring', this.scorer.getScoringGrid().yx);
 };
 
 Ui.prototype.territoryTest = function () {

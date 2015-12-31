@@ -59,6 +59,10 @@ ScoreAnalyser.prototype.getScore = function () {
     return this.scoreInfoToS(this.scoreInfo);
 };
 
+ScoreAnalyser.prototype.getScoringGrid = function () {
+    return this.analyser.getScoringGrid();
+};
+
 function pointsToString(n) {
     return ( n !== 1 ? n + ' points' : '1 point' );
 }

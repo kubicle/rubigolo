@@ -14,7 +14,8 @@ var EMPTY = main.EMPTY, BORDER = main.BORDER;
  *  - It also remembers the list of stones played and can share this info for undo feature.
  *  - For console game and debug features, a goban can also "draw" its content as text.
  *  See Stone and Group classes for the layer above this.
- *  public read-only attribute: gsize, grid, scoringGrid, mergedGroups, killedGroups, garbageGroups
+ *  public attribute: scoringGrid
+ *  public read-only attribute: gsize, grid, mergedGroups, killedGroups, garbageGroups
  */
 function Goban(gsize) {
     if (gsize === undefined) gsize = 19;

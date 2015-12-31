@@ -30,8 +30,6 @@ module.exports = BoardAnalyser;
 var BOAN_VERSION = BoardAnalyser.VERSION = 'droopy';
 
 
-/** Calling this method updates the goban to show the detected result.
- */
 BoardAnalyser.prototype.countScore = function (goban) {
     if (main.debug) main.log.debug('Counting score...');
     this.scores[BLACK] = this.scores[WHITE] = 0;
@@ -42,6 +40,10 @@ BoardAnalyser.prototype.countScore = function (goban) {
     this._runAnalysis();
     this._finalColoring();
     if (main.debug) main.log.debug(grid.toText(function (c) { return Grid.colorToChar(c); }));
+};
+
+BoardAnalyser.prototype.getScoringGrid = function () {
+    return this.goban.scoringGrid;
 };
 
 BoardAnalyser.prototype.analyse = function (goban, grid, first2play) {
