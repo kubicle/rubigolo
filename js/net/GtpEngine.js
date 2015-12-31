@@ -2,9 +2,14 @@
 
 var main = require('../main');
 var GameLogic = require('../GameLogic');
+var Grid = require('../Grid');
+var Gtp = require('./Gtp');
 var ScoreAnalyser = require('../ScoreAnalyser');
 
-var WHITE = main.WHITE, BLACK = main.BLACK;
+var WHITE = main.WHITE, BLACK = main.BLACK, EMPTY = main.EMPTY;
+var DEAD_COLOR = Grid.DEAD_COLOR;
+var DEAD = Gtp.DEAD, ALIVE = Gtp.ALIVE;
+
 var GAME_NOT_STARTED = '00';
 
 
@@ -15,6 +20,7 @@ function GtpEngine(game, scorer) {
     this.game = game || new GameLogic();
     this.scorer = scorer || new ScoreAnalyser();
     this.players = [];
+    this.scoreComputedAt = null;
 }
 module.exports = GtpEngine;
 
@@ -91,8 +97,35 @@ GtpEngine.prototype.undo = function () {
 
 GtpEngine.prototype.computeScore = function () {
     var game = this.game;
-    if (!game.gameEnding && !game.gameEnded) return null;
+    this.scoreComputedAt = game.goban.getPositionSignature();
     return this.scorer.computeScoreDiff(game.goban, game.komi);
+};
+
+// status: -1: dead, 0: seki, +1: alive
+GtpEngine.prototype.getStonesWithStatus = function (status) {
+    var goban = this.game.goban;
+    if (goban.getPositionSignature() !== this.scoreComputedAt) {
+        this.computeScore();
+    }
+    var scoringYx = this.scorer.getScoringGrid().yx;
+    var stones = [];
+    for (var j = goban.gsize; j >= 1; j--) {
+        for (var i = goban.gsize; i >= 1; i--) {
+            var s = goban.stoneAt(i, j);
+            if (s.color === EMPTY) continue;
+
+            switch (scoringYx[j][i]) {
+            case DEAD_COLOR + WHITE:
+            case DEAD_COLOR + BLACK:
+                if (status === DEAD) stones.push(s.asMove());
+                break;
+            default:
+                if (status === ALIVE) stones.push(s.asMove());
+            }
+            // TODO: handle seki status when we can
+        }
+    }
+    return stones;
 };
 
 
