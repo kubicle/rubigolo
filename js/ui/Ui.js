@@ -191,11 +191,10 @@ Ui.prototype.startGame = function (firstMoves, isLoaded) {
     this.board.create(this.boardElt, this.boardWidth, this.game.goban);
     this.refreshBoard();
 
-    if (isLoaded) return true;
-    if (firstMoves && this.checkEnd()) return true;
-
-    this.message('Game started. Your turn...'); // erased if a move is played below
-    this.letNextPlayerPlay();
+    if (!isLoaded && !(firstMoves && this.checkEnd())) {
+        this.message('Game started. Your turn...'); // erased if a move is played below
+        this.letNextPlayerPlay();
+    }
     return true;
 };
 
@@ -205,8 +204,9 @@ Ui.prototype.checkEnd = function () {
         this.proposeScore();
         return true;
     }
-    if (this.game.gameEnded) {
-        this.showEnd(); // one resigned
+    if (this.game.gameEnded) { // NB: we only pass here when one resigned
+        this.computeScore();
+        this.showEnd();
         return true;
     }
     return false;
@@ -286,7 +286,6 @@ Ui.prototype.playerResigns = function () {
     new PopupDlg(this.gameDiv, 'Do you really want to resign?', 'Confirm', options, function (options) {
         if (options.choice !== 0) return;
         self.game.playOneMove('resi');
-        self.computeScore();
         self.checkEnd();
     });
 };

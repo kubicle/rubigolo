@@ -164,6 +164,7 @@ GameLogic.prototype.resign = function () {
     this._storeMoveInHistory('resign');
     this.whoResigned = this.curColor;
     this.gameEnded = true;
+    this.gameEnding = false;
     return true;
 };
 
