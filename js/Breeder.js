@@ -13,8 +13,9 @@ main.debugBreed = false; // TODO move me somewhere else?
 
 
 /** @class */
-function Breeder(gameSize) {
+function Breeder(gameSize, komi) {
     this.gsize = gameSize;
+    this.komi = komi;
     this.timer = new TimeKeeper();
     this.game = new GameLogic();
     this.game.switchConsoleMode(true);
@@ -35,7 +36,6 @@ module.exports = Breeder;
 Breeder.GENERATION_SIZE = 26; // must be even number
 Breeder.MUTATION_RATE = 0.03; // e.g. 0.02 is 2%
 Breeder.WIDE_MUTATION_RATE = 0.1; // how often do we "widely" mutate
-Breeder.KOMI = 3.5;
 Breeder.TOO_SMALL_SCORE_DIFF = 3; // if final score is less that this, see it as a tie game
 
 
@@ -69,13 +69,13 @@ Breeder.prototype.playUntilGameEnds = function () {
 
 // Plays a game and returns the score difference in points
 Breeder.prototype.playGame = function (name1, name2, p1, p2) {
-    this.game.newGame(this.gsize, 0, Breeder.KOMI);
+    this.game.newGame(this.gsize, 0, this.komi);
     this.players[0].prepareGame(p1);
     this.players[1].prepareGame(p2);
     var scoreDiff;
     try {
         this.playUntilGameEnds();
-        scoreDiff = this.scorer.computeScoreDiff(this.goban, Breeder.KOMI);
+        scoreDiff = this.scorer.computeScoreDiff(this.goban, this.komi);
     } catch (err) {
         main.log.error('Exception occurred during a breeding game: ' + err);
         main.log.error(this.game.historyString());
@@ -196,12 +196,12 @@ Breeder.prototype.control = function () {
 // Returns the number of games won by White
 Breeder.prototype.bwBalanceCheck = function (numGames, gsize, numLostGamesShowed) {
     var blackAi = this.players[BLACK].version, whiteAi = this.players[WHITE].version;
-    var desc = numGames + ' games on ' + gsize + 'x' + gsize + ', komi=' + Breeder.KOMI + ', ' +
-        blackAi + ' VS ' + whiteAi;
+    var desc = numGames + ' games on ' + gsize + 'x' + gsize + ', komi=' + this.komi + ', ' +
+        whiteAi + ' VS ' + blackAi + '(B)';
     var expectedDuration = gsize === 9 ? numGames * 0.05 : undefined;
-    this.timer.start(desc, expectedDuration);
 
-    var totalScore = 0, numWins = 0;
+    this.timer.start(desc, expectedDuration);
+    var totalScore = 0, numWins = 0, numCloseMatch = 0, numMoves = 0;
     for (var i = 0; i < numGames; i++) {
         var score = this.playGame('control', 'control', this.controlGenes, this.controlGenes);
         if (score === 0) throw new Error('Unexpected tie game');
@@ -210,19 +210,22 @@ Breeder.prototype.bwBalanceCheck = function (numGames, gsize, numLostGamesShowed
             if (numWins <= numLostGamesShowed)
                 this.showInUi('Lost breeding game #' + numWins, this.game.historyString());
         }
+        if (Math.abs(score) < 3) numCloseMatch++;
         totalScore += score;
+        numMoves += this.game.history.length;
     }
-
     this.timer.stop(/*lenientIfSlow=*/true);
-    main.log.info('Average score difference for Black (points per game): ' + totalScore / numGames);
-    main.log.info('Out of ' + numGames + ' games, White-' + whiteAi +
-        ' won ' + (numGames - numWins) + ' times, and Black-' + blackAi + ' won ' + numWins + ' times');
 
     var dupes = 0;
-    for (i in this.seenGames) {
-        dupes += this.seenGames[i] - 1;
-    }
-    main.log.info('Number of dupe games: ' + dupes);
+    for (i in this.seenGames) { dupes += this.seenGames[i] - 1; }
+
+    main.log.info('Average score difference: ' + (-totalScore / numGames).toFixed(1));
+    main.log.info('Close match (score diff < 3 pts): ' + ~~(numCloseMatch / numGames * 100) + '%');
+    main.log.info('Average number of moves: ' + ~~(numMoves / numGames));
+    main.log.info('Average time per move: ' + (this.timer.duration * 1000 / numMoves).toFixed(1) + 'ms');
+    main.log.info('Dupe games: ' + ~~(dupes / numGames * 100) + '%');
+    main.log.info('Won games for White-' + whiteAi +
+        ' VS Black-' + blackAi + ': ' + ((numGames - numWins) / numGames * 100).toFixed(1) + '%');
 
     return numGames - numWins; // number of White's victory
 };
