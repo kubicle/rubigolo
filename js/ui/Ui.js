@@ -170,7 +170,7 @@ Ui.prototype.getAiPlayer = function (color) {
 
 Ui.prototype.startGame = function (firstMoves, isLoaded) {
     var game = this.game;
-    if (!isLoaded) game.newGame(this.gsize, this.handicap);
+    if (!isLoaded) game.newGame(this.gsize, this.handicap); // TODO: add komi in UI
     if (firstMoves) {
         var errors = [];
         if (!game.loadMoves(firstMoves, errors)) {

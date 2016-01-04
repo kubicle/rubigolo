@@ -19,12 +19,12 @@ TestBreeder.prototype.testBwBalance = function () {
     var numLostGamesShowed = 5;
     var expectedWins = 0.60 * numGames; // number going up shows new AI gets stronger compared to default AI
     var tolerance = numGames * 0.15; // + or -; the more games you play the lower tolerance you can set
-    var size = 9;
+    var size = 9, komi = 3.5;
 
     // For coverage tests no need to run many games
     if (main.isCoverTest) numGames = 1;
 
-    var breeder = new Breeder(size);
+    var breeder = new Breeder(size, komi);
     var numWins = breeder.bwBalanceCheck(numGames, size, numLostGamesShowed);
 
     if (!main.isCoverTest) this.assertInDelta(numWins, expectedWins, tolerance);

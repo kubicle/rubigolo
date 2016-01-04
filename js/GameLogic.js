@@ -12,7 +12,9 @@ var BLACK = main.BLACK, WHITE = main.WHITE;
 
 
 /** @class GameLogic enforces the game logic.
- *  public read-only attribute: goban, komi, curColor, gameEnded, gameEnding, whoResigned
+ * NB: it makes sense for GameLogic to keep the komi, e.g. in case AI want to evaluate 
+ * the score in mid-game.
+ * public read-only attribute: goban, komi, curColor, gameEnded, gameEnding, whoResigned
  */
 function GameLogic(src) {
     this.inConsole = false;
@@ -303,7 +305,6 @@ GameLogic.prototype._sgfToGame = function (game, errors, upToMoveNumber) {
         this._failLoad('Failed loading SGF moves:\n' + err, errors);
         return null;
     }
-    this.newGame(infos.boardSize);
-    this.komi = infos.komi;
+    this.newGame(infos.boardSize, 0, infos.komi); // handicap, if any, will be in move list
     return reader.toMoveList();
 };
