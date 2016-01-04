@@ -213,7 +213,8 @@ Ui.prototype.checkEnd = function () {
 };
 
 Ui.prototype.computeScore = function () {
-    this.scoreMsg = this.scorer.computeScore(this.game.goban, this.game.komi, this.game.whoResigned).join('<br>');
+    var msgs = this.scorer.computeScoreAsTexts(this.game.goban, this.game.komi, this.game.whoResigned);
+    this.scoreMsg = msgs.join('<br>');
 };
 
 Ui.prototype.proposeScore = function () {
@@ -382,8 +383,8 @@ Ui.prototype.evalMove = function (move) {
 };
 
 Ui.prototype.scoreTest = function () {
-    var score = this.scorer.computeScore(this.game.goban, this.game.komi);
-    this.message(score);
+    this.computeScore();
+    this.message(this.scoreMsg);
     this.board.showSpecial('scoring', this.scorer.getScoringGrid().yx);
 };
 

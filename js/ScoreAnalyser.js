@@ -14,31 +14,32 @@ function ScoreAnalyser() {
 }
 module.exports = ScoreAnalyser;
 
-// Compute simple score difference for a AI-AI game (score info not needed)
+
+// Computes score and returns it as a number >0 if black won
 ScoreAnalyser.prototype.computeScoreDiff = function (goban, komi) {
-    this.analyser.countScore(goban);
-    var scores = this.analyser.scores;
-    var prisoners = this.analyser.prisoners;
-    var b = scores[BLACK] + prisoners[WHITE];
-    var w = scores[WHITE] + prisoners[BLACK] + komi;
-    return b - w;
+    this._computeScore(goban, komi);
+    var totals = this.scoreInfo[0];
+    return totals[BLACK] - totals[WHITE];
 };
 
-// Returns score info as an array of strings
-ScoreAnalyser.prototype.computeScore = function (goban, komi, whoResigned) {
-    this.startScoring(goban, komi, whoResigned);
-    var txt = this.scoreInfoToS(this.scoreInfo);
-    return txt;
+// Computes score and returns it as an array of human-readable strings
+ ScoreAnalyser.prototype.computeScoreAsTexts = function (goban, komi, whoResigned) {
+    this._computeScore(goban, komi, whoResigned);
+    return this._scoreInfoToS(this.scoreInfo);
 };
 
-// Initialize scoring phase
-ScoreAnalyser.prototype.startScoring = function (goban, komi, whoResigned) {
+// Retrives the scoring grid once the score has been computed
+ScoreAnalyser.prototype.getScoringGrid = function () {
+    return this.analyser.getScoringGrid();
+};
+
+ScoreAnalyser.prototype._computeScore = function (goban, komi, whoResigned) {
     this.goban = goban;
-    if (whoResigned !== undefined && whoResigned !== null) {
+    if (typeof whoResigned === 'number') {
         var winner = Grid.COLOR_NAMES[1 - whoResigned];
         var other = Grid.COLOR_NAMES[whoResigned];
         this.scoreInfo = winner + ' won (since ' + other + ' resigned)';
-        return this.scoreInfo;
+        return;
     }
     this.analyser.countScore(goban);
     var scores = this.analyser.scores;
@@ -52,49 +53,28 @@ ScoreAnalyser.prototype.startScoring = function (goban, komi, whoResigned) {
         [scores[WHITE], prisoners[BLACK], komi]];
 
     this.scoreInfo = [totals, details];
-    return this.scoreInfo;
-};
-
-ScoreAnalyser.prototype.getScore = function () {
-    return this.scoreInfoToS(this.scoreInfo);
-};
-
-ScoreAnalyser.prototype.getScoringGrid = function () {
-    return this.analyser.getScoringGrid();
 };
 
 function pointsToString(n) {
     return ( n !== 1 ? n + ' points' : '1 point' );
 }
 
-ScoreAnalyser.prototype.scoreInfoToS = function (info) {
-    if (main.isA(String, info)) { // for games where all but 1 resigned
+ScoreAnalyser.prototype._scoreInfoToS = function (info) {
+    if (typeof info === 'string') { // one player resigned
         return [info];
     }
-    if (!info || info.length !== 2) {
-        throw new Error('Invalid score info: ' + info);
-    }
+    if (!info || info.length !== 2) throw new Error('Invalid score info: ' + info);
     var totals = info[0];
     var details = info[1];
-    if (totals.length !== details.length) {
-        throw new Error('Invalid score info');
-    }
+    if (totals.length !== details.length) throw new Error('Invalid score info');
+
     var s = [];
     var diff = totals[BLACK] - totals[WHITE];
-    s.push(this.scoreDiffToS(diff));
+    s.push(this._scoreDiffToS(diff));
 
     for (var c = BLACK; c <= WHITE; c++) {
         var detail = details[c];
-        if (detail === null) {
-            s.push(Grid.colorName(c) + ' resigned');
-            continue;
-        }
-        if (detail.length !== 3) {
-            throw new Error('Invalid score details');
-        }
-        var score = detail[0];
-        var pris = detail[1];
-        var komi = detail[2];
+        var score = detail[0], pris = detail[1], komi = detail[2];
         var komiStr = (( komi > 0 ? ' + ' + komi + ' komi' : '' ));
         s.push(Grid.colorName(c) + ': ' +
             pointsToString(totals[c]) + ' (' + score + ' ' +
@@ -104,7 +84,7 @@ ScoreAnalyser.prototype.scoreInfoToS = function (info) {
     return s;
 };
 
-ScoreAnalyser.prototype.scoreDiffToS = function (diff) {
+ScoreAnalyser.prototype._scoreDiffToS = function (diff) {
     if (diff === 0) return 'Tie game';
     var win = ( diff > 0 ? BLACK : WHITE );
     return Grid.colorName(win) + ' wins by ' + pointsToString(Math.abs(diff));

@@ -39,15 +39,15 @@ TestScoreAnalyser.prototype.initGame = function (size) {
 TestScoreAnalyser.prototype.testComputeScore = function () {
     this.initGame(7);
     var whoResigned = null;
-    var s = this.sa.computeScore(this.goban, 1.5, whoResigned);
+    var s = this.sa.computeScoreAsTexts(this.goban, 1.5, whoResigned);
     this.assertEqual('white wins by 6.5 points', s.shift());
     this.assertEqual('black: 12 points (12 + 0 prisoners)', s.shift());
     this.assertEqual('white: 18.5 points (14 + 3 prisoners + 1.5 komi)', s.shift());
     this.assertEqual(undefined, s.shift());
     // test message when someone resigns
-    s = this.sa.computeScore(this.goban, 1.5, main.BLACK);
+    s = this.sa.computeScoreAsTexts(this.goban, 1.5, main.BLACK);
     this.assertEqual(['white won (since black resigned)'], s);
-    s = this.sa.computeScore(this.goban, 1.5, main.WHITE);
+    s = this.sa.computeScoreAsTexts(this.goban, 1.5, main.WHITE);
     this.assertEqual(['black won (since white resigned)'], s);
 };
 
@@ -56,16 +56,17 @@ TestScoreAnalyser.prototype.testComputeScoreDiff = function () {
     this.assertEqual(-8.5, this.sa.computeScoreDiff(this.goban, 3.5));
 };
 
-TestScoreAnalyser.prototype.testStartScoring = function () {
+TestScoreAnalyser.prototype.testScoreInfo = function () {
     this.initGame(7);
-    var i = this.sa.startScoring(this.goban, 0.5, null);
+    this.sa.computeScoreDiff(this.goban, 0.5, null);
+    var i = this.sa.scoreInfo;
     this.assertEqual([12, 17.5], i.shift());
     this.assertEqual([[12, 0, 0], [14, 3, 0.5]], i.shift());
 };
 
 TestScoreAnalyser.prototype.testScoringGrid = function () {
     this.initGame(7);
-    this.sa.startScoring(this.goban, 1.5, null);
+    this.sa.computeScoreDiff(this.goban, 1.5, null);
     var sgridYx = this.sa.getScoringGrid().yx;
     this.assertEqual(main.EMPTY, this.goban.stoneAt(1, 1).color); // score analyser leaves the goban untouched
     this.assertEqual(Grid.TERRITORY_COLOR + main.WHITE, sgridYx[1][1]); // a1
@@ -74,9 +75,9 @@ TestScoreAnalyser.prototype.testScoringGrid = function () {
 
 TestScoreAnalyser.prototype.testScoreInfoToS = function () {
     this.initGame();
-    this.sa.computeScore(this.goban, 1.5, null); // just to make the test succeed (these methods could be private, actually)
+    this.sa.computeScoreAsTexts(this.goban, 1.5, null); // just to make the test succeed (these methods could be private, actually)
     var info = [[10, 12], [[1, 2, 3], [4, 5, 6]]];
-    var s = this.sa.scoreInfoToS(info);
+    var s = this.sa._scoreInfoToS(info);
     this.assertEqual('white wins by 2 points', s.shift());
     this.assertEqual('black: 10 points (1 + 2 prisoners + 3 komi)', s.shift());
     this.assertEqual('white: 12 points (4 + 5 prisoners + 6 komi)', s.shift());
@@ -85,8 +86,8 @@ TestScoreAnalyser.prototype.testScoreInfoToS = function () {
 
 TestScoreAnalyser.prototype.testScoreDiffToS = function () {
     this.initGame();
-    this.sa.computeScore(this.goban, 1.5, null); // just to make the test succeed (these methods could be private, actually)
-    this.assertEqual('white wins by 3 points', this.sa.scoreDiffToS(-3));
-    this.assertEqual('black wins by 4 points', this.sa.scoreDiffToS(4));
-    this.assertEqual('Tie game', this.sa.scoreDiffToS(0));
+    this.sa.computeScoreAsTexts(this.goban, 1.5, null); // just to make the test succeed (these methods could be private, actually)
+    this.assertEqual('white wins by 3 points', this.sa._scoreDiffToS(-3));
+    this.assertEqual('black wins by 4 points', this.sa._scoreDiffToS(4));
+    this.assertEqual('Tie game', this.sa._scoreDiffToS(0));
 };
