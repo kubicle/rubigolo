@@ -42,7 +42,7 @@ TestBoardAnalyser.prototype.checkGame = function (moves, expScore, gsize, finalP
 };
 
 TestBoardAnalyser.prototype.checkScore = function (prisoners, dead, score) {
-    this.assertEqual(prisoners, Group.countPrisoners(this.goban), 'already prisoners');
+    this.assertEqual(prisoners, this.goban.countPrisoners());
     
     var futurePrisoners = this.boan.prisoners;
     this.assertEqual(dead[BLACK], futurePrisoners[BLACK] - prisoners[BLACK], 'BLACK dead');

@@ -262,6 +262,17 @@ Goban.prototype.previousStone = function () {
     return this.history[this.history.length - 1];
 };
 
+// Returns an array with the prisoner count per color
+// e.g. [3,5] means 3 black stones are prisoners, 5 white stones
+Goban.countPrisoners = function () {
+    var prisoners = [0, 0];
+    for (var i = this.killedGroups.length - 1; i >= 0; i--) {
+        var g = this.killedGroups[i];
+        prisoners[g.color] += g.stones.length;
+    }
+    return prisoners;
+};
+
 Goban.prototype._initSuperko = function (isRuleOn) {
     this.useSuperko = isRuleOn;
     if (isRuleOn) {

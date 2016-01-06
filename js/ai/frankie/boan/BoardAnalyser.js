@@ -3,7 +3,6 @@
 
 var main = require('../../../main');
 var Grid = require('../../../Grid');
-var Group = require('../../../Group');
 var ZoneFiller = require('./ZoneFiller');
 var Shaper = require('../Shaper');
 
@@ -476,7 +475,7 @@ module.exports = BoardAnalyser;
 BoardAnalyser.prototype.countScore = function (goban) {
     if (main.debug) main.log.debug('Counting score...');
     this.scores[BLACK] = this.scores[WHITE] = 0;
-    this.prisoners = Group.countPrisoners(goban);
+    this.prisoners = goban.countPrisoners();
 
     if (!this._initAnalysis(goban)) return;
     this._runAnalysis();
