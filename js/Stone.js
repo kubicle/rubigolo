@@ -124,26 +124,18 @@ Stone.prototype.moveIsKo = function (color) {
     if (!groupA) return false;
 
     // 2) This killed group must be a single stone A
-    if (groupA.stones.length !== 1) {
-        return false;
-    }
+    if (groupA.stones.length !== 1) return false;
     var stoneA = groupA.stones[0];
+
     // 3) Stone A was played just now
-    if (this.goban.previousStone() !== stoneA) {
-        return false;
-    }
+    if (this.goban.previousStone() !== stoneA) return false;
+
     // 4) Stone B was killed by A in same position we are looking at
-    var groupB = this.goban.killedGroups[this.goban.killedGroups.length-1];
-    if (groupB.killedBy !== stoneA) {
-        return false;
-    }
-    if (groupB.stones.length !== 1) {
-        return false;
-    }
+    var groupB = this.goban.previousKilledGroup();
+    if (!groupB || groupB.killedBy !== stoneA || groupB.stones.length !== 1) return false;
     var stoneB = groupB.stones[0];
-    if (stoneB.i !== this.i || stoneB.j !== this.j) {
-        return false;
-    }
+    if (stoneB.i !== this.i || stoneB.j !== this.j) return false;
+
     return true; // move is a ko
 };
 
