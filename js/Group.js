@@ -246,7 +246,7 @@ Group.prototype._dieFrom = function (killerStone) {
 };
 
 // Called when "undo" operation removes the killer stone of this group
-Group.prototype._resuscitate = function () {
+Group.prototype.resuscitate = function () {
     this.killedBy = null;
     this.lives = 1; // always comes back with a single life
     for (var stone, stone_array = this.stones, stone_ndx = 0; stone=stone_array[stone_ndx], stone_ndx < stone_array.length; stone_ndx++) {
@@ -254,15 +254,5 @@ Group.prototype._resuscitate = function () {
         for (var enemy, enemy_array = stone.uniqueAllies(1 - this.color), enemy_ndx = 0; enemy=enemy_array[enemy_ndx], enemy_ndx < enemy_array.length; enemy_ndx++) {
             enemy._attackedByResuscitated(stone);
         }
-    }
-};
-
-Group.resuscitateFrom = function (killerStone, goban) {
-    for (;;) {
-        var group = goban.killedGroups[goban.killedGroups.length - 1];
-        if (group.killedBy !== killerStone) break;
-        goban.killedGroups.pop();
-        if (main.debugGroup) main.log.debug('taking back ' + killerStone + ' so we resuscitate ' + group.debugDump());
-        group._resuscitate();
     }
 };

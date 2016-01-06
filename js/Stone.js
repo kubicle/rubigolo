@@ -193,7 +193,6 @@ Stone.prototype.takeBack = function () {
 
     this.group = null;
     this.color = EMPTY;
-    Group.resuscitateFrom(this, this.goban);
     if (main.debugGroup) main.log.debug('takeBack: end; main group: ' + logGroup.debugDump());
 };
 

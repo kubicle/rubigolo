@@ -213,6 +213,7 @@ Goban.prototype.undo = function () {
     var stone = this._takeBack();
     if (!stone) throw new Error('Extra undo');
     stone.takeBack();
+    this._resuscitateGroups(stone);
     this._updatePositionSignature();
 };
 
@@ -227,6 +228,7 @@ Goban.prototype.untry = function () {
     var stone = this._takeBack();
     if (main.debug) main.log.debug('untry ' + stone);
     stone.takeBack();
+    this._resuscitateGroups(stone);
 };
 
 // Plays a stone and stores it in history
@@ -244,6 +246,22 @@ Goban.prototype._putDown = function (i, j) {
 // Returns the existing stone for the caller to update it
 Goban.prototype._takeBack = function () {
     return this.history.pop();
+};
+
+// Returns undefined if no group was killed yet
+Goban.prototype.previousKilledGroup = function () {
+    return this.killedGroups[this.killedGroups.length - 1];
+};
+
+Goban.prototype._resuscitateGroups = function (killerStone) {
+    var killedGroups = this.killedGroups;
+    for (;;) {
+        var group = killedGroups[killedGroups.length - 1];
+        if (!group || group.killedBy !== killerStone) return;
+        killedGroups.pop();
+        if (main.debugGroup) main.log.debug('taking back ' + killerStone + ' so we resuscitate ' + group);
+        group.resuscitate();
+    }
 };
 
 // If inc > 0 (e.g. +1), increments the move ID
@@ -264,7 +282,7 @@ Goban.prototype.previousStone = function () {
 
 // Returns an array with the prisoner count per color
 // e.g. [3,5] means 3 black stones are prisoners, 5 white stones
-Goban.countPrisoners = function () {
+Goban.prototype.countPrisoners = function () {
     var prisoners = [0, 0];
     for (var i = this.killedGroups.length - 1; i >= 0; i--) {
         var g = this.killedGroups[i];
