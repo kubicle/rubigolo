@@ -36,7 +36,7 @@ main.isA = function (klass, obj) {
 main.clone = function (obj) {
     if (obj === null || obj === undefined) return obj;
     var clone;
-    if (main.isA(Array, obj)) {
+    if (obj instanceof Array) {
         clone = [];
         for (var i = 0, len = obj.length; i < len; i++) clone[i] = obj[i];
     } else if (typeof obj === 'object') {

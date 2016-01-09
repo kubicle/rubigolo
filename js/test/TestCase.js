@@ -39,8 +39,8 @@ function _valueCompareHint(expected, val) {
 }
 
 TestCase.prototype.compareValue = function (expected, val) {
-    if (main.isA(Array, expected)) {
-        if (!main.isA(Array, val)) return 'Expected Array but got ' + val;
+    if (expected instanceof Array) {
+        if (!val instanceof Array) return 'Expected Array but got ' + val;
         if (val.length !== expected.length) {
             return 'Expected Array of size ' + expected.length + ' but got size ' + val.length;
         }
