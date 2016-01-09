@@ -201,7 +201,7 @@ Breeder.prototype.bwBalanceCheck = function (numGames, gsize, numLostGamesShowed
     var expectedDuration = gsize === 9 ? numGames * 0.05 : undefined;
 
     this.timer.start(desc, expectedDuration);
-    var totalScore = 0, numWins = 0, numCloseMatch = 0, numMoves = 0;
+    var totalScore = 0, numWins = 0, numCloseMatch = 0, numMoves = 0, numRandom = 0;
     for (var i = 0; i < numGames; i++) {
         var score = this.playGame('control', 'control', this.controlGenes, this.controlGenes);
         if (score === 0) throw new Error('Unexpected tie game');
@@ -213,6 +213,7 @@ Breeder.prototype.bwBalanceCheck = function (numGames, gsize, numLostGamesShowed
         if (Math.abs(score) < 3) numCloseMatch++;
         totalScore += score;
         numMoves += this.game.history.length;
+        numRandom += this.players[WHITE].numRandomPicks;
     }
     this.timer.stop(/*lenientIfSlow=*/true);
 
@@ -222,6 +223,7 @@ Breeder.prototype.bwBalanceCheck = function (numGames, gsize, numLostGamesShowed
     main.log.info('Average score difference: ' + (-totalScore / numGames).toFixed(1));
     main.log.info('Close match (score diff < 3 pts): ' + ~~(numCloseMatch / numGames * 100) + '%');
     main.log.info('Average number of moves: ' + ~~(numMoves / numGames));
+    main.log.info('Average number of times White picked at random between equivalent moves: ' + (numRandom / numGames).toFixed(1));
     main.log.info('Average time per move: ' + (this.timer.duration * 1000 / numMoves).toFixed(1) + 'ms');
     main.log.info('Dupe games: ' + ~~(dupes / numGames * 100) + '%');
     main.log.info('Won games for White-' + whiteAi +

@@ -56,9 +56,10 @@ Chuckie.prototype.setColor = function (color) {
 /** Can be called from Breeder with different genes */
 Chuckie.prototype.prepareGame = function (genes) {
     if (genes) this.genes = genes;
-    this.numMoves = 0;
+    this.numMoves = this.numRandomPicks = 0;
 
     this.bestScore = this.bestI = this.bestJ = 0;
+    this.usedRandom = false;
     this.testI = this.testJ = NO_MOVE;
     this.debugHeuristic = null;
 };
@@ -80,6 +81,7 @@ Chuckie.prototype.getGene = function (geneName, defVal, lowLimit, highLimit) {
 Chuckie.prototype._foundBestMove = function(i, j, score) {
     this.bestScore = score;
     this.bestI = i; this.bestJ = j;
+    this.usedRandom = this.numBestTwins !== 1;
 };
 
 Chuckie.prototype._keepBestMove = function(i, j, score) {
@@ -163,6 +165,7 @@ Chuckie.prototype._collectBestMove = function (stateYx, scoreYx) {
         }
     }
     if (this.bestScore < this.minimumScore) return 'pass';
+    if (this.usedRandom) this.numRandomPicks++;
     return Grid.xy2move(this.bestI, this.bestJ);
 };
 
