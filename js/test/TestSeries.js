@@ -15,7 +15,7 @@ TestSeries.FAILED_ASSERTION_MSG = 'Failed assertion: ';
 
 
 TestSeries.prototype.add = function (klass) {
-    this.testCases[klass.name] = klass;
+    this.testCases[main.funcName(klass)] = klass;
     return klass;
 };
 
@@ -25,7 +25,7 @@ TestSeries.prototype.testOneClass = function (Klass, methodPattern) {
         if (method.substr(0,4) !== 'test') continue;
         if (methodPattern && method.indexOf(methodPattern) === -1) continue;
         this.testCount++;
-        var test = new Klass(Klass.name + '#' + method);
+        var test = new Klass(main.funcName(Klass) + '#' + method);
         test.series = this;
         try {
             test[method].call(test);
@@ -33,10 +33,10 @@ TestSeries.prototype.testOneClass = function (Klass, methodPattern) {
             if (e.message.startWith(TestSeries.FAILED_ASSERTION_MSG)) {
                 this.failedCount++;
                 e.message = e.message.substr(TestSeries.FAILED_ASSERTION_MSG.length);
-                main.log.error('Test failed: ' + test.name + ': ' + e.message + '\n');
+                main.log.error('Test failed: ' + main.funcName(test) + ': ' + e.message + '\n');
             } else {
                 this.errorCount++;
-                main.log.error('Exception during test: ' + test.name + ':\n' + e.stack + '\n');
+                main.log.error('Exception during test: ' + main.funcName(test) + ':\n' + e.stack + '\n');
             }
         }
     }
