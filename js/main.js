@@ -27,15 +27,7 @@ main.isA = function (klass, obj) {
     }
     if (obj instanceof klass) return true;
     if (obj === null || obj === undefined) return false;
-    if (obj.constructor.name === klass.name) return true; // for String and Number
     return false;
-};
-
-/** main.isA(Vehicule, myCar) -> FALSE
- *  main.isA(Car, myCar) -> true
- */
-main.instanceOf = function (klass, obj) {
-    return obj.constructor.name === klass.name;
 };
 
 /** Shallow clone helper.
