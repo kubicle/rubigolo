@@ -1,9 +1,7 @@
-//Translated from game_logic.rb using babyruby2js
 'use strict';
 
 var main = require('./main');
 var Grid = require('./Grid');
-var Group = require('./Group');
 var Goban = require('./Goban');
 var SgfReader = require('./SgfReader');
 var HandicapSetter = require('./HandicapSetter');
@@ -22,7 +20,8 @@ function GameLogic(src) {
     this.errors = [];
 
     this.goban = null;
-    this.handicap = this.komi = this.numPass = this.curColor = 0;
+    this.handicap = this.komi = this.numPass = 0;
+    this.curColor = this.whoStarts = BLACK;
     this.whoResigned = this.gameEnding = this.gameEnded = null;
 
     if (src) this.copy(src);
@@ -32,6 +31,7 @@ module.exports = GameLogic;
 
 GameLogic.prototype.copy = function (src) {
     this.newGame(src.goban.gsize, src.handicap, src.komi);
+    this.setWhoStarts(src.whoStarts);
 
     // TODO: general settings should probably be at GameLogic level
     if (src.goban.useSuperko) this.goban.setRules({ positionalSuperko: true });
@@ -39,13 +39,12 @@ GameLogic.prototype.copy = function (src) {
     this.loadMoves(src.history.join(','));
 };
 
-// handicap and komi are optional (default is 0)
+// handicap and komi are optional
 // Returns true if size and handicap could be set to given values
 GameLogic.prototype.newGame = function (gsize, handicap, komi) {
     this.history.clear();
     this.errors.clear();
     this.numPass = 0;
-    this.curColor = main.BLACK;
     this.gameEnded = this.gameEnding = false;
     this.whoResigned = null;
 
@@ -56,25 +55,28 @@ GameLogic.prototype.newGame = function (gsize, handicap, komi) {
     }
 
     handicap = handicap !== undefined ? handicap : 0;
-    this.setHandicap(handicap);
+    this.setHandicapAndWhoStarts(handicap);
 
     this.komi = komi !== undefined ? komi : (handicap ? 0.5 : 6.5);
 
     return this.goban.gsize === gsize && this.handicap === handicap;
 };
 
+GameLogic.prototype.setWhoStarts = function (color) {
+    this.curColor = this.whoStarts = color;
+};
+
 // Initializes the handicap points
 // h can be a number or a string
 // string examples: "3" or "3=d4-p16-p4" or "d4-p16-p4"
-GameLogic.prototype.setHandicap = function (h) {
+GameLogic.prototype.setHandicapAndWhoStarts = function (h) {
     if (this.history.length > 0) {
         throw new Error('Handicap cannot be changed during a game');
     }
     this.handicap = HandicapSetter.setHandicap(this.goban, h);
-    // White first when handicap
-    if (this.handicap !== 0) {
-        this.curColor = main.WHITE;
-    }
+
+    // White first when handicap > 0
+    this.setWhoStarts(this.handicap > 0 ? WHITE : BLACK);
     return true;
 };
 
@@ -128,7 +130,7 @@ GameLogic.prototype.playOneMove = function (move) {
     } else if (move === 'pass') {
         return this.passOneMove();
     } else if (move.startWith('hand')) {
-        return this.setHandicap(move.split(':')[1]);
+        return this.setHandicapAndWhoStarts(move.split(':')[1]);
     } else if (move.startWith('load:')) {
         return this.loadMoves(move.slice(5));
     } else if (move.startWith('log')) {
@@ -214,9 +216,10 @@ GameLogic.prototype.moveNumber = function () {
 
 // Returns a text representation of the list of moves played so far
 GameLogic.prototype.historyString = function () {
-    return (( this.handicap > 0 ? 'handicap:' + this.handicap + ',' : '' )) +
-        this.history.join(',') +
-        ' (' + this.history.length + ' moves)';
+    var hand = this.handicap > 0 ? 'handicap:' + this.handicap + ',' : '';
+    var h = this.history;
+    var color1 = h.length && h[0].length === 2 ? (this.whoStarts === BLACK ? 'B' : 'W') : '';
+    return hand + color1 + h.join(',') + ' (' + h.length + ' moves)';
 };
 
 // Returns an array with the prisoner count per color
