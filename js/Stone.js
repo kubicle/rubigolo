@@ -172,20 +172,14 @@ Stone.prototype.putDown = function (color) {
 
 // Called by goban only
 Stone.prototype.takeBack = function () {
-    if (main.debugGroup) main.log.debug('takeBack: ' + this.toString() + ' from group ' + this.group);
-
     this.group.unmergeFrom(this);
     this.group.disconnectStone(this);
     var enemies = this.uniqueAllies(1 - this.color);
     for (var e = enemies.length - 1; e >= 0; e--) {
         enemies[e].notAttackedAnymore(this);
     }
-    var logGroup;
-    if (main.debugGroup) logGroup = this.group;
-
     this.group = null;
     this.color = EMPTY;
-    if (main.debugGroup) main.log.debug('takeBack: end; main group: ' + logGroup.debugDump());
 };
 
 Stone.prototype.setGroupOnMerge = function (newGroup) {
