@@ -17,7 +17,7 @@ var DIR0 = main.DIR0, DIR3 = main.DIR3;
  */
 function Heuristic(player) {
     this.player = player;
-    this.name = this.constructor.name;
+    this.name = this.constructor.name || main.constructorName(this);
     this.goban = player.goban;
     this.gsize = player.goban.gsize;
     this.infl = player.infl;

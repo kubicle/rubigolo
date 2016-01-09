@@ -30,6 +30,11 @@ main.isA = function (klass, obj) {
     return false;
 };
 
+/** If constructor.name is not supported, this function returns this info */
+main.constructorName = function (obj) {
+    return obj.constructor.name || obj.constructor.toString().split(/ |\(/, 2)[1];
+};
+
 /** Shallow clone helper.
  *  Usual caution applies - please do some reading about the pitfalls if needed.
  */
