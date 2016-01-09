@@ -15,21 +15,6 @@ main.log = new Logger();
 
 //--- Misc Helpers
 
-/** main.isA(Vehicule, myCar) -> TRUE
- *  main.isA(Car, myCar) -> true
- *  klass can be a string for Ruby types that have no exact equivalent in JS
- */
-main.isA = function (klass, obj) {
-    if (typeof klass === 'string') {
-        if (klass === 'integer') return (typeof obj === 'number' || obj instanceof Number) && ~~obj === obj;
-        if (klass === 'float') return (typeof obj === 'number' || obj instanceof Number);
-        throw new Error('Invalid parameter for isA: ' + klass);
-    }
-    if (obj instanceof klass) return true;
-    if (obj === null || obj === undefined) return false;
-    return false;
-};
-
 /** If constructor.name is not supported, this function returns this info */
 main.constructorName = function (obj) {
     return obj.constructor.name || obj.constructor.toString().split(/ |\(/, 2)[1];
