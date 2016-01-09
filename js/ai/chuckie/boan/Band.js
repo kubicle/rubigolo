@@ -17,7 +17,7 @@ module.exports = Band;
 function giNdx(gi) { return '#' + gi.group.ndx; }
 
 Band.prototype.toString = function () {
-    return this.brothers.map(giNdx);
+    return this.brothers.map(giNdx).toString();
 };
 
 Band.prototype._add1 = function (gi) {

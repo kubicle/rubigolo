@@ -185,7 +185,7 @@ Void.prototype.isTouching = function (gi) {
 function grpNdx(g) { return '#' + g.ndx; }
 
 Void.prototype.toString = function () {
-    return vtype2str(this.vtype) + '-' + Grid.xy2move(this.i, this.j) + ', vcount:' + this.vcount +
-        ', black:' + (this.groups[BLACK].map(grpNdx).toString() || '-') +
-        ', white:' + (this.groups[WHITE].map(grpNdx).toString() || '-');
+    return '{' + vtype2str(this.vtype) + '-' + Grid.xy2move(this.i, this.j) + ' vcount:' + this.vcount +
+        ' black:' + (this.groups[BLACK].map(grpNdx).toString() || '-') +
+        ' white:' + (this.groups[WHITE].map(grpNdx).toString() || '-') + '}';
 };

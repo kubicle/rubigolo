@@ -57,8 +57,12 @@ TestBoardAnalyser.prototype.checkScore = function (prisoners, dead, score) {
 // Coverage & base methods
 TestBoardAnalyser.prototype.testInternals = function () {
     this.initBoard(5);
-    // same game as testDoomedGivesEye2 below
-    this.game.loadMoves('a2,a4,b2,b4,c2,b5,b1,c5,d2,c4,d1');
+    this.game.loadMoves('a2,a4,b2,b4,c2,b5,b1,c5,d2,c4,d1,pass,e3');
+    // -##--
+    // ###--
+    // ----@
+    // @@@@-
+    // -@-@-
     var grid = this.goban.scoringGrid.initFromGoban(this.goban);
     var ba = this.boan = new main.defaultAi.BoardAnalyser();
     ba.analyse(this.goban, grid, WHITE);
@@ -68,11 +72,13 @@ TestBoardAnalyser.prototype.testInternals = function () {
     var gi = ba.allGroups[1];
     this.assertEqual(true, v.isTouching(gi));
     this.assertEqual(false, v.isTouching(ba.allGroups[2]));
-    this.assertEqual('eye-a1, vcount:1, black:#1, white:-', v.toString());
-    this.assertEqual('void-e1, vcount:11, black:#1, white:#2', ba.allVoids[2].toString());
+    this.assertEqual('{eye-a1 vcount:1 black:#1 white:-}', v.toString());
+    this.assertEqual('{eye-e1 vcount:2 black:#3,#1 white:-}', ba.allVoids[2].toString());
+    this.assertEqual('{void-a3 vcount:8 black:#1,#3 white:#2}', ba.allVoids[3].toString());
 
     //Coverage
     this.assertEqual(true, ba.debugDump().length > 100);
+    this.assertEqual('#3,#1', gi.band.toString());
 };
 
 TestBoardAnalyser.prototype.testWeirdEmptyBoard = function () {
