@@ -92,7 +92,7 @@ BoardAnalyser.prototype._addGroup = function (g, v) {
         if (!g._info || g._info.version !== BOAN_VERSION) {
             g._info = new GroupInfo(g, BOAN_VERSION);
         } else {
-            g._info.resetAnalysis(g);
+            g._info.resetAnalysis();
         }
         gi = this.allGroups[g.ndx] = g._info;
     }

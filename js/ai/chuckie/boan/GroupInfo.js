@@ -17,7 +17,8 @@ function GroupInfo(group, version) {
     this.killers = [];
     this.potentialEyes = [];
 
-    this.resetAnalysis(group);
+    this.group = group;
+    this.resetAnalysis();
 }
 module.exports = GroupInfo;
 
@@ -30,8 +31,7 @@ var ALIVE = GroupInfo.ALIVE = 1000; // any big enough liveliness to mean "alive 
 
 
 // This also resets the eyes
-GroupInfo.prototype.resetAnalysis = function (group) {
-    this.group = group;
+GroupInfo.prototype.resetAnalysis = function () {
     this.eyeCount = this._liveliness = 0;
     this.voids.clear();
     this.nearVoids.clear();
