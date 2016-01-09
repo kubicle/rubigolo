@@ -15,7 +15,7 @@ var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
 
 /** @class */
 function Chuckie(goban, color, genes) {
-    this.name = this.constructor.name || main.constructorName(this);
+    this.name = this.constructor.name || main.funcName(this.constructor);
     this.version = this.name + '-1.0';
     this.goban = goban;
     this.genes = genes || new Genes();

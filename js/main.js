@@ -15,9 +15,11 @@ main.log = new Logger();
 
 //--- Misc Helpers
 
-/** If constructor.name is not supported, this function returns this info */
-main.constructorName = function (obj) {
-    return obj.constructor.name || obj.constructor.toString().split(/ |\(/, 2)[1];
+/** If function.name is not supported, this function returns this info.
+ *  E.g. for this.constructor.name you can do main.funcName(this.constructor)
+ */
+main.funcName = function (func) {
+    return func.name || func.toString().split(/ |\(/, 2)[1];
 };
 
 /** Shallow clone helper.
