@@ -82,7 +82,7 @@ module.exports = SgfReader;
 
 
 SgfReader.isSgf = function (game) {
-    return game.trimLeft().startWith('(;');
+    return game.trim().startWith('(;');
 };
 
 // Raises an exception if we could not convert the format
@@ -289,12 +289,12 @@ SgfReader.prototype._parseNode = function (t) {
 };
 
 SgfReader.prototype._skip = function (t) {
-    return t.trimLeft();
+    return t.trim();
 };
 
 SgfReader.prototype._get = function (lex, t) {
     if (!t.startWith(lex)) this._error(lex + ' expected', t);
-    return t.replace(lex, '').trimLeft();
+    return t.replace(lex, '').trim();
 };
 
 SgfReader.prototype._error = function (reason, t) {
