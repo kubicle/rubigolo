@@ -16,6 +16,7 @@ var DIR0 = main.DIR0, DIR3 = main.DIR3;
  */
 function Heuristic(player, consultant) {
     this.player = player;
+    this.name = this.constructor.name || main.funcName(this.constructor);
     this.consultant = !!consultant;
     this.goban = player.goban;
     this.gsize = player.goban.gsize;
@@ -53,7 +54,7 @@ Heuristic.prototype.evalBoard = function (stateYx, scoreYx) {
 };
 
 Heuristic.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
-    return this.player.genes.get(this.constructor.name + '-' + name, defVal, lowLimit, highLimit);
+    return this.player.genes.get(this.name + '-' + name, defVal, lowLimit, highLimit);
 };
 
 Heuristic.prototype.territoryScore = function (i, j, color) {
@@ -125,7 +126,7 @@ Heuristic.prototype.invasionCost = function (i, j, color) {
 };
 
 Heuristic.prototype.markMoveAsBlunder = function (i, j, reason) {
-    this.player.markMoveAsBlunder(i, j, this.constructor.name + ':' + reason);
+    this.player.markMoveAsBlunder(i, j, this.name + ':' + reason);
 };
 
 Heuristic.prototype.distanceFromStoneToBorder = function (stone) {

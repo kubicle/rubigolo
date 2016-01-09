@@ -16,7 +16,8 @@ var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
 
 /** @class */
 function Droopy(goban, color, genes) {
-    this.version = 'Droopy-1.0';
+    this.name = this.constructor.name || main.funcName(this.constructor);
+    this.version = this.name + '-1.0';
     this.goban = goban;
     this.genes = genes || new Genes();
     this.gsize = this.goban.gsize;
@@ -74,7 +75,7 @@ Droopy.prototype.getHeuristic = function (heuristicName) {
 Droopy.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
     if (lowLimit === undefined) lowLimit = null;
     if (highLimit === undefined) highLimit = null;
-    return this.genes.get(this.constructor.name + '-' + name, defVal, lowLimit, highLimit);
+    return this.genes.get(this.name + '-' + name, defVal, lowLimit, highLimit);
 };
 
 Droopy.prototype._foundBestMove = function(i, j, score) {

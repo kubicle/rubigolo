@@ -25,8 +25,8 @@ var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
  *  - an eye shape constructor
  */
 function Frankie(goban, color, genes) {
-    if (genes === undefined) genes = null;
-    this.version = 'Frankie-1.0';
+    this.name = this.constructor.name || main.funcName(this.constructor);
+    this.version = this.name + '-1.0';
     this.goban = goban;
     this.inf = new InfluenceMap(this.goban);
     this.ter = new PotentialTerritory(this.goban);
@@ -59,7 +59,7 @@ Frankie.ZoneFiller = ZoneFiller;
 Frankie.prototype.getHeuristic = function (heuristicName) {
     for (var n = this.heuristics.length - 1; n >= 0; n--) {
         var h = this.heuristics[n];
-        if (h.constructor.name === heuristicName) return h;
+        if (h.name === heuristicName) return h;
     }
     throw new Error('Invalid heuristic name: ' + heuristicName);
 };
@@ -80,7 +80,7 @@ Frankie.prototype.setColor = function (color) {
 Frankie.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
     if (lowLimit === undefined) lowLimit = null;
     if (highLimit === undefined) highLimit = null;
-    return this.genes.get(this.constructor.name + '-' + name, defVal, lowLimit, highLimit);
+    return this.genes.get(this.name + '-' + name, defVal, lowLimit, highLimit);
 };
 
 function score2str(i, j, score) {
@@ -208,7 +208,7 @@ Frankie.prototype._testMoveEval = function (i, j) {
         scoreYx[j][i] = 0;
         h.evalBoard(stateYx, scoreYx);
         var s = scoreYx[j][i];
-        if (s) survey[h.constructor.name] = s;
+        if (s) survey[h.name] = s;
         score += s;
     }
     this.survey = survey;
