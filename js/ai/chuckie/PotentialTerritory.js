@@ -108,7 +108,7 @@ PotentialTerritory.prototype._initGroupState = function () {
 
 PotentialTerritory.prototype._collectGroupState = function () {
     for (var ndx in this.allGroups) {
-        var g0 = this.allGroups[ndx], gn = g0;
+        var g0 = this.allGroups[~~ndx], gn = g0;
         // follow merge history to get final group g0 ended up into
         while (gn.mergedWith) gn = gn.mergedWith;
         // collect state of final group
