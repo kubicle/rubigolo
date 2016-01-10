@@ -45,7 +45,8 @@ Board.prototype.create = function (parent, width, goban, options) {
         size: gsize,
         width: width,
         section: { top: margin, left: margin, right: margin, bottom: margin },
-        coordFontSize: 0.6
+        coordFontSize: 0.6,
+        background: 'lib/wood1.jpg'
     };
 
     parent.clear();
