@@ -35,6 +35,7 @@ ScoreAnalyser.prototype.getScoringGrid = function () {
 
 ScoreAnalyser.prototype._computeScore = function (goban, komi, whoResigned) {
     this.goban = goban;
+    komi = komi || 0.5;
     if (typeof whoResigned === 'number') {
         var winner = Grid.COLOR_NAMES[1 - whoResigned];
         var other = Grid.COLOR_NAMES[whoResigned];
