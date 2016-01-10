@@ -30,7 +30,7 @@ TestSpeed.prototype.initBoard = function (size) {
     this.goban.setRules({ positionalSuperko: false });
 };
 
-TestSpeed.prototype.testSpeed1 = function () {
+TestSpeed.prototype.testSpeedBasic = function () {
     var t = new TimeKeeper();
     // Basic test
     var count = main.isCoverTest ? 1 : 10000;
@@ -39,6 +39,10 @@ TestSpeed.prototype.testSpeed1 = function () {
         this.play10Stones();
     }
     t.stop();
+};
+
+TestSpeed.prototype.testSpeed35moves = function () {
+    var t = new TimeKeeper();
     // prepare games so we isolate the GC caused by that 
     // (in real AI thinking there will be many other things but...)
     // 35 moves, final position:
@@ -54,9 +58,9 @@ TestSpeed.prototype.testSpeed1 = function () {
     //   abcdefghj
     var game1 = 'c3,f3,d7,e5,c5,f7,e2,e8,d8,f2,f1,g1,e1,h2,e3,d4,e4,f4,d5,d3,d2,c2,c4,d6,e7,e6,c6,f8,e9,f9,d9,c7,c8,b8,b7';
     var game1MovesIj = this.movesIj(game1);
-    count = main.isCoverTest ? 1 : 2000;
+    var count = main.isCoverTest ? 1 : 2000;
     t.start('35 move game, ' + count + ' times and undo', 0.05);
-    for (i = 0; i < count; i++) {
+    for (var i = 0; i < count; i++) {
         this.playGameAndClean(game1MovesIj, TestSpeed.CM_UNDO);
     }
     t.stop();
@@ -76,7 +80,7 @@ TestSpeed.prototype.testSpeed1 = function () {
     t.stop();
 };
 
-TestSpeed.prototype.testSpeed2 = function () {
+TestSpeed.prototype.testSpeed63movesAndUndo = function () {
     var t = new TimeKeeper();
     // 9 ++O@@++++
     // 8 +@OO@++@+
