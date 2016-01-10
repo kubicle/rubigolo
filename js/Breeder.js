@@ -1,4 +1,3 @@
-//Translated from breeder.rb using babyruby2js
 'use strict';
 
 var main = require('./main');
@@ -27,13 +26,15 @@ function Breeder(gameSize, komi) {
         new main.defaultAi(this.goban, WHITE)
     ];
     this.scorer = new ScoreAnalyser();
-    this.genSize = Breeder.GENERATION_SIZE;
-    this.firstGeneration();
+    this.genSize = 26; // default; must be even number
     this.seenGames = {};
+
+    this.controlGenes = null;
+    this.generation = this.newGeneration = this.scoreDiff = null;
 }
 module.exports = Breeder;
 
-Breeder.GENERATION_SIZE = 26; // must be even number
+
 Breeder.MUTATION_RATE = 0.03; // e.g. 0.02 is 2%
 Breeder.WIDE_MUTATION_RATE = 0.1; // how often do we "widely" mutate
 Breeder.TOO_SMALL_SCORE_DIFF = 3; // if final score is less that this, see it as a tie game
@@ -84,24 +85,12 @@ Breeder.prototype.playGame = function (name1, name2, p1, p2) {
     }
     if (main.debugBreed) {
         main.log.debug('\n#' + name1 + ':' + p1 + '\nagainst\n#' + name2 + ':' + p2);
-        main.log.debug('Distance: ' + '%.02f'.format(p1.distance(p2)));
+        main.log.debug('Distance: ' + p1.distance(p2).toFixed(2));
         main.log.debug('Score: ' + scoreDiff);
         main.log.debug('Moves: ' + this.game.historyString());
         main.log.debug(this.goban.toString());
     }
     return scoreDiff;
-};
-
-Breeder.prototype.run = function (numTournaments, numMatchPerAi) {
-    for (var i = 1; i <= numTournaments; i++) { // TODO: Find a way to appreciate the progress
-        var tournamentDesc = 'Breeding tournament ' + i + '/' + numTournaments +
-            ': each of ' + this.genSize + ' AIs plays ' + numMatchPerAi + ' games';
-        this.timer.start(tournamentDesc, 5.5);
-        this.oneTournament(numMatchPerAi);
-        this.timer.stop(/*lenientIfSlow=*/true);
-        this.reproduction();
-        this.control();
-    }
 };
 
 // NB: we only update score for black so komi unbalance does not matter.
@@ -122,7 +111,7 @@ Breeder.prototype.oneTournament = function (numMatchPerAi) {
             if (Math.abs(diff) < Breeder.TOO_SMALL_SCORE_DIFF) {
                 diff = 0;
             } else {
-                diff = Math.abs(diff) / diff; // get sign of diff only -> -1,+1
+                diff = Math.abs(diff) / diff; // Math.sign later
             }
             // diff is now -1, 0 or +1
             this.scoreDiff[p1] += diff;
@@ -130,7 +119,6 @@ Breeder.prototype.oneTournament = function (numMatchPerAi) {
                 p1 + ':' + this.scoreDiff[p1] + ', #' + p2 + ':' + this.scoreDiff[p2]);
         }
     }
-    return this.rank;
 };
 
 Breeder.prototype.reproduction = function () {
@@ -169,25 +157,24 @@ Breeder.prototype.pickParent = function () {
     }
 };
 
-Breeder.prototype.control = function () {
+Breeder.prototype.control = function (numGames) {
     var totalScore, numWins, numWinsW;
     var previous = main.debugBreed;
-    main.debugBreed = false;
-    var numControlGames = 30;
-    main.log.debug('Playing ' + numControlGames * 2 + ' games to measure the current winner against our control AI...');
+    main.debugBreed = false; // never want debug during control games
+    main.log.debug('Playing ' + numGames * 2 + ' games to measure the current winner against our control AI...');
     totalScore = numWins = numWinsW = 0;
-    for (var i = 0; i < numControlGames; i++) {
+    for (var i = 0; i < numGames; i++) {
         var score = this.playGame('control', 'winner', this.controlGenes, this.winner);
         var scoreW = this.playGame('winner', 'control', this.winner, this.controlGenes);
         if (score > 0) numWins++;
         if (scoreW < 0) numWinsW++;
         totalScore += score - scoreW;
     }
-    if (main.debug) main.log.debug('Average score: ' + totalScore / numControlGames +
+    if (main.debug) main.log.debug('Average score: ' + totalScore / numGames +
         '\nWinner genes: ' + this.winner +
         '\nDistance between control and current winner: ' + this.controlGenes.distance(this.winner).toFixed(2) +
         '\nTotal score of control against current winner: ' + totalScore +
-        ' (out of ' + numControlGames * 2 + ' games, control won ' +
+        ' (out of ' + numGames * 2 + ' games, control won ' +
         numWins + ' as black and ' + numWinsW + ' as white)');
     main.debugBreed = previous;
 };
@@ -230,4 +217,21 @@ Breeder.prototype.bwBalanceCheck = function (numGames, gsize, numLostGamesShowed
         ' VS Black-' + blackAi + ': ' + ((numGames - numWins) / numGames * 100).toFixed(1) + '%');
 
     return numGames - numWins; // number of White's victory
+};
+
+/** genSize must be an even number (e.g. 26) */
+Breeder.prototype.run = function (genSize, numTournaments, numMatchPerAi) {
+    this.genSize = genSize;
+    this.firstGeneration();
+    var numControlGames = main.isCoverTest ? 1 : 30;
+
+    for (var i = 1; i <= numTournaments; i++) { // TODO: Find a way to appreciate the progress
+        var tournamentDesc = 'Breeding tournament ' + i + '/' + numTournaments +
+            ': each of ' + this.genSize + ' AIs plays ' + numMatchPerAi + ' games';
+        this.timer.start(tournamentDesc, genSize * numTournaments * numMatchPerAi * 0.015);
+        this.oneTournament(numMatchPerAi);
+        this.timer.stop(/*lenientIfSlow=*/true);
+        this.reproduction();
+        this.control(numControlGames);
+    }
 };

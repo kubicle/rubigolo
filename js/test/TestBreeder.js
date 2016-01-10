@@ -29,3 +29,8 @@ TestBreeder.prototype.testBwBalance = function () {
 
     if (!main.isCoverTest) this.assertInDelta(numWins, expectedWins, tolerance);
 };
+
+TestBreeder.prototype.testBreeding = function () {
+    var breeder = new Breeder(5, /*komi=*/0.5);
+    breeder.run(2, 1, 1);
+};
