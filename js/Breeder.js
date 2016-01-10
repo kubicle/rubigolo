@@ -136,7 +136,7 @@ Breeder.prototype.oneTournament = function (numMatchPerAi) {
 Breeder.prototype.reproduction = function () {
     if (main.debugBreed) main.log.debug('=== Reproduction time for ' + this.generation.length + ' AI');
 
-    this.picked = Array.new(this.genSize, 0);
+    this.picked = main.newArray(this.genSize, 0);
     this.maxScore = Math.max.apply(Math, this.scoreDiff);
     this.winner = this.generation[this.scoreDiff.indexOf(this.maxScore)];
     this.pickIndex = 0;

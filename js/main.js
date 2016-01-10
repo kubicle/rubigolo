@@ -114,12 +114,15 @@ String.prototype.between = function (low, high) {
 
 //--- Array
 
-main.newArray2 = function (numRows, numCols, initValue) {
-    var emptyRow = new Array(numCols);
-    for (var i = numCols - 1; i >= 0; i--) emptyRow[i] = initValue;
+main.newArray = function (size, initValue) {
+    var a = new Array(size);
+    for (var i = size - 1; i >= 0; i--) a[i] = initValue;
+    return a;
+};
 
+main.newArray2 = function (numRows, numCols, initValue) {
     var yx = new Array(numRows);
-    yx[0] = emptyRow;
+    var emptyRow = yx[0] = main.newArray(numCols, initValue);
     for (var j = numRows - 1; j >= 1; j--) yx[j] = emptyRow.concat();
     return yx;
 };
