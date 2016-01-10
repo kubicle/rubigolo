@@ -41,3 +41,111 @@ main.clone = function (obj) {
     } else throw new Error('main.clone called on ' + typeof obj);
     return clone;
 };
+
+
+//--- String
+
+function hasLf(s) {
+    if (s.slice(-1) !== '\n') return 0;
+    if (s.slice(-2) !== '\r\n') return 1;
+    return 2;
+}
+
+String.prototype.chomp = function (tail) {
+    if (tail === undefined) {
+        return this.substr(0, this.length - hasLf(this)); // NB: we cut 0 if no LF
+    }
+    var pos = this.length - tail.length;
+    if (this.substr(pos) === tail) {
+        return this.substr(0, pos);
+    }
+    return this.toString(); // unchanged string is returned
+};
+
+String.prototype.chop = function (count) {
+    if (count === undefined) {
+        // special behavior: chop ending \n or \r\n
+        count = hasLf(this) || 1; // we cut at least 1
+    } else if(typeof count !== 'number') {
+        throw new Error('Invalid parameter type for String.count: ' + typeof count);
+    }
+    return this.substr(0, this.length - count);
+};
+
+if (!String.prototype.startsWith) {
+    String.prototype.startsWith = function (head) {
+        return this.substr(0, head.length) === head;
+    };
+}
+
+if (!String.prototype.endsWith) {
+    String.prototype.endWith = function (tail) {
+        return this.substr(this.length - tail.length) === tail;
+    };
+}
+
+// TODO replace using toFixed() for float and ('0'+n).slice(-2) for int
+String.prototype.format = function (num) {
+    if (this[0] !== '%') throw new Error('Invalid format: ' + this.toString());
+    var fmt = this.slice(1,-1), res, pos = 0;
+    var code = this.slice(-1);
+    switch (code) {
+    case 'd': case 'x': //'%2d'
+        var padChar = ' ';
+        if (fmt[pos] === '0') { pos++; padChar = '0'; }
+        var len = parseInt(fmt.substr(pos));
+        res = num.toString(code === 'x' ? 16 : 10);
+        for (var i = len - res.length; i > 0; i--) { res = padChar + res; }
+        return res;
+    case 'f': //'%.02f'
+        var sign = '';
+        if (fmt[pos] === '+') { pos++; if (num > 0) sign = '+'; }
+        if (fmt[pos++] !== '.') break;
+        var prec = parseInt(fmt.substr(pos));
+        return sign + num.toFixed(prec);
+    }
+    throw new Error('Unknown format: ' + this.toString());
+};
+
+String.prototype.between = function (low, high) {
+    return this >= low && this <= high;
+};
+
+
+//--- Array
+
+/** Mimics the Ruby Array constructor. Same limitation as in Ruby: do not use an object unless
+ *  you really want all items to "point" to this object (i.e. modifying the objet will affect all items)
+ *  @param {int} size
+ *  @param {value|func} init - if a value is given, it is assigned to all items in the array.
+ *         If a func is given, array[i] = func(i) will be performed for each item.
+ *  @return {Array} - the new array
+ */
+Array.new = function (size, init) {
+    if (size === undefined) return [];
+    if (init === undefined) return new Array(size);
+
+    var i, a = [];
+    if (typeof init === 'function') {
+        for (i = 0; i < size; i++) { a[i] = init(i); }
+    } else {
+        for (i = 0; i < size; i++) { a[i] = init; }
+    }
+    return a;
+};
+
+/** Push onto this array the items from array2 that are not yet in it.
+ *  Returns the count of items added. */
+Array.prototype.pushUnique = function (array2) {
+    var len0 = this.length;
+    for (var i = 0; i < array2.length; i++) {
+        var e = array2[i];
+        if (this.indexOf(e) === -1) this.push(e);
+    }
+    return this.length - len0;
+};
+
+//TODO replace .clear() by .length = 0
+Array.prototype.clear = function () {
+    this.length = 0;
+};

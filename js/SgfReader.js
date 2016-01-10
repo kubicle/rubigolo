@@ -82,7 +82,7 @@ module.exports = SgfReader;
 
 
 SgfReader.isSgf = function (game) {
-    return game.trim().startWith('(;');
+    return game.trim().startsWith('(;');
 };
 
 // Raises an exception if we could not convert the format
@@ -293,7 +293,7 @@ SgfReader.prototype._skip = function (t) {
 };
 
 SgfReader.prototype._get = function (lex, t) {
-    if (!t.startWith(lex)) this._error(lex + ' expected', t);
+    if (!t.startsWith(lex)) this._error(lex + ' expected', t);
     return t.replace(lex, '').trim();
 };
 

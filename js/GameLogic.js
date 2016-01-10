@@ -125,15 +125,15 @@ GameLogic.prototype.playOneMove = function (move) {
         return this._requestUndo();
     } else if (move === 'half_undo') {
         return this._requestUndo(true);
-    } else if (move.startWith('resi')) {
+    } else if (move.startsWith('resi')) {
         return this.resign();
     } else if (move === 'pass') {
         return this.passOneMove();
-    } else if (move.startWith('hand')) {
+    } else if (move.startsWith('hand')) {
         return this.setHandicapAndWhoStarts(move.split(':')[1]);
-    } else if (move.startWith('load:')) {
+    } else if (move.startsWith('load:')) {
         return this.loadMoves(move.slice(5));
-    } else if (move.startWith('log')) {
+    } else if (move.startsWith('log')) {
         return this.setLogLevel(move.split(':')[1]);
     } else {
         return this._errorMsg('Invalid command: ' + move);
@@ -287,10 +287,8 @@ GameLogic.prototype._requestUndo = function (halfMove) {
         return this._errorMsg('Nothing to undo');
     }
     for (var i = count; i >= 1; i--) {
-        if (!this.history[this.history.length-1].endWith('pass')) { // no stone to remove for a pass
-            this.goban.undo();
-        }
-        this.history.pop();
+        var move = this.history.pop();
+        if (!move.endsWith('pass')) this.goban.undo();
     }
     if (halfMove) this._nextPlayer();
     this.numPass = 0;

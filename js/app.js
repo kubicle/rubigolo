@@ -8,9 +8,8 @@ var pkg = require('../package.json');
 main.appName = pkg.name;
 main.appVersion = pkg.version;
 
-// Constants attached to main and extensions of common classes
+// Constants attached to main
 require('./constants');
-require('./rb');
 
 // Require scripts we want in main build
 require('./test/TestAll'); // one day this will only be in the testing build
