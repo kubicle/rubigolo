@@ -79,7 +79,7 @@ if (!String.prototype.startsWith) {
 }
 
 if (!String.prototype.endsWith) {
-    String.prototype.endWith = function (tail) {
+    String.prototype.endsWith = function (tail) {
         return this.substr(this.length - tail.length) === tail;
     };
 }
@@ -113,6 +113,16 @@ String.prototype.between = function (low, high) {
 
 
 //--- Array
+
+main.newArray2 = function (numRows, numCols, initValue) {
+    var emptyRow = new Array(numCols);
+    for (var i = numCols - 1; i >= 0; i--) emptyRow[i] = initValue;
+
+    var yx = new Array(numRows);
+    yx[0] = emptyRow;
+    for (var j = numRows - 1; j >= 1; j--) yx[j] = emptyRow.concat();
+    return yx;
+};
 
 /** Mimics the Ruby Array constructor. Same limitation as in Ruby: do not use an object unless
  *  you really want all items to "point" to this object (i.e. modifying the objet will affect all items)

@@ -1,10 +1,13 @@
-//Translated from grid.rb using babyruby2js
 'use strict';
 
 var main = require('./main');
 
-/** @class A generic grid - a Goban owns a grid
- *  public read-only attribute: gsize, yx
+var BORDER = main.BORDER;
+
+
+/** @class A generic grid
+ *  public read-only attribute: gsize
+ *  public RW attribute: yx
  */
 function Grid(gsize) {
     if (gsize === undefined) gsize = 19;
@@ -12,9 +15,7 @@ function Grid(gsize) {
     // We keep extra "border" cells around the real board.
     // Idea is to avoid to have to check i,j against gsize in many places.
     // Having a real item (BORDER) on the way helps to detect bugs.
-    this.yx = Array.new(gsize + 2, function () {
-        return Array.new(gsize + 2, main.BORDER);
-    });
+    this.yx = main.newArray2(gsize + 2, gsize + 2, BORDER);
 }
 module.exports = Grid;
 
