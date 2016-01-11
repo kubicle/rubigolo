@@ -111,9 +111,7 @@ Goban.prototype.deleteGroup = function (group) {
 };
 
 Goban.prototype.image = function () {
-    return this.grid.toLine(function (s) {
-        return Grid.colorToChar(s.color);
-    });
+    return this.grid.toLine();
 };
 
 // For tests; can load a game image (without the move history)
@@ -158,9 +156,7 @@ Goban.prototype.debugDump = function () {
 
 // This display is for debugging and text-only game
 Goban.prototype.toString = function () {
-    return this.grid.toText(function (s) {
-        return Grid.colorToChar(s.color);
-    });
+    return this.grid.toText();
 };
 
 Goban.prototype.isValidMove = function (i, j, color) {

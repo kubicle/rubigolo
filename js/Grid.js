@@ -86,7 +86,7 @@ Grid.prototype.initFromGoban = function (goban) {
 };
 
 // Returns the "character" used to represent a stone in text style
-Grid.colorToChar = function (color) {
+function colorToChar(color) {
     if (color === GRID_BORDER) return '(BORDER)';
     if (color >= Grid.ZONE_CODE) {
         return String.fromCharCode(('A'.charCodeAt() + color - Grid.ZONE_CODE));
@@ -96,7 +96,7 @@ Grid.colorToChar = function (color) {
     }
     if (color < 0) color += Grid.COLOR_CHARS.length;
     return Grid.COLOR_CHARS[color];
-};
+}
 
 // Returns the name of the color/player (e.g. "black")
 Grid.colorName = function (color) { // TODO remove me or?
@@ -107,12 +107,16 @@ Grid.charToColor = function (char) {
     return Grid.CIRCULAR_COLOR_CHARS.indexOf(char) + Grid.DAME_COLOR;
 };
 
+function cell2char(c) {
+    return colorToChar(typeof c === 'number' ? c : c.color);
+}
+
 Grid.prototype.toText = function (block) {
-    return this.toTextExt(true, '\n', block);
+    return this.toTextExt(true, '\n', block || cell2char);
 };
 
 Grid.prototype.toLine = function (block) {
-    return this.toTextExt(false, ',', block);
+    return this.toTextExt(false, ',', block || cell2char);
 };
 
 // Receives a block of code and calls it for each vertex.
@@ -156,7 +160,7 @@ Grid.prototype.toString = function () {
     var s = '';
     for (var j = this.gsize; j >= 1; j--) {
         for (var i = 1; i <= this.gsize; i++) {
-            s += Grid.colorToChar(this.yx[j][i]);
+            s += colorToChar(this.yx[j][i]);
         }
         s += '\n';
     }
@@ -169,11 +173,11 @@ Grid.prototype.toString = function () {
 Grid.prototype.image = function () {
     if (typeof this.yx[1][1] === 'object') {
         return this.toLine(function (s) {
-            return Grid.colorToChar(s.color);
+            return colorToChar(s.color);
         });
     } else {
         return this.toLine(function (c) {
-            return Grid.colorToChar(c);
+            return colorToChar(c);
         });
     }
 };

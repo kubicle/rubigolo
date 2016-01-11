@@ -38,7 +38,7 @@ BoardAnalyser.prototype.countScore = function (goban) {
     if (!this._initAnalysis('SCORE', goban, grid)) return;
     this._runAnalysis();
     this._finalColoring();
-    if (main.debug) main.log.debug(grid.toText(function (c) { return Grid.colorToChar(c); }));
+    if (main.debug) main.log.debug(grid.toText());
 };
 
 BoardAnalyser.prototype.getScoringGrid = function () {
@@ -57,9 +57,7 @@ BoardAnalyser.prototype.image = function () {
 };
 
 BoardAnalyser.prototype.debugDump = function () {
-    var res = 'Grid:\n' +
-        this.goban.analyseGrid.toText(function (c) { return Grid.colorToChar(c); }) +
-        'Voids:\n';
+    var res = 'Grid:\n' + this.goban.analyseGrid.toText() + 'Voids:\n';
     for (var v, v_array = this.allVoids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
         res += v.toString() + '\n';
     }

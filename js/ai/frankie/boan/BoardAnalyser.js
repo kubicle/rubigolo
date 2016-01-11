@@ -147,7 +147,7 @@ Void.prototype.getSingleOwner = function () {
 };
 
 Void.prototype.toString = function () {
-    var s = vtype2str(this.vtype) + ' ' + this.code + '-' + Grid.colorToChar(this.code) + ' (' + Grid.xy2move(this.i, this.j) + '), vcount ' + this.vcount;
+    var s = vtype2str(this.vtype) + ' ' + this.code + ' (' + Grid.xy2move(this.i, this.j) + '), vcount ' + this.vcount;
     for (var color = 0; color < this.groups.length; color++) {
         s += ', ' + this.groups[color].length + ' ' + Grid.colorName(color) + ' neighbors';
     }
@@ -157,7 +157,7 @@ Void.prototype.toString = function () {
 Void.prototype.debugDump = function () {
     main.log.debug(this.toString());
     for (var color = 0; color < this.groups.length; color++) {
-        main.log.debug('    Color ' + color + ' (' + Grid.colorToChar(color) + '): ' +
+        main.log.debug('    Color ' + color + ': ' +
             this.groups[color].map(grpNdx));
     }
 };
@@ -480,7 +480,7 @@ BoardAnalyser.prototype.countScore = function (goban) {
     if (!this._initAnalysis(goban)) return;
     this._runAnalysis();
     this._finalColoring();
-    if (main.debug) main.log.debug(this.filler.grid.toText(function (c) { return Grid.colorToChar(c); }));
+    if (main.debug) main.log.debug(this.filler.grid.toText());
 };
 
 BoardAnalyser.prototype.getScoringGrid = function () {
@@ -499,9 +499,7 @@ BoardAnalyser.prototype.image = function () {
 };
 
 BoardAnalyser.prototype.debugDump = function () {
-    main.log.debug(this.filler.grid.toText(function (c) {
-        return Grid.colorToChar(c);
-    }));
+    main.log.debug(this.filler.grid.toText());
     for (var v, v_array = this.allVoids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
         v.debugDump();
     }
