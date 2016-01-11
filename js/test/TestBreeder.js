@@ -14,6 +14,12 @@ inherits(TestBreeder, main.TestCase);
 module.exports = main.tests.add(TestBreeder);
 
 
+// Right now this is just for coverage
+TestBreeder.prototype.testBreeding = function () {
+    var breeder = new Breeder(5, /*komi=*/0.5);
+    breeder.run(2, 1, 1);
+};
+
 TestBreeder.prototype.testBwBalance = function () {
     var numGames = 100;
     var numLostGamesShowed = 5;
@@ -28,9 +34,4 @@ TestBreeder.prototype.testBwBalance = function () {
     var numWins = breeder.bwBalanceCheck(numGames, size, numLostGamesShowed);
 
     if (!main.isCoverTest) this.assertInDelta(numWins, expectedWins, tolerance);
-};
-
-TestBreeder.prototype.testBreeding = function () {
-    var breeder = new Breeder(5, /*komi=*/0.5);
-    breeder.run(2, 1, 1);
 };
