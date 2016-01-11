@@ -6,6 +6,7 @@ var Grid = require('./Grid');
 var Stone = require('./Stone');
 var Group = require('./Group');
 
+var GRID_BORDER = main.GRID_BORDER;
 var EMPTY = main.EMPTY, BORDER = main.BORDER;
 
 
@@ -18,8 +19,8 @@ function Goban(gsize) {
     if (gsize === undefined) gsize = 19;
     if (gsize !== ~~gsize || gsize < 3) throw new Error('Invalid goban size: ' + gsize);
     this.gsize = gsize;
-    this.grid = new Grid(gsize);
-    this.scoringGrid = new Grid(gsize);
+    this.grid = new Grid(gsize, BORDER);
+    this.scoringGrid = new Grid(gsize, GRID_BORDER);
 
     this.ban = this.grid.yx;
     var i, j;

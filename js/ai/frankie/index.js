@@ -11,6 +11,7 @@ var InfluenceMap = require('./boan/InfluenceMap');
 var PotentialTerritory = require('./boan/PotentialTerritory');
 var ZoneFiller = require('./boan/ZoneFiller');
 
+var GRID_BORDER = main.GRID_BORDER;
 var sOK = main.sOK, sINVALID = main.sINVALID, sBLUNDER = main.sBLUNDER;
 
 var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
@@ -32,8 +33,8 @@ function Frankie(goban, color, genes) {
     this.ter = new PotentialTerritory(this.goban);
     this.boan = new BoardAnalyser();
     this.gsize = this.goban.gsize;
-    this.stateGrid = new Grid(this.gsize);
-    this.scoreGrid = new Grid(this.gsize);
+    this.stateGrid = new Grid(this.gsize, GRID_BORDER);
+    this.scoreGrid = new Grid(this.gsize, 0, GRID_BORDER);
 
     this.genes = (( genes ? genes : new Genes() ));
     this.minimumScore = this.getGene('smaller-move', 0.03, 0.01, 0.1);

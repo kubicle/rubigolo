@@ -2,20 +2,24 @@
 
 var main = require('./main');
 
-var BORDER = main.BORDER;
+var GRID_BORDER = main.GRID_BORDER;
 
 
-/** @class A generic grid
+/** @class A generic grid.
+ *  NB: We keep extra "border" cells around the real board.
+ *      Idea is to avoid checking i,j against gsize in many places.
  *  public read-only attribute: gsize
  *  public RW attribute: yx
  */
-function Grid(gsize) {
-    if (gsize === undefined) gsize = 19;
+function Grid(gsize, initValue, borderValue) {
+    if (initValue === undefined) throw new Error('Grid init value must be defined');
     this.gsize = gsize;
-    // We keep extra "border" cells around the real board.
-    // Idea is to avoid to have to check i,j against gsize in many places.
-    // Having a real item (BORDER) on the way helps to detect bugs.
-    this.yx = main.newArray2(gsize + 2, gsize + 2, BORDER);
+    if (borderValue === undefined) {
+        this.yx = main.newArray2(gsize + 2, gsize + 2, initValue);
+    } else {
+        this.yx = main.newArray2(gsize + 2, gsize + 2, borderValue);
+        this.init(initValue);
+    }
 }
 module.exports = Grid;
 
@@ -43,7 +47,7 @@ Grid.territory2char = '-\'?.:';
 
 
 Grid.prototype.init = function (initValue) {
-    if (initValue === undefined) initValue = main.EMPTY;
+    if (initValue === undefined) throw new Error('Grid init value must be defined');
     for (var j = this.gsize; j >= 1; j--) {
         var yxj = this.yx[j];
         for (var i = this.gsize; i >= 1; i--) {
@@ -83,6 +87,7 @@ Grid.prototype.initFromGoban = function (goban) {
 
 // Returns the "character" used to represent a stone in text style
 Grid.colorToChar = function (color) {
+    if (color === GRID_BORDER) return '(BORDER)';
     if (color >= Grid.ZONE_CODE) {
         return String.fromCharCode(('A'.charCodeAt() + color - Grid.ZONE_CODE));
     }
@@ -114,32 +119,24 @@ Grid.prototype.toLine = function (block) {
 // The block should return a string representation.
 // This method returns the concatenated string showing the grid.
 Grid.prototype.toTextExt = function (withLabels, endOfRow, block) {
-    var yx = new Grid(this.gsize).yx;
+    var outYx = new Grid(this.gsize, '').yx;
     var maxlen = 1, i, j, val;
     for (j = this.gsize; j >= 1; j--) {
         for (i = 1; i <= this.gsize; i++) {
             val = block(this.yx[j][i]);
-            if (val === null) {
-                val = '';
-            }
-            yx[j][i] = val;
-            if (val.length > maxlen) {
-                maxlen = val.length;
-            }
+            if (val === null) continue;
+            outYx[j][i] = val;
+            maxlen = Math.max(maxlen, val.length);
         }
     }
     var numChar = maxlen;
     var white = '          ';
     var s = '';
     for (j = this.gsize; j >= 1; j--) {
-        if (withLabels) {
-            s += '%2d'.format(j) + ' ';
-        }
+        if (withLabels) s += '%2d'.format(j) + ' ';
         for (i = 1; i <= this.gsize; i++) {
-            val = yx[j][i];
-            if (val.length < numChar) {
-                val = white.substr(1, numChar - val.length) + val;
-            }
+            val = outYx[j][i];
+            if (val.length < numChar) val = white.substr(1, numChar - val.length) + val;
             s += val;
         }
         s += endOfRow;
@@ -151,9 +148,7 @@ Grid.prototype.toTextExt = function (withLabels, endOfRow, block) {
         }
         s += '\n';
     }
-    if (endOfRow !== '\n') {
-        return s.chop();
-    }
+    if (endOfRow !== '\n') s = s.chop(); // remove last endOfRow unless it is \n
     return s;
 };
 

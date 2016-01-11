@@ -3,6 +3,7 @@
 
 var main = require('../../../main');
 
+var GRID_BORDER = main.GRID_BORDER;
 var BORDER = main.BORDER;
 
 
@@ -64,7 +65,7 @@ ZoneFiller.prototype.fillWithColor = function (startI, startJ, toReplace, byColo
 // Returns true if the replacement is needed (=> i,j has a color equal to the replaced one)
 ZoneFiller.prototype._check = function (i, j) {
     var color = this.yx[j][i];
-    if (color === BORDER) return false;
+    if (color === GRID_BORDER || color === BORDER) return false;
     if (color === this.toReplace) {
         return true;
     }

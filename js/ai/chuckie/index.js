@@ -8,6 +8,7 @@ var Genes = require('../../Genes');
 var Grid = require('../../Grid');
 var ZoneFiller = require('./boan/ZoneFiller');
 
+var GRID_BORDER = main.GRID_BORDER;
 var sOK = main.sOK, sINVALID = main.sINVALID, sBLUNDER = main.sBLUNDER, sDEBUG = main.sDEBUG;
 
 var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
@@ -20,8 +21,8 @@ function Chuckie(goban, color, genes) {
     this.goban = goban;
     this.genes = genes || new Genes();
     this.gsize = this.goban.gsize;
-    this.stateGrid = new Grid(this.gsize);
-    this.scoreGrid = new Grid(this.gsize);
+    this.stateGrid = new Grid(this.gsize, GRID_BORDER);
+    this.scoreGrid = new Grid(this.gsize, 0, GRID_BORDER);
 
     // genes need to exist before we create heuristics
     this.minimumScore = this.getGene('smallerMove', 0.03, 0.01, 0.1);
@@ -197,7 +198,7 @@ Chuckie.prototype._getMoveSurvey = function (i, j) {
     for (var n = 0; n < this.heuristics.length; n++) {
         var h = this.heuristics[n];
         var s = h.scoreGrid.yx[j][i];
-        if (s) survey[h.name] = s; // s can be 0 or null too
+        if (s) survey[h.name] = s;
     }
     return survey;
 };

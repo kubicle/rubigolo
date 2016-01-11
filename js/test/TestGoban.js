@@ -30,7 +30,7 @@ TestGoban.prototype.testInternals = function () {
     this.assertEqual(true, goban.debugDump().length > 100);
     // 2 Grid methods
     this.assertEqual(goban.image(), goban.grid.image()); // these 2 could change, actually
-    this.assertEqual('undefinedundefined', goban.scoringGrid.toString().substr(0, 18));
+    this.assertEqual('(BORDER)(BORDER)', goban.scoringGrid.toString().substr(0, 16));
 };
 
 TestGoban.prototype.testSignature = function () {

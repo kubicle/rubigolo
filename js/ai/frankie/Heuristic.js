@@ -6,6 +6,7 @@ var Grid = require('../../Grid');
 var Stone = require('../../Stone');
 
 var sOK = main.sOK, ALWAYS = main.ALWAYS;
+var GRID_BORDER = main.GRID_BORDER;
 var EMPTY = main.EMPTY, BORDER = main.BORDER;
 var XY_AROUND = Stone.XY_AROUND;
 var DIR0 = main.DIR0, DIR3 = main.DIR3;
@@ -23,7 +24,7 @@ function Heuristic(player, consultant) {
     this.inf = player.inf;
     this.ter = player.ter;
     this.boan = player.boan;
-    this.scoreGrid = new Grid(this.gsize);
+    this.scoreGrid = new Grid(this.gsize, 0, GRID_BORDER);
 
     this.spaceInvasionCoeff = this.getGene('spaceInvasion', 2.0, 0.01, 4.0);
 }

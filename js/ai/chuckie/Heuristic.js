@@ -1,10 +1,10 @@
-//Translated from heuristic.rb using babyruby2js
 'use strict';
 
 var main = require('../../main');
 var Grid = require('../../Grid');
 var Stone = require('../../Stone');
 
+var GRID_BORDER = main.GRID_BORDER;
 var BLACK = main.BLACK, WHITE = main.WHITE, EMPTY = main.EMPTY, BORDER = main.BORDER;
 var sOK = main.sOK, sDEBUG = main.sDEBUG;
 var ALWAYS = main.ALWAYS, NEVER = main.NEVER;
@@ -23,7 +23,7 @@ function Heuristic(player) {
     this.infl = player.infl;
     this.pot = player.pot;
     this.boan = player.boan;
-    this.scoreGrid = new Grid(this.gsize);
+    this.scoreGrid = new Grid(this.gsize, 0, GRID_BORDER);
     this.minimumScore = player.minimumScore;
 
     this.spaceInvasionCoeff = this.getGene('spaceInvasion', 2.0, 0.01, 4.0);

@@ -6,6 +6,7 @@ var main = require('../../../main');
 var Stone = require('../../../Stone');
 var BoardAnalyser = require('./BoardAnalyser');
 
+var GRID_BORDER = main.GRID_BORDER;
 var EMPTY = main.EMPTY, BLACK = main.BLACK, WHITE = main.WHITE;
 var NEVER = main.NEVER;
 var UP = main.UP, RIGHT = main.RIGHT, DOWN = main.DOWN, LEFT = main.LEFT;
@@ -25,9 +26,9 @@ function PotentialTerritory(goban) {
     this.realGrid = this.goban.scoringGrid; // we can reuse the already allocated grid
     this.realYx = this.realGrid.yx; // simple shortcut to real yx
     // grids below are used in the evaluation process
-    this.grids = [new Grid(this.gsize), new Grid(this.gsize)];
-    this.reducedGrid = new Grid(this.gsize);
-    this.territory = new Grid(this.gsize); // result of evaluation
+    this.grids = [new Grid(this.gsize, GRID_BORDER), new Grid(this.gsize, GRID_BORDER)];
+    this.reducedGrid = new Grid(this.gsize, GRID_BORDER);
+    this.territory = new Grid(this.gsize, GRID_BORDER); // result of evaluation
     this._prepareBorderConnect();
 }
 module.exports = PotentialTerritory;

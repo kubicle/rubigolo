@@ -3,6 +3,9 @@
 
 var main = require('../../../main');
 
+var GRID_BORDER = main.GRID_BORDER;
+var BORDER = main.BORDER;
+
 
 /** @class public read-only attribute: grid
  *  if a grid is given, it is used as starting point; 
@@ -72,7 +75,7 @@ ZoneFiller.prototype.fillWithColor = function (startI, startJ, toReplace, color,
 // Returns true if the replacement is needed (=> i,j has a color equal to the replaced one)
 ZoneFiller.prototype._check = function (i, j) {
     var color = this.yx[j][i];
-    if (color === main.BORDER) return false;
+    if (color === GRID_BORDER || color === BORDER) return false;
     if (color === this.toReplace) return true;
 
     if (this.groups && color < 2) {
