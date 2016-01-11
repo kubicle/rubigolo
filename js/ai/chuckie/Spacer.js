@@ -12,6 +12,10 @@ function Spacer(player) {
 
     this.inflCoeff = this.getGene('infl', 1, 0.5, 3);
     this.borderCoeff = this.getGene('border', 10, 0, 20);
+
+    this.rowCoeff = this.gsize <= 9 ?
+        [0, 0.2, 0.8, 0.95, 1] :
+        [0, 0.2, 0.8, 1, 0.95, 0.8];
 }
 inherits(Spacer, Heuristic);
 module.exports = Spacer;
@@ -31,13 +35,10 @@ Spacer.prototype._evalMove = function (i, j) {
     }
     var totalInf = 1 + this.inflCoeff * Math.max(enemyInf + allyInf - 3, 0) * (this.gsize / 9);
 
-    var dbX = this.distanceFromBorder(i);
-    var dbY = this.distanceFromBorder(j);
-    var rowCoeff = [0, 0.2, 0.8, 1, 0.95, 0.8];
-    var border = rowCoeff.length - 1;
-    if (dbX > border) dbX = border;
-    if (dbY > border) dbY = border;
-    var db = rowCoeff[dbX] * rowCoeff[dbY] * this.borderCoeff;
+    var maxDist = this.rowCoeff.length - 1;
+    var distH = Math.min(this.distanceFromBorder(i), maxDist);
+    var distV = Math.min(this.distanceFromBorder(j), maxDist);
+    var db = this.rowCoeff[distH] * this.rowCoeff[distV] * this.borderCoeff;
     
     // remove points only if we fill up our own territory
     var fillTer = this.territoryScore(i, j, this.color);
