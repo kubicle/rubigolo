@@ -405,7 +405,7 @@ Ui.prototype.heuristicTest = function (name) {
 Ui.prototype.influenceTest = function (color) {
     var infl = this.getAiPlayer(1 - this.game.curColor).infl;
     // This could be AiPlayer's job to return us a grid ready for display
-    var yx = new Grid(this.gsize).yx; // TODO: covert infl to 2 grids one day?
+    var yx = new Grid(this.gsize, 0).yx; // TODO: covert infl to 2 grids
     for (var j = 1; j <= this.gsize; j++) {
         for (var i = 1; i <= this.gsize; i++) {
             yx[j][i] = infl[j][i][color];
