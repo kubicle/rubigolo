@@ -9,13 +9,10 @@ var Group = require('./Group');
 var EMPTY = main.EMPTY, BORDER = main.BORDER;
 
 
-/** @class Stores what we have on the board (namely, the stones and the empty spaces).
- *  - Giving coordinates, a Goban can return an existing stone.
- *  - It also remembers the list of stones played and can share this info for undo feature.
- *  - For console game and debug features, a goban can also "draw" its content as text.
- *  See Stone and Group classes for the layer above this.
- *  public attribute: scoringGrid
- *  public read-only attribute: gsize, grid, mergedGroups, killedGroups, garbageGroups
+/** @class Stores what we have on the board (stones & groups).
+ *  Goban remembers the stones played - undo feature is provided.
+ *  public RO attributes: gsize, grid
+ *  public RW attributes: scoringGrid, mergedGroups, killedGroups
  */
 function Goban(gsize) {
     if (gsize === undefined) gsize = 19;
@@ -97,7 +94,8 @@ Goban.prototype.newGroup = function (stone, lives) {
     this.numGroups++;
     var group = this.garbageGroups.pop();
     if (group) {
-        return group.recycle(stone, lives, this.numGroups);
+        group.recycle(stone, lives, this.numGroups);
+        return group;
     } else {
         return new Group(this, stone, lives, this.numGroups);
     }
@@ -203,65 +201,34 @@ Goban.prototype.moveNumber = function () {
 
 Goban.prototype.playAt = function (i, j, color) {
     this._updatePositionSignature(i, j, color);
-    var stone = this._putDown(i, j);
-    stone.putDown(color);
-    return stone;
+
+    var stone = this.ban[j][i];
+    if (stone.color !== EMPTY) throw new Error('Tried to play on existing stone in ' + stone);
+    return this.tryAt(i, j, color);
 };
 
 // Called to undo a single stone (the main undo feature relies on this)  
 Goban.prototype.undo = function () {
-    var stone = this._takeBack();
-    if (!stone) throw new Error('Extra undo');
-    stone.takeBack();
-    this._resuscitateGroups(stone);
+    if (!this.history.length) throw new Error('Extra undo');
+    this.history.pop().takeBack();
+
     this._updatePositionSignature();
 };
 
 Goban.prototype.tryAt = function (i, j, color) {
-    var stone = this._putDown(i, j);
-    if (main.debug) main.log.debug('try ' + stone);
+    var stone = this.ban[j][i];
+    this.history.push(stone);
     stone.putDown(color);
     return stone;
 };
 
 Goban.prototype.untry = function () {
-    var stone = this._takeBack();
-    if (main.debug) main.log.debug('untry ' + stone);
-    stone.takeBack();
-    this._resuscitateGroups(stone);
-};
-
-// Plays a stone and stores it in history
-// Returns the existing stone and the caller (Stone class) will update it
-Goban.prototype._putDown = function (i, j) {
-    var stone = this.ban[j][i];
-    if (stone.color !== EMPTY) {
-        throw new Error('Tried to play on existing stone in ' + stone);
-    }
-    this.history.push(stone);
-    return stone;
-};
-
-// Removes the last stone played from the board
-// Returns the existing stone for the caller to update it
-Goban.prototype._takeBack = function () {
-    return this.history.pop();
+    this.history.pop().takeBack();
 };
 
 // Returns undefined if no group was killed yet
 Goban.prototype.previousKilledGroup = function () {
     return this.killedGroups[this.killedGroups.length - 1];
-};
-
-Goban.prototype._resuscitateGroups = function (killerStone) {
-    var killedGroups = this.killedGroups;
-    for (;;) {
-        var group = killedGroups[killedGroups.length - 1];
-        if (!group || group.killedBy !== killerStone) return;
-        killedGroups.pop();
-        if (main.debugGroup) main.log.debug('taking back ' + killerStone + ' so we resuscitate ' + group);
-        group.resuscitate();
-    }
 };
 
 // If inc > 0 (e.g. +1), increments the move ID

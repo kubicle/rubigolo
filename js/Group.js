@@ -28,6 +28,7 @@ function Group(goban, stone, lives, ndx) {
     this.ndx = ndx; // unique index
 
     // populated by analysis:
+    this._info = null;
     this.xAlive = this.xDead = 0;
     this.xInRaceWith = null;
 }
@@ -43,7 +44,6 @@ Group.prototype.recycle = function (stone, lives, ndx) {
 
     this.xAlive = this.xDead = 0;
     this.xInRaceWith = null;
-    return this;
 };
 
 Group.prototype.clear = function () {
@@ -219,13 +219,13 @@ Group.prototype._unmerge = function (subgroup) {
     if (main.debugGroup) main.log.debug('After _unmerge: subgroup:' + subgroup + ' main:' + this);
 };
 
-// This must be called on the main group (stone.group)
 Group.prototype.unmergeFrom = function (stone) {
-    for (;;) {
-        var subgroup = this.goban.mergedGroups[this.goban.mergedGroups.length - 1];
+    var mergedGroups = this.goban.mergedGroups;
+    for (var last = mergedGroups.length - 1; last >= 0; last--) {
+        var subgroup = mergedGroups[last];
         if (subgroup.mergedBy !== stone || subgroup.mergedWith !== this) break;
         this._unmerge(subgroup);
-        this.goban.mergedGroups.pop();
+        mergedGroups.pop();
     }
 };
 
@@ -246,7 +246,7 @@ Group.prototype._dieFrom = function (killerStone) {
 };
 
 // Called when "undo" operation removes the killer stone of this group
-Group.prototype.resuscitate = function () {
+Group.prototype._resuscitate = function () {
     this.killedBy = null;
     this.lives = 1; // always comes back with a single life
     for (var stone, stone_array = this.stones, stone_ndx = 0; stone=stone_array[stone_ndx], stone_ndx < stone_array.length; stone_ndx++) {
@@ -254,5 +254,16 @@ Group.prototype.resuscitate = function () {
         for (var enemy, enemy_array = stone.uniqueAllies(1 - this.color), enemy_ndx = 0; enemy=enemy_array[enemy_ndx], enemy_ndx < enemy_array.length; enemy_ndx++) {
             enemy._attackedByResuscitated(stone);
         }
+    }
+};
+
+Group.resuscitateGroupsFrom = function (killerStone) {
+    var killedGroups = killerStone.goban.killedGroups;
+    for (var last = killedGroups.length - 1; last >= 0; last--) {
+        var group = killedGroups[last];
+        if (group.killedBy !== killerStone) break;
+        killedGroups.pop();
+        if (main.debugGroup) main.log.debug('taking back ' + killerStone + ' so we resuscitate ' + group);
+        group._resuscitate();
     }
 };

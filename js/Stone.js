@@ -180,6 +180,7 @@ Stone.prototype.takeBack = function () {
     }
     this.group = null;
     this.color = EMPTY;
+    Group.resuscitateGroupsFrom(this);
 };
 
 Stone.prototype.setGroupOnMerge = function (newGroup) {

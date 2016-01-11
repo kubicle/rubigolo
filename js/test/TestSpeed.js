@@ -33,8 +33,8 @@ TestSpeed.prototype.initBoard = function (size) {
 TestSpeed.prototype.testSpeedBasic = function () {
     var t = new TimeKeeper();
     // Basic test
-    var count = main.isCoverTest ? 1 : 10000;
-    t.start('Basic (no move validation) ' + 10 * count + ' stones and undo', 0.06);
+    var count = main.isCoverTest ? 1 : 50000;
+    t.start('Basic (no move validation) ' + 10 * count + ' stones and undo', 0.3);
     for (var i = count; i >=0; i--) {
         this.play10Stones();
     }
