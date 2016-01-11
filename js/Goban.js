@@ -33,10 +33,11 @@ function Goban(gsize) {
             this.ban[j][i].findNeighbors();
         }
     }
-    // sentinel for group list searches; NB: values like -100 helps detecting bugs when value is used by mistake
+    // Sentinel for group stacks
     Goban.sentinel = new Group(this, new Stone(this, -50, -50, EMPTY), -100, 0);
-    this.killedGroups = [Goban.sentinel]; // so that we can always do @killed_groups.last.color, etc.
+    this.killedGroups = [Goban.sentinel];
     this.mergedGroups = [Goban.sentinel];
+
     this.garbageGroups = [];
     this.numGroups = 0;
 
@@ -61,6 +62,7 @@ Goban.prototype.clear = function () {
         }
     }
     // Collect all the groups and put them into garbageGroups
+    // NB: V8 does slightly faster when we keep the sentinel instead of clearing to []
     this.killedGroups.shift(); // removes sentinel
     this.mergedGroups.shift(); // removes sentinel
     this.garbageGroups.concat(this.killedGroups);
