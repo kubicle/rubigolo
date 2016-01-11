@@ -188,7 +188,9 @@ Ui.prototype.startGame = function (firstMoves, isLoaded) {
     if (!this.gameDiv) this.createGameUi('main', document.body);
     this.toggleControls();
 
-    this.board.create(this.boardElt, this.boardWidth, this.game.goban);
+    var options = this.isCompactLayout ? undefined : { background: 'wood' };
+
+    this.board.create(this.boardElt, this.boardWidth, this.game.goban, options);
     this.refreshBoard();
 
     if (!isLoaded && !(firstMoves && this.checkEnd())) {

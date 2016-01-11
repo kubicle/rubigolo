@@ -45,9 +45,12 @@ Board.prototype.create = function (parent, width, goban, options) {
         size: gsize,
         width: width,
         section: { top: margin, left: margin, right: margin, bottom: margin },
-        coordFontSize: 0.6,
-        background: 'lib/wood1.jpg'
+        coordFontSize: 0.6
     };
+    switch (options.background) {
+    case 'wood': config.background = (window.rootDir || '.') + '/lib/wood1.jpg'; break;
+    default: config.background = '#c75';
+    }
 
     parent.clear();
     this.board = new WGo.Board(parent.getDomElt(), config);
