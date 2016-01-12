@@ -1,7 +1,5 @@
 'use strict';
 
-require('./app');
-
 var main = require('./main');
 var Gtp = require('./net/Gtp');
 var GtpEngine = require('./net/GtpEngine');
@@ -12,6 +10,7 @@ var readline = require('readline');
 function run() {
     // NB: any unexpected log on stdout will break GTP
     main.log.level = Logger.ERROR;
+    main.initAis();
 
     var gtp = new Gtp();
     gtp.init(new GtpEngine());

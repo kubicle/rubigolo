@@ -1,9 +1,8 @@
 'use strict';
 
-require('../app');
-
 var main = require('../main');
 var Logger = require('../Logger');
+
 
 function parseArgs() {
     var args = process.argv;
@@ -18,6 +17,8 @@ function parseArgs() {
 
 function run() {
     parseArgs();
+    main.initTests();
+    main.initAis();
 
     if (main.isCoverTest) main.log.info('Running coverage tests...');
     else main.log.info('Running tests...');

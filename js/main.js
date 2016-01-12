@@ -1,16 +1,58 @@
 'use strict';
 
-/** Singleton "main" before everything else */
-var main = module.exports = {};
-
+var pkg = require('../package.json');
 var Logger = require('./Logger');
-var TestSeries = require('./test/TestSeries');
-var TestCase = require('./test/TestCase');
+var createConstants = require('./constants');
 
-main.debug = false;
-main.TestCase = TestCase; // could be refactored - each test can require TestCase now
-main.tests = new TestSeries();
-main.log = new Logger();
+
+function Main() {
+    createConstants(this);
+
+    this.debug = false;
+    this.debugGroup = this.debugAi = this.debugBreed = false;
+
+    this.appName = pkg.name;
+    this.appVersion = pkg.version;
+
+    this.isCiTest = this.isCoverTest = false;
+
+    // Known AIs and default one
+    this.ais = null;
+    this.defaultAi = this.latestAi = null;
+
+    this.ui = null;
+    this.gtp = null;
+
+    this.TestCase = null; // could be refactored - each test can require TestCase now
+    this.tests = null;
+    this.testUi = null;
+
+    this.log = new Logger();
+}
+
+/** Singleton "main" */
+var main = new Main();
+module.exports = main;
+
+
+Main.prototype.initAis = function () {
+    this.ais = {
+        Frankie: require('./ai/frankie'),
+        Droopy:  require('./ai/droopy'),
+        Chuckie: require('./ai/chuckie')
+    };
+    this.defaultAi = this.latestAi = this.ais.Chuckie;
+};
+
+Main.prototype.initTests = function () {
+    var TestSeries = require('./test/TestSeries');
+    var TestCase = require('./test/TestCase');
+
+    this.TestCase = TestCase; // could be refactored - each test can require TestCase now
+    this.tests = new TestSeries();
+
+    require('./test/TestAll'); // one day this will only be in the testing build
+};
 
 
 //--- Misc Helpers

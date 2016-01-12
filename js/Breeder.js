@@ -8,8 +8,6 @@ var ScoreAnalyser = require('./ScoreAnalyser');
 
 var BLACK = main.BLACK, WHITE = main.WHITE;
 
-main.debugBreed = false; // TODO move me somewhere else?
-
 
 /** @class */
 function Breeder(gameSize, komi) {

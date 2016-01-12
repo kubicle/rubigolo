@@ -1,8 +1,8 @@
 //Translated from potential_territory.rb using babyruby2js
 'use strict';
 
-var Grid = require('../../../Grid');
 var main = require('../../../main');
+var Grid = require('../../../Grid');
 var Stone = require('../../../Stone');
 var BoardAnalyser = require('./BoardAnalyser');
 

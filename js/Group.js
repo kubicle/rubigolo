@@ -1,8 +1,8 @@
 //Translated from group.rb using babyruby2js
 'use strict';
 
-var Grid = require('./Grid');
 var main = require('./main');
+var Grid = require('./Grid');
 
 var EMPTY = main.EMPTY;
 
