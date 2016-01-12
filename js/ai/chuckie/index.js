@@ -13,11 +13,15 @@ var sOK = main.sOK, sINVALID = main.sINVALID, sBLUNDER = main.sBLUNDER, sDEBUG =
 
 var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
 
+var AI_VERSION = '0.1';
+
 
 /** @class */
 function Chuckie(goban, color, genes) {
     this.name = this.constructor.name || main.funcName(this.constructor);
-    this.version = this.name + '-1.0';
+    this.publicName = this.name; // could be different if needed
+    this.publicVersion = AI_VERSION;
+
     this.goban = goban;
     this.genes = genes || new Genes();
     this.gsize = this.goban.gsize;

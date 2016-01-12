@@ -22,6 +22,7 @@ function GtpEngine(game, scorer) {
     this.scorer = scorer || new ScoreAnalyser();
     this.players = [];
     this.scoreComputedAt = null;
+    this.AiClass = main.defaultAi;
 }
 module.exports = GtpEngine;
 
@@ -40,16 +41,18 @@ GtpEngine.prototype.refreshDisplay = function () {
 GtpEngine.prototype.getAiPlayer = function (color) {
     var player = this.players[color];
     if (player) return player;
-    player = this.players[color] = new main.defaultAi(this.game.goban, color);
+    player = this.players[color] = new this.AiClass(this.game.goban, color);
     return player;
 };
 
 GtpEngine.prototype.name = function () {
-    return main.appName;
+    var ai = this.getAiPlayer(BLACK) || this.getAiPlayer(WHITE);
+    return ai.publicName;
 };
 
 GtpEngine.prototype.version = function () {
-    return main.appVersion;
+    var ai = this.getAiPlayer(BLACK) || this.getAiPlayer(WHITE);
+    return ai.publicVersion;
 };
 
 GtpEngine.prototype.initBoardSize = function (size) {

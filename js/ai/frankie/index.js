@@ -16,6 +16,8 @@ var sOK = main.sOK, sINVALID = main.sINVALID, sBLUNDER = main.sBLUNDER;
 
 var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
 
+var AI_VERSION = '0.1';
+
 
 /** @class
  *  public read-only attribute: goban, inf, ter, enemyColor, genes
@@ -27,7 +29,9 @@ var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
  */
 function Frankie(goban, color, genes) {
     this.name = this.constructor.name || main.funcName(this.constructor);
-    this.version = this.name + '-1.0';
+    this.publicName = this.name; // could be different if needed
+    this.publicVersion = AI_VERSION;
+
     this.goban = goban;
     this.inf = new InfluenceMap(this.goban);
     this.ter = new PotentialTerritory(this.goban);

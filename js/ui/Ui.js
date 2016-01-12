@@ -249,7 +249,7 @@ Ui.prototype.showEnd = function () {
 
 Ui.prototype.showAiMoveData = function (aiPlayer, move, isTest) {
     var playerName = Grid.colorName(aiPlayer.color);
-    this.message(playerName + ' (AI ' + aiPlayer.version + '): ' + move);
+    this.message(playerName + ' (' + aiPlayer.publicName + '-' + aiPlayer.publicVersion + '): ' + move);
 
     var txt = aiPlayer.getMoveSurveyText(move, isTest);
     txt = txt.replace(/\n/g, '<br>');
