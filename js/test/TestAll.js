@@ -1,14 +1,17 @@
 'use strict';
 
-require('./TestAi');
-require('./TestBoardAnalyser');
-require('./TestBreeder');
-require('./TestGameLogic');
-require('./TestGoban');
-require('./TestGroup');
-require('./TestPotentialTerritory');
-require('./TestScoreAnalyser');
-require('./TestSgfReader');
-require('./TestSpeed');
-require('./TestStone');
-require('./TestZoneFiller');
+function addAllTests(testSeries) {
+    testSeries.add(require('./TestAi'));
+    testSeries.add(require('./TestBoardAnalyser'));
+    testSeries.add(require('./TestBreeder'));
+    testSeries.add(require('./TestGameLogic'));
+    testSeries.add(require('./TestGoban'));
+    testSeries.add(require('./TestGroup'));
+    testSeries.add(require('./TestPotentialTerritory'));
+    testSeries.add(require('./TestScoreAnalyser'));
+    testSeries.add(require('./TestSgfReader'));
+    testSeries.add(require('./TestSpeed'));
+    testSeries.add(require('./TestStone'));
+    testSeries.add(require('./TestZoneFiller'));
+}
+module.exports = addAllTests;

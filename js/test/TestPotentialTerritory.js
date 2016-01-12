@@ -5,15 +5,16 @@
 var main = require('../main');
 var inherits = require('util').inherits;
 var GameLogic = require('../GameLogic');
+var TestCase = require('./TestCase');
 
 
 /** @class NB: for debugging think of using analyser.debug_dump
  */
 function TestPotentialTerritory(testName) {
-    main.TestCase.call(this, testName);
+    TestCase.call(this, testName);
 }
-inherits(TestPotentialTerritory, main.TestCase);
-module.exports = main.tests.add(TestPotentialTerritory);
+inherits(TestPotentialTerritory, TestCase);
+module.exports = TestPotentialTerritory;
 
 
 TestPotentialTerritory.prototype.initBoard = function (size, handicap) {

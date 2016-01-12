@@ -5,6 +5,7 @@ var main = require('../main');
 var inherits = require('util').inherits;
 var Grid = require('../Grid');
 var GameLogic = require('../GameLogic');
+var TestCase = require('./TestCase');
 
 var GRID_BORDER = main.GRID_BORDER;
 var EMPTY = main.EMPTY;
@@ -16,11 +17,11 @@ var CODE_X = 123; // we use this color for replacements - should be rendered as 
  *  TODO: add tests for group detection while filling
  */
 function TestZoneFiller(testName) {
-    main.TestCase.call(this, testName);
+    TestCase.call(this, testName);
     this.initBoard();
 }
-inherits(TestZoneFiller, main.TestCase);
-module.exports = main.tests.add(TestZoneFiller);
+inherits(TestZoneFiller, TestCase);
+module.exports = TestZoneFiller;
 
 
 TestZoneFiller.prototype.initBoard = function (size, handicap) {

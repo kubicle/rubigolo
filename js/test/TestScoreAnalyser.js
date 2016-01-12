@@ -6,14 +6,15 @@ var inherits = require('util').inherits;
 var Grid = require('../Grid');
 var GameLogic = require('../GameLogic');
 var ScoreAnalyser = require('../ScoreAnalyser');
+var TestCase = require('./TestCase');
 
 
 /** @class */
 function TestScoreAnalyser(testName) {
-    main.TestCase.call(this, testName);
+    TestCase.call(this, testName);
 }
-inherits(TestScoreAnalyser, main.TestCase);
-module.exports = main.tests.add(TestScoreAnalyser);
+inherits(TestScoreAnalyser, TestCase);
+module.exports = TestScoreAnalyser;
 
 
 TestScoreAnalyser.prototype.initGame = function (size) {

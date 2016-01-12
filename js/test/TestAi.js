@@ -6,6 +6,7 @@ var main = require('../main');
 var GameLogic = require('../GameLogic');
 var Grid = require('../Grid');
 var inherits = require('util').inherits;
+var TestCase = require('./TestCase');
 
 var BLACK = main.BLACK, WHITE = main.WHITE;
 
@@ -13,10 +14,11 @@ var BLACK = main.BLACK, WHITE = main.WHITE;
 /** @class NB: for debugging think of using @goban.debug_display
  */
 function TestAi(testName) {
-    main.TestCase.call(this, testName);
+    TestCase.call(this, testName);
 }
-inherits(TestAi, main.TestCase);
-module.exports = main.tests.add(TestAi);
+inherits(TestAi, TestCase);
+module.exports = TestAi;
+
 
 TestAi.prototype.initBoard = function (size, handicap) {
     this.game = new GameLogic();

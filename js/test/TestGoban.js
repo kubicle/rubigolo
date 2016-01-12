@@ -6,17 +6,18 @@ var inherits = require('util').inherits;
 var GameLogic = require('../GameLogic');
 var Goban = require('../Goban');
 var Grid = require('../Grid');
+var TestCase = require('./TestCase');
 
 var BLACK = main.BLACK, WHITE = main.WHITE;
 
 
 /** @class */
 function TestGoban(testName) {
-    main.TestCase.call(this, testName);
+    TestCase.call(this, testName);
     this.goban = new Goban(5);
 }
-inherits(TestGoban, main.TestCase);
-module.exports = main.tests.add(TestGoban);
+inherits(TestGoban, TestCase);
+module.exports = TestGoban;
 
 
 // Coverage etc.

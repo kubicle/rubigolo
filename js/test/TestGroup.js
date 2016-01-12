@@ -4,6 +4,7 @@
 var main = require('../main');
 var inherits = require('util').inherits;
 var GameLogic = require('../GameLogic');
+var TestCase = require('./TestCase');
 
 var BLACK = main.BLACK, WHITE = main.WHITE;
 
@@ -11,11 +12,11 @@ var BLACK = main.BLACK, WHITE = main.WHITE;
 /** @class NB: for debugging think of using @goban.debug_display
  */
 function TestGroup(testName) {
-    main.TestCase.call(this, testName);
+    TestCase.call(this, testName);
     this.initBoard();
 }
-inherits(TestGroup, main.TestCase);
-module.exports = main.tests.add(TestGroup);
+inherits(TestGroup, TestCase);
+module.exports = TestGroup;
 
 
 TestGroup.prototype.initBoard = function (size, handicap) {

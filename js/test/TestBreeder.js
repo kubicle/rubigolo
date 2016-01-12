@@ -4,14 +4,15 @@
 var main = require('../main');
 var inherits = require('util').inherits;
 var Breeder = require('../Breeder');
+var TestCase = require('./TestCase');
 
 
 /** @class */
 function TestBreeder(testName) {
-    main.TestCase.call(this, testName);
+    TestCase.call(this, testName);
 }
-inherits(TestBreeder, main.TestCase);
-module.exports = main.tests.add(TestBreeder);
+inherits(TestBreeder, TestCase);
+module.exports = TestBreeder;
 
 
 // Right now this is just for coverage

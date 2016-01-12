@@ -3,8 +3,8 @@
 
 var main = require('../main');
 var inherits = require('util').inherits;
-var Group = require('../Group');
 var GameLogic = require('../GameLogic');
+var TestCase = require('./TestCase');
 
 var BLACK = main.BLACK, WHITE = main.WHITE;
 
@@ -12,10 +12,10 @@ var BLACK = main.BLACK, WHITE = main.WHITE;
 /** @class Set main.debug to true for details
  */
 function TestBoardAnalyser(testName) {
-    main.TestCase.call(this, testName);
+    TestCase.call(this, testName);
 }
-inherits(TestBoardAnalyser, main.TestCase);
-module.exports = main.tests.add(TestBoardAnalyser);
+inherits(TestBoardAnalyser, TestCase);
+module.exports = TestBoardAnalyser;
 
 
 TestBoardAnalyser.prototype.initBoard = function (gsize, handicap) {

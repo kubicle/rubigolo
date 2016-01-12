@@ -5,6 +5,7 @@ var main = require('../main');
 var inherits = require('util').inherits;
 var Grid = require('../Grid');
 var Goban = require('../Goban');
+var TestCase = require('./TestCase');
 var TimeKeeper = require('./TimeKeeper');
 
 var BLACK = main.BLACK, WHITE = main.WHITE;
@@ -12,12 +13,12 @@ var BLACK = main.BLACK, WHITE = main.WHITE;
 
 /** @class */
 function TestSpeed(testName) {
-    main.TestCase.call(this, testName);
+    TestCase.call(this, testName);
     main.debug = false; // if true it takes forever...
     this.initBoard();
 }
-inherits(TestSpeed, main.TestCase);
-module.exports = main.tests.add(TestSpeed);
+inherits(TestSpeed, TestCase);
+module.exports = TestSpeed;
 
 TestSpeed.CM_UNDO = 0;
 TestSpeed.CM_CLEAR = 1;

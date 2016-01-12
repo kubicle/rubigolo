@@ -3,17 +3,18 @@
 var main = require('../main');
 var inherits = require('util').inherits;
 var Goban = require('../Goban');
+var TestCase = require('./TestCase');
 
 var BLACK = main.BLACK, WHITE = main.WHITE;
 
 
 /** @class */
 function TestStone(testName) {
-    main.TestCase.call(this, testName);
+    TestCase.call(this, testName);
     this.goban = new Goban(5);
 }
-inherits(TestStone, main.TestCase);
-module.exports = main.tests.add(TestStone);
+inherits(TestStone, TestCase);
+module.exports = TestStone;
 
 
 TestStone.prototype.testStoneInternals = function () {

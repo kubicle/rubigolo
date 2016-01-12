@@ -4,16 +4,17 @@
 var main = require('../main');
 var inherits = require('util').inherits;
 var GameLogic = require('../GameLogic');
+var TestCase = require('./TestCase');
 
 
 /** @class TODO: very incomplete test
  */
 function TestGameLogic(testName) {
-    main.TestCase.call(this, testName);
+    TestCase.call(this, testName);
     this.initBoard();
 }
-inherits(TestGameLogic, main.TestCase);
-module.exports = main.tests.add(TestGameLogic);
+inherits(TestGameLogic, TestCase);
+module.exports = TestGameLogic;
 
 
 TestGameLogic.prototype.initBoard = function (size, handicap) {

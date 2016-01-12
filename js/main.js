@@ -23,7 +23,6 @@ function Main() {
     this.ui = null;
     this.gtp = null;
 
-    this.TestCase = null; // could be refactored - each test can require TestCase now
     this.tests = null;
     this.testUi = null;
 
@@ -46,12 +45,10 @@ Main.prototype.initAis = function () {
 
 Main.prototype.initTests = function () {
     var TestSeries = require('./test/TestSeries');
-    var TestCase = require('./test/TestCase');
+    var addAllTests = require('./test/TestAll'); // one day this will only be in the testing build
 
-    this.TestCase = TestCase; // could be refactored - each test can require TestCase now
     this.tests = new TestSeries();
-
-    require('./test/TestAll'); // one day this will only be in the testing build
+    addAllTests(this.tests);
 };
 
 
