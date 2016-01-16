@@ -168,15 +168,16 @@ Goban.prototype.isValidMove = function (i, j, color) {
     if (stone.moveIsSuicide(color)) {
         return false;
     }
-    if (stone.moveIsKo(color)) {
-        return false;
-    }
+
     if (this.useSuperko) {
         // Check this is not a superko (already seen position)
         if (this.allSeenPositions[this.nextMoveImage(i, j, color)]) {
             return false;
         }
+    } else if (stone.moveIsKo(color)) {
+        return false;
     }
+
     return true;
 };
 
