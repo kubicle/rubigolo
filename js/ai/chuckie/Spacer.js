@@ -23,15 +23,14 @@ module.exports = Spacer;
 Spacer.prototype._evalMove = function (i, j) {
     var enemyInf = 0, allyInf = 0;
     var stone = this.goban.stoneAt(i, j);
-    var inf = this.infl[j][i];
-    enemyInf += inf[this.enemyColor];
-    allyInf += inf[this.color];
+    var eInf = this.infl[this.enemyColor], aInf = this.infl[this.color];
+    enemyInf += eInf[j][i];
+    allyInf += aInf[j][i];
     for (var n = stone.neighbors.length - 1; n >= 0; n--) {
         var s = stone.neighbors[n];
         if (s.color !== main.EMPTY) return 0;
-        inf = this.infl[s.j][s.i];
-        enemyInf += inf[this.enemyColor];
-        allyInf += inf[this.color];
+        enemyInf += eInf[s.j][s.i];
+        allyInf += aInf[s.j][s.i];
     }
     var totalInf = 1 + this.inflCoeff * Math.max(enemyInf + allyInf - 3, 0) * (this.gsize / 9);
 

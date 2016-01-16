@@ -24,15 +24,12 @@ module.exports = Pusher;
 
 
 Pusher.prototype._evalMove = function (i, j, color) {
-    var inf = this.infl[j][i];
-    var enemyInf = inf[this.enemyColor];
-    var allyInf = inf[color];
-    if (enemyInf === 0 || allyInf === 0) {
-        return 0;
-    }
-    if (this.noEasyPrisonerYx[j][i] < 0) {
-        return 0;
-    }
+    var enemyInf = this.infl[this.enemyColor][j][i];
+    if (enemyInf === 0) return 0;
+    var allyInf = this.infl[color][j][i];
+
+    if (this.noEasyPrisonerYx[j][i] < 0) return 0;
+
     // Only push where we can connect to
     if (!this.canConnect(i, j, color)) return 0;
     // Stones that would "fill a blank" are not for Pusher to evaluate

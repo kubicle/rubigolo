@@ -77,9 +77,10 @@ Heuristic.prototype.isOwned = function (i, j, color) {
 
 /** @return {color|null} - null if no chance to make an eye here */
 Heuristic.prototype.eyePotential = function (i, j) {
-    var infl = this.infl[j][i];
-    var color = infl[BLACK] > infl[WHITE] ? BLACK : WHITE;
-    var allyInf = infl[color], enemyInf = infl[1 - color];
+    var infB = this.infl[BLACK][j][i];
+    var infW = this.infl[WHITE][j][i];
+    var color = infB > infW ? BLACK : WHITE;
+    var allyInf = Math.max(infB, infW), enemyInf = Math.min(infB, infW);
 
     if (enemyInf > 1) return null; // enemy stone closer than 2 vertexes
     var cornerPoints = 0, gsize = this.gsize;

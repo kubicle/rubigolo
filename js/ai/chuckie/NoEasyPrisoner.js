@@ -29,7 +29,7 @@ NoEasyPrisoner.prototype._evalMove = function (i, j, color) {
 
     // Skip places where nothing happens around
     // NB: if dead allies (without influence), avoid adding more stones here
-    if (this.infl[j][i][1 - color] < 2 && this.infl[j][i][color] < 2 &&
+    if (this.infl[1 - color][j][i] < 2 && this.infl[color][j][i] < 2 &&
         this.goban.stoneAt(i, j).allyStones(color) === 0) return 0;
 
     var stone = this.goban.tryAt(i, j, color);
