@@ -177,10 +177,12 @@ Breeder.prototype.control = function (numGames) {
     main.debugBreed = previous;
 };
 
+function getAiName(ai) { return ai.publicName + '-' + ai.publicVersion; }
+
 // Play many games AI VS AI to verify black/white balance
 // Returns the number of games won by White
 Breeder.prototype.bwBalanceCheck = function (numGames, gsize, numLostGamesShowed) {
-    var blackAi = this.players[BLACK].version, whiteAi = this.players[WHITE].version;
+    var blackAi = getAiName(this.players[BLACK]), whiteAi = getAiName(this.players[WHITE]);
     var desc = numGames + ' games on ' + gsize + 'x' + gsize + ', komi=' + this.komi + ', ' +
         whiteAi + ' VS ' + blackAi + '(B)';
     var expectedDuration = gsize === 9 ? numGames * 0.05 : undefined;
