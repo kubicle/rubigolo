@@ -26,8 +26,7 @@ TestSpeed.CM_NEW = 2;
 
 
 TestSpeed.prototype.initBoard = function (size) {
-    if (size === undefined) size = 9;
-    this.goban = new Goban(size);
+    this.goban = new Goban(size || 9);
     this.goban.setRules({ positionalSuperko: false });
 };
 
@@ -105,6 +104,13 @@ TestSpeed.prototype.testSpeed63movesAndUndo = function () {
     var count = main.isCoverTest ? 1 : 2000;
     t.start('63 move game, ' + count + ' times and undo', 0.1);
     for (var i = 0; i < count; i++) {
+        this.playGameAndClean(game2MovesIj, TestSpeed.CM_UNDO);
+    }
+    t.stop();
+
+    t.start('63 move game, ' + count + ' times and undo, using superko rule', 0.4);
+    this.goban.setRules({ positionalSuperko: true });
+    for (i = 0; i < count; i++) {
         this.playGameAndClean(game2MovesIj, TestSpeed.CM_UNDO);
     }
     t.stop();
