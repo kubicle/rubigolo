@@ -20,7 +20,7 @@ var infoTags = {
     AW: ['move', null], // add a move for White
     HA: ['int', 'handicap'],
     KM: ['real', 'komi'],
-    RU: ['text', 'rules'],
+    RU: ['text', 'rules'], // Manadatory names: AGA, GOE, Japanese, NZ
     RE: ['text', 'result'],
     PB: ['text', 'playerBlack'],
     PW: ['text', 'playerWhite'],
