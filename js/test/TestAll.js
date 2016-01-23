@@ -6,6 +6,7 @@ function addAllTests(testSeries) {
     testSeries.add(require('./TestBreeder'));
     testSeries.add(require('./TestGameLogic'));
     testSeries.add(require('./TestGoban'));
+    testSeries.add(require('./TestGrid'));
     testSeries.add(require('./TestGroup'));
     testSeries.add(require('./TestPotentialTerritory'));
     testSeries.add(require('./TestScoreAnalyser'));

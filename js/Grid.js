@@ -198,6 +198,25 @@ Grid.prototype.loadImage = function (image) {
     }
 };
 
+function reverseStr(s) {
+    var res = '';
+    for (var i = s.length - 1; i >= 0; i--) { res += s[i]; }
+    return res;
+}
+
+Grid.flipImage = function (image) {
+    return image.split(',').reverse().join();
+};
+
+Grid.mirrorImage = function (image) {
+    return image.split(',').map(reverseStr).join();
+};
+
+Grid.flipAndMirrorImage = function (image) {
+    return reverseStr(image);
+};
+
+
 var COLUMNS = 'abcdefghjklmnopqrstuvwxyz'; // NB: "i" is skipped
 
 // Parses a move like "c12" into 3,12
