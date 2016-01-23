@@ -2,6 +2,7 @@
 
 var main = require('./main');
 var Genes = require('./Genes');
+var Grid = require('./Grid');
 var TimeKeeper = require('./test/TimeKeeper');
 var GameLogic = require('./GameLogic');
 var ScoreAnalyser = require('./ScoreAnalyser');
@@ -39,11 +40,11 @@ Breeder.TOO_SMALL_SCORE_DIFF = 3; // if final score is less that this, see it as
 
 
 Breeder.prototype.firstGeneration = function () {
-    this.controlGenes = this.players[0].genes.clone();
+    this.controlGenes = this.players[WHITE].genes.clone();
     this.generation = [];
     this.newGeneration = [];
     for (var i = 0; i < this.genSize; i++) {
-        this.generation.push(this.players[0].genes.clone().mutateAll());
+        this.generation.push(this.players[WHITE].genes.clone().mutateAll());
         this.newGeneration.push(new Genes());
     }
     this.scoreDiff = [];
@@ -60,17 +61,35 @@ Breeder.prototype.playUntilGameEnds = function () {
         var move = curPlayer.getMove();
         game.playOneMove(move);
     }
-    // Keep track of games we already saw
-    var img = game.goban.buildCompressedImage();
-    if (!this.seenGames[img]) this.seenGames[img] = 1;
-    else this.seenGames[img]++;
+    this._countAlreadySeenGames();
+};
+
+Breeder.prototype._countAlreadySeenGames = function () {
+    var img = this.goban.image(), seenGames = this.seenGames;
+
+    if (seenGames[img])
+        return seenGames[img]++;
+    
+    var flippedImg = Grid.flipImage(img);
+    if (seenGames[flippedImg])
+        return seenGames[flippedImg]++;
+
+    var mirroredImg = Grid.mirrorImage(img);
+    if (seenGames[mirroredImg])
+        return seenGames[mirroredImg]++;
+
+    var mfImg = Grid.flipAndMirrorImage(img);
+    if (seenGames[mfImg])
+        return seenGames[mfImg]++;
+
+    seenGames[img] = 1;
 };
 
 // Plays a game and returns the score difference in points
 Breeder.prototype.playGame = function (name1, name2, p1, p2) {
     this.game.newGame(this.gsize, 0, this.komi);
-    this.players[0].prepareGame(p1);
-    this.players[1].prepareGame(p2);
+    this.players[BLACK].prepareGame(p1);
+    this.players[WHITE].prepareGame(p2);
     var scoreDiff;
     try {
         this.playUntilGameEnds();
@@ -144,22 +163,22 @@ Breeder.prototype.reproduction = function () {
 };
 
 Breeder.prototype.pickParent = function () {
+    var i = this.pickIndex;
     for (;;) {
-        var i = this.pickIndex;
-        this.pickIndex = (this.pickIndex + 1) % this.genSize;
-        if (Math.random() < this.scoreDiff[i] / this.maxScore) {
-            this.picked[i]++;
-            // $log.debug("Picked parent #{i} (score #{@score_diff[i]})") if $debug_breed
-            return this.generation[i];
-        }
+        i = (i + 1) % this.genSize;
+        if (Math.random() < this.scoreDiff[i] / this.maxScore) break;
     }
+    this.picked[i]++;
+    this.pickIndex = i;
+    return this.generation[i];
 };
 
 Breeder.prototype.control = function (numGames) {
     var totalScore, numWins, numWinsW;
     var previous = main.debugBreed;
     main.debugBreed = false; // never want debug during control games
-    main.log.debug('Playing ' + numGames * 2 + ' games to measure the current winner against our control AI...');
+
+    main.log.info('Playing ' + numGames * 2 + ' games to measure the current winner against our control AI...');
     totalScore = numWins = numWinsW = 0;
     for (var i = 0; i < numGames; i++) {
         var score = this.playGame('control', 'winner', this.controlGenes, this.winner);
@@ -168,8 +187,9 @@ Breeder.prototype.control = function (numGames) {
         if (scoreW < 0) numWinsW++;
         totalScore += score - scoreW;
     }
-    if (main.debug) main.log.debug('Average score: ' + totalScore / numGames +
-        '\nWinner genes: ' + this.winner +
+    main.log.info('Average score: ' + totalScore / numGames +
+        '\nWinner genes:\n' + this.winner +
+        '\nControl genes:\n' + this.controlGenes +
         '\nDistance between control and current winner: ' + this.controlGenes.distance(this.winner).toFixed(2) +
         '\nTotal score of control against current winner: ' + totalScore +
         ' (out of ' + numGames * 2 + ' games, control won ' +
@@ -181,11 +201,12 @@ function getAiName(ai) { return ai.publicName + '-' + ai.publicVersion; }
 
 // Play many games AI VS AI to verify black/white balance
 // Returns the number of games won by White
-Breeder.prototype.bwBalanceCheck = function (numGames, gsize, numLostGamesShowed) {
+Breeder.prototype.bwBalanceCheck = function (numGames, numLostGamesShowed) {
     var blackAi = getAiName(this.players[BLACK]), whiteAi = getAiName(this.players[WHITE]);
+    var gsize = this.gsize;
     var desc = numGames + ' games on ' + gsize + 'x' + gsize + ', komi=' + this.komi + ', ' +
         whiteAi + ' VS ' + blackAi + '(B)';
-    var expectedDuration = gsize === 9 ? numGames * 0.05 : undefined;
+    var expectedDuration = numGames * 0.05 * gsize * gsize / 81;
 
     this.timer.start(desc, expectedDuration);
     var totalScore = 0, numWins = 0, numCloseMatch = 0, numMoves = 0, numRandom = 0;
@@ -204,15 +225,14 @@ Breeder.prototype.bwBalanceCheck = function (numGames, gsize, numLostGamesShowed
     }
     this.timer.stop(/*lenientIfSlow=*/true);
 
-    var dupes = 0;
-    for (i in this.seenGames) { dupes += this.seenGames[i] - 1; }
+    var uniqueGames = Object.keys(this.seenGames).length;
 
     main.log.info('Average score difference: ' + (-totalScore / numGames).toFixed(1));
     main.log.info('Close match (score diff < 3 pts): ' + ~~(numCloseMatch / numGames * 100) + '%');
     main.log.info('Average number of moves: ' + ~~(numMoves / numGames));
     main.log.info('Average number of times White picked at random between equivalent moves: ' + (numRandom / numGames).toFixed(1));
     main.log.info('Average time per move: ' + (this.timer.duration * 1000 / numMoves).toFixed(1) + 'ms');
-    main.log.info('Dupe games: ' + ~~(dupes / numGames * 100) + '%');
+    main.log.info('Unique games: ' + uniqueGames + ' (' + ~~(uniqueGames / numGames * 100) + '%)');
     main.log.info('Won games for White-' + whiteAi +
         ' VS Black-' + blackAi + ': ' + ((numGames - numWins) / numGames * 100).toFixed(1) + '%');
 
@@ -223,15 +243,16 @@ Breeder.prototype.bwBalanceCheck = function (numGames, gsize, numLostGamesShowed
 Breeder.prototype.run = function (genSize, numTournaments, numMatchPerAi) {
     this.genSize = genSize;
     this.firstGeneration();
-    var numControlGames = main.isCoverTest ? 1 : 30;
+    var gsize = this.gsize;
+    var expectedDuration = genSize * numTournaments * numMatchPerAi * 0.05 * gsize * gsize / 81;
 
     for (var i = 1; i <= numTournaments; i++) { // TODO: Find a way to appreciate the progress
         var tournamentDesc = 'Breeding tournament ' + i + '/' + numTournaments +
             ': each of ' + this.genSize + ' AIs plays ' + numMatchPerAi + ' games';
-        this.timer.start(tournamentDesc, genSize * numTournaments * numMatchPerAi * 0.015);
+        this.timer.start(tournamentDesc, expectedDuration);
         this.oneTournament(numMatchPerAi);
         this.timer.stop(/*lenientIfSlow=*/true);
         this.reproduction();
-        this.control(numControlGames);
+        this.control(numMatchPerAi);
     }
 };
