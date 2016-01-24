@@ -137,9 +137,9 @@ GtpEngine.prototype.getStonesWithStatus = function (status) {
 
 GtpEngine.prototype._beginGame = function () {
     this.refreshDisplay();
-    // make sure both AI exist
-    this.getAiPlayer(BLACK);
-    this.getAiPlayer(WHITE);
+    // Initialize both AIs
+    this.getAiPlayer(BLACK).prepareGame();
+    this.getAiPlayer(WHITE).prepareGame();
 };
 
 GtpEngine.prototype._forceCurPlayer = function (color) {
