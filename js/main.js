@@ -18,7 +18,7 @@ function Main() {
 
     // Known AIs and default one
     this.ais = null;
-    this.defaultAi = this.latestAi = null;
+    this.defaultAi = this.latestAi = this.previousAi = null;
 
     this.ui = null;
     this.gtp = null;
@@ -41,6 +41,7 @@ Main.prototype.initAis = function () {
         Chuckie: require('./ai/chuckie')
     };
     this.defaultAi = this.latestAi = this.ais.Chuckie;
+    this.previousAi = this.ais.Droopy;
 };
 
 Main.prototype.initTests = function () {

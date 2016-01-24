@@ -31,18 +31,19 @@ TestBreeder.prototype.testBreeding = function () {
     breeder.run(genSize, numTournaments, numMatchPerAi);
 };
 
-TestBreeder.prototype.testBwBalance = function () {
+TestBreeder.prototype.testAiVsAi = function () {
     var size = 9, komi = 3.5;
-    var numGames = 300;
-    var numLostGamesShowed = 5;
-    var expectedWins = 0.60 * numGames; // number going up shows new AI gets stronger compared to default AI
+    var initMoves = 'd4,f6'; //'d4,f6' 73.3%!; 'e5,e3' 57%; 'e5,d4' 75%; 'We5,d4' 97%!; 'We5,e3' <50%
+    var numGames = 100;
+    var numGamesShowed = 2;
+    var expectedWinRatio = 0.60; // number going up shows new AI gets stronger compared to default AI
     var tolerance = numGames * 0.15; // + or -; the more games you play the lower tolerance you can set
 
     // For coverage tests no need to run many games
     if (main.isCoverTest) numGames = 1;
 
     var breeder = new Breeder(size, komi);
-    var numWins = breeder.bwBalanceCheck(numGames, numLostGamesShowed);
+    var winRatio = breeder.aiVsAi(numGames, numGamesShowed, initMoves);
 
-    if (!main.isCoverTest) this.assertInDelta(numWins, expectedWins, tolerance);
+    if (!main.isCoverTest) this.assertInDelta(winRatio, expectedWinRatio, tolerance);
 };

@@ -2,12 +2,15 @@
 
 var main = require('./main');
 
+var idGen = 1;
+
 
 /** @class
  */
-function Genes(map, limits) {
+function Genes(map, limits, name) {
     this._map = map || {};
     this._limits = limits || {};
+    this.name = name || '#' + idGen++;
 }
 module.exports = Genes;
 
@@ -17,8 +20,8 @@ var SMALL_MUTATION = 0.05; // e.g. 0.05 -> plus or minus 5%
 var LOW = 0, HIGH = 1;
 
 
-Genes.prototype.clone = function () {
-    return new Genes(main.clone(this._map), main.clone(this._limits));
+Genes.prototype.clone = function (newName) {
+    return new Genes(main.clone(this._map), main.clone(this._limits), newName);
 };
 
 Genes.prototype.setLimits = function (limits) {
@@ -26,11 +29,11 @@ Genes.prototype.setLimits = function (limits) {
 };
 
 Genes.prototype.toString = function () {
-    var s = '';
+    var s = '{' + this.name + ' - ';
     for (var k in this._map) {
         s += k + ':' + this._map[k].toFixed(2) + ', ';
     }
-    return s.chomp(', ');
+    return s.chomp(', ') + '}';
 };
 
 // Returns a distance between 2 sets of genes
