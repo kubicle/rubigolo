@@ -32,7 +32,8 @@ GtpEngine.prototype.quit = function () {
 };
 
 GtpEngine.prototype.send = function (msg) {
-    console.log(msg); // stdout is default
+    // stdout is default; + we remove 1 \n from the msg since log method will add 1
+    console.log(msg.chomp());
 };
 
 GtpEngine.prototype.refreshDisplay = function () {

@@ -113,7 +113,7 @@ commandHandler('list_commands', function () {
     for (var command in commands) {
         cmds += command + '\n';
     }
-    return this.success(cmds + '\n');
+    return this.success(cmds.chomp());
 });
 
 commandHandler('quit', function () {
