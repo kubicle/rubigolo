@@ -76,7 +76,7 @@ Ui.prototype.createGameUi = function (layout, parent, title, descr) {
     this.board = new Board();
     this.board.setTapHandler(function (move) {
         if (move[0] === '!') return self.onDevKey(move.substr(1));
-        if (self.inEvalMode) return self.evalMove(move);
+        if (self.inEvalMode) return self.showDevData(move, null, true);
         self.playerMove(move);
     });
 };
@@ -247,20 +247,19 @@ Ui.prototype.showEnd = function () {
     this.toggleControls();
 };
 
-Ui.prototype.showAiMoveData = function (aiPlayer, move, isTest) {
+Ui.prototype.showAiMove = function (move, aiPlayer) {
     var playerName = Grid.colorName(aiPlayer.color);
     this.message(playerName + ' (' + aiPlayer.publicName + '-' + aiPlayer.publicVersion + '): ' + move);
-
-    var txt = aiPlayer.getMoveSurveyText(move, isTest);
-    txt = txt.replace(/\n/g, '<br>');
-    this.devMessage(txt);
+    if (this.inDevMode) this.showDevData(move, aiPlayer, false);
 };
 
 Ui.prototype.letAiPlay = function (skipRefresh) {
     var aiPlayer = this.lastAiPlayer = this.players[this.game.curColor];
+    this.prevNumRandomPicks = aiPlayer.numRandomPicks;
+
     var move = aiPlayer.getMove();
-    if (!skipRefresh) this.showAiMoveData(aiPlayer, move);
     this.game.playOneMove(move);
+    if (!skipRefresh) this.showAiMove(move, aiPlayer);
 
     // AI resigned or double-passed?
     if (this.checkEnd()) return move;
@@ -378,9 +377,14 @@ Ui.prototype.setEvalMode = function (enabled) {
     this.controls.get('evalMode').toggleClass('toggled', enabled);
 };
 
-Ui.prototype.evalMove = function (move) {
-    var player = this.getAiPlayer(this.game.curColor);
-    this.showAiMoveData(player, move, /*isTest=*/true);
+Ui.prototype.showDevData = function (move, aiPlayer, isTest) {
+    aiPlayer = aiPlayer || this.getAiPlayer(this.game.curColor);
+    var txt = aiPlayer.getMoveSurveyText(move, isTest);
+    txt = txt.replace(/\n/g, '<br>');
+    if (aiPlayer.numRandomPicks - this.prevNumRandomPicks === 1) txt = '#RANDOM ' + txt;
+    this.devMessage(txt);
+
+    this.updateGameLink();
 };
 
 Ui.prototype.scoreTest = function () {
@@ -441,6 +445,11 @@ var evalTests = [
     'Influence W'
 ];
 
+Ui.prototype.updateGameLink = function () {
+    this.devGameLink.setAttribute('href', 'mailto:kubicle@yahoo.com?subject=' + main.appName + '%20game' +
+        '&body=' + this.game.historyString());
+};
+
 Ui.prototype.createDevControls = function () {
     var self = this;
     var devDiv = this.gameDiv.newDiv('#devDiv');
@@ -454,9 +463,8 @@ Ui.prototype.createDevControls = function () {
         main.log.level = main.debug ? Logger.DEBUG : Logger.INFO;
     });
 
-    Dome.newLink(col2, 'emailGame', 'Email game',
-        'mailto:kubicle@yahoo.com?subject=' + main.appName + '%20game' +
-        '&body=' + this.game.historyString());
+    this.devGameLink = Dome.newLink(col2, 'gameLink', 'Game link');
+    this.updateGameLink();
 
     this.evalTestDropdown = Dome.newDropdown(col2, '#evalTest', evalTests, null, '');
     this.evalTestDropdown.on('change', function () {
