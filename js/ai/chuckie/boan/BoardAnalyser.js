@@ -240,7 +240,6 @@ function killAllFails(check, fails) {
     return fails.length;
 }
 
-var parentCheck =      { name: 'parents',     run: function (gi) { return gi.checkParents(); } };
 var brotherCheck =     { name: 'brothers',    run: function (gi) { return gi.checkBrothers(); } };
 var singleEyeCheck = {
     name: 'singleEye',   
@@ -250,13 +249,11 @@ var singleEyeCheck = {
 var finalCheck = { name: 'final', run: function (gi) { return gi.checkLiveliness(2); } };
 
 var midGameLifeChecks = [
-    parentCheck,
     brotherCheck,
     singleEyeCheck
     // We don't expect a final liveliness (2) in mid-game
 ];
 var scoringLifeChecks = [
-    parentCheck,
     brotherCheck,
     singleEyeCheck,
     finalCheck

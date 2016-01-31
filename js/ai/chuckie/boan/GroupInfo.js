@@ -12,7 +12,6 @@ function GroupInfo(group, version) {
     this.version = version;
     this.voids = []; // voids owned by the group
     this.nearVoids = []; // voids around, owned or not
-    this.dependsOn = [];
     this.deadEnemies = [];
     this.killers = [];
     this.potentialEyes = [];
@@ -35,7 +34,6 @@ GroupInfo.prototype.resetAnalysis = function () {
     this.eyeCount = this._liveliness = 0;
     this.voids.clear();
     this.nearVoids.clear();
-    this.dependsOn.clear();
     this.band = null;
     this.isAlive = this.isDead = false;
     this.deadEnemies.clear();
@@ -56,8 +54,7 @@ GroupInfo.prototype.toString = function () {
     return this.group.toString() +
         ' (isAlive:' + this.isAlive + ' isDead:' + this.isDead + ', ' +
         this.voids.length + ' voids  brothers:[' +
-        brothers + '] parents:[' + this.dependsOn.map(GroupInfo.giNdx) +
-        '] deadEnemies:[' + this.deadEnemies.map(GroupInfo.giNdx) + '])';
+        brothers + '] deadEnemies:[' + this.deadEnemies.map(GroupInfo.giNdx) + '])';
 };
 
 /** Adds a void to an owner-group + makes groups sharing the void brothers.
@@ -84,21 +81,7 @@ GroupInfo.prototype.removeVoid = function (v) {
     this.eyeCount--;
 };
 
-GroupInfo.prototype.makeDependOn = function (groups) {
-    var band = this.band;
-    if (band) band.remove(this);
-    
-    for (var n = groups.length - 1; n >= 0; n--) {
-        var gi = groups[n]._info;
-        if (gi === this) continue; // this group itself
-        if(this.dependsOn.indexOf(gi) >= 0) continue; // already depending on this one
-
-        if (main.debug) main.log.debug('DEPENDS: ' + this + ' depends on ' + gi);
-        this.dependsOn.push(gi);
-    }
-};
-
-// NB: if we had another way to get the numContactPoints info, we could do this
+// NB: if we had another way to get the contact points info, we could do this
 // much more efficiently by looking once at each empty point on the board
 GroupInfo.prototype.findBrothers = function () {
     var g = this.group, color = g.color;
@@ -164,16 +147,11 @@ GroupInfo.prototype.liveliness = function (strict, shallow) {
         return 0 + racePoints;
     }
     var familyPoints = 0;
-    if (!shallow) {
-        for (n = this.dependsOn.length - 1; n >= 0; n--) {
-            familyPoints += this.dependsOn[n].liveliness(strict, true);
-        }
-        if (this.band) {
-            var brothers = this.band.brothers;
-            for (n = brothers.length - 1; n >= 0; n--) {
-                if (brothers[n] === this) continue;
-                familyPoints += brothers[n].liveliness(strict, true);
-            }
+    if (!shallow && this.band) {
+        var brothers = this.band.brothers;
+        for (n = brothers.length - 1; n >= 0; n--) {
+            if (brothers[n] === this) continue;
+            familyPoints += brothers[n].liveliness(strict, true);
         }
     }
     //TODO: get rid of this "strict" idea
@@ -264,23 +242,6 @@ GroupInfo.prototype.countEyesFromDeadEnemy = function () {
     return count;
 };
 
-// This checks if a group can survive from its parents
-GroupInfo.prototype.checkParents = function () {
-    if (!this.dependsOn.length) return UNDECIDED;
-    var allAreDead = true;
-    for (var n = this.dependsOn.length - 1; n >= 0; n--) {
-        var parent = this.dependsOn[n];
-        if (parent.isAlive) {
-            if (main.debug) main.log.debug('ALIVE-parents: ' + this);
-            this.isAlive = true;
-            return LIVES;
-        }
-        if (!parent.isDead) allAreDead = false;
-    }
-    if (!allAreDead) return UNDECIDED;
-    return FAILS;
-};
-
 // This checks if a group can survive together with his brothers
 GroupInfo.prototype.checkBrothers = function () {
     if (!this.band) return UNDECIDED;
@@ -306,7 +267,7 @@ GroupInfo.prototype.checkBrothers = function () {
 };
 
 GroupInfo.prototype._isLostInEnemyZone = function () {
-    if (this.band || this.dependsOn.length) return false;
+    if (this.band) return false;
     if (this.nearVoids[0].color === this.group.color) return false;
     if (this.group.stones.length >= 6) return false;
     return true;
@@ -332,7 +293,7 @@ GroupInfo.prototype.checkSingleEye = function (first2play) {
     }
     if (alive === NEVER) {
         // yet we cannot say it is dead if there are brothers or dead enemies around
-        if (this.band || this.dependsOn.length || this.deadEnemies.length) return UNDECIDED;
+        if (this.band || this.deadEnemies.length) return UNDECIDED;
         this._liveliness = this.liveliness();
         return FAILS;
     }
@@ -358,16 +319,12 @@ GroupInfo.prototype.checkLiveliness = function (minLife) {
 };
 
 GroupInfo.prototype._count = function (method) {
-    var count = method.call(this), n;
+    var count = method.call(this);
     if (this.band) {
         var brothers = this.band.brothers;
-        for (n = brothers.length - 1; n >= 0; n--) {
+        for (var n = brothers.length - 1; n >= 0; n--) {
             if (brothers[n] === this) continue;
             count += method.call(brothers[n]);
-        }
-    } else {
-        for (n = this.dependsOn.length - 1; n >= 0; n--) {
-            count += method.call(this.dependsOn[n]); //TODO do we need to run on brothers of parents?
         }
     }
     return count;

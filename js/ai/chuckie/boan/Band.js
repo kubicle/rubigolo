@@ -9,7 +9,6 @@ function Band(gi0) {
     this.bandId = gi0.group.ndx; // unique enough
     this.brothers = [gi0]; // array of GroupInfo
     gi0.band = this;
-    gi0.dependsOn.clear(); // does not depend on parents anymore
 }
 module.exports = Band;
 
@@ -21,8 +20,6 @@ Band.prototype.toString = function () {
 };
 
 Band.prototype._add1 = function (gi) {
-    gi.dependsOn.clear(); // does not depend on parents anymore
-
     if (!gi.band) {
         if (main.debug) main.log.debug('BROTHERS: ' + gi + ' joins band: ' + this.toString());
         this.brothers.push(gi);
