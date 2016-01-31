@@ -37,7 +37,7 @@ TestBreeder.prototype.testAiVsAi = function () {
     var numGames = 100;
     var numGamesShowed = 2;
     var expectedWinRatio = 0.60; // number going up shows new AI gets stronger compared to default AI
-    var tolerance = numGames * 0.15; // + or -; the more games you play the lower tolerance you can set
+    var tolerance = 0.15; // + or -; the more games you play the lower tolerance you can set
 
     // For coverage tests no need to run many games
     if (main.isCoverTest) numGames = 1;

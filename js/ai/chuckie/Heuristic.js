@@ -63,12 +63,12 @@ Heuristic.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
 };
 
 Heuristic.prototype.territoryScore = function (i, j, color) {
-    return this.pot.territory.yx[j][i] * (color === main.BLACK ? 1 : -1);
+    return this.pot.territory.yx[j][i] * (color === BLACK ? 1 : -1);
 };
 
 /** @return {number} - NEVER, SOMETIMES, ALWAYS */
 Heuristic.prototype.isOwned = function (i, j, color) {
-    var myColor = color === main.BLACK ? -1 : +1;
+    var myColor = color === BLACK ? -1 : +1;
     var score = NEVER;
     if (Grid.territory2owner[2 + this.pot.grids[BLACK].yx[j][i]] === myColor) score++;
     if (Grid.territory2owner[2 + this.pot.grids[WHITE].yx[j][i]] === myColor) score++;
@@ -92,7 +92,7 @@ Heuristic.prototype.eyePotential = function (i, j) {
 //TODO review this - why 1-color and not both grids?
 Heuristic.prototype.enemyTerritoryScore = function (i, j, color) {
     var score = Grid.territory2owner[2 + this.pot.grids[1 - color].yx[j][i]];
-    return score * (color === main.BLACK ? 1 : -1);
+    return score * (color === BLACK ? 1 : -1);
 };
 
 /** Pass saved as true if g is an ally group (we evaluate how much we save) */
