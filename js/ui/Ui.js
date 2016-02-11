@@ -51,11 +51,7 @@ Ui.prototype.loadFromTest = function (parent, testName, msg) {
     this.createGameUi('compact', parent, testName, msg);
     this.aiPlays = 'both';
     this.startGame(null, /*isLoaded=*/true);
-    if (this.game.gameEnding) {
-        this.proposeScore();
-    } else {
-        this.message(this.whoPlaysNow());
-    }
+    if (this.game.gameEnding) this.proposeScore();
 };
 
 Ui.prototype.createGameUi = function (layout, parent, title, descr) {
@@ -65,6 +61,7 @@ Ui.prototype.createGameUi = function (layout, parent, title, descr) {
     if (title) gameDiv.newDiv(isCompact ? 'testTitle' : 'pageTitle').setText(title);
     this.boardElt = gameDiv.newDiv('board');
     if (descr) this.boardDesc = gameDiv.newDiv('boardDesc').setHtml(descr);
+    this.createStatusBar(gameDiv);
     this.createControls(gameDiv);
     this.createDevControls();
 
@@ -76,7 +73,7 @@ Ui.prototype.createGameUi = function (layout, parent, title, descr) {
     this.board = new Board();
     this.board.setTapHandler(function (move) {
         if (move[0] === '!') return self.onDevKey(move.substr(1));
-        if (self.inEvalMode) return self.showDevData(move, null, true);
+        if (self.inEvalMode || self.inReview) return self.showDevData(move, null, true);
         self.playerMove(move);
     });
 };
@@ -105,10 +102,72 @@ Ui.prototype.newGameDialog = function () {
     });
 };
 
+function MoveElt(parent, className, label) {
+    var elt = this.elt = parent.newDiv('oneMove ' + className);
+    elt.newDiv('label').setText(label);
+    var icon = elt.newDiv('icon');
+    this.text = icon.newDiv('text');
+}
+
+MoveElt.prototype.setMove = function (move, color) {
+    this.elt.setVisible(move !== null);
+    this.elt.toggleClass('black', color === BLACK);
+    this.elt.toggleClass('white', color === WHITE);
+    this.text.setText(move);
+};
+
+Ui.prototype.createStatusBar = function (gameDiv) {
+    var statusBar = this.statusBar = gameDiv.newDiv('statusBar');
+    this.lastMoveElt = new MoveElt(statusBar, 'lastMove', 'Last:');
+    this.gameInfoElt = statusBar.newDiv('gameInfo');
+    this.shortMessage = statusBar.newDiv('message');
+    this.nextPlayerElt = new MoveElt(statusBar, 'nextPlayer', 'Next:');
+};
+
+Ui.prototype.showGameInfo = function () {
+    var gameInfo = this.getPlayerDesc(WHITE) + ' VS ' + this.getPlayerDesc(BLACK) + ' (B)';
+    gameInfo += ', komi:' + this.game.komi;
+    this.gameInfoElt.setText(gameInfo);
+};
+
+Ui.prototype.showLastMove = function () {
+    var moves = this.game.history;
+    if (moves.length) {
+        this.lastMoveElt.setMove(moves[moves.length - 1], 1 - this.game.curColor);
+    } else {
+        this.lastMoveElt.setMove(null);
+    }
+    this.showNextPlayer();
+    this.shortMessage.setText('');
+};
+
+Ui.prototype.showNextPlayer = function (move) {
+    if (move === null) return this.nextPlayerElt.setMove(null);
+    this.nextPlayerElt.setMove(move || '', this.game.curColor);
+};
+
+Ui.prototype.statusMessage = function (msg) {
+    this.shortMessage.setText(msg);
+    this.showNextPlayer();
+    this.longTextElt.setVisible(false);
+};
+
+Ui.prototype.longMessage = function (html) {
+    this.longTextElt.setHtml(html);
+    this.longTextElt.setVisible(true);
+};
+
 Ui.prototype.createControls = function (gameDiv) {
-    this.controls = Dome.newGroup();
     var mainDiv = gameDiv.newDiv('mainControls');
     var self = this;
+    this.reviewControls = Dome.newGroup();
+    Dome.newButton(mainDiv, '#review', 'Review', function () { self.toggleReview(); });
+    Dome.newButton(mainDiv, '#back10', '<<', function () { self.replay(-10); });
+    Dome.newButton(mainDiv, '#back1', '<', function () { self.replay(-1); });
+    Dome.newButton(mainDiv, '#forw1', '>', function () { self.replay(1); });
+    Dome.newButton(mainDiv, '#forw10', '>>', function () { self.replay(10); });
+
+    this.controls = Dome.newGroup();
     Dome.newButton(mainDiv, '#pass', 'Pass', function () { self.playerMove('pass'); });
     Dome.newButton(mainDiv, '#next', 'Next', function () { self.automaticAiPlay(1); });
     Dome.newButton(mainDiv, '#next10', 'Next 10', function () { self.automaticAiPlay(10); });
@@ -117,31 +176,44 @@ Ui.prototype.createControls = function (gameDiv) {
     Dome.newButton(mainDiv, '#accept', 'Accept', function () { self.acceptScore(true); });
     Dome.newButton(mainDiv, '#refuse', 'Refuse', function () { self.acceptScore(false); });
     Dome.newButton(mainDiv, '#newg', 'New game', function () { self.newGameDialog(); });
-    this.output = mainDiv.newDiv('logBox outputBox');
+    this.longTextElt = mainDiv.newDiv('logBox outputBox').setVisible(false);
     Dome.newButton(mainDiv, '#resi', 'Resign', function () { self.playerResigns(); });
 
     this.aiVsAiFlags = mainDiv.newDiv('#aiVsAiFlags');
     this.animated = Dome.newCheckbox(this.aiVsAiFlags, 'animated', 'Animated');
 };
 
+Ui.prototype.toggleReview = function () {
+    this.inReview = !this.inReview;
+    this.reviewControls.get('review').toggleClass('toggled', this.inReview);
+    this.toggleControls();
+    if (this.inReview) {
+        this.reviewMoves = this.game.history.concat();
+        this.reviewCursor = this.reviewMoves.length;
+        this.replay(0); // init buttons' state
+    } else {
+        this.replay(this.reviewMoves.length - this.reviewCursor);
+        this.showNextPlayer();
+    }
+};
+
 Ui.prototype.toggleControls = function () {
-    var inGame = !(this.game.gameEnded || this.game.gameEnding);
+    var inReview = this.inReview, ended = this.game.gameEnded, ending = this.game.gameEnding;
+    var inGame = !(ended || ending) && !inReview;
     var auto = this.aiPlays === 'both';
     if (!inGame) this.setEvalMode(false);
 
-    this.controls.setVisible(['accept', 'refuse'], this.game.gameEnding);
+    this.statusBar.setVisible(!ended);
+    this.reviewControls.setVisible(['review'], inGame || inReview);
+    this.reviewControls.setVisible(['back1', 'back10', 'forw1', 'forw10'], inReview);
+    this.controls.setVisible(['accept', 'refuse'], ending);
     this.controls.setVisible(['undo'], inGame);
     this.controls.setVisible(['pass', 'resi'], inGame && !auto);
     this.controls.setVisible(['next', 'next10', 'nextAll', 'aiVsAiFlags'], inGame && auto);
-    this.controls.setVisible(['newg'], this.game.gameEnded && !this.isCompactLayout);
+    this.controls.setVisible(['newg'], ended && !this.isCompactLayout);
 
     // Dev controls
-    this.controls.setVisible(['devDiv'], inGame && this.inDevMode);
-};
-
-Ui.prototype.message = function (html, append) {
-    if (append) html = this.output.html() + html;
-    this.output.setHtml(html);
+    this.controls.setVisible(['devDiv'], this.inDevMode && (inGame || inReview));
 };
 
 
@@ -168,9 +240,25 @@ Ui.prototype.getAiPlayer = function (color) {
     return player;
 };
 
+Ui.prototype.getPlayerDesc = function (color) {
+    if (!this.playerIsAi[color]) {
+        return 'human'; //TODO store names from SGF or outside world
+    }
+    var ai = this.players[color];
+    return ai.publicName + '-' + ai.publicVersion;
+};
+
+Ui.prototype.initDisplay = function () {
+    this.showGameInfo();
+    this.showLastMove();
+    this.showNextPlayer();
+    this.toggleControls();
+    this.refreshBoard();
+};
+
 Ui.prototype.startGame = function (firstMoves, isLoaded) {
     var game = this.game;
-    if (!isLoaded) game.newGame(this.gsize, this.handicap); // TODO: add komi in UI
+    if (!isLoaded) game.newGame(this.gsize, this.handicap);
     if (firstMoves) {
         var errors = [];
         if (!game.loadMoves(firstMoves, errors)) {
@@ -186,17 +274,15 @@ Ui.prototype.startGame = function (firstMoves, isLoaded) {
     this.debugHeuristic = null;
 
     if (!this.gameDiv) this.createGameUi('main', document.body);
-    this.toggleControls();
 
     var options = this.isCompactLayout ? undefined : { background: 'wood' };
 
     this.board.create(this.boardElt, this.boardWidth, this.game.goban, options);
-    this.refreshBoard();
+    this.initDisplay();
 
-    if (!isLoaded && !(firstMoves && this.checkEnd())) {
-        this.message('Game started. Your turn...'); // erased if a move is played below
-        this.letNextPlayerPlay();
-    }
+    if (!isLoaded && !firstMoves) this.statusMessage('Game started. Your turn...'); // erased if a move is played below
+    if (!this.checkEnd()) this.letNextPlayerPlay();
+
     return true;
 };
 
@@ -221,8 +307,8 @@ Ui.prototype.computeScore = function () {
 
 Ui.prototype.proposeScore = function () {
     this.computeScore();
-    this.message(this.scoreMsg);
-    this.message('<br><br>Do you accept this score?', true);
+    this.statusMessage('Do you accept this score?');
+    this.longMessage(this.scoreMsg);
     this.toggleControls();
     this.board.showScoring(this.scorer.getScoringGrid().yx);
 };
@@ -235,7 +321,7 @@ Ui.prototype.acceptScore = function (acceptEnd) {
     this.game.acceptEnding(acceptEnd, whoRefused);
     if (acceptEnd) return this.showEnd();
 
-    this.message('Score in dispute. Continue playing...');
+    this.statusMessage('Score in dispute. Continue playing...');
     this.toggleControls();
     this.refreshBoard();
     // In AI VS AI move we don't ask AI to play again otherwise it simply passes again
@@ -243,14 +329,8 @@ Ui.prototype.acceptScore = function (acceptEnd) {
 };
 
 Ui.prototype.showEnd = function () {
-    this.message(this.scoreMsg + '<br><br>' + this.game.historyString());
+    this.longMessage(this.scoreMsg + '<br><br>' + this.game.historyString());
     this.toggleControls();
-};
-
-Ui.prototype.showAiMove = function (move, aiPlayer) {
-    var playerName = Grid.colorName(aiPlayer.color);
-    this.message(playerName + ' (' + aiPlayer.publicName + '-' + aiPlayer.publicVersion + '): ' + move);
-    if (this.inDevMode) this.showDevData(move, aiPlayer, false);
 };
 
 Ui.prototype.letAiPlay = function (skipRefresh) {
@@ -259,7 +339,10 @@ Ui.prototype.letAiPlay = function (skipRefresh) {
 
     var move = aiPlayer.getMove();
     this.game.playOneMove(move);
-    if (!skipRefresh) this.showAiMove(move, aiPlayer);
+    if (!skipRefresh) {
+        this.showLastMove();
+        if (this.inDevMode) this.showDevData(move, aiPlayer, false);
+    }
 
     // AI resigned or double-passed?
     if (this.checkEnd()) return move;
@@ -269,15 +352,14 @@ Ui.prototype.letAiPlay = function (skipRefresh) {
 };
 
 Ui.prototype.playerMove = function (move) {
-    var playerName = Grid.colorName(this.game.curColor);
-
     if (!this.game.playOneMove(move)) {
-        return this.message(this.game.getErrors().join('<br>'));
+        return this.statusMessage(this.game.getErrors().join('. '));
     }
     if (this.checkEnd()) return;
 
     this.refreshBoard();
-    this.message(playerName + ': ' + move);
+    this.showLastMove();
+
     this.letNextPlayerPlay();
 };
 
@@ -298,12 +380,11 @@ Ui.prototype.playUndo = function () {
     }
 
     if (!this.game.playOneMove(command)) {
-        this.message(this.game.getErrors().join('<br>'));
-    } else {
-        this.refreshBoard();
-        this.message('Undo!');
+        return this.statusMessage(this.game.getErrors().join('. '));
     }
-    this.message(' ' + this.whoPlaysNow(), true);
+    this.refreshBoard();
+    this.showLastMove();
+    this.statusMessage('Performed "' + command + '"');
 };
 
 Ui.prototype.whoPlaysNow = function () {
@@ -316,7 +397,7 @@ Ui.prototype.letNextPlayerPlay = function (skipRefresh) {
     if (this.playerIsAi[this.game.curColor]) {
         this.letAiPlay(skipRefresh);
     } else {
-        if (!skipRefresh) this.message(' ' + this.whoPlaysNow(), true);
+        if (!skipRefresh) this.showNextPlayer();
     }
 };
 
@@ -340,6 +421,41 @@ Ui.prototype.automaticAiPlay = function (turns) {
 window.addEventListener('beforeunload', function () {
     userPref.close();
 });
+
+Ui.prototype.replay = function (numMoves) {
+    var moves = this.reviewMoves, cur = this.reviewCursor;
+    // Play or "unplay" the moves
+    for (var i = 0; i < numMoves; i++) {
+        if (cur === moves.length) break;
+        this.game.playOneMove(moves[cur]);
+        cur++;
+    }
+    for (i = 0; i > numMoves; i--) {
+        if (cur === 0) break;
+        this.game.playOneMove('half_undo');
+        cur--;
+    }
+    this.reviewCursor = cur;
+
+    // Now refresh UI
+    this.refreshBoard();
+    this.reviewControls.setEnabled(['forw1', 'forw10'], cur !== moves.length);
+    this.reviewControls.setEnabled(['back1', 'back10'], cur !== 0);
+    this.showLastMove();
+    if (cur < moves.length) {
+        this.showNextPlayer(moves[cur]);
+    } else {
+        this.showNextPlayer(null);
+    }
+
+    // In eval mode, replay last move to get dev data
+    var move = cur > 0 ? moves[cur - 1] : null;
+    if (this.inEvalMode && move && move.length <= 3) {
+        this.game.playOneMove('half_undo');
+        this.showDevData(move, null, true);
+        this.game.playOneMove(move);
+    }
+};
 
 
 //--- DEV UI
@@ -389,7 +505,7 @@ Ui.prototype.showDevData = function (move, aiPlayer, isTest) {
 
 Ui.prototype.scoreTest = function () {
     this.computeScore();
-    this.message(this.scoreMsg);
+    this.longMessage(this.scoreMsg);
     this.board.showSpecial('scoring', this.scorer.getScoringGrid().yx);
 };
 
@@ -409,6 +525,11 @@ Ui.prototype.heuristicTest = function (name) {
 Ui.prototype.influenceTest = function (color) {
     var infl = this.getAiPlayer(1 - this.game.curColor).infl;
     this.board.showSpecial('value', infl[color]);
+};
+
+Ui.prototype.totalEvalTest = function (color) {
+    var score = this.getAiPlayer(color).scoreGrid.yx;
+    this.board.showSpecial('value', score);
 };
 
 Ui.prototype.devDisplay = function () {
@@ -439,11 +560,12 @@ var heuristics = [
 ];
 
 var evalTests = [
-    NO_EVAL_TEST,
-    'Score',
-    'Territory',
-    'Influence B',
-    'Influence W'
+    [NO_EVAL_TEST, Ui.prototype.refreshBoard],
+    ['Score', Ui.prototype.scoreTest],
+    ['Territory', Ui.prototype.territoryTest],
+    ['Influence B', function () { this.influenceTest(BLACK); }],
+    ['Influence W', function () { this.influenceTest(WHITE); }],
+    ['Total', Ui.prototype.totalEvalTest]
 ];
 
 Ui.prototype.updateGameLink = function () {
@@ -464,18 +586,15 @@ Ui.prototype.createDevControls = function () {
         main.log.level = main.debug ? Logger.DEBUG : Logger.INFO;
     });
 
-    this.devGameLink = Dome.newLink(col2, 'gameLink', 'Game link');
+    this.devGameLink = Dome.newLink(col2, 'emailGame', 'Game link');
     this.updateGameLink();
 
-    this.evalTestDropdown = Dome.newDropdown(col2, '#evalTest', evalTests, null, '');
+    var tests = [], values = [];
+    for (var i = 0; i < evalTests.length; i++) { tests.push(evalTests[i][0]); values.push(i); }
+    this.evalTestDropdown = Dome.newDropdown(col2, '#evalTest', tests, values, '');
     this.evalTestDropdown.on('change', function () {
-        switch (this.value()) {
-        case NO_EVAL_TEST: return self.refreshBoard();
-        case 'Score': return self.scoreTest();
-        case 'Territory': return self.territoryTest();
-        case 'Influence B': return self.influenceTest(BLACK);
-        case 'Influence W': return self.influenceTest(WHITE);
-        }
+        var fn = evalTests[this.value()][1];
+        fn.call(self, self.game.curColor);
     });
     Dome.newDropdown(col2, '#heuristicTest', heuristics, null, '').on('change', function () {
         self.heuristicTest(this.value());

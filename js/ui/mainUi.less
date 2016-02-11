@@ -20,10 +20,101 @@
     min-width: 160px;
   }
 
+  a {
+    color: #a63;
+  }
+
+  .statusBar {
+    position: relative;
+    box-sizing: border-box;
+    margin-top: 7px;
+    background-color: #B9A698;
+    border: rgba(0,0,0,0.35) 1px solid;
+    border-radius: 5px;
+
+    .gameInfo {
+      display: inline-block;
+      box-sizing: border-box;
+      margin: 4px 10px 0;
+      padding: 1px 3px;
+      width: 280px;
+      height: 44px;
+      overflow-y: auto;
+      font-size: 16px;
+      font-family: tahoma;
+      background-color: #EDDDCE;
+      border-radius: 7px;
+      border: rgba(0,0,0,0.35) 1px solid;
+    }
+
+    .message {
+      display: inline-block;
+      position: relative;
+      top: -3px;
+      width: 415px;
+      height: 31px;
+      overflow-y: auto;
+      font-size: 22px;
+    }
+
+    .oneMove {
+      height: 44px;
+      .icon .text { color: #C12A04; }
+      &.black {
+        .icon { background-image: url("./js/ui/stoneBlack.png"); }
+        .text { color: white; }
+      }
+      &.white {
+        .icon { background-image: url("./js/ui/stoneWhite.png"); }
+        .text { color: black; }
+      }
+
+      .label {
+        display: inline-block;
+        position: relative;
+        top: -12px;
+        font-size: 20px;
+        margin-right: 2px;
+      }
+
+      .icon {
+        display: inline-block;
+        position: relative;
+        top: 3px;
+        background-repeat: no-repeat;
+        background-size: 100%;
+        width: 42px;
+        height: 42px;
+
+        .text {
+          position: absolute;
+          width: 100%;
+          text-align: center;
+          top: 8px;
+          font-size: 20px;
+          font-weight: bold;
+        }
+      }
+    }
+
+    .lastMove {
+      display: inline-block;
+      position: relative;
+      top: -1px;
+      padding-left: 3px;
+    }
+
+    .nextPlayer {
+      position: absolute;
+      right: 10px;
+      top: 3px;
+    }
+    
+  }
+
   .mainControls {
     margin-top: 10px;
     display: flex;
-
 
     .outputBox {
       width: 410px;
