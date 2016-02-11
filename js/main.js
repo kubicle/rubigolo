@@ -2,11 +2,11 @@
 
 var pkg = require('../package.json');
 var Logger = require('./Logger');
-var createConstants = require('./constants');
+var constants = require('./constants');
 
 
 function Main() {
-    createConstants(this);
+    constants.attachConstants(this);
 
     this.debug = false;
     this.debugGroup = this.debugAi = this.debugBreed = false;

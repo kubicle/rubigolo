@@ -1,6 +1,14 @@
 'use strict';
 
-function createConstants(main) {
+
+function Constants() {
+    this.EVEN = 0;
+    this.ODD = 1;
+}
+module.exports = new Constants();
+
+
+Constants.prototype.attachConstants = function (main) {
     main.BORDER = null; // border of Goban's grid (Stones)
     main.GRID_BORDER = -99; // border of regular (numeric) grids
 
@@ -24,5 +32,4 @@ function createConstants(main) {
     main.RIGHT = 1;
     main.DOWN = 2;
     main.LEFT = 3;
-}
-module.exports = createConstants;
+};
