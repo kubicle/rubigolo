@@ -150,7 +150,7 @@ Connector.prototype._computeScore = function (stone, color, groups, numEnemies, 
             g = groups[n];
             // lives 1 or 2 are counted by Hunter/Savior; TODO: centralize how this is counted
             if (g.lives <= 2 && g.xAlive < ALWAYS) return 0;
-            if (g.xDead < ALWAYS || g.xAlive > NEVER) {
+            if (g.xDead < ALWAYS) {
                 someAlive = true;
                 break;
             }
