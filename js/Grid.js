@@ -1,7 +1,7 @@
 'use strict';
 
 var main = require('./main');
-var CONST = require('constants');
+var CONST = require('./constants');
 
 var GRID_BORDER = CONST.GRID_BORDER;
 
