@@ -1,13 +1,15 @@
 'use strict';
 
+var CONST = require('../../constants');
 var main = require('../../main');
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
 
-var GRID_BORDER = main.GRID_BORDER;
-var EMPTY = main.EMPTY, sOK = main.sOK;
-var SOMETIMES = main.SOMETIMES, ALWAYS = main.ALWAYS;
+var GRID_BORDER = CONST.GRID_BORDER;
+var EMPTY = CONST.EMPTY, sOK = CONST.sOK;
+var NEVER = CONST.NEVER, SOMETIMES = CONST.SOMETIMES, ALWAYS = CONST.ALWAYS;
+var EVEN = CONST.EVEN, ODD = CONST.ODD;
 
 
 /** @class Cares about good shapes

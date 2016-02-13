@@ -2,14 +2,14 @@
 'use strict';
 
 var main = require('../main');
-var constants = require('../constants');
+var CONST = require('../constants');
 var inherits = require('util').inherits;
 var Grid = require('../Grid');
 var GameLogic = require('../GameLogic');
 var ScoreAnalyser = require('../ScoreAnalyser');
 var TestCase = require('./TestCase');
 
-var BLACK = constants.BLACK, WHITE = constants.WHITE;
+var BLACK = CONST.BLACK, WHITE = CONST.WHITE;
 
 
 /** @class */

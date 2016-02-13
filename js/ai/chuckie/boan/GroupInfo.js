@@ -1,10 +1,12 @@
 'use strict';
 
+var CONST = require('../../../constants');
 var main = require('../../../main');
 var Band = require('./Band');
 
-var EMPTY = main.EMPTY;
-var NEVER = main.NEVER, SOMETIMES = main.SOMETIMES, ALWAYS = main.ALWAYS;
+var EMPTY = CONST.EMPTY;
+var NEVER = CONST.NEVER, SOMETIMES = CONST.SOMETIMES, ALWAYS = CONST.ALWAYS;
+var EVEN = CONST.EVEN, ODD = CONST.ODD;
 
 
 /** @class Contains the analyse results that are attached to each group */
