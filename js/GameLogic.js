@@ -33,6 +33,7 @@ function GameLogic(src) {
 module.exports = GameLogic;
 
 
+// Note that player info remains until this method is called again (i.e. for several games)
 GameLogic.prototype.setPlayer = function (color, name) {
     this.playerNames[color] = name;
 };
@@ -44,7 +45,6 @@ GameLogic.prototype.copy = function (src) {
     this.setPlayer(WHITE, src.playerNames[WHITE]);
     this.rules = src.rules;
 
-    // TODO: general settings should probably be at GameLogic level
     if (src.goban.useSuperko) this.goban.setRules({ positionalSuperko: true });
 
     this.loadMoves(src.history.join(','));
@@ -128,20 +128,21 @@ GameLogic.prototype.loadSgf = function (game, errors, upToMoveNumber) {
     } catch (err) {
         return this._failLoad('Failed loading SGF moves:\n' + err, errors);
     }
+
+    this.newGame(infos.boardSize, 0, infos.komi); // handicap, if any, will be in move list
     this.setPlayer(BLACK, infos.playerBlack);
     this.setPlayer(WHITE, infos.playerWhite);
     this.rules = infos.rules;
 
-    this.newGame(infos.boardSize, 0, infos.komi); // handicap, if any, will be in move list
     return this.loadMoves(reader.toMoveList(), errors);
 };
 
 // Call this when the format of game to load is unknown
 GameLogic.prototype.loadAnyGame = function (game, errors) {
     if (SgfReader.isSgf(game)) {
-        return this.game.loadSgf(game, errors);
+        return this.loadSgf(game, errors);
     } else {
-        return this.game.loadMoves(game, errors);
+        return this.loadMoves(game, errors);
     }
 }; 
 

@@ -29,20 +29,21 @@ function Breeder(gameSize, komi) {
     this.seenGames = {};
     this.skipDupeEndings = false;
 
-    this.players = this.controlGenes = null;
+    this.controlGenes = null;
+    this.players = [];
     this.generation = this.newGeneration = this.scoreDiff = null;
 }
 module.exports = Breeder;
 
 
-Breeder.prototype.initPlayers = function (BlackAi, WhiteAi) {
-    BlackAi = BlackAi || main.defaultAi;
-    WhiteAi = WhiteAi || main.defaultAi;
+function getAiName(ai) { return ai.publicName + '-' + ai.publicVersion; }
 
-    this.players = [
-        new BlackAi(this.game, BLACK),
-        new WhiteAi(this.game, WHITE)
-    ];
+Breeder.prototype.initPlayers = function (BlackAi, WhiteAi) {
+    for (var color = BLACK; color <= WHITE; color++) {
+        var Ai = (color === BLACK ? BlackAi : WhiteAi) || main.defaultAi;
+        var ai = this.players[color] = new Ai(this.game, color);
+        this.game.setPlayer(color, getAiName(ai));
+    }
 };
 
 Breeder.prototype.initFirstGeneration = function () {
@@ -210,17 +211,17 @@ Breeder.prototype.control = function (numGames) {
     main.debugBreed = previous;
 };
 
-function getAiName(ai) { return ai.publicName + '-' + ai.publicVersion; }
-
 // Play many games AI VS AI
 // Returns the ratio of games won by White, e.g. 0.6 for 60% won
 Breeder.prototype.aiVsAi = function (numGames, numGamesShowed, initMoves) {
-    this.initPlayers(main.previousAi, main.defaultAi);
+    var BlackAi = main.defaultAi, WhiteAi = main.latestAi;
+    if (BlackAi === WhiteAi) BlackAi = main.previousAi; // no point of match latest against itself
+    this.initPlayers(BlackAi, WhiteAi);
 
-    var blackAi = getAiName(this.players[BLACK]), whiteAi = getAiName(this.players[WHITE]);
+    var blackName = this.game.playerNames[BLACK], whiteName = this.game.playerNames[WHITE];
     var gsize = this.gsize;
     var desc = numGames + ' games on ' + gsize + 'x' + gsize + ', komi=' + this.komi + ', ' +
-        whiteAi + ' VS ' + blackAi + '(B)';
+        whiteName + ' VS ' + blackName + '(B)';
     if (initMoves) desc += ' [' + initMoves + ']';
     var expectedDuration = numGames * 0.05 * gsize * gsize / 81;
 
@@ -250,8 +251,8 @@ Breeder.prototype.aiVsAi = function (numGames, numGamesShowed, initMoves) {
     main.log.info('Average number of moves: ' + ~~(numMoves / numGames));
     main.log.info('Average number of times White picked at random between equivalent moves: ' + (numRandom / numGames).toFixed(1));
     main.log.info('Average time per move: ' + (this.timer.duration * 1000 / numMoves).toFixed(1) + 'ms');
-    main.log.info('Won games for White-' + whiteAi +
-        ' VS Black-' + blackAi + ': ' + (winRatio * 100).toFixed(1) + '%');
+    main.log.info('Won games for White-' + whiteName +
+        ' VS Black-' + blackName + ': ' + (winRatio * 100).toFixed(1) + '%');
 
     return winRatio; // White's victory ratio
 };

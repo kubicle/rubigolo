@@ -125,7 +125,7 @@ Ui.prototype.createStatusBar = function (gameDiv) {
 };
 
 Ui.prototype.showGameInfo = function () {
-    var gameInfo = this.getPlayerDesc(WHITE) + ' VS ' + this.getPlayerDesc(BLACK) + ' (B)';
+    var gameInfo = this.game.playerNames[WHITE] + ' VS ' + this.game.playerNames[BLACK] + ' (B)';
     gameInfo += ', komi: ' + this.game.komi;
     if (this.handicap) gameInfo += ', hand: ' + this.handicap;
     if (this.game.rules) gameInfo += ', rules: ' + this.game.rules;
@@ -225,16 +225,17 @@ Ui.prototype.toggleControls = function () {
 
 //--- GAME LOGIC
 
-Ui.prototype.createPlayers = function () {
+Ui.prototype.createPlayers = function (isGameLoaded) {
     this.players = [];
     this.playerIsAi = [false, false];
-    if (this.aiPlays === 'black' || this.aiPlays === 'both') {
-        this.getAiPlayer(BLACK);
-        this.playerIsAi[BLACK] = true;
-    }
-    if (this.aiPlays === 'white' || this.aiPlays === 'both') {
-        this.getAiPlayer(WHITE);
-        this.playerIsAi[WHITE] = true;
+    for (var color = BLACK; color <= WHITE; color++) {
+        if (this.aiPlays === Grid.COLOR_NAMES[color] || this.aiPlays === 'both') {
+            var ai = this.getAiPlayer(color);
+            this.playerIsAi[color] = true;
+            if (!isGameLoaded) this.game.setPlayer(color, ai.publicName + '-' + ai.publicVersion);
+        } else {
+            if (!isGameLoaded) this.game.setPlayer(color, 'human');
+        }
     }
 };
 
@@ -244,15 +245,6 @@ Ui.prototype.getAiPlayer = function (color) {
     var Ai = color === BLACK ? main.defaultAi : main.latestAi;
     player = this.players[color] = new Ai(this.game, color);
     return player;
-};
-
-Ui.prototype.getPlayerDesc = function (color) {
-    var name = this.game.playerNames[color];
-    if (name) return name;
-    if (!this.playerIsAi[color]) return  'human';
-
-    var ai = this.players[color];
-    return ai.publicName + '-' + ai.publicVersion;
 };
 
 Ui.prototype.initDisplay = function () {
@@ -275,13 +267,14 @@ Ui.prototype.loadMoves = function (moves) {
 Ui.prototype.startGame = function (firstMoves, isLoaded) {
     var game = this.game;
     if (!isLoaded) game.newGame(this.gsize, this.handicap);
+    this.createPlayers(isLoaded);
+
     if (firstMoves && !this.loadMoves(firstMoves)) return false;
 
     // read values from game to make sure they are valid and match loaded game
     this.gsize = game.goban.gsize;
     this.handicap = game.handicap;
 
-    this.createPlayers();
     this.debugHeuristic = null;
 
     if (!this.gameDiv) this.createGameUi('main', document.body);
