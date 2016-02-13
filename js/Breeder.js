@@ -40,8 +40,8 @@ Breeder.prototype.initPlayers = function (BlackAi, WhiteAi) {
     WhiteAi = WhiteAi || main.defaultAi;
 
     this.players = [
-        new BlackAi(this.goban, BLACK),
-        new WhiteAi(this.goban, WHITE)
+        new BlackAi(this.game, BLACK),
+        new WhiteAi(this.game, WHITE)
     ];
 };
 

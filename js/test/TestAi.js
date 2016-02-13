@@ -1,4 +1,3 @@
-//Translated from test_ai.rb using babyruby2js
 'use strict';
 
 var main = require('../main');
@@ -21,12 +20,12 @@ module.exports = TestAi;
 
 
 TestAi.prototype.initBoard = function (size, handicap) {
-    this.game = new GameLogic();
-    this.game.newGame(size, handicap || 0);
-    this.goban = this.game.goban;
+    var game = this.game = new GameLogic();
+    game.newGame(size, handicap || 0);
+    this.goban = game.goban;
     this.players = [
-        new main.defaultAi(this.goban, BLACK),
-        new main.defaultAi(this.goban, WHITE)
+        new main.defaultAi(game, BLACK),
+        new main.defaultAi(game, WHITE)
     ];
 };
 

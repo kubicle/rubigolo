@@ -42,7 +42,7 @@ GtpEngine.prototype.refreshDisplay = function () {
 GtpEngine.prototype.getAiPlayer = function (color) {
     var player = this.players[color];
     if (player) return player;
-    player = this.players[color] = new this.AiClass(this.game.goban, color);
+    player = this.players[color] = new this.AiClass(this.game, color);
     return player;
 };
 

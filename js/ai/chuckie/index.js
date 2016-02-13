@@ -18,12 +18,12 @@ var AI_VERSION = '0.1';
 
 
 /** @class */
-function Chuckie(goban, color, genes) {
+function Chuckie(game, color, genes) {
     this.name = this.constructor.name || main.funcName(this.constructor);
     this.publicName = this.name; // could be different if needed
     this.publicVersion = AI_VERSION;
 
-    this.goban = goban;
+    this.goban = game.goban;
     this.genes = genes || new Genes();
     this.gsize = this.goban.gsize;
     this.stateGrid = new Grid(this.gsize, GRID_BORDER);

@@ -23,7 +23,7 @@ TestPotentialTerritory.prototype.initBoard = function (size, handicap) {
     this.game = new GameLogic();
     this.game.newGame(size, handicap);
     this.goban = this.game.goban;
-    this.aiPlayer = new main.defaultAi(this.goban, main.BLACK);
+    this.aiPlayer = new main.defaultAi(this.game, main.BLACK);
     this.pot = this.aiPlayer.pot;
 };
 

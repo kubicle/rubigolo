@@ -27,12 +27,12 @@ var AI_VERSION = '0.1';
  *  - foresee a poursuit = on attack/defense (and/or use a reverse-killer?)
  *  - an eye shape constructor
  */
-function Frankie(goban, color, genes) {
+function Frankie(game, color, genes) {
     this.name = this.constructor.name || main.funcName(this.constructor);
     this.publicName = this.name; // could be different if needed
     this.publicVersion = AI_VERSION;
 
-    this.goban = goban;
+    this.goban = game.goban;
     this.inf = new InfluenceMap(this.goban);
     this.ter = new PotentialTerritory(this.goban);
     this.boan = new BoardAnalyser();
