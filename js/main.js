@@ -18,7 +18,7 @@ function Main() {
 
     // Known AIs and default one
     this.ais = null;
-    this.defaultAi = this.latestAi = this.previousAi = null;
+    this.defaultAi = this.latestAi = this.previousAi = this.olderAi = null;
 
     this.ui = null;
     this.gtp = null;
@@ -42,6 +42,7 @@ Main.prototype.initAis = function () {
     };
     this.defaultAi = this.latestAi = this.ais.Chuckie;
     this.previousAi = this.ais.Droopy;
+    this.olderAi = this.ais.Frankie;
 };
 
 Main.prototype.initTests = function () {
