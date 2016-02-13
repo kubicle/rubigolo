@@ -41,6 +41,7 @@ Heuristic.prototype.initColor = function (color) {
 // For heuristics which do not handle evalBoard (but _evalMove)
 // NB: _evalMove is "private": only called from here (base class), and from inside a heuristic
 Heuristic.prototype.evalBoard = function (stateYx, scoreYx) {
+    var prevDebug = main.debug;
     var color = this.player.color;
     var myScoreYx = this.scoreGrid.yx;
     for (var j = 1; j <= this.gsize; j++) {
@@ -53,7 +54,7 @@ Heuristic.prototype.evalBoard = function (stateYx, scoreYx) {
             var score = myScoreYx[j][i] = this._evalMove(i, j, color);
             scoreYx[j][i] += score;
 
-            if (state === sDEBUG) main.debug = false;
+            if (state === sDEBUG) main.debug = prevDebug;
         }
     }
 };
