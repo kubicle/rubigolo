@@ -101,9 +101,8 @@ GtpEngine.prototype.undo = function () {
 };
 
 GtpEngine.prototype.computeScore = function () {
-    var game = this.game;
-    this.scoreComputedAt = game.goban.getPositionSignature();
-    return this.scorer.computeScoreDiff(game.goban, game.komi);
+    this.scoreComputedAt = this.game.goban.getPositionSignature();
+    return this.scorer.computeScoreDiff(this.game);
 };
 
 // status: -1: dead, 0: seki, +1: alive

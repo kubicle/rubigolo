@@ -9,23 +9,24 @@ var BLACK = main.BLACK, WHITE = main.WHITE;
 
 /** @class */
 function ScoreAnalyser() {
-    this.goban = null;
     this.analyser = new main.defaultAi.BoardAnalyser();
 }
 module.exports = ScoreAnalyser;
 
 
 // Computes score and returns it as a number >0 if black won
-ScoreAnalyser.prototype.computeScoreDiff = function (goban, komi) {
-    this._computeScore(goban, komi);
-    var totals = this.scoreInfo[0];
+ScoreAnalyser.prototype.computeScoreDiff = function (game) {
+    var totals = this._computeScore(game)[0];
     return totals[BLACK] - totals[WHITE];
 };
 
 // Computes score and returns it as an array of human-readable strings
- ScoreAnalyser.prototype.computeScoreAsTexts = function (goban, komi, whoResigned) {
-    this._computeScore(goban, komi, whoResigned);
-    return this._scoreInfoToS(this.scoreInfo);
+ ScoreAnalyser.prototype.computeScoreAsTexts = function (game) {
+    return this._scoreInfoToS(this._computeScore(game));
+};
+
+ScoreAnalyser.prototype.computeScoreInfo = function (game) {
+    return this._computeScore(game);
 };
 
 // Retrives the scoring grid once the score has been computed
@@ -33,15 +34,14 @@ ScoreAnalyser.prototype.getScoringGrid = function () {
     return this.analyser.getScoringGrid();
 };
 
-ScoreAnalyser.prototype._computeScore = function (goban, komi, whoResigned) {
-    this.goban = goban;
-    komi = komi || 0.5;
-    if (typeof whoResigned === 'number') {
-        var winner = Grid.COLOR_NAMES[1 - whoResigned];
-        var other = Grid.COLOR_NAMES[whoResigned];
-        this.scoreInfo = winner + ' won (since ' + other + ' resigned)';
-        return;
+ScoreAnalyser.prototype._computeScore = function (game) {
+    var goban = game.goban;
+    var komi = game.komi;
+
+    if (game.whoResigned !== null) {
+        return ['resi', 1 - game.whoResigned, game.resignReason];
     }
+
     this.analyser.countScore(goban);
     var scores = this.analyser.scores;
     var prisoners = this.analyser.prisoners;
@@ -53,7 +53,7 @@ ScoreAnalyser.prototype._computeScore = function (goban, komi, whoResigned) {
         [scores[BLACK], prisoners[WHITE], 0],
         [scores[WHITE], prisoners[BLACK], komi]];
 
-    this.scoreInfo = [totals, details];
+    return [totals, details];
 };
 
 function pointsToString(n) {
@@ -61,8 +61,15 @@ function pointsToString(n) {
 }
 
 ScoreAnalyser.prototype._scoreInfoToS = function (info) {
-    if (typeof info === 'string') { // one player resigned
-        return [info];
+    if (info[0] === 'resi') {
+        var winner = Grid.COLOR_NAMES[info[1]], loser = Grid.COLOR_NAMES[1 - info[1]];
+        var reason;
+        switch (info[2]) {
+        case 'time': reason = loser + ' ran out of time'; break;
+        case null: case undefined: reason = loser + ' resigned'; break;
+        default: reason = loser + ' disqualified: ' + info[2];
+        }
+        return [winner + ' won (' + reason + ')'];
     }
     if (!info || info.length !== 2) throw new Error('Invalid score info: ' + info);
     var totals = info[0];

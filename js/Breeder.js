@@ -106,7 +106,7 @@ Breeder.prototype.playGame = function (genes1, genes2, initMoves) {
     var scoreDiff;
     try {
         if (!this.playUntilGameEnds() && this.skipDupeEndings) return 0;
-        scoreDiff = this.scorer.computeScoreDiff(this.goban, this.komi);
+        scoreDiff = this.scorer.computeScoreDiff(this.game);
     } catch (err) {
         main.log.error('Exception occurred during a breeding game: ' + err);
         main.log.error(this.game.historyString());

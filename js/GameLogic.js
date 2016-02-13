@@ -22,7 +22,8 @@ function GameLogic(src) {
     this.goban = null;
     this.handicap = this.komi = this.numPass = 0;
     this.curColor = this.whoStarts = BLACK;
-    this.whoResigned = this.gameEnding = this.gameEnded = null;
+    this.gameEnding = this.gameEnded = null;
+    this.whoResigned = this.resignReason = null;
 
     if (src) this.copy(src);
 }
@@ -46,7 +47,7 @@ GameLogic.prototype.newGame = function (gsize, handicap, komi) {
     this.errors.clear();
     this.numPass = 0;
     this.gameEnded = this.gameEnding = false;
-    this.whoResigned = null;
+    this.whoResigned = this.resignReason = null;
 
     if (!this.goban || gsize !== this.goban.gsize) {
         this.goban = new Goban(gsize);
@@ -164,9 +165,12 @@ GameLogic.prototype.playAStone = function (move) {
 };
 
 // One player resigns.
-GameLogic.prototype.resign = function () {
-    this._storeMoveInHistory('resign');
-    this.whoResigned = this.curColor;
+GameLogic.prototype.resign = function (color, reason) {
+    color = color !== undefined ? color : this.curColor;
+    this.whoResigned = color;
+    this.resignReason = reason;
+    var move = (color === BLACK ? 'B' : 'W') + 'resign' + (reason ? '-' + reason : '');
+    this._storeMoveInHistory(move);
     this.gameEnded = true;
     this.gameEnding = false;
     return true;
