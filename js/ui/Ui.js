@@ -239,7 +239,7 @@ Ui.prototype.getAiPlayer = function (color) {
     var player = this.players[color];
     if (player) return player;
     var Ai = color === BLACK ? main.defaultAi : main.latestAi;
-    player = this.players[color] = new Ai(this.game.goban, color);
+    player = this.players[color] = new Ai(this.game, color);
     return player;
 };
 
@@ -280,7 +280,7 @@ Ui.prototype.startGame = function (firstMoves, isLoaded) {
 
     var options = this.isCompactLayout ? undefined : { background: 'wood' };
 
-    this.board.create(this.boardElt, this.boardWidth, this.game.goban, options);
+    this.board.create(this.boardElt, this.boardWidth, game.goban, options);
     this.initDisplay();
 
     if (!isLoaded && !firstMoves) this.statusMessage('Game started. Your turn...'); // erased if a move is played below
@@ -304,7 +304,7 @@ Ui.prototype.checkEnd = function () {
 };
 
 Ui.prototype.computeScore = function () {
-    var msgs = this.scorer.computeScoreAsTexts(this.game.goban, this.game.komi, this.game.whoResigned);
+    var msgs = this.scorer.computeScoreAsTexts(this.game);
     this.scoreMsg = msgs.join('<br>');
 };
 
