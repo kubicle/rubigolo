@@ -114,6 +114,8 @@ GroupInfo.prototype.considerDead = function (reason) {
     for (var i = enemies.length - 1; i >= 0; i--) {
         enemies[i]._info.deadEnemies.push(this);
     }
+    // All enemies are now "connected" via this dead group
+    if (enemies.length > 1) Band.gather(enemies);
     if (main.debug) main.log.debug('DEAD-' + reason + ': ' + this);
 };
 
