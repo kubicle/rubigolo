@@ -28,7 +28,7 @@ TestGameLogic.prototype.initBoard = function (size, handicap) {
 // 3 ways to load the same game with handicap...
 TestGameLogic.prototype.testHandicap = function () {
     var game6 = '(;FF[4]KM[0.5]SZ[19]HA[6]AB[pd]AB[dp]AB[pp]AB[dd]AB[pj]AB[dj];W[fq])';
-    this.game.loadMoves(game6);
+    this.game.loadSgf(game6);
     var img = this.goban.image();
     this.game.newGame(19, 6);
     this.game.loadMoves('f3');

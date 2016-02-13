@@ -29,7 +29,7 @@ TestBoardAnalyser.prototype.checkGame = function (moves, expScore, gsize, finalP
     if ('+O@'.indexOf(moves[0]) !== -1) {
         this.goban.loadImage(moves); // an image, not the list of moves
     } else {
-        this.game.loadMoves(moves);
+        this.game.loadAnyGame(moves);
     }
     if (finalPos) this.assertEqual(finalPos, this.goban.image());
     this.boan = new main.defaultAi.BoardAnalyser();

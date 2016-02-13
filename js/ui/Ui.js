@@ -126,7 +126,9 @@ Ui.prototype.createStatusBar = function (gameDiv) {
 
 Ui.prototype.showGameInfo = function () {
     var gameInfo = this.getPlayerDesc(WHITE) + ' VS ' + this.getPlayerDesc(BLACK) + ' (B)';
-    gameInfo += ', komi:' + this.game.komi;
+    gameInfo += ', komi: ' + this.game.komi;
+    if (this.handicap) gameInfo += ', hand: ' + this.handicap;
+    if (this.game.rules) gameInfo += ', rules: ' + this.game.rules;
     this.gameInfoElt.setText(gameInfo);
 };
 
@@ -245,9 +247,10 @@ Ui.prototype.getAiPlayer = function (color) {
 };
 
 Ui.prototype.getPlayerDesc = function (color) {
-    if (!this.playerIsAi[color]) {
-        return 'human'; //TODO store names from SGF or outside world
-    }
+    var name = this.game.playerNames[color];
+    if (name) return name;
+    if (!this.playerIsAi[color]) return  'human';
+
     var ai = this.players[color];
     return ai.publicName + '-' + ai.publicVersion;
 };
@@ -260,16 +263,20 @@ Ui.prototype.initDisplay = function () {
     this.refreshBoard();
 };
 
+Ui.prototype.loadMoves = function (moves) {
+    var errors = [];
+    if (!this.game.loadAnyGame(moves, errors)) {
+        new PopupDlg(this.gameDiv, errors.join('\n'));
+        return false;
+    }
+    return true;
+};
+
 Ui.prototype.startGame = function (firstMoves, isLoaded) {
     var game = this.game;
     if (!isLoaded) game.newGame(this.gsize, this.handicap);
-    if (firstMoves) {
-        var errors = [];
-        if (!game.loadMoves(firstMoves, errors)) {
-            new PopupDlg(this.gameDiv, errors.join('\n'));
-            return false;
-        }
-    }
+    if (firstMoves && !this.loadMoves(firstMoves)) return false;
+
     // read values from game to make sure they are valid and match loaded game
     this.gsize = game.goban.gsize;
     this.handicap = game.handicap;

@@ -18,6 +18,9 @@ function GameLogic(src) {
     this.inConsole = false;
     this.history = [];
     this.errors = [];
+    this.infos = {};
+    this.playerNames = [];
+    this.rules = 'Chinese';
 
     this.goban = null;
     this.handicap = this.komi = this.numPass = 0;
@@ -30,9 +33,16 @@ function GameLogic(src) {
 module.exports = GameLogic;
 
 
+GameLogic.prototype.setPlayer = function (color, name) {
+    this.playerNames[color] = name;
+};
+
 GameLogic.prototype.copy = function (src) {
     this.newGame(src.goban.gsize, src.handicap, src.komi);
     this.setWhoStarts(src.whoStarts);
+    this.setPlayer(BLACK, src.playerNames[BLACK]);
+    this.setPlayer(WHITE, src.playerNames[WHITE]);
+    this.rules = src.rules;
 
     // TODO: general settings should probably be at GameLogic level
     if (src.goban.useSuperko) this.goban.setRules({ positionalSuperko: true });
@@ -60,7 +70,9 @@ GameLogic.prototype.newGame = function (gsize, handicap, komi) {
 
     this.komi = komi !== undefined ? komi : (handicap ? 0.5 : 6.5);
 
-    return this.goban.gsize === gsize && this.handicap === handicap;
+    if (this.goban.gsize !== gsize) return this._errorMsg('Size could not be set: ' + gsize);
+    if (this.handicap !== handicap) return this._errorMsg('Handicap could not be set: ' + handicap);
+    return true;
 };
 
 GameLogic.prototype.setWhoStarts = function (color) {
@@ -92,28 +104,46 @@ GameLogic.prototype._failLoad = function (msg, errors) {
 // @param {string[]} [errors] - errors will be added to this or thrown
 GameLogic.prototype.loadMoves = function (game, errors) {
     if (!game) return true;
-    if (SgfReader.isSgf(game)) {
-        game = this._sgfToGame(game, errors);
-        if (!game) return false;
-    }
-
     var moves = game.split(',');
     for (var i = 0; i < moves.length; i++) {
         if (!this.playOneMove(moves[i])) {
-            return this._failLoad('Failed playing loaded move #' + (i + 1) + ':\n' + this.getErrors(), errors);
+            return this._failLoad('Failed playing loaded move #' + (i + 1) + ':\n' +
+                this.getErrors().join(', '), errors);
         }
     }
     return true;
 };
 
-// @param {string} game - SGF game text
-// @param {string[]} [errors] - errors will be added to this or thrown
-// @param {number} [upToMoveNumber] - loads moves up to the position before this - SGF only
+/**
+ + Loads an SGF format game
+ * @param {string} game - SGF game text
+ * @param {string[]} [errors] - errors will be added to this or thrown
+ * @param {number} [upToMoveNumber] - loads moves up to the position before this - SGF only
+ * @return {boolean} - true if succeeded
+ */
 GameLogic.prototype.loadSgf = function (game, errors, upToMoveNumber) {
-    game = this._sgfToGame(game, errors, upToMoveNumber);
-    if (!game) return false;
-    return this.loadMoves(game, errors);
+    var reader = new SgfReader(), infos;
+    try {
+        this.infos = infos = reader.readGame(game, upToMoveNumber);
+    } catch (err) {
+        return this._failLoad('Failed loading SGF moves:\n' + err, errors);
+    }
+    this.setPlayer(BLACK, infos.playerBlack);
+    this.setPlayer(WHITE, infos.playerWhite);
+    this.rules = infos.rules;
+
+    this.newGame(infos.boardSize, 0, infos.komi); // handicap, if any, will be in move list
+    return this.loadMoves(reader.toMoveList(), errors);
 };
+
+// Call this when the format of game to load is unknown
+GameLogic.prototype.loadAnyGame = function (game, errors) {
+    if (SgfReader.isSgf(game)) {
+        return this.game.loadSgf(game, errors);
+    } else {
+        return this.game.loadMoves(game, errors);
+    }
+}; 
 
 // Handles a regular move + the special commands (pass, resign, undo, load, hand, log)
 // Returns false if a problem occured. In this case the error message is available.
@@ -305,19 +335,4 @@ GameLogic.prototype._requestUndo = function (halfMove) {
     if (halfMove) this._nextPlayer();
     this.numPass = 0;
     return true;
-};
-
-// Converts a game (list of moves) from SGF format to our internal format.
-// Returns the game unchanged if it is not an SGF one.
-GameLogic.prototype._sgfToGame = function (game, errors, upToMoveNumber) {
-    var reader, infos;
-    try {
-        reader = new SgfReader();
-        infos = reader.readGame(game, upToMoveNumber);
-    } catch (err) {
-        this._failLoad('Failed loading SGF moves:\n' + err, errors);
-        return null;
-    }
-    this.newGame(infos.boardSize, 0, infos.komi); // handicap, if any, will be in move list
-    return reader.toMoveList();
 };
