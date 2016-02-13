@@ -135,8 +135,9 @@ Ui.prototype.showLastMove = function () {
     if (moves.length) {
         var move = moves[moves.length - 1];
         this.lastMoveElt.setMove(move, 1 - this.game.curColor);
-        var pos = Grid.move2xy(move);
-        if (pos) this.board.highlightStone(pos[0], pos[1], 'CR');
+        var pos = this.game.oneMove2xy(move);
+        if (pos) this.board.highlightStone('CR', pos[0], pos[1]);
+        else this.board.highlightStone(null);
     } else {
         this.lastMoveElt.setMove(null);
     }

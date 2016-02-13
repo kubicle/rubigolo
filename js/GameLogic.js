@@ -144,15 +144,8 @@ GameLogic.prototype.playOneMove = function (move) {
 // Handles a new stone move (not special commands like "pass")
 // e.g. "c3" or "Bc3" or "Wc3"
 GameLogic.prototype.playAStone = function (move) {
-    // Parse [B|W]vertex
-    var vertex = move.substr(1);
-    switch (move[0]) {
-    case 'B': this.curColor = BLACK; break;
-    case 'W': this.curColor = WHITE; break;
-    default: vertex = move;
-    }
-
-    var coords = Grid.move2xy(vertex);
+    var coords = this.oneMove2xy(move);
+    if (coords.length === 3) this.curColor = coords[2];
     var i = coords[0], j = coords[1];
     if (!this.goban.isValidMove(i, j, this.curColor)) {
         return this._errorMsg('Invalid move: ' + move);
@@ -162,6 +155,21 @@ GameLogic.prototype.playAStone = function (move) {
     this._nextPlayer();
     this.numPass = 0;
     return true;
+};
+
+// Parses a move like "c12" into [3,12]; OR "Bc1" into [3,1,0]
+// Returns null if move is "pass" or "resi(gn)"; throws if move is illegal
+GameLogic.prototype.oneMove2xy = function (move) {
+    var color = move[0];
+    if (color === 'B' || color === 'W') {
+        return Grid.move2xy(move.substr(1)).concat(color === 'B' ? BLACK : WHITE);
+    }
+    var coords = Grid.move2xy(move, /*dontThrow=*/true);
+    if (!coords) {
+        if (move === 'pass' || move.substr(0,4) === 'resi') return null;
+        throw new Error('Illegal move parsed: ' + move);
+    }
+    return coords;
 };
 
 // One player resigns.

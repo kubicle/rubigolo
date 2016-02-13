@@ -23,6 +23,7 @@ function Droopy(game, color, genes) {
     this.publicName = this.name; // could be different if needed
     this.publicVersion = AI_VERSION;
 
+    this.game = game;
     this.goban = game.goban;
     this.genes = genes || new Genes();
     this.gsize = this.goban.gsize;
@@ -226,8 +227,9 @@ Droopy.prototype.setDebugHeuristic = function (heuristicName) {
 function surveySort(h1, h2) { return h2[1] - h1[1]; }
 
 Droopy.prototype.getMoveSurveyText = function (move, isTest) {
-    if (move[1] > '9') return '';
-    var coords = Grid.move2xy(move), i = coords[0], j = coords[1];
+    var coords = this.game.oneMove2xy(move);
+    if (!coords) return '';
+    var i = coords[0], j = coords[1];
     if (isTest) this._getMoveForTest(i, j);
     var survey = this._getMoveSurvey(i, j);
     var score = this.scoreGrid.yx[j][i];

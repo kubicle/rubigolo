@@ -1,8 +1,9 @@
 'use strict';
 
 var main = require('./main');
+var CONST = require('constants');
 
-var GRID_BORDER = main.GRID_BORDER;
+var GRID_BORDER = CONST.GRID_BORDER;
 
 
 /** @class A generic grid.
@@ -220,10 +221,14 @@ Grid.flipAndMirrorImage = function (image) {
 var COLUMNS = 'abcdefghjklmnopqrstuvwxyz'; // NB: "i" is skipped
 
 // Parses a move like "c12" into 3,12
-Grid.move2xy = function (move) {
+// Throws OR returns null if move is not a vertex or illegal
+Grid.move2xy = function (move, dontThrow) {
     var i = COLUMNS.indexOf(move[0]) + 1;
     var j = parseInt(move.substr(1, 2));
-    if (!i || isNaN(j)) throw new Error('Illegal move parsed: ' + move);
+    if (!i || isNaN(j)) {
+        if (dontThrow) return null;
+        throw new Error('Illegal move parsed: ' + move);
+    }
     return [i, j];
 };
 

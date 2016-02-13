@@ -108,7 +108,7 @@ Board.prototype.moveCursor = function (x, y) {
     this.board.addObject(this.cursor);
 };
 
-Board.prototype.highlightStone = function (i, j, type) {
+Board.prototype.highlightStone = function (type, i, j) {
     if (this.highlight.type) this.board.removeObject(this.highlight);
     this.highlight.type = type;
     if (!type) return;
