@@ -133,7 +133,10 @@ Ui.prototype.showGameInfo = function () {
 Ui.prototype.showLastMove = function () {
     var moves = this.game.history;
     if (moves.length) {
-        this.lastMoveElt.setMove(moves[moves.length - 1], 1 - this.game.curColor);
+        var move = moves[moves.length - 1];
+        this.lastMoveElt.setMove(move, 1 - this.game.curColor);
+        var pos = Grid.move2xy(move);
+        if (pos) this.board.highlightStone(pos[0], pos[1], 'CR');
     } else {
         this.lastMoveElt.setMove(null);
     }

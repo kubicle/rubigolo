@@ -30,6 +30,7 @@ function Board() {
     this.displayType = null;
     this.cursor = { type: 'CR', x: 0, y: 0 };
     this.isCursorOn = false;
+    this.highlight = { type: null, x: 0, y: 0 };
 }
 module.exports = Board;
 
@@ -105,6 +106,15 @@ Board.prototype.moveCursor = function (x, y) {
         this.cursor.c = this.cursorColor;
     }
     this.board.addObject(this.cursor);
+};
+
+Board.prototype.highlightStone = function (i, j, type) {
+    if (this.highlight.type) this.board.removeObject(this.highlight);
+    this.highlight.type = type;
+    if (!type) return;
+    this.highlight.x = i - 1;
+    this.highlight.y = this.gsize - j;
+    this.board.addObject(this.highlight);
 };
 
 Board.prototype.isValidCoords = function (x, y) {
