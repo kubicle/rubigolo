@@ -20,7 +20,7 @@ var sOK = main.sOK;
 var viewportWidth = document.documentElement.clientWidth;
 
 var NO_HEURISTIC = '(heuristic)';
-var NO_EVAL_TEST = '(other eval)';
+
 
 
 function Ui(game) {
@@ -513,31 +513,42 @@ Ui.prototype.scoreTest = function () {
     this.board.showSpecial('scoring', this.scorer.getScoringGrid().yx);
 };
 
-Ui.prototype.territoryTest = function () {
-    this.board.showSpecial('territory', this.getAiPlayer(this.game.curColor).guessTerritories());
+Ui.prototype.territoryTest = function (aiColor) {
+    this.board.showSpecial('territory', this.getAiPlayer(aiColor).guessTerritories());
 };
 
-Ui.prototype.heuristicTest = function (name) {
+Ui.prototype.influenceTest = function (aiColor, color) {
+    var infl = this.getAiPlayer(aiColor).infl;
+    this.board.setValueFormat(0, 1);
+    this.board.showSpecial('value', infl[color]);
+};
+
+Ui.prototype.totalEvalTest = function (aiColor) {
+    var score = this.getAiPlayer(aiColor).scoreGrid.yx;
+    this.board.setValueFormat(1, 1);
+    this.board.showSpecial('value', score);
+};
+
+Ui.prototype.evalTestHandler = function (name) {
+    var evalTest = evalTests[name];
+    this.statusMessage('Showing "' + evalTest[0] + '"');
+    evalTest[1].call(this, 1 - this.game.curColor);
+    this.board.highlightStone(null);
+    this.evalTestDropdown.select(0);
+};
+
+Ui.prototype.heuristicTestHandler = function (name) {
     this.debugHeuristic = name === NO_HEURISTIC ? null : name;
 
     this.getAiPlayer(BLACK).setDebugHeuristic(this.debugHeuristic);
     this.getAiPlayer(WHITE).setDebugHeuristic(this.debugHeuristic);
 
+    this.board.setValueFormat(1, 1);
     this.refreshBoard();
 };
 
-Ui.prototype.influenceTest = function (color) {
-    var infl = this.getAiPlayer(1 - this.game.curColor).infl;
-    this.board.showSpecial('value', infl[color]);
-};
-
-Ui.prototype.totalEvalTest = function (color) {
-    var score = this.getAiPlayer(color).scoreGrid.yx;
-    this.board.showSpecial('value', score);
-};
-
 Ui.prototype.devDisplay = function () {
-    this.evalTestDropdown.select(NO_EVAL_TEST);
+    this.evalTestDropdown.select(0);
     if (!this.debugHeuristic || !this.lastAiPlayer) return;
     var heuristic = this.lastAiPlayer.getHeuristic(this.debugHeuristic);
     // Erase previous values (heuristics don't care about old values)
@@ -564,11 +575,11 @@ var heuristics = [
 ];
 
 var evalTests = [
-    [NO_EVAL_TEST, Ui.prototype.refreshBoard],
+    ['(other eval)', Ui.prototype.refreshBoard],
     ['Score', Ui.prototype.scoreTest],
     ['Territory', Ui.prototype.territoryTest],
-    ['Influence B', function () { this.influenceTest(BLACK); }],
-    ['Influence W', function () { this.influenceTest(WHITE); }],
+    ['Influence B', function (aiColor) { this.influenceTest(aiColor, BLACK); }],
+    ['Influence W', function (aiColor) { this.influenceTest(aiColor, WHITE); }],
     ['Total', Ui.prototype.totalEvalTest]
 ];
 
@@ -597,11 +608,10 @@ Ui.prototype.createDevControls = function () {
     for (var i = 0; i < evalTests.length; i++) { tests.push(evalTests[i][0]); values.push(i); }
     this.evalTestDropdown = Dome.newDropdown(col2, '#evalTest', tests, values, '');
     this.evalTestDropdown.on('change', function () {
-        var fn = evalTests[this.value()][1];
-        fn.call(self, self.game.curColor);
+        self.evalTestHandler(this.value());
     });
     Dome.newDropdown(col2, '#heuristicTest', heuristics, null, '').on('change', function () {
-        self.heuristicTest(this.value());
+        self.heuristicTestHandler(this.value());
     });
 
     this.devOutput = devDiv.newDiv('logBox devLogBox');
