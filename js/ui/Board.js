@@ -229,10 +229,10 @@ function valueDisplay(cell) {
     var val = cell.toFixed(maxDec);
     for (var i = minDec; i < maxDec; i++) val = val.chomp('0');
     val = val.chomp('.');
-    if (val === '0') return null;
     if (val.substr(0, 2) === '0.') val = val.slice(1);
+    if (val === '0' || val === '.0') return null;
 
-    return { type: 'LB', text: val };
+    return { type: 'LB', text: val, scale: (cell < 1 ? 0.5 : 1) };
 }
 
 var displayFunctions = {
