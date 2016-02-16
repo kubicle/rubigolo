@@ -211,28 +211,34 @@ function scoringDisplay(cell) {
     }
 }
 
-var valueFormatMinDec, valueFormatMaxDec;
+var valueFormatMinDec, valueFormatMaxDec, valueFormatNeutralVal;
 
 // Usually for debug/test
-Board.prototype.setValueFormat = function (minDecimals, maxDecimals) {
+Board.prototype.setValueFormat = function (minDecimals, maxDecimals, neutralValue) {
     valueFormatMinDec = minDecimals;
     valueFormatMaxDec = maxDecimals;
+    valueFormatNeutralVal = neutralValue;
 };
 
 function valueDisplay(cell) {
     if (cell === null) return null;
+    var scale = 1;
 
-    var minDec = 0, maxDec = 2;
+    var minDec = 0, maxDec = 2, neutral = 0;
     if (valueFormatMinDec !== undefined) minDec = valueFormatMinDec;
     if (valueFormatMaxDec !== undefined) maxDec = valueFormatMaxDec;
+    if (valueFormatNeutralVal !== undefined) neutral = valueFormatNeutralVal;
+    if (cell === neutral) return null;
 
     var val = cell.toFixed(maxDec);
     for (var i = minDec; i < maxDec; i++) val = val.chomp('0');
     val = val.chomp('.');
     if (val.substr(0, 2) === '0.') val = val.slice(1);
-    if (val === '0' || val === '.0') return null;
-
-    return { type: 'LB', text: val, scale: (cell < 1 ? 0.5 : 1) };
+    if (neutral === 0) {
+        if (val === '0' || val === '.0') return null;
+        scale = (cell < 1 ? 0.6 : 1);
+    }
+    return { type: 'LB', text: val, scale: scale };
 }
 
 var displayFunctions = {

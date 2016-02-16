@@ -1,5 +1,6 @@
 'use strict';
 
+var CONST = require('../constants');
 var main = require('../main');
 
 var Board = require('./Board');
@@ -14,8 +15,8 @@ var ScoreAnalyser = require('../ScoreAnalyser');
 var UiGtpEngine = require('../net/UiGtpEngine');
 var userPref = require('../userPreferences');
 
-var WHITE = main.WHITE, BLACK = main.BLACK;
-var sOK = main.sOK;
+var WHITE = CONST.WHITE, BLACK = CONST.BLACK, EMPTY = CONST.EMPTY;
+var sOK = CONST.sOK, ODD = CONST.ODD, EVEN = CONST.EVEN;
 
 var viewportWidth = document.documentElement.clientWidth;
 
@@ -523,6 +524,13 @@ Ui.prototype.influenceTest = function (aiColor, color) {
     this.board.showSpecial('value', infl[color]);
 };
 
+Ui.prototype.eyesTest = function (aiColor, oddOrEven) {
+    var shaper = this.getAiPlayer(aiColor).getHeuristic('Shaper');
+    var yx = shaper.potEyeGrids[oddOrEven].yx;
+    this.board.setValueFormat(0, 1, EMPTY);
+    this.board.showSpecial('value', yx);
+};
+
 Ui.prototype.totalEvalTest = function (aiColor) {
     var score = this.getAiPlayer(aiColor).scoreGrid.yx;
     this.board.setValueFormat(1, 1);
@@ -580,6 +588,8 @@ var evalTests = [
     ['Territory', Ui.prototype.territoryTest],
     ['Influence B', function (aiColor) { this.influenceTest(aiColor, BLACK); }],
     ['Influence W', function (aiColor) { this.influenceTest(aiColor, WHITE); }],
+    ['Potential eyes EVEN', function (aiColor) { this.eyesTest(aiColor, EVEN); }],
+    ['Potential eyes ODD', function (aiColor) { this.eyesTest(aiColor, ODD); }],
     ['Total', Ui.prototype.totalEvalTest]
 ];
 
