@@ -10,8 +10,8 @@ var EVEN = CONST.EVEN, ODD = CONST.ODD;
 
 
 /** @class Contains the analyse results that are attached to each group */
-function GroupInfo(group, version) {
-    this.version = version;
+function GroupInfo(group, boan) {
+    this.boan = boan;
     this.voids = []; // voids owned by the group
     this.nearVoids = []; // voids around, owned or not
     this.deadEnemies = [];
