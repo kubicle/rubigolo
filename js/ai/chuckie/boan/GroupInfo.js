@@ -176,14 +176,13 @@ GroupInfo.prototype.getEyeMakerMove = function (coords) {
     if (main.debug) main.log.debug('getEyeMakerMove checking ' + this);
 
     var g = this.group, color = g.color;
-    var analyseYx = g.goban.analyseGrid.yx;
     var best = null, bestLives = 0, bestEnemies = 0, numMoves = 0;
     var empties = g.allLives(), numEmpties0 = empties.length;
 
     for (var n = 0; n < empties.length; n++) {
         var s = empties[n];
-        var v = analyseYx[s.j][s.i];
-        if (!v.owner || v.color !== color) continue;
+        var v = this.boan.getVoidAt(s);
+        if (v.color !== color) continue; // NB: v.owner can be undefined
 
         var numEnemies = 0, numAllies = 0, numLives = 0;
         for (var m = s.neighbors.length - 1; m >= 0; m--) {

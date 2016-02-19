@@ -14,9 +14,10 @@ var FAILS = GroupInfo.FAILS, LIVES = GroupInfo.LIVES;
 /** @class Our main board analyser / score counter etc.
  */
 function BoardAnalyser() {
-    this.version = BoardAnalyser.VERSION;
+    this.version = 'chuckie';
     this.mode = null;
     this.goban = null;
+    this.analyseGrid = null;
     this.allVoids = [];
     this.allGroups = null;
     this.scores = [0, 0];
@@ -24,9 +25,6 @@ function BoardAnalyser() {
     this.filler = null;
 }
 module.exports = BoardAnalyser;
-
-
-var BOAN_VERSION = BoardAnalyser.VERSION = 'chuckie';
 
 
 BoardAnalyser.prototype.countScore = function (goban) {
@@ -45,6 +43,10 @@ BoardAnalyser.prototype.getScoringGrid = function () {
     return this.goban.scoringGrid;
 };
 
+BoardAnalyser.prototype.getVoidAt = function (stone) {
+    return this.analyseGrid.yx[stone.j][stone.i];
+};
+
 BoardAnalyser.prototype.analyse = function (goban, grid, first2play) {
     var mode = first2play === undefined ? 'MOVE' : 'TERRITORY';
     if (!this._initAnalysis(mode, goban, grid)) return;
@@ -53,11 +55,11 @@ BoardAnalyser.prototype.analyse = function (goban, grid, first2play) {
 };
 
 BoardAnalyser.prototype.image = function () {
-    return this.goban.analyseGrid.image();
+    return this.analyseGrid.image();
 };
 
 BoardAnalyser.prototype.debugDump = function () {
-    var res = 'Grid:\n' + this.goban.analyseGrid.toText() + 'Voids:\n';
+    var res = 'Grid:\n' + this.analyseGrid.toText() + 'Voids:\n';
     for (var v, v_array = this.allVoids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
         res += v.toString() + '\n';
     }
@@ -76,7 +78,7 @@ BoardAnalyser.prototype.debugDump = function () {
 BoardAnalyser.prototype._initAnalysis = function (mode, goban, grid) {
     this.mode = mode;
     this.goban = goban;
-    goban.analyseGrid = grid;
+    this.analyseGrid = grid;
     this.filler = new ZoneFiller(goban, grid);
     if (goban.moveNumber() === 0) return false;
 
@@ -87,8 +89,8 @@ BoardAnalyser.prototype._initAnalysis = function (mode, goban, grid) {
 BoardAnalyser.prototype._addGroup = function (g, v) {
     var gi = this.allGroups[g.ndx];
     if (!gi) {
-        if (!g._info || g._info.version !== BOAN_VERSION) {
-            g._info = new GroupInfo(g, BOAN_VERSION);
+        if (!g._info || g._info.boan !== this) {
+            g._info = new GroupInfo(g, this);
         } else {
             g._info.resetAnalysis();
         }

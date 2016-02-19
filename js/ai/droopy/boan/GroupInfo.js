@@ -8,8 +8,8 @@ var NEVER = main.NEVER, SOMETIMES = main.SOMETIMES, ALWAYS = main.ALWAYS;
 
 
 /** @class Contains the analyse results that are attached to each group */
-function GroupInfo(group, version) {
-    this.version = version;
+function GroupInfo(group, boan) {
+    this.boan = boan;
     this.voids = []; // voids owned by the group
     this.nearVoids = []; // voids around, owned or not
     this.dependsOn = [];
@@ -194,7 +194,7 @@ GroupInfo.prototype.getEyeMakerMove = function (coords) {
     if (main.debug) main.log.debug('getEyeMakerMove checking ' + this);
 
     var g = this.group, color = g.color;
-    var analyseYx = g.goban.analyseGrid.yx;
+    var analyseYx = this.boan.analyseGrid.yx;
     var best = null, bestLives = 0, bestEnemies = 0, numMoves = 0;
     var empties = g.allLives(), numEmpties0 = empties.length;
 

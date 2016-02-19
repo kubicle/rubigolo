@@ -47,8 +47,6 @@ function Goban(gsize) {
 
     // this._moveIdStack = [];
     // this._moveIdGen = this.moveId = 0; // moveId is unique per tried move
-
-    this.analyseGrid = null;
 }
 module.exports = Goban;
 
