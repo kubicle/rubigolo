@@ -71,7 +71,7 @@ Group.prototype.toString = function () {
 };
 
 Group.prototype.isValid = function () {
-    return this.stones[0].group === this;
+    return this.stones.length && this.stones[0].group === this;
 };
 
 // debug dump does not have more to display now that stones are simpler
