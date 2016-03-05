@@ -5,6 +5,7 @@ var GroupAnalyser = require('./GroupAnalyser');
 var GroupsAndVoids = require('./GroupsAndVoids');
 var Hunter = require('./Hunter');
 var Influence = require('./Influence');
+var MoveInfo = require('./MoveInfo');
 var NoEasyPrisoner = require('./NoEasyPrisoner');
 var PotentialEyes = require('./PotentialEyes');
 var PotentialTerritory = require('./PotentialTerritory');
@@ -16,6 +17,7 @@ var Spacer = require('./Spacer');
 
 var allHeuristics = function () {
     return [
+        MoveInfo,
         PotentialTerritory,
         GroupsAndVoids,
         Influence,
