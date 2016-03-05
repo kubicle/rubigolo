@@ -310,6 +310,8 @@ GroupInfo.prototype.checkSingleEye = function (first2play) {
     if (canMakeTwoEyes === NEVER) {
         // yet we cannot say it is dead if there are brothers or dead enemies around
         if (this.band || this.deadEnemies.length) return UNDECIDED;
+        if (this.countBandPotentialEyes() >= 2)
+            return UNDECIDED;
         this._liveliness = this.liveliness();
         return FAILS;
     }
@@ -362,24 +364,34 @@ GroupInfo.prototype.checkLiveliness = function (minLife) {
     return UNDECIDED;
 };
 
-GroupInfo.prototype._count = function (method) {
-    var count = method.call(this);
+GroupInfo.prototype.callOnBand = function (method, param) {
     if (this.band) {
-        var brothers = this.band.brothers;
+        var brothers = this.band.brothers, count = 0;
         for (var n = brothers.length - 1; n >= 0; n--) {
-            if (brothers[n] === this) continue;
-            count += method.call(brothers[n]);
+            count += method.call(brothers[n], param);
         }
+        return count;
+    } else {
+        return method.call(this, param);
     }
-    return count;
 };
 
-GroupInfo.prototype.addPotentialEye = function (stone) {
-    this.potentialEyes.push(stone);
+GroupInfo.prototype.addPotentialEye = function (oddOrEven, count) {
+    this.potentialEyeCounts[oddOrEven] += count;
 };
 
-GroupInfo.prototype._countPotEyes = function () { return this.potentialEyes.length; };
+GroupInfo.prototype._countPotEyes = function () {
+    return this.eyeCount + Math.max(this.potentialEyeCounts[EVEN], this.potentialEyeCounts[ODD]);
+};
 
-GroupInfo.prototype.countPotentialEyes = function () {
-    return this._count(this._countPotEyes);
+GroupInfo.prototype.countBandPotentialEyes = function () {
+    return this.callOnBand(this._countPotEyes);
+};
+
+GroupInfo.prototype._countSize = function () {
+    return this.group.stones.length;
+};
+
+GroupInfo.prototype.countBandSize = function () {
+    return this.callOnBand(this._countSize);
 };
