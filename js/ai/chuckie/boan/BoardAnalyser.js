@@ -1,14 +1,16 @@
 'use strict';
 
+var CONST = require('../../../constants');
 var main = require('../../../main');
 var Grid = require('../../../Grid');
 var GroupInfo = require('./GroupInfo');
 var Void = require('./Void');
 var ZoneFiller = require('./ZoneFiller');
 
-var EMPTY = main.EMPTY, BLACK = main.BLACK, WHITE = main.WHITE;
+var EMPTY = CONST.EMPTY, GRID_BORDER = CONST.GRID_BORDER;
+var BLACK = CONST.BLACK, WHITE = CONST.WHITE;
 var ALIVE = GroupInfo.ALIVE;
-var FAILS = GroupInfo.FAILS, LIVES = GroupInfo.LIVES;
+var FAILS = GroupInfo.FAILS, LIVES = GroupInfo.LIVES, UNDECIDED = GroupInfo.UNDECIDED;
 
 
 /** @class Our main board analyser / score counter etc.
@@ -19,7 +21,7 @@ function BoardAnalyser() {
     this.goban = null;
     this.analyseGrid = null;
     this.allVoids = [];
-    this.allGroups = null;
+    this.allGroupInfos = null;
     this.scores = [0, 0];
     this.prisoners = [0, 0];
     this.filler = null;
@@ -64,8 +66,8 @@ BoardAnalyser.prototype.debugDump = function () {
         res += v.toString() + '\n';
     }
     res += 'Groups:\n';
-    for (var ndx in this.allGroups) {
-        res += this.allGroups[~~ndx].toString() + '\n';
+    for (var ndx in this.allGroupInfos) {
+        res += this.allGroupInfos[~~ndx].toString() + '\n';
     }
     if (this.scores) {
         res += 'Score:' + this.scores.map(function (s, i) {
@@ -87,14 +89,14 @@ BoardAnalyser.prototype._initAnalysis = function (mode, goban, grid) {
 };
 
 BoardAnalyser.prototype._addGroup = function (g, v) {
-    var gi = this.allGroups[g.ndx];
+    var gi = this.allGroupInfos[g.ndx];
     if (!gi) {
         if (!g._info || g._info.boan !== this) {
             g._info = new GroupInfo(g, this);
         } else {
             g._info.resetAnalysis();
         }
-        gi = this.allGroups[g.ndx] = g._info;
+        gi = this.allGroupInfos[g.ndx] = g._info;
     }
     gi.nearVoids.push(v);
 };
@@ -105,7 +107,7 @@ BoardAnalyser.prototype._addGroup = function (g, v) {
 BoardAnalyser.prototype._initVoidsAndGroups = function () {
     if (main.debug) main.log.debug('---Initialising voids & groups...');
     var voidCode = Grid.ZONE_CODE;
-    this.allGroups = {};
+    this.allGroupInfos = {};
     this.allVoids.clear();
     var n, groups, goban = this.goban;
     var v = new Void(goban, voidCode++);
@@ -136,8 +138,8 @@ BoardAnalyser.prototype._runAnalysis = function (first2play) {
 };
 
 BoardAnalyser.prototype._findBrothers = function () {
-    for (var ndx in this.allGroups) {
-        this.allGroups[~~ndx].findBrothers();
+    for (var ndx in this.allGroupInfos) {
+        this.allGroupInfos[~~ndx].findBrothers();
     }
 };
 
@@ -262,8 +264,8 @@ var scoringLifeChecks = [
 BoardAnalyser.prototype._reviewGroups = function (check, first2play) {
     if (main.debug) main.log.debug('---REVIEWING groups for "' + check.name + '" checks');
     var count = 0, reviewedCount = 0, fails = [];
-    for (var ndx in this.allGroups) {
-        var gi = this.allGroups[~~ndx];
+    for (var ndx in this.allGroupInfos) {
+        var gi = this.allGroupInfos[~~ndx];
         if (gi.isAlive || gi.isDead) continue;
         reviewedCount++;
 
@@ -328,20 +330,21 @@ BoardAnalyser.prototype._findDameVoids = function () {
 };
 
 BoardAnalyser.prototype._finalColoring = function () {
-    this._colorDeadGroups();
+    this._colorAndCountDeadGroups();
     this._colorVoids();
 };
 
-BoardAnalyser.prototype._colorDeadGroups = function () {
-    for (var ndx in this.allGroups) {
-        var gi = this.allGroups[~~ndx];
+BoardAnalyser.prototype._colorAndCountDeadGroups = function () {
+    for (var ndx in this.allGroupInfos) {
+        var gi = this.allGroupInfos[~~ndx];
         if (!gi.isDead) continue;
 
-        // At least 1 enemy around must be alive 
+        // At least 1 enemy around must be alive otherwise this group is not really dead
         var reallyDead = false;
         for (var n = gi.killers.length - 1; n >= 0; n--) {
-            if (!gi.killers[n]._info.isDead) reallyDead = true;
+            if (!gi.killers[n]._info.isDead) { reallyDead = true; break; }
         }
+        // If not really dead we own the voids around
         var color = gi.group.color;
         if (gi.killers.length && !reallyDead) {
             for (var i = gi.nearVoids.length - 1; i >= 0; i--) {
