@@ -1,16 +1,18 @@
 'use strict';
 
+var CONST = require('../../constants');
 var main = require('../../main');
+
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
 var Stone = require('../../Stone');
 
-var GRID_BORDER = main.GRID_BORDER;
-var EMPTY = main.EMPTY, BLACK = main.BLACK, WHITE = main.WHITE;
-var NEVER = main.NEVER;
-var UP = main.UP, RIGHT = main.RIGHT, DOWN = main.DOWN, LEFT = main.LEFT;
-var DIR0 = main.DIR0, DIR3 = main.DIR3;
+var GRID_BORDER = CONST.GRID_BORDER;
+var EMPTY = CONST.EMPTY, BLACK = CONST.BLACK, WHITE = CONST.WHITE;
+var NEVER = CONST.NEVER;
+var UP = CONST.UP, RIGHT = CONST.RIGHT, DOWN = CONST.DOWN, LEFT = CONST.LEFT;
+var DIR0 = CONST.DIR0, DIR3 = CONST.DIR3;
 
 var POT2CHAR = Grid.territory2char;
 var POT2OWNER = Grid.territory2owner;

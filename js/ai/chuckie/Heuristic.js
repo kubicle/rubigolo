@@ -1,15 +1,16 @@
 'use strict';
 
+var CONST = require('../../constants');
 var main = require('../../main');
 var Grid = require('../../Grid');
 var Stone = require('../../Stone');
 
-var GRID_BORDER = main.GRID_BORDER;
-var BLACK = main.BLACK, WHITE = main.WHITE, EMPTY = main.EMPTY, BORDER = main.BORDER;
-var sOK = main.sOK, sDEBUG = main.sDEBUG;
-var ALWAYS = main.ALWAYS, NEVER = main.NEVER;
+var GRID_BORDER = CONST.GRID_BORDER;
+var EMPTY = CONST.EMPTY, BORDER = CONST.BORDER;
+var sOK = CONST.sOK, sDEBUG = CONST.sDEBUG;
+var ALWAYS = CONST.ALWAYS;
 var XY_AROUND = Stone.XY_AROUND;
-var DIR0 = main.DIR0, DIR3 = main.DIR3;
+var DIR0 = CONST.DIR0, DIR3 = CONST.DIR3;
 
 
 /** @class Base class for all heuristics.

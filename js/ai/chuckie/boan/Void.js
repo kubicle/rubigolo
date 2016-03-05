@@ -1,9 +1,10 @@
 'use strict';
 
+var CONST = require('../../../constants');
 var main = require('../../../main');
 var Grid = require('../../../Grid');
 
-var BLACK = main.BLACK, WHITE = main.WHITE;
+var BLACK = CONST.BLACK, WHITE = CONST.WHITE;
 
 var vEYE = 1, vDAME = 2;
 var VTYPES = ['void', 'eye', 'dame'];
