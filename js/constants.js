@@ -30,6 +30,7 @@ function Constants() {
     this.LEFT = 3;
 
     this.JP_RULES = 'Japanese';
+    this.CH_RULES = 'Chinese';
 }
 module.exports = new Constants();
 

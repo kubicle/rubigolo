@@ -1,12 +1,14 @@
 'use strict';
 
+var CONST = require('./constants');
 var main = require('./main');
 var Grid = require('./Grid');
 var Goban = require('./Goban');
 var SgfReader = require('./SgfReader');
 var HandicapSetter = require('./HandicapSetter');
 
-var BLACK = main.BLACK, WHITE = main.WHITE;
+var BLACK = CONST.BLACK, WHITE = CONST.WHITE;
+var CH_RULES = CONST.CH_RULES, JP_RULES = CONST.JP_RULES;
 
 
 /** @class GameLogic enforces the game logic.
@@ -15,12 +17,11 @@ var BLACK = main.BLACK, WHITE = main.WHITE;
  * public read-only attribute: goban, komi, curColor, gameEnded, gameEnding, whoResigned
  */
 function GameLogic(src) {
-    this.inConsole = false;
     this.history = [];
     this.errors = [];
     this.infos = {};
     this.playerNames = [];
-    this.rules = 'Chinese';
+    this.rules = JP_RULES;
 
     this.goban = null;
     this.handicap = this.komi = this.numPass = 0;
@@ -38,14 +39,17 @@ GameLogic.prototype.setPlayer = function (color, name) {
     this.playerNames[color] = name;
 };
 
+GameLogic.prototype.setRules = function (rules) {
+    this.rules = rules;
+};
+
 GameLogic.prototype.copy = function (src) {
-    this.newGame(src.goban.gsize, src.handicap, src.komi);
     this.setWhoStarts(src.whoStarts);
     this.setPlayer(BLACK, src.playerNames[BLACK]);
     this.setPlayer(WHITE, src.playerNames[WHITE]);
     this.rules = src.rules;
 
-    if (src.goban.useSuperko) this.goban.setRules({ positionalSuperko: true });
+    this.newGame(src.goban.gsize, src.handicap, src.komi);
 
     this.loadMoves(src.history.join(','));
 };
@@ -64,6 +68,7 @@ GameLogic.prototype.newGame = function (gsize, handicap, komi) {
     } else {
         this.goban.clear();
     }
+    this.goban.setRules({ positionalSuperko: this.rules === CH_RULES });
 
     handicap = handicap !== undefined ? handicap : 0;
     this.setHandicapAndWhoStarts(handicap);
@@ -271,7 +276,7 @@ GameLogic.prototype.countPrisoners = function () {
     return this.goban.countPrisoners();
 };
 
-// Stores or log a new error message
+// Stores a new error message
 // Always returns false.
 GameLogic.prototype._errorMsg = function (msg) {
     this.errors.push(msg);
