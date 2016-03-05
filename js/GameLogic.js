@@ -271,21 +271,10 @@ GameLogic.prototype.countPrisoners = function () {
     return this.goban.countPrisoners();
 };
 
-// If not called, getErrors() has to be called to retrieve recent errors.
-// If called with on=true (or no param), error messages will logged directly.
-GameLogic.prototype.switchConsoleMode = function (on) {
-    if (on === undefined) on = true;
-    this.inConsole = on;
-};
-
-// Stores or log a new error message (see also switchConsoleMode).
+// Stores or log a new error message
 // Always returns false.
 GameLogic.prototype._errorMsg = function (msg) {
-    if (this.inConsole) {
-        main.log.error(msg);
-    } else {
-        this.errors.push(msg);
-    }
+    this.errors.push(msg);
     return false;
 };
 

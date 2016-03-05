@@ -20,7 +20,6 @@ function Breeder(gameSize, komi) {
     this.komi = komi;
     this.timer = new TimeKeeper();
     this.game = new GameLogic();
-    this.game.switchConsoleMode(true);
     this.game.setLogLevel('all=0');
     this.game.newGame(this.gsize);
     this.goban = this.game.goban;
