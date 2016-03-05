@@ -138,6 +138,8 @@ Chuckie.prototype._initScoringGrid = function (stateYx, scoreYx) {
         }
     }
     if (this.testI !== NO_MOVE) {
+        if (stateYx[this.testJ][this.testI] === sINVALID)
+            throw new Error('Invalid test move: ' + this.testI + ',' + this.testJ);
         stateYx[this.testJ][this.testI] = sDEBUG;
     }
 };
