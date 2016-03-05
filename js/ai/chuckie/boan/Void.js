@@ -5,6 +5,9 @@ var Grid = require('../../../Grid');
 
 var BLACK = main.BLACK, WHITE = main.WHITE;
 
+var vEYE = 1, vDAME = 2;
+var VTYPES = ['void', 'eye', 'dame'];
+
 
 /** @class Class used by BoardAnalyser class.
  *  A void in an empty zone surrounded by (and including) various groups.
@@ -13,12 +16,13 @@ var BLACK = main.BLACK, WHITE = main.WHITE;
  *  code is the void code (like a color but higher index)
  *  neighbors is an array of n arrays, with n == number of colors
  */
-function Void(code) {
+function Void(goban, code) {
+    this.goban = goban;
     this.code = code;
-    this.i = 0;
-    this.j = 0;
+    this.i = this.j = 0;
     this.vcount = 0;
     this.groups = null; // neighboring groups (array of arrays; 1st index is color)
+    this.vertexes = null;
     this.vtype = undefined; // see vXXX contants below
     this.color = undefined; // BLACK or WHITE, or undefined if no clear owner
     this.owner = undefined; // GroupInfo or undefined; NB: fake eyes don't have owner
@@ -26,19 +30,19 @@ function Void(code) {
 }
 module.exports = Void;
 
-Void.prototype.init = function (i, j, vcount, neighbors) {
+/** @return {array[]} - groups[BLACK] & groups[WHITE] to receive groups around zone */
+Void.prototype.prepare = function (i, j) {
     this.i = i;
     this.j = j;
-    this.vcount = vcount;
-    this.groups = neighbors;
+    this.groups = [[], []];
+    this.vertexes = [];
+    return this.groups;
 };
 
-var vEYE = Void.vEYE = 1;
-var vFAKE_EYE = Void.vFAKE_EYE = 2;
-var vDAME = Void.vDAME = 3;
-
-
-var VTYPES = ['void', 'eye', 'fake-eye', 'dame'];
+Void.prototype.addVertex = function (i, j) {
+    this.vcount++;
+    this.vertexes.push(this.goban.stoneAt(i, j));
+};
 
 function vtype2str(vtype) {
     return vtype ? VTYPES[vtype] : VTYPES[0];

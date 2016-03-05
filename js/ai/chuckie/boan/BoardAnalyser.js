@@ -107,25 +107,22 @@ BoardAnalyser.prototype._initVoidsAndGroups = function () {
     var voidCode = Grid.ZONE_CODE;
     this.allGroups = {};
     this.allVoids.clear();
-    var neighbors = [[], []], n, groups;
-    var v = new Void(voidCode++);
-    for (var j = 1; j <= this.goban.gsize; j++) {
-        for (var i = 1; i <= this.goban.gsize; i++) {
-            var vcount = this.filler.fillWithColor(i, j, EMPTY, v, neighbors);
+    var n, groups, goban = this.goban;
+    var v = new Void(goban, voidCode++);
+    for (var j = 1; j <= goban.gsize; j++) {
+        for (var i = 1; i <= goban.gsize; i++) {
+            var vcount = this.filler.fillWithColor(i, j, EMPTY, v);
             if (vcount === 0) continue;
 
             // 1 new void created
-            v.init(i, j, vcount, neighbors);
             this.allVoids.push(v);
-
             // keep all the groups
-            groups = neighbors[BLACK];
-            for (n = groups.length - 1; n >= 0; n--) this._addGroup(groups[n], v);
-            groups = neighbors[WHITE];
-            for (n = groups.length - 1; n >= 0; n--) this._addGroup(groups[n], v);
+            for (var color = BLACK; color <= WHITE; color++) {
+                groups = v.groups[color];
+                for (n = groups.length - 1; n >= 0; n--) this._addGroup(groups[n], v);
+            }
 
-            neighbors = [[], []];
-            v = new Void(voidCode++);
+            v = new Void(goban, voidCode++);
         }
     }
 };
