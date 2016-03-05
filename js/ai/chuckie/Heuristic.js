@@ -147,9 +147,12 @@ Heuristic.prototype.distanceBetweenStones = function (s1, s2, color) {
         if (c2.color === enemy) numEnemies++;
         if (numEnemies === 0) return 0; // safe hane
         if (numEnemies === 2) return 99; // cut!
-        var connPoint = c1.color === enemy ? c2 : c1;
-        if (s1.distanceFromBorder() === 0 || s2.distanceFromBorder() === 0) {
-            if (connPoint.distanceFromBorder() === 1) return 1; // enemy cut-stone on border
+        var whichIsEnemy = c1.color === enemy ? 0 : 1;
+        var enemyStone = diags[whichIsEnemy], connPoint = diags[1 - whichIsEnemy];
+        if (s1.isBorder() || s2.isBorder()) {
+            // if enemy cut-stone on border, we have a sente connect by doing atari
+            if (connPoint.distanceFromBorder() === 1)
+                return enemyStone.group.lives > 2 ? 1 : 0;
             if (connPoint.allyStones(enemy) !== 0) return 1; // other enemy next to conn point
             return 0;
         } else if (connPoint.distanceFromBorder() === 1) {
@@ -166,13 +169,12 @@ Heuristic.prototype.distanceBetweenStones = function (s1, s2, color) {
             if (between.neighbors[i].color === enemy) numEnemies++;
         }
         if (numEnemies >= 1) return 1; // needs 1 move to connect (1 or 2 enemies is same)
-        if (s1.distanceFromBorder() + s2.distanceFromBorder() === 0) {
+        if (s1.isBorder() && s2.isBorder()) {
             return 0; // along border with 0 enemy around is safe
         }
         return 0.5; // REVIEW ME
     }
-    var d1 = s1.distanceFromBorder(), d2 = s2.distanceFromBorder();
-    if (dx + dy === 3 && d1 === 0 && d2 === 0) {
+    if (dx + dy === 3 && s1.isBorder() && s2.isBorder()) {
         // TODO code betweenStones and test it
         var betweens = this.betweenStones(s1, s2);
         var dist = 0;
@@ -199,8 +201,16 @@ Heuristic.prototype.canConnect = function (i, j, color) {
     var empties = [];
     for (var nNdx = stone.neighbors.length - 1; nNdx >= 0; nNdx--) {
         var n = stone.neighbors[nNdx];
-        if (n.color === color && n.group.xDead < ALWAYS) return n;
-        if (n.color === main.EMPTY) empties.push(n);
+        switch (n.color) {
+        case EMPTY:
+            empties.push(n);
+            break;
+        case color:
+            if (n.group.lives > 1 && n.group.xDead < ALWAYS) return n;
+            break;
+        default: // if we kill an enemy group here, consider this a connection
+            if (n.group.lives === 1) return n.group.allEnemies()[0];
+        }
     }
     // look around each empty for allies
     var moveNeeded = 2;
