@@ -24,7 +24,6 @@ TestGroup.prototype.initBoard = function (size, handicap) {
     if (handicap === undefined) handicap = 0;
     this.game = new GameLogic();
     this.game.newGame(size, handicap);
-    this.game.switchConsoleMode(true);
     this.goban = this.game.goban;
 };
 

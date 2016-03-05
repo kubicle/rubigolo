@@ -1,10 +1,11 @@
-//Translated from group.rb using babyruby2js
 'use strict';
 
+var CONST = require('./constants');
 var main = require('./main');
 var Grid = require('./Grid');
 
-var EMPTY = main.EMPTY;
+var EMPTY = CONST.EMPTY;
+
 
 /** @class
  *  A group keeps the list of its stones, the updated number of "lives" (empty intersections around),

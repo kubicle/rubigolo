@@ -39,7 +39,7 @@ TestBoardAnalyser.prototype.checkGame = function (moves, expScore, gsize, finalP
     this.boan.countScore(this.goban);
 
     var score = this.boan.getScoringGrid().image();
-    if (score === expScore) return;
+    if (!expScore || score === expScore) return;
     this.showInUi('Expected scoring grid was:<br>' + expScore + ' but we got:<br>' + score);
     this.assertEqual(expScore, score);
 };

@@ -90,16 +90,16 @@ Goban.prototype.setRules = function (rules) {
 };
 
 // Allocate a new group or recycles one from garbage list.
-// For efficiency, call this one, do not call the regular Group.new method.
+// Should be the only place we call new Group()
 Goban.prototype.newGroup = function (stone, lives) {
-    this.numGroups++;
+    var ndx = ++this.numGroups;
     var group = this.garbageGroups.pop();
     if (group) {
-        group.recycle(stone, lives, this.numGroups);
-        return group;
+        group.recycle(stone, lives, ndx);
     } else {
-        return new Group(this, stone, lives, this.numGroups);
+        group = new Group(this, stone, lives, ndx);
     }
+    return group;
 };
 
 Goban.prototype.deleteGroup = function (group) {
@@ -124,7 +124,7 @@ Goban.prototype.loadImage = function (image) {
 };
 
 Goban.prototype.getAllGroups = function () {
-    var groups = {};
+    var groups = {}; //TODO return an array instead
     for (var j = this.gsize; j >= 1; j--) {
         for (var i = this.gsize; i >= 1; i--) {
             var group = this.ban[j][i].group;
