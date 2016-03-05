@@ -97,6 +97,19 @@ Hunter.prototype._countAtariThreat = function (enemies, level) {
     return atariThreat;
 };
 
+// It is a snapback if the last empty point is where the enemy will have to play
+// AND would not make the enemy group connect to a stronger enemy group.
+Hunter.prototype._isSnapback = function (killerStone, lastEmpty, eg) {
+    if (!lastEmpty.isNextTo(eg)) return false;
+    var enemiesAroundEmpty = lastEmpty.uniqueAllies(eg.color);
+    for (var e = enemiesAroundEmpty.length - 1; e >= 0; e--) {
+        var enemy = enemiesAroundEmpty[e];
+        if (enemy.lives > 2) return false;
+        if (!killerStone.isNextTo(enemy)) return false;
+    }
+    return true;
+};
+
 Hunter.prototype._countPreAtariThreat = function (stone, enemies, empties, color, level, egroups) {
     var isSnapback = false, eg;
     var allies = stone.uniqueAllies(color);
@@ -108,17 +121,10 @@ Hunter.prototype._countPreAtariThreat = function (stone, enemies, empties, color
         if (this._gotLivesFromKillingAround(eg, 2)) continue; // >=2 because killing 1 stone is not enough to escape
         // same but for the group of our new stone; if should not become atari either
         if (empties.length === 0 && allies.length === 1 && allies[0].lives === 2) continue;
-        
+        // If no ally & our new stone is atari
         if (empties.length === 1 && allies.length === 0) {
-            // unless this is a snapback, this is a dumb move
-            // it is a snapback if the last empty point (where the enemy will have to play) 
-            // would not make the enemy group connect to another enemy group
-            // (equivalent to: the empty point has no other enemy group as neighbor)
-            var enemiesAroundEmpty = empties[0].uniqueAllies(eg.color);
-            if (enemiesAroundEmpty.length !== 1 || enemiesAroundEmpty[0] !== eg) {
-                continue;
-            }
-            // here we know this is a snapback
+            // Unless a snapback, this is a dumb move
+            if (!this._isSnapback(stone, empties[0], eg)) continue;
             isSnapback = true;
             if (main.debug) main.log.debug('Hunter ' + Grid.colorName(color) + ' sees a snapback in ' + stone);
         }
@@ -305,7 +311,8 @@ Hunter.prototype.catchThreat = function (i, j, color) {
     return this._evalMove(i, j, color, 1);
 };
 
-/** Called by other heuristics to know if a stone is a snapback for current move */
+/** Called by other heuristics to know if a stone is a snapback for current move.
+ * By snapback here we mean the 1st move = attacking (good) move of a snapback */
 Hunter.prototype.isSnapback = function (stone) {
     return this.snapbacks.indexOf(stone) !== -1;
 };
