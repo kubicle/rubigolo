@@ -34,14 +34,14 @@ var ALIVE = GroupInfo.ALIVE = 1000; // any big enough liveliness to mean "alive 
 // This also resets the eyes
 GroupInfo.prototype.resetAnalysis = function () {
     this.eyeCount = this._liveliness = 0;
-    this.voids.clear();
-    this.nearVoids.clear();
+    this.voids.length = 0;
+    this.nearVoids.length = 0;
     this.band = null;
     this.isAlive = this.isDead = false;
-    this.deadEnemies.clear();
-    this.killers.clear();
     this.potentialEyes.clear();
     this.numContactPoints = 0;
+    this.deadEnemies.length = 0;
+    this.killers.length = 0;
 };
 
 // For debug only
@@ -54,8 +54,8 @@ GroupInfo.giNdx = function (gi) { return '#' + gi.group.ndx; };
 GroupInfo.prototype.toString = function () {
     var brothers = this.band ? this.band.toString() : '';
     return this.group.toString() +
-        ' (isAlive:' + this.isAlive + ' isDead:' + this.isDead + ', ' +
-        this.voids.length + ' voids  brothers:[' +
+        ' (isAlive:' + this.isAlive + ' isDead:' + this.isDead + ' voids:' +
+        this.voids.length + ' brothers:[' +
         brothers + '] deadEnemies:[' + this.deadEnemies.map(GroupInfo.giNdx) + '])';
 };
 
@@ -277,7 +277,7 @@ GroupInfo.prototype.checkBrothers = function () {
         }
     }
     if (!oneIsAlive) return UNDECIDED;
-    if (main.debug) main.log.debug('ALIVE-brothers: ' + this);
+    if (main.debug) main.log.debug('ALIVE-brothers: ' + this, ' numEyes: ' + numEyes);
     this.isAlive = true;
     return LIVES;
 };
