@@ -50,11 +50,6 @@ Connector.prototype._evalMove = function (i, j, color) {
            this._connectsMyGroups(stone, 1 - color);
 };
 
-function groupNeedsToConnect(g) {
-    var gi = g._info;
-    return gi.eyeCount === 0 && gi.numContactPoints === 1;
-}
-
 Connector.prototype._diagonalConnect = function (stone, color) {
     var diag = true, grp1 = null, grp2 = null, nonDiagGrp1 = null;
     var isDiagCon = false;
@@ -66,6 +61,7 @@ Connector.prototype._diagonalConnect = function (stone, color) {
         switch (s.color) {
         case EMPTY: continue;
         case color:
+            if (s.group.xDead === ALWAYS) continue;
             if (!grp1) {
                 grp1 = s.group;
                 if (!diag) nonDiagGrp1 = s.group;
@@ -78,7 +74,9 @@ Connector.prototype._diagonalConnect = function (stone, color) {
                 isDiagCon = isDiagCon || diag;
             }
             break;
-        default: numEnemies++;
+        default:
+            if (s.group.xDead === ALWAYS) continue;
+            numEnemies++;
         }
     }
     if (!grp2) return 0;
@@ -112,14 +110,18 @@ Connector.prototype._directConnect = function (stone, color) {
     
     if (!s2) return 0; // nothing to connect here
     if (numStones === 4) return 0; // 1 empty between 4 stones; never connect unless forced to
-    // 3 of our stones around: no need to connect unless enemy comes by or threatens
-    if (numStones === 3 && numEnemies === 0 &&
-        s1.group.lives > 1 && s2.group.lives > 1 && (!s3 || s3.group.lives > 1)) {
-        return 0;
-    }
 
     var numGroups = s3 ? 3 : 2;
     var groups = s3 ? [s1.group, s2.group, s3.group] : [s1.group, s2.group];
+
+    // 3 of our stones around: no need to connect unless enemy comes by or threatens
+    if (numStones === 3) {
+        if (numEnemies === 0 && s1.group.lives > 1 && s2.group.lives > 1 && (!s3 || s3.group.lives > 1)) {
+            return 0;
+        }
+        return this._computeScore(stone, color, groups, numEnemies, 'direct3');
+    }
+
     // if 3rd stone in same group than 1 or 2; we keep the diagonal ones
     if (numGroups === 2 && numStones === 3) {
         if (s2b) { s1b = s2b; var swap = s1; s1 = s2; s2 = swap; }
@@ -130,7 +132,9 @@ Connector.prototype._directConnect = function (stone, color) {
         // no need to connect now if connection is granted
         if (this.distanceBetweenStones(s1, s2, color) === 0) {
             if (main.debug) main.log.debug('Connector ' + Grid.colorName(color) + ' sees no hurry to connect ' + s1 + ' and ' + s2);
-            if (groupNeedsToConnect(s1.group) || groupNeedsToConnect(s2.group))
+            if (this.player.jpRules) return 0;
+            if (s1.group._info.needsToConnect() !== NEVER ||
+                s2.group._info.needsToConnect() !== NEVER)
                 return this.minimumScore;
             return 0;
         }
@@ -159,8 +163,9 @@ Connector.prototype._computeScore = function (stone, color, groups, numEnemies, 
 
         for (n = groups.length - 1; n >= 0; n--) {
             g = groups[n];
-            if (g.xDead === NEVER) continue;
-            score += (2 - g.xAlive) / 2 * this.groupThreat(g, /*saved=*/true); // !saved would not work so well I think
+            if (g.xAlive === ALWAYS) continue;
+            var potEyeCount = g._info.countBandPotentialEyes();
+            score += this.groupThreat(g, /*saved=*/true) / Math.max(1, potEyeCount - 1);
         }
         score *= this.riskCoeff;
     }
