@@ -90,6 +90,7 @@ Hunter.prototype._countAtariThreat = function (enemies, level) {
         // if we can take eg anytime later, no need to take it now
         //TODO also verify no group in "enemies" is strong
         if (!level && this._isAtariGroupCaught(eg, level) && !this._gotLivesFromKillingAround(eg, 1)) {
+            if (!this.player.jpRules) atariThreat += this.minimumScore;
             continue;
         }
         atariThreat += this.groupThreat(eg);
