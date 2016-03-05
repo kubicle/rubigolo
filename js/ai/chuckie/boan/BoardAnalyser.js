@@ -243,24 +243,33 @@ function killAllFails(check, fails) {
     return fails.length;
 }
 
-var brotherCheck =     { name: 'brothers',    run: function (gi) { return gi.checkBrothers(); } };
-var singleEyeCheck = {
-    name: 'singleEye',   
-    run: function (gi, first) { return gi.checkSingleEye(first); },
-    kill: killWeakest
-};
-var finalCheck = { name: 'final', run: function (gi) { return gi.checkLiveliness(2); } };
+function killNone() {
+    return 0;
+}
 
-var midGameLifeChecks = [
-    brotherCheck,
-    singleEyeCheck
-    // We don't expect a final liveliness (2) in mid-game
-];
-var scoringLifeChecks = [
-    brotherCheck,
-    singleEyeCheck,
-    finalCheck
-];
+var brotherCheck =   { name: 'brothers', run: GroupInfo.prototype.checkBrothers };
+var singleEyeCheck = { name: 'singleEye', run: GroupInfo.prototype.checkSingleEye, kill: killWeakest };
+var raceCheck = { name: 'race', run: GroupInfo.prototype.checkAgainstEnemies, kill: killNone };
+var killAtaris = { name: 'atari', run: function () { return this.group.lives <= 1 ? FAILS : UNDECIDED; } };
+var finalCheck = { name: 'final', run: function () { return this.checkLiveliness(2); } };
+
+var lifeChecks = {
+    SCORE: [
+        brotherCheck,
+        killAtaris,
+        singleEyeCheck,
+        finalCheck
+    ],
+    TERRITORY: [
+        brotherCheck,
+        singleEyeCheck
+    ],
+    MOVE: [
+        brotherCheck,
+        singleEyeCheck,
+        raceCheck
+    ]
+};
 
 // NB: order of group should not matter; we must remember this especially when killing some of them
 BoardAnalyser.prototype._reviewGroups = function (check, first2play) {
@@ -271,7 +280,7 @@ BoardAnalyser.prototype._reviewGroups = function (check, first2play) {
         if (gi.isAlive || gi.isDead) continue;
         reviewedCount++;
 
-        switch (check.run(gi, first2play)) {
+        switch (check.run.call(gi, first2play)) {
         case FAILS:
             fails.push(gi);
             break;
@@ -293,7 +302,7 @@ BoardAnalyser.prototype._reviewGroups = function (check, first2play) {
 
 // Reviews the groups and declare "dead" the ones who do not own enough eyes or voids
 BoardAnalyser.prototype._lifeOrDeathLoop = function (first2play) {
-    var checks = this.mode === 'SCORE' ? scoringLifeChecks : midGameLifeChecks;
+    var checks = lifeChecks[this.mode];
     var stepNum = 0, count;
     while (stepNum < checks.length) {
         count = this._reviewGroups(checks[stepNum++], first2play);
