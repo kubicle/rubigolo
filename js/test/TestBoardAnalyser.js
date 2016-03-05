@@ -1,12 +1,14 @@
-//Translated from test_board_analyser.rb using babyruby2js
 'use strict';
 
+var CONST = require('../constants');
 var main = require('../main');
 var inherits = require('util').inherits;
 var GameLogic = require('../GameLogic');
+var Grid = require('../Grid');
 var TestCase = require('./TestCase');
 
-var BLACK = main.BLACK, WHITE = main.WHITE;
+var BLACK = CONST.BLACK, WHITE = CONST.WHITE;
+var GRID_BORDER = CONST.GRID_BORDER;
 
 
 /** @class Set main.debug to true for details
@@ -22,6 +24,7 @@ TestBoardAnalyser.prototype.initBoard = function (gsize, handicap) {
     this.game = new GameLogic();
     this.game.newGame(gsize || 5, handicap || 0);
     this.goban = this.game.goban;
+    this.grid = new Grid(gsize, GRID_BORDER);
 };
 
 TestBoardAnalyser.prototype.checkGame = function (moves, expScore, gsize, finalPos) {
@@ -63,15 +66,14 @@ TestBoardAnalyser.prototype.testInternals = function () {
     // ----@
     // @@@@-
     // -@-@-
-    var grid = this.goban.scoringGrid.initFromGoban(this.goban);
     var ba = this.boan = new main.defaultAi.BoardAnalyser();
-    ba.analyse(this.goban, grid, WHITE);
+    ba.analyseTerritory(this.goban, this.grid, WHITE);
 
     // Voids
     var v = ba.allVoids[0];
-    var gi = ba.allGroups[1];
+    var gi = ba.allGroupInfos[1];
     this.assertEqual(true, v.isTouching(gi));
-    this.assertEqual(false, v.isTouching(ba.allGroups[2]));
+    this.assertEqual(false, v.isTouching(ba.allGroupInfos[2]));
     this.assertEqual('{eye-a1 vcount:1 black:#1 white:-}', v.toString());
     this.assertEqual('{eye-e1 vcount:2 black:#3,#1 white:-}', ba.allVoids[2].toString());
     this.assertEqual('{void-a3 vcount:8 black:#1,#3 white:#2}', ba.allVoids[3].toString());

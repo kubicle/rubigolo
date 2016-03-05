@@ -1,26 +1,26 @@
-//Translated from goban.rb using babyruby2js
 'use strict';
 
+var CONST = require('./constants');
 var main = require('./main');
 var Grid = require('./Grid');
 var Stone = require('./Stone');
 var Group = require('./Group');
 
-var GRID_BORDER = main.GRID_BORDER;
-var EMPTY = main.EMPTY, BORDER = main.BORDER;
+var GRID_BORDER = CONST.GRID_BORDER;
+var EMPTY = CONST.EMPTY, BORDER = CONST.BORDER;
 
 
 /** @class Stores what we have on the board (stones & groups).
  *  Goban remembers the stones played - undo feature is provided.
  *  public RO attributes: gsize, grid
- *  public RW attributes: scoringGrid, mergedGroups, killedGroups
+ *  public RW attributes: mergedGroups, killedGroups
  */
 function Goban(gsize) {
     if (gsize === undefined) gsize = 19;
     if (gsize !== ~~gsize || gsize < 3) throw new Error('Invalid goban size: ' + gsize);
     this.gsize = gsize;
     this.grid = new Grid(gsize, BORDER);
-    this.scoringGrid = new Grid(gsize, GRID_BORDER);
+    this.scoringGrid = new Grid(gsize, GRID_BORDER); // TODO delete this when droopy & frankie are gone
 
     this.ban = this.grid.yx;
     var i, j;

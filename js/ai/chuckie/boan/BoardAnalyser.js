@@ -20,6 +20,7 @@ function BoardAnalyser() {
     this.mode = null;
     this.goban = null;
     this.analyseGrid = null;
+    this.scoreGrid = null;
     this.allVoids = [];
     this.allGroupInfos = null;
     this.scores = [0, 0];
@@ -34,15 +35,14 @@ BoardAnalyser.prototype.countScore = function (goban) {
     this.scores[BLACK] = this.scores[WHITE] = 0;
     this.prisoners = goban.countPrisoners();
 
-    var grid = goban.scoringGrid.initFromGoban(goban);
-    if (!this._initAnalysis('SCORE', goban, grid)) return;
+    if (!this.scoreGrid) this.scoreGrid = new Grid(goban.gsize, GRID_BORDER);
+    if (!this._initAnalysis('SCORE', goban, this.scoreGrid)) return;
     this._runAnalysis();
     this._finalColoring();
-    if (main.debug) main.log.debug(grid.toText());
 };
 
 BoardAnalyser.prototype.getScoringGrid = function () {
-    return this.goban.scoringGrid;
+    return this.scoreGrid;
 };
 
 BoardAnalyser.prototype.getVoidAt = function (stone) {
@@ -84,6 +84,7 @@ BoardAnalyser.prototype._initAnalysis = function (mode, goban, grid) {
     this.filler = new ZoneFiller(goban, grid);
     if (goban.moveNumber() === 0) return false;
 
+    grid.initFromGoban(goban);
     this._initVoidsAndGroups();
     return true;
 };
