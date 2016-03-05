@@ -38,7 +38,6 @@ BoardAnalyser.prototype.countScore = function (goban) {
     if (!this.scoreGrid) this.scoreGrid = new Grid(goban.gsize, GRID_BORDER);
     if (!this._initAnalysis('SCORE', goban, this.scoreGrid)) return;
     this._runAnalysis();
-    this._finalColoring();
 };
 
 BoardAnalyser.prototype.getScoringGrid = function () {
@@ -49,11 +48,17 @@ BoardAnalyser.prototype.getVoidAt = function (stone) {
     return this.analyseGrid.yx[stone.j][stone.i];
 };
 
-BoardAnalyser.prototype.analyse = function (goban, grid, first2play) {
-    var mode = first2play === undefined ? 'MOVE' : 'TERRITORY';
-    if (!this._initAnalysis(mode, goban, grid)) return;
+BoardAnalyser.prototype.startMoveAnalysis = function (goban, grid) {
+    this._initAnalysis('MOVE', goban, grid);
+};
+
+BoardAnalyser.prototype.continueMoveAnalysis = function () {
+    this._runAnalysis();
+};
+
+BoardAnalyser.prototype.analyseTerritory = function (goban, grid, first2play) {
+    if (!this._initAnalysis('TERRITORY', goban, grid)) return;
     this._runAnalysis(first2play);
-    if (mode === 'TERRITORY') this._finalColoring();
 };
 
 BoardAnalyser.prototype.image = function () {
@@ -86,7 +91,20 @@ BoardAnalyser.prototype._initAnalysis = function (mode, goban, grid) {
 
     grid.initFromGoban(goban);
     this._initVoidsAndGroups();
+    this._findBrothers();
+    this._findEyeOwners();
     return true;
+};
+
+BoardAnalyser.prototype._runAnalysis = function (first2play) {
+    if (this.mode === 'MOVE') {
+        this._lifeOrDeathLoop();
+    } else {
+        this._findBattleWinners();
+        this._lifeOrDeathLoop(first2play);
+        this._findDameVoids();
+        this._finalColoring();
+    }
 };
 
 BoardAnalyser.prototype._addGroup = function (g, v) {
@@ -128,14 +146,6 @@ BoardAnalyser.prototype._initVoidsAndGroups = function () {
             v = new Void(goban, voidCode++);
         }
     }
-};
-
-BoardAnalyser.prototype._runAnalysis = function (first2play) {
-    this._findBrothers();
-    this._findEyeOwners();
-    this._findBattleWinners();
-    this._lifeOrDeathLoop(first2play);
-    this._findDameVoids();
 };
 
 BoardAnalyser.prototype._findBrothers = function () {
