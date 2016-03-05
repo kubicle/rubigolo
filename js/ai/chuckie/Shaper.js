@@ -6,8 +6,7 @@ var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
 
-var GRID_BORDER = CONST.GRID_BORDER;
-var EMPTY = CONST.EMPTY, sOK = CONST.sOK;
+var EMPTY = CONST.EMPTY;
 var NEVER = CONST.NEVER, SOMETIMES = CONST.SOMETIMES, ALWAYS = CONST.ALWAYS;
 var EVEN = CONST.EVEN, ODD = CONST.ODD;
 
@@ -19,15 +18,13 @@ function Shaper(player) {
 
     this.eyeCloserCoeff = this.getGene('eyeCloser', 1, 0.01, 1);
 
-    this.potEyeGrid = new Grid(this.gsize, GRID_BORDER);
+    this.potEyeGrids = player.getHeuristic('PotentialEyes').potEyeGrids;
 }
 inherits(Shaper, Heuristic);
 module.exports = Shaper;
 
 
 Shaper.prototype.evalBoard = function (stateYx, scoreYx) {
-    this._findPotentialEyes(stateYx);
-
     // Call _evalMove for each vertex and init this.scoreGrid
     Heuristic.prototype.evalBoard.call(this, stateYx, scoreYx);
 
@@ -40,42 +37,13 @@ Shaper.prototype.evalBoard = function (stateYx, scoreYx) {
     }
 };
 
-Shaper.prototype._findPotentialEyes = function (stateYx) {
-    this.potEyeGrid.init(EMPTY);
-    var potEyeYx = this.potEyeGrid.yx;
-    for (var j = this.gsize; j >= 1; j--) {
-        for (var i = this.gsize; i >= 1; i--) {
-            var state = stateYx[j][i];
-            if (state < sOK) continue;
-
-            var color = this.eyePotential(i, j);
-            if (color === null) continue;
-
-            var stone = this.goban.stoneAt(i, j), neighbors = stone.neighbors;
-            var closeToAnotherEye = false, ally = null;
-            for (var n = neighbors.length - 1; n >= 0; n--) {
-                var s = neighbors[n];
-                if (potEyeYx[s.j][s.i] === color) {
-                    closeToAnotherEye = true;
-                    break;
-                }
-                if (s.color === color) ally = s.group;
-            }
-            if (closeToAnotherEye || !ally) continue;
-
-            potEyeYx[j][i] = color;
-            ally._info.addPotentialEye(stone);
-        }
-    }
-};
-
 Shaper.prototype._evalSingleEyeSplit = function (scoreYx, g) {
     var coords = [];
     var alive = g._info.getEyeMakerMove(coords);
     if (alive !== SOMETIMES) return;
     var i = coords[0], j = coords[1];
-    var score = this.groupThreat(g, this.color === g.color);
-    var potEyeCount = g._info.countPotentialEyes();
+    var score = this.groupThreat(g, this.color === g.color); //TODO count threat on band, not only on group that owns the eye
+    var potEyeCount = g._info.countBandPotentialEyes();
     score = score / Math.max(1, potEyeCount - 1);
     this.scoreGrid.yx[j][i] += score;
     scoreYx[j][i] += score;
@@ -84,42 +52,76 @@ Shaper.prototype._evalSingleEyeSplit = function (scoreYx, g) {
 };
 
 Shaper.prototype._evalMove = function (i, j, color) {
-    return this.eyeCloserCoeff * (this._eyeCloser(i, j, color) + this._eyeCloser(i, j, 1 - color));
+    return this.eyeCloserCoeff * (
+        this._eyeCloser(i, j, color) + // we can save 1 eye for us
+        this._eyeCloser(i, j, 1 - color) // we can attack 1 eye from enemy
+        );
 };
 
 Shaper.prototype._eyeCloser = function (i, j, color) {
     var stone = this.goban.stoneAt(i, j);
-    if (this.isOwned(i, j, color) !== SOMETIMES) return 0;
+    // Below optim is "risky" since we give up making 2 eyes without trying when
+    // our PotentialTerritory eval thinks we are dead. And we know PotentialTerritory is loose.
+    if (this.pot.isOwned(i, j, color) === NEVER)
+        return 0;
 
-    var potEye = null, eyeThreatened = false, allyNeedsEye = false;
-    var g = null, threat = 0;
-    var potEyeYx = this.potEyeGrid.yx;
+    if (!this.canConnect(i, j, 1 - color))
+        return 0;
+
+    var v = this.player.boan.getVoidAt(stone);
+    if (v.owner && v.owner.group.color === color) {
+        return this._realEyeCloser(stone, color, v);
+    } else {
+        return this._potEyeCloser(stone, color);
+    }
+};
+
+Shaper.prototype._realEyeCloser = function (stone, color, v) {
+    if (v.vcount > 2) return 0; //TODO review this; must be much more complex
+    for (var n = stone.neighbors.length - 1; n >= 0; n--) {
+        var s = stone.neighbors[n];
+        if (s.color !== color || s.group.lives !== 1) continue;
+        return this._evalEyeThreat(s.group);
+    }
+    return 0;
+};
+
+Shaper.prototype._potEyeCloser = function (stone, color) {
+    var potEyeEvenYx = this.potEyeGrids[EVEN].yx;
+    var potEyeOddYx = this.potEyeGrids[ODD].yx;
+    var potEye = null, g = null;
 
     for (var n = stone.neighbors.length - 1; n >= 0; n--) {
         var s = stone.neighbors[n];
         switch (s.color) {
         case EMPTY:
-            if (potEyeYx[s.j][s.i] === color) potEye = s;
+            if (potEyeEvenYx[s.j][s.i] === color || potEyeOddYx[s.j][s.i] === color) potEye = s;
             break;
         case color:
-            if (s.group.xAlive !== SOMETIMES) continue;
-            allyNeedsEye = true;
-            if (g !== null) threat += this.groupThreat(g, /*saved=*/true); //TODO review this approximation
+            if (s.group.xAlive === ALWAYS || s.group.xDead === ALWAYS) continue;
             g = s.group;
             break;
-        default: // enemy
-            // NB: dead enemies have less influence so we sometimes can see more than 1 around
-            if (s.group.xDead === ALWAYS) continue;
-            eyeThreatened = true;
-            break;
         }
+        if (potEye && g) break;
     }
-    if (potEye && eyeThreatened && allyNeedsEye) {
-        threat += this.groupThreat(g, /*saved=*/true);
-        var potEyeCount = g._info.countPotentialEyes();
-        if (main.debug) main.log.debug('Shaper ' + Grid.colorName(color) + ' sees potential threat ' +
-            threat + ' on eye ' + potEye + ' with ' + potEyeCount + ' potential eyes');
-        return threat / Math.max(1, potEyeCount - 1);
-    }
-    return 0;
+    if (!potEye || !g) return 0;
+
+    var threat = this._evalEyeThreat(g);
+    if (main.debug) main.log.debug('Shaper ' + Grid.colorName(color) + ' sees potential threat ' +
+        threat + ' on eye ' + potEye);
+    return threat;
+};
+
+function countThreatOnBand(shaper) {
+    return shaper.groupThreat(this.group, /*saved=*/true);
+}
+
+Shaper.prototype._evalEyeThreat = function (g) {
+    var gi = g._info;
+    var potEyeCount = gi.countBandPotentialEyes();
+    if (potEyeCount < 2)
+        return 0;
+
+    var threat = gi.callOnBand(countThreatOnBand, this);
+    return threat / (potEyeCount - 1);
 };
