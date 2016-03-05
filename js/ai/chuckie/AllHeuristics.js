@@ -2,6 +2,7 @@
 
 var Connector = require('./Connector');
 var GroupAnalyser = require('./GroupAnalyser');
+var GroupsAndVoids = require('./GroupsAndVoids');
 var Hunter = require('./Hunter');
 var Influence = require('./Influence');
 var NoEasyPrisoner = require('./NoEasyPrisoner');
@@ -15,8 +16,9 @@ var Spacer = require('./Spacer');
 var allHeuristics = function () {
     return [
         PotentialTerritory,
-        GroupAnalyser,
+        GroupsAndVoids,
         Influence,
+        GroupAnalyser,
         NoEasyPrisoner,
         Hunter,
         Savior,
