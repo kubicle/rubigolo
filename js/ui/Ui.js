@@ -42,14 +42,17 @@ Ui.prototype.createUi = function () {
     this.gsize = userPref.getValue('lastGameSize', 9);
     this.handicap = userPref.getValue('lastGameHandicap', 0);
     this.aiPlays = userPref.getValue('lastGameAiPlays', 'white');
+    this.rules = userPref.getValue('lastGameRules', 'jp');
+    var lastGame = userPref.getValue('lastGameHistory');
 
-    this.newGameDialog();
+    this.newGameDialog(lastGame);
 };
 
 Ui.prototype.saveGamePreferences = function () {
     userPref.setValue('lastGameSize', this.gsize);
     userPref.setValue('lastGameHandicap', this.handicap);
     userPref.setValue('lastGameAiPlays', this.aiPlays);
+    userPref.setValue('lastGameRules', this.rules);
     userPref.setValue('lastGameHistory', this.game.history);
 };
 
@@ -101,20 +104,23 @@ Ui.prototype.resetUi = function () {
     this.board = null;
 };
 
-Ui.prototype.newGameDialog = function () {
+Ui.prototype.newGameDialog = function (lastGameHistory) {
     Dome.setPageTitle(main.appName);
     this.resetUi();
     var options = {
         gsize: this.gsize,
         handicap: this.handicap,
         aiPlays: this.aiPlays,
-        moves: userPref.getValue('lastGameHistory')
+        moves: lastGameHistory,
+        rules: this.rules
     };
     var self = this;
     new NewGameDlg(options, function validate(options) {
         self.gsize = options.gsize;
         self.handicap = options.handicap;
         self.aiPlays = options.aiPlays;
+        self.rules = options.rules;
+        self.game.setRules(self.rules === 'jp' ? CONST.JP_RULES : CONST.CH_RULES);
         return self.startGame(options.moves);
     });
 };

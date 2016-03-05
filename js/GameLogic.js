@@ -54,8 +54,9 @@ GameLogic.prototype.copy = function (src) {
     this.loadMoves(src.history.join(','));
 };
 
-// handicap and komi are optional
-// Returns true if size and handicap could be set to given values
+// Handicap and komi are optional.
+// Returns true if size and handicap could be set to given values.
+// NB: setRules must be called before this, unless rules did not change.
 GameLogic.prototype.newGame = function (gsize, handicap, komi) {
     this.history.clear();
     this.errors.clear();
