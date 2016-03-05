@@ -166,31 +166,36 @@ GroupInfo.prototype.liveliness = function (strict, shallow) {
 // Finds next recommended move to make 2 eyes
 // Returns:
 //   NEVER => cannot make 2 eyes
-//   SOMETIMES => can make 2 eyes if we play now (coords will receive [i,j])
+//   SOMETIMES => can make 2 eyes if we play now; coords will receive [i,j]
 //   ALWAYS => can make 2 eyes even if opponent plays first
+// 5 shapes:
+//   4-1-1-1-1 "+" shape => center is must-play now
+//   2-2-2-1-1 "line" => safe
+//   3-2-2-2-1 "d" shape => 3 is must-play now
+//   3-2-1-1-1 "t" shape => safe
+// 6 shapes:
+//   3-3-2-2-2-2 "6 domino" shape => one of the 3 is must-play now
+//   anything else is safe
 GroupInfo.prototype.getEyeMakerMove = function (coords) {
     // TODO: if depending group is on a side of eye, 1 vertex will be lost
     if (this.eyeCount > 1) return ALWAYS;
     if (this.eyeCount === 0) return NEVER;
-    if (this.voids[0].vcount > 6) return ALWAYS;
-    if (main.debug) main.log.debug('getEyeMakerMove checking ' + this);
+    var singleEye = this.voids[0], vcount = singleEye.vcount;
+    if (vcount > 6) return ALWAYS;
+    if (main.debug) main.log.debug('getEyeMakerMove checking ' + this + ' with single eye: ' + singleEye);
 
     var g = this.group, color = g.color;
     var best = null, bestLives = 0, bestEnemies = 0, numMoves = 0;
-    var empties = g.allLives(), numEmpties0 = empties.length;
+    var empties = singleEye.vertexes, oneMoveIsCorner = false, lives = [0, 0, 0, 0, 0];
 
-    for (var n = 0; n < empties.length; n++) {
+    for (var n = 0; n < vcount; n++) {
         var s = empties[n];
-        var v = this.boan.getVoidAt(s);
-        if (v.color !== color) continue; // NB: v.owner can be undefined
-
         var numEnemies = 0, numAllies = 0, numLives = 0;
+
         for (var m = s.neighbors.length - 1; m >= 0; m--) {
             var s2 = s.neighbors[m];
             switch (s2.color) {
             case EMPTY:
-                if (n < numEmpties0 && !s2.isNextTo(g) && empties.indexOf(s2) < 0)
-                    empties.push(s2); // add s2 to our list of empties to check
                 numLives++;
                 break;
             case color: numAllies++; break;
@@ -203,25 +208,33 @@ GroupInfo.prototype.getEyeMakerMove = function (coords) {
             if (numLives + (numAllies ? 1 : 0) < 2) continue;
         } else {
             if (numLives < 2) continue;
+            lives[numLives]++;
         }
         if (main.debug) main.log.debug('getEyeMakerMove sees ' + numLives + (numEnemies < 1 ? '' : (numEnemies > 1 ? 'e' + numEnemies : 'E')) + ' in ' + s);
-        // skip corner if we have better
-        if (s.isCorner() && numMoves) continue;
 
-        numMoves++; // we must count only the successful moves
-        if (best) {
-            if (numEnemies <= bestEnemies) continue;
-            if (numLives + numEnemies < bestLives) continue;
-            if (best.isCorner()) numMoves--;
+        numMoves++; // count successful moves; if more than 1 => ALWAYS good
+        if (s.isCorner()) oneMoveIsCorner = true;
+
+        // If we already have a best move, compare with new move
+        if (best && !best.isCorner()) { // corner (2L,0E) is "less good" than any other good move
+            if (numEnemies < bestEnemies) continue;
+            if (numLives + numEnemies <= bestLives + bestEnemies) continue;
         }
-
         best = s;
         bestEnemies = numEnemies;
         bestLives = numLives;
     }
+    if (oneMoveIsCorner && numMoves > 1) numMoves--;
     if (main.debug) main.log.debug('getEyeMakerMove result: ' + best + ' - ' + (best ? (numMoves > 1 ? 'ALWAYS' : 'SOMETIMES') : 'NEVER'));
+
     if (!best) return NEVER;
-    if (numMoves > 1) return ALWAYS;
+    
+    if (numMoves >= 2) {
+        // except for shape "5" with 1 forced move, we are good if 2 moves or more
+        var isWeak5 = vcount === 5 && bestEnemies === 0 && lives[3] === 1 && lives[2] === 3;
+        var isWeak6 = vcount === 6 && bestEnemies === 0 && lives[3] === 2 && lives[2] === 4;
+        if (!isWeak5 && !isWeak6) return ALWAYS;
+    }
     coords[0] = best.i; coords[1] = best.j;
     return SOMETIMES;
 };
@@ -286,23 +299,23 @@ GroupInfo.prototype.checkSingleEye = function (first2play) {
     if (this._isLostInEnemyZone()) return FAILS;
 
     var coords = [];
-    var alive = this.getEyeMakerMove(coords);
+    var canMakeTwoEyes = this.getEyeMakerMove(coords);
     // if it depends which player plays first
-    if (alive === SOMETIMES) {
+    if (canMakeTwoEyes === SOMETIMES) {
         if (first2play === undefined) return UNDECIDED; // no idea who wins here
         if (first2play !== this.group.color) {
-            alive = NEVER;
+            canMakeTwoEyes = NEVER;
         }
     }
-    if (alive === NEVER) {
+    if (canMakeTwoEyes === NEVER) {
         // yet we cannot say it is dead if there are brothers or dead enemies around
         if (this.band || this.deadEnemies.length) return UNDECIDED;
         this._liveliness = this.liveliness();
         return FAILS;
     }
-    // alive === ALWAYS
+    // canMakeTwoEyes === ALWAYS or SOMETIMES & it is our turn to play
     this.isAlive = true;
-    if (main.debug) main.log.debug('ALIVE-singleEye-' + when2str(alive) + ': ' + this);
+    if (main.debug) main.log.debug('ALIVE-canMakeTwoEyes-' + when2str(canMakeTwoEyes) + ': ' + this);
     return LIVES;
 };
 
