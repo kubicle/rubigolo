@@ -183,9 +183,11 @@ Chuckie.prototype.isBlunderMove = function (i, j) {
     return this.stateGrid.yx[j][i] === sBLUNDER;
 };
 
+// Called by UI only
 Chuckie.prototype.guessTerritories = function () {
-    this.pot.evalBoard();
-    return this.pot.territory.yx;
+    var pot = this.getHeuristic('PotentialTerritory');
+    pot.evalBoard();
+    return pot.territory.yx;
 };
 
 Chuckie.prototype._getMoveForTest = function (i, j) {

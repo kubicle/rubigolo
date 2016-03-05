@@ -25,7 +25,7 @@ var XY_DIAGONAL = Stone.XY_DIAGONAL;
 function PotentialTerritory(player) {
     Heuristic.call(this, player);
 
-    this.realGrid = this.goban.scoringGrid; // we can reuse the already allocated grid
+    this.realGrid = new Grid(this.gsize, GRID_BORDER);
     this.realYx = this.realGrid.yx; // simple shortcut to real yx
     // grids below are used in the evaluation process
     this.grids = [new Grid(this.gsize, GRID_BORDER), new Grid(this.gsize, GRID_BORDER)];
@@ -34,30 +34,66 @@ function PotentialTerritory(player) {
 
     this._computeBorderConnectConstants();
 
-    // Share the info with others at player level - TODO: find better place
-    player.pot = this;
-
     this.allGroups = null;
+    this.aliveOdds = [];
+    this.deadOdds = [];
 }
 inherits(PotentialTerritory, Heuristic);
 module.exports = PotentialTerritory;
 
 
 PotentialTerritory.prototype.evalBoard = function () {
-    this._guessTerritories();
-};
-
-// Returns the matrix of potential territory.
-// +1: definitely white, -1: definitely black
-// Values in between are possible too.
-PotentialTerritory.prototype._guessTerritories = function () {
     this._initGroupState();
     // update real grid to current goban
     this.realGrid.initFromGoban(this.goban);
     // evaluate 2 "scenarios" - each player plays everywhere *first*
     this._foresee(BLACK);
     this._foresee(WHITE);
-    this._mergeResults();
+    this._mergeTerritoryResults();
+};
+
+PotentialTerritory.prototype._initGroupState = function () {
+    this.allGroups = this.goban.getAllGroups();
+
+    this.aliveOdds.length = 0;
+    this.deadOdds.length = 0;
+    for (var ndx in this.allGroups) {
+        var gndx = ~~ndx;
+        this.aliveOdds[gndx] = this.deadOdds[gndx] = NEVER;
+    }
+};
+
+PotentialTerritory.prototype._collectGroupState = function () {
+    for (var ndx in this.allGroups) {
+        var g0 = this.allGroups[~~ndx], gn = g0;
+        // follow merge history to get final group g0 ended up into
+        while (gn.mergedWith) gn = gn.mergedWith;
+        // collect state of final group
+        if (gn.killedBy || gn._info.isDead) {
+            this.deadOdds[g0.ndx]++;
+        } else if (gn._info.isAlive) {
+            this.aliveOdds[g0.ndx]++;
+        }
+    }
+};
+
+/** @return {number} - NEVER, SOMETIMES, ALWAYS */
+PotentialTerritory.prototype.isOwned = function (i, j, color) {
+    var myColor = color === BLACK ? -1 : +1;
+    var score = NEVER;
+    if (Grid.territory2owner[2 + this.grids[BLACK].yx[j][i]] === myColor) score++;
+    if (Grid.territory2owner[2 + this.grids[WHITE].yx[j][i]] === myColor) score++;
+    return score;
+};
+
+Heuristic.prototype.territoryScore = function (i, j, color) {
+    return this.territory.yx[j][i] * (color === BLACK ? 1 : -1);
+};
+
+//TODO review this - why 1-color and not both grids?
+Heuristic.prototype.enemyTerritoryScore = function (i, j, color) {
+    var score = Grid.territory2owner[2 + this.grids[1 - color].yx[j][i]];
+    return score * (color === BLACK ? 1 : -1);
 };
 
 PotentialTerritory.prototype.toString = function () {
@@ -78,10 +114,9 @@ PotentialTerritory.prototype._grid = function (first) {
 PotentialTerritory.prototype._foresee = function (color) {
     var moveCount = this.goban.moveNumber();
 
-    // grid will receive the result (scoring grid)
     var grid = this.grids[color];
-    this._connectThings(grid, color);
-    this.player.boan.analyse(this.goban, grid.initFromGoban(this.goban), color);
+    this._connectThings(grid, color); //goban is updated with connecting moves
+    this.player.boan.analyseTerritory(this.goban, grid, color);
     this._collectGroupState();
 
     // restore goban
@@ -89,7 +124,7 @@ PotentialTerritory.prototype._foresee = function (color) {
     while (moveCount-- > 0) this.goban.untry();
 };
 
-PotentialTerritory.prototype._mergeResults = function () {
+PotentialTerritory.prototype._mergeTerritoryResults = function () {
     var blackYx = this.grids[BLACK].yx;
     var whiteYx = this.grids[WHITE].yx;
     var terrYx = this.territory.yx;
@@ -102,35 +137,13 @@ PotentialTerritory.prototype._mergeResults = function () {
         '\nBLACK first:\n' + this.grids[BLACK] + 'WHITE first:\n' + this.grids[WHITE] + this);
 };
 
-PotentialTerritory.prototype._initGroupState = function () {
-    this.allGroups = this.goban.getAllGroups();
-    for (var ndx in this.allGroups) {
-        var g = this.allGroups[~~ndx];
-        g.xAlive = g.xDead = NEVER;
-    }
-};
-
-PotentialTerritory.prototype._collectGroupState = function () {
-    for (var ndx in this.allGroups) {
-        var g0 = this.allGroups[~~ndx], gn = g0;
-        // follow merge history to get final group g0 ended up into
-        while (gn.mergedWith) gn = gn.mergedWith;
-        // collect state of final group
-        if (gn.killedBy || gn._info.isDead) {
-            g0.xDead++;
-        } else if (gn._info.isAlive) {
-            g0.xAlive++;
-        }
-    }
-};
-
 PotentialTerritory.prototype._connectThings = function (grid, color) {
     this.reducedYx = null;
     // enlarging starts with real grid
     this.enlarge(this.realGrid, grid.copy(this.realGrid), color);
 
     if (main.debug) main.log.debug('after 1st enlarge (before connectToBorders):\n' + grid);
-    this.connectToBorders(grid.yx);
+    this.connectToBorders(grid.yx, color);
     if (main.debug) main.log.debug('after connectToBorders:\n' + grid);
 
     // for reducing we start from the enlarged grid
@@ -141,7 +154,7 @@ PotentialTerritory.prototype._connectThings = function (grid, color) {
     // now we have the reduced goban, play the enlarge moves again minus the extra
     this.enlarge(this.realGrid, grid.copy(this.realGrid), color);
     if (main.debug) main.log.debug('after 2nd enlarge (before connectToBorders):\n' + grid);
-    this.connectToBorders(grid.yx);
+    this.connectToBorders(grid.yx, color);
     if (main.debug) main.log.debug('after connectToBorders:\n' + grid);
 };
 
@@ -268,7 +281,7 @@ PotentialTerritory.prototype._computeBorderConnectConstants = function () {
  R0 R1 R2
  RR0
  */
-PotentialTerritory.prototype.connectToBorders = function (yx) {
+PotentialTerritory.prototype.connectToBorders = function (yx, first) {
     var points = this.borderPoints;
     var l0, r0, l1, r1, l2, r2;
     for (var i = points.length - 1; i >=0; i--) {

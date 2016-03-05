@@ -22,7 +22,6 @@ function Heuristic(player) {
     this.goban = player.goban;
     this.gsize = player.goban.gsize;
     this.infl = player.infl;
-    this.pot = player.pot;
     this.boan = player.boan;
     this.scoreGrid = new Grid(this.gsize, 0, GRID_BORDER);
     this.minimumScore = player.minimumScore;
@@ -30,6 +29,8 @@ function Heuristic(player) {
     this.spaceInvasionCoeff = this.getGene('spaceInvasion', 2.0, 0.01, 4.0);
 
     this.color = this.enemyColor = null;
+
+    this.pot = player.getHeuristic('PotentialTerritory');
 }
 module.exports = Heuristic;
 
@@ -62,39 +63,6 @@ Heuristic.prototype.evalBoard = function (stateYx, scoreYx) {
 
 Heuristic.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
     return this.player.genes.get(this.name + '-' + name, defVal, lowLimit, highLimit);
-};
-
-Heuristic.prototype.territoryScore = function (i, j, color) {
-    return this.pot.territory.yx[j][i] * (color === BLACK ? 1 : -1);
-};
-
-/** @return {number} - NEVER, SOMETIMES, ALWAYS */
-Heuristic.prototype.isOwned = function (i, j, color) {
-    var myColor = color === BLACK ? -1 : +1;
-    var score = NEVER;
-    if (Grid.territory2owner[2 + this.pot.grids[BLACK].yx[j][i]] === myColor) score++;
-    if (Grid.territory2owner[2 + this.pot.grids[WHITE].yx[j][i]] === myColor) score++;
-    return score;
-};
-
-/** @return {color|null} - null if no chance to make an eye here */
-Heuristic.prototype.eyePotential = function (i, j) {
-    var infB = this.infl[BLACK][j][i];
-    var infW = this.infl[WHITE][j][i];
-    var color = infB > infW ? BLACK : WHITE;
-    var allyInf = Math.max(infB, infW), enemyInf = Math.min(infB, infW);
-
-    if (enemyInf > 1) return null; // enemy stone closer than 2 vertexes
-    var cornerPoints = 0, gsize = this.gsize;
-    if (i === 1 || i === gsize || j === 1 || j === gsize) cornerPoints++;
-    if (allyInf + cornerPoints - 3 - enemyInf < 0) return null;
-    return color;
-};
-
-//TODO review this - why 1-color and not both grids?
-Heuristic.prototype.enemyTerritoryScore = function (i, j, color) {
-    var score = Grid.territory2owner[2 + this.pot.grids[1 - color].yx[j][i]];
-    return score * (color === BLACK ? 1 : -1);
 };
 
 /** Pass saved as true if g is an ally group (we evaluate how much we save) */
@@ -132,7 +100,7 @@ Heuristic.prototype._countSavedAllies = function (killedEnemyGroup) {
 Heuristic.prototype._invasionCost = function (i, j, dir, color, level) {
     var s = this.goban.stoneAt(i, j);
     if (s === BORDER || s.color !== EMPTY) return 0;
-    var cost = this.enemyTerritoryScore(i, j, color);
+    var cost = this.pot.enemyTerritoryScore(i, j, color);
     if (s.isBorder()) cost /= 2;
     if (cost <= 0) return 0;
     if (--level === 0) return cost;
@@ -149,7 +117,7 @@ Heuristic.prototype._invasionCost = function (i, j, dir, color, level) {
 var INVASION_DEEPNESS = 1; // TODO: better algo for this
 
 Heuristic.prototype.invasionCost = function (i, j, color) {
-    var cost = Math.max(0, this.enemyTerritoryScore(i, j, color));
+    var cost = Math.max(0, this.pot.enemyTerritoryScore(i, j, color));
     for (var dir = DIR0; dir <= DIR3; dir++) {
         cost += this._invasionCost(i + XY_AROUND[dir][0], j + XY_AROUND[dir][1], dir, color, INVASION_DEEPNESS);
     }

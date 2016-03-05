@@ -24,7 +24,7 @@ TestPotentialTerritory.prototype.initBoard = function (size, handicap) {
     this.game.newGame(size, handicap);
     this.goban = this.game.goban;
     this.aiPlayer = new main.defaultAi(this.game, main.BLACK);
-    this.pot = this.aiPlayer.pot;
+    this.pot = this.aiPlayer.getHeuristic('PotentialTerritory');
 };
 
 TestPotentialTerritory.prototype.checkBasicGame = function (moves, expected, gsize, finalPos) {
