@@ -27,6 +27,8 @@ TestAi.prototype.initBoard = function (size, handicap) {
         new main.defaultAi(game, BLACK),
         new main.defaultAi(game, WHITE)
     ];
+    game.setPlayer(BLACK, this.players[BLACK].name);
+    game.setPlayer(WHITE, this.players[WHITE].name);
 };
 
 TestAi.prototype.logErrorContext = function (player, move) {
@@ -104,7 +106,6 @@ TestAi.prototype.playAndCheck = function (expMove, expEval) {
                 ' are twins or very close => consider modifying the test scenario');
         }
         expMove = Grid.colorName(color) + '-' + expMove;
-        this.showInUi('expected ' + expMove + ' but got ' + move);
         this.assertEqual(expMove, move); // test aborts here
     }
     if (expEval) this.checkScore(player, color, move, score, expEval);
@@ -114,9 +115,9 @@ TestAi.prototype.playAndCheck = function (expMove, expEval) {
 };
 
 TestAi.prototype.checkMovesAreEquivalent = function (moves) {
-    var score0 = this.checkEval(moves[0]).toFixed(2);
+    var score0 = this.checkEval(moves[0]).toFixed(3);
     for (var m = 1; m < moves.length; m++) {
-        var score = this.checkEval(moves[m]).toFixed(2);
+        var score = this.checkEval(moves[m]).toFixed(3);
         if (this.check(score0 === score)) continue;
 
         var color = this.game.curColor;
@@ -147,7 +148,7 @@ TestAi.prototype.checkMoveIsBad = function (move) {
     if (this.check(score <= 0.1)) return;
 
     var color = this.game.curColor;
-    this.showInUi(Grid.colorName(color) + '-' + move + ' should be a bad move but got ' + score);
+    this.showInUi(Grid.colorName(color) + '-' + move + ' should be a bad move but got ' + score.toFixed(3));
 };
 
 function parseBinaryOp(op, check) {
@@ -189,8 +190,13 @@ TestAi.prototype.runChecks = function (checkString) {
 
 TestAi.prototype.checkGame = function (moves, checks, gsize) {
     this.initBoard(gsize || 5);
-    this.game.loadMoves(moves);
-    this.runChecks(checks);
+    try {
+        this.game.loadMoves(moves);
+        this.runChecks(checks);
+    } catch (e) {
+        this.showInUi(e.message);
+        throw e;
+    }
 };
 
 
