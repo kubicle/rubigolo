@@ -306,6 +306,34 @@ GroupInfo.prototype.checkSingleEye = function (first2play) {
     return LIVES;
 };
 
+// Check for races & weaker groups around
+GroupInfo.prototype.checkAgainstEnemies = function () {
+    var liveliness = this._liveliness || this.liveliness();
+    var enemies = this.group.allEnemies();
+    var inRaceWith = null;
+
+    for (var e = 0; e < enemies.length; e++) {
+        var enemy = enemies[e]._info;
+        var cmp = liveliness - enemy.liveliness();
+        if (main.debug) main.log.debug('comparing group #' + this.group.ndx + ' with ' +
+            liveliness.toFixed(4) + ' against ' + (liveliness - cmp).toFixed(4) +
+            ' for enemy group #' + enemy.group.ndx);
+        if (cmp > 0) {
+            if (main.debug) main.log.debug(this + ' is stronger than ' + enemy);
+            return UNDECIDED;
+        } else if (cmp === 0) {
+            if (main.debug) main.log.debug('RACE between ' + this.group + ' and ' + enemy.group);
+            inRaceWith = enemy; // we continue looping: not a race if a weaker is found
+        }
+    }
+    if (inRaceWith) {
+        this.inRaceWith = inRaceWith; // TODO race between more than 2 groups
+        inRaceWith.inRaceWith = this;
+        return UNDECIDED;
+    }
+    return FAILS;
+};
+
 // This checks if a group has a minimum liveliness
 GroupInfo.prototype.checkLiveliness = function (minLife) {
     var life = this._liveliness = this.liveliness(true);

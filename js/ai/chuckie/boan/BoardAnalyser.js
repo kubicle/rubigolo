@@ -206,25 +206,9 @@ function killWeakest(check, fails) {
     // For all groups that failed the test, filter out these that have a weaker neighbor
     for (var i = 0; i < fails.length; i++) {
         var fail = fails[i];
-        var enemies = fail.group.allEnemies();
-        for (var e = 0; e < enemies.length; e++) {
-            var enemy = enemies[e]._info;
-            var cmp = fail._liveliness - enemy.liveliness();
-            if (main.debug) main.log.debug('FAIL: group #' + fail.group.ndx + ' with ' +
-                fail._liveliness + ' against ' + (fail._liveliness - cmp) + ' for enemy group #' + enemy.group.ndx);
-            if (cmp > 0) {
-                if (main.debug) main.log.debug(check.name + ' would fail ' + fail +
-                    ' BUT keept alive since it is stronger than ' + enemy);
-                fails[i] = null;
-                break;
-            } else if (cmp === 0) {
-                if (main.debug) main.log.debug('RACE between ' + fail.group + ' and ' + enemy.group);
-                fail.group.xInRaceWith = enemy.group;
-                enemy.group.xInRaceWith = fail.group;
-                fails[i] = null;
-                break;
-            }
-        }
+        if (main.debug) main.log.debug('FAIL-' + check.name + ': group #' + fail.group.ndx);
+        if (fail.checkAgainstEnemies() !== FAILS)
+            fails[i] = null;
     }
     var count = 0;
     for (i = 0; i < fails.length; i++) {
