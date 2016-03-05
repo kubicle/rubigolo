@@ -181,21 +181,28 @@ function compareLiveliness(life) {
 }
 
 BoardAnalyser.prototype._findBattleWinners = function () {
-    var life = [0, 0];
+    var goban = this.goban;
+    if (goban.moveNumber() < 2 * goban.gsize) return; // no battle before enough moves were played
+    var life = [0, 0], size = [0, 0];
     for (;;) {
         var foundOne = false;
         for (var i = this.allVoids.length - 1; i >= 0; i--) {
             var v = this.allVoids[i];
             if (v.color !== undefined) continue;
-            life[BLACK] = life[WHITE] = 0;
+            if (v.vcount > 2 * goban.gsize) continue; // no battle for big voids
+            life[BLACK] = life[WHITE] = size[BLACK] = size[WHITE] = 0;
             for (var color = BLACK; color <= WHITE; color++) {
                 // NB: we don't check for brothers' liveliness counted twice.
                 // No issue noticed so far - see testUnconnectedBrothers / b4
                 for (var n = v.groups[color].length - 1; n >= 0; n--) {
                     var gi = v.groups[color][n]._info;
-                    life[color] += gi.liveliness() + gi.group.lives / 10000; // is gi.group.lives still necessary?
+                    life[color] += gi.liveliness();
+                    size[color] += gi.countBandSize();
                 }
             }
+            // no battle if 2 big groups around
+            if (size[BLACK] > 4 && size[WHITE] > 4) continue;
+
             var winner = compareLiveliness(life);
             // make sure we have a winner, not a tie
             if (winner === undefined) {
