@@ -157,7 +157,7 @@ Chuckie.prototype._runHeuristics = function (stateYx, scoreYx) {
         h.evalBoard(stateYx, scoreYx);
 
         var time = Date.now() - t0;
-        if (time > 1 && !main.isCoverTest) {
+        if (time >= 3 && !main.isCoverTest) {
             main.log.warn('Slowness: ' + h.name + ' took ' + time + 'ms');
         }
     }
