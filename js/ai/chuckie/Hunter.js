@@ -256,17 +256,25 @@ Hunter.prototype._isAtariGroupCaught = function (g, level) {
     return isCaught;
 };
 
-/** Returns true if played stone has put a nearby enemy group in atari */
-Hunter.prototype._isStoneCreatingAtari = function (stone) {
+/** Checks if played stone has put a nearby enemy group in atari
+ * Returns 0 if no atari
+ *         1 if atari will help us escape (forces enemy to escape too)
+ *        -1 if atari's reply is attacking us (so move was blunder)
+ */
+Hunter.prototype._atariOnEnemy = function (stone) {
     var enemyColor = 1 - stone.color;
     var neighbors = stone.neighbors;
     for (var n = neighbors.length - 1; n >= 0; n--) {
-        if (neighbors[n].color !== enemyColor) continue;
-        if (neighbors[n].group.lives === 1) {
-            return true;
-        }
+        var s = neighbors[n];
+        if (s.color !== enemyColor) continue;
+        var enemy = s.group;
+        if (enemy.lives !== 1) continue;
+        var escape = enemy.allLives()[0];
+        if (!escape.isNextTo(stone.group)) return 1; // atari's escape is not attacking us back    
+        if (this._isAtariGroupCaught(enemy, 1)) return 1; // enemy would die
+        return -1; // bad move for us
     }
-    return false;
+    return 0;
 };
 
 /** @param stone is the enemy group's escape move (just been played)
@@ -282,7 +290,8 @@ Hunter.prototype._escapingAtariThreat = function (stone, level) {
     // g.lives is 2
 
     // if escape move just put one of our groups in atari the chase fails
-    if (this._isStoneCreatingAtari(stone)) return 0;
+    var atari = this._atariOnEnemy(stone);
+    if (atari !== 0) return atari > 0 ? 0 : this.groupThreat(g);
 
     // get 2 possible escape moves
     var empties = stone.empties();
