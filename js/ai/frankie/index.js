@@ -136,10 +136,6 @@ Frankie.prototype._keepBestMoves = function(i, j, score) {
 //   player.secondBestScore
 Frankie.prototype.getMove = function () {
     this.numMoves++;
-    if (this.numMoves >= this.gsize * this.gsize) { // force pass after too many moves
-        main.log.error('Forcing AI pass since we already played ' + this.numMoves);
-        return 'pass';
-    }
     this._prepareEval();
 
     // init grids (and mark invalid moves)

@@ -103,10 +103,6 @@ Droopy.prototype._keepBestMove = function(i, j, score) {
 // Returns the move chosen (e.g. c4 or pass)
 Droopy.prototype.getMove = function () {
     this.numMoves++;
-    if (this.numMoves >= this.gsize * this.gsize) { // force pass after too many moves
-        main.log.error('Forcing AI pass since we already played ' + this.numMoves);
-        return 'pass';
-    }
     var stateYx = this.stateGrid.yx;
     var scoreYx = this.scoreGrid.yx;
 

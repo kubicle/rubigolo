@@ -62,16 +62,22 @@ Breeder.prototype.showInUi = function (title, msg) {
 
 // Returns true if this game ending was not seen before
 Breeder.prototype.playUntilGameEnds = function () {
-    var game = this.game;
+    var game = this.game, moveNum = 0, maxMoveNum = 2 * this.gsize * this.gsize;
     while (!game.gameEnding) {
         var curPlayer = this.players[game.curColor];
         var move = curPlayer.getMove();
         game.playOneMove(move);
+        if (++moveNum === maxMoveNum) break;
     }
-    return this._countAlreadySeenGames() === 1;
+    var numTimesSeen = this._countAlreadySeenGames();
+    if (moveNum === maxMoveNum) {
+        if (numTimesSeen === 1) this.showInUi('Never stopping game');
+        main.log.error('Never stopping game. Times seen: ' + numTimesSeen);
+    }
+    return numTimesSeen === 1;
 };
 
-// Returns the number of times we saw this game endind
+// Returns the number of times we saw this game ending
 Breeder.prototype._countAlreadySeenGames = function () {
     var img = this.goban.image(), seenGames = this.seenGames;
 
