@@ -153,7 +153,7 @@ Hunter.prototype._countPressureAndRace = function (stone, enemies, level, isEasy
     for (var egNdx = enemies.length - 1; egNdx >= 0; egNdx--) {
         var enemy = enemies[egNdx];
         var egl = enemy.lives, allyInRace = enemy.xInRaceWith;
-        if (this._isValidRaceMove(stone, enemy, allyInRace)) {
+        if (egl > 2 && this._isValidRaceMove(stone, enemy, allyInRace)) {
             raceThreat += this.groupThreat(enemy, true);
             raceThreat += this.groupThreat(allyInRace, /*saved=*/true);
         } else if (egl >= 2 && level === 0 && !isEasyPrisoner) {
