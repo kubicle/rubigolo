@@ -21,7 +21,7 @@ function NewGameDlg(options, validateFn) {
     Dome.newLabel(aiColorBox, 'inputLbl', 'AI plays:');
     var aiColor = Dome.newRadio(aiColorBox, 'aiColor', ['white', 'black', 'both', 'none'], null, options.aiPlays);
 
-    var moves = Dome.newInput(form, 'moves', 'Moves to load:');
+    var moves = Dome.newInput(form, 'moves', 'Moves to load:', options.moves);
 
     var defAiDiv = form.newDiv();
     Dome.newLabel(defAiDiv, 'inputLbl', 'Black AI:');
