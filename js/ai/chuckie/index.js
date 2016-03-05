@@ -25,6 +25,7 @@ function Chuckie(game, color, genes) {
 
     this.game = game;
     this.goban = game.goban;
+    this.boan = new BoardAnalyser(); // several heuristics can share this boan
     this.genes = genes || new Genes();
     this.gsize = this.goban.gsize;
     this.stateGrid = new Grid(this.gsize, GRID_BORDER);

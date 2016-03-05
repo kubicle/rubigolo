@@ -21,7 +21,6 @@ function Heuristic(player) {
     this.name = this.constructor.name || main.funcName(this.constructor);
     this.goban = player.goban;
     this.gsize = player.goban.gsize;
-    this.boan = player.boan;
     this.scoreGrid = new Grid(this.gsize, 0, GRID_BORDER);
     this.minimumScore = player.minimumScore;
 
