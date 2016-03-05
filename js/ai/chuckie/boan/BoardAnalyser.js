@@ -34,8 +34,10 @@ BoardAnalyser.prototype.countScore = function (goban) {
     if (main.debug) main.log.debug('Counting score...');
     this.scores[BLACK] = this.scores[WHITE] = 0;
     this.prisoners = goban.countPrisoners();
+    if (!this.scoreGrid || this.scoreGrid.gsize !== goban.gsize) {
+        this.scoreGrid = new Grid(goban.gsize, GRID_BORDER);
+    }
 
-    if (!this.scoreGrid) this.scoreGrid = new Grid(goban.gsize, GRID_BORDER);
     if (!this._initAnalysis('SCORE', goban, this.scoreGrid)) return;
     this._runAnalysis();
 };
