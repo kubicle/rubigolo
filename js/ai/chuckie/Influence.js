@@ -26,8 +26,7 @@ function Influence(player) {
         new Grid(this.gsize, GRID_BORDER)
     ];
 
-    // Share the map with others at player level - TODO: find better place
-    player.infl = this.infl = [this.grids[BLACK].yx, this.grids[WHITE].yx];
+    this.infl = [this.grids[BLACK].yx, this.grids[WHITE].yx];
 }
 inherits(Influence, Heuristic);
 module.exports = Influence;

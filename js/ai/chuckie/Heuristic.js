@@ -21,7 +21,6 @@ function Heuristic(player) {
     this.name = this.constructor.name || main.funcName(this.constructor);
     this.goban = player.goban;
     this.gsize = player.goban.gsize;
-    this.infl = player.infl;
     this.boan = player.boan;
     this.scoreGrid = new Grid(this.gsize, 0, GRID_BORDER);
     this.minimumScore = player.minimumScore;
@@ -31,6 +30,8 @@ function Heuristic(player) {
     this.color = this.enemyColor = null;
 
     this.pot = player.getHeuristic('PotentialTerritory');
+    var influence = player.getHeuristic('Influence');
+    this.infl = influence ? influence.infl : null;
 }
 module.exports = Heuristic;
 
@@ -73,7 +74,7 @@ Heuristic.prototype.groupThreat = function (g, saved) {
     var lives = g.allLives();
     var numEmpties = 0;
     for (var i = lives.length - 1; i >= 0; i--) {
-        numEmpties += lives[i].numEmpties();
+        numEmpties += lives[i].numEmpties(); // TODO: count only empties not in "lives"
     }
     threat += this.spaceInvasionCoeff * Math.max(0, numEmpties - 1); //...and the "open gate" to territory will count a lot
 

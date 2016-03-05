@@ -531,7 +531,7 @@ Ui.prototype.territoryTest = function (aiColor) {
 };
 
 Ui.prototype.influenceTest = function (aiColor, color) {
-    var infl = this.getAiPlayer(aiColor).infl;
+    var infl = this.getAiPlayer(aiColor).getHeuristic('Influence').infl;
     this.board.setValueFormat(0, 1);
     this.board.showSpecial('value', infl[color]);
 };
