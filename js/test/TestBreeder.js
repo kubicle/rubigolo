@@ -31,19 +31,28 @@ TestBreeder.prototype.testBreeding = function () {
     breeder.run(genSize, numTournaments, numMatchPerAi);
 };
 
+// Example of observed results:
+//  'd4,f6' 73.3%!; 'e5,e3' 57%; 'e5,d4' 75%; 'We5,d4' 97%!; 'We5,e3' <50%
 TestBreeder.prototype.testAiVsAi = function () {
-    var size = 9, komi = 3.5;
-    var initMoves = 'd4,f6'; //'d4,f6' 73.3%!; 'e5,e3' 57%; 'e5,d4' 75%; 'We5,d4' 97%!; 'We5,e3' <50%
-    var numGames = 100;
-    var numGamesShowed = 2;
+    var size = 9, komi = 5.5;
+    var initMoves = ['d4,f6', 'e5,e3', 'e5,d4', 'We5,d4', 'We5,e3'];
+    var totalNumGames = 200;
+    var numGamesShowed = 1;
     var expectedWinRatio = 0.60; // number going up shows new AI gets stronger compared to default AI
     var tolerance = 0.15; // + or -; the more games you play the lower tolerance you can set
 
+    var numVariations = initMoves.length;
     // For coverage tests no need to run many games
-    if (main.isCoverTest) numGames = 1;
+    if (main.isCoverTest) totalNumGames = numVariations = 1;
 
     var breeder = new Breeder(size, komi);
-    var winRatio = breeder.aiVsAi(numGames, numGamesShowed, initMoves);
+    var numGamesPerVariation = Math.round(totalNumGames / numVariations);
+    var winRatio = 0;
+    for (var i = 0; i < numVariations; i++) {
+        winRatio += breeder.aiVsAi(numGamesPerVariation, numGamesShowed, initMoves[i]);
+    }
+    winRatio /= numVariations;
+    main.log.info('---Average won games for White: ' + (winRatio * 100).toFixed(1) + '%');
 
     if (!main.isCoverTest) this.assertInDelta(winRatio, expectedWinRatio, tolerance);
 };
