@@ -23,12 +23,9 @@ var viewportWidth = document.documentElement.clientWidth;
 var NO_HEURISTIC = '(heuristic)';
 
 
-
 function Ui(game) {
-    this.gsize = 9;
-    this.handicap = 0;
-    this.aiPlays = 'white';
-
+    this.gsize = this.handicap = 0;
+    this.aiPlays = '';
     this.game = new GameLogic(game);
     this.scorer = new ScoreAnalyser();
     this.board = null;
@@ -38,9 +35,27 @@ function Ui(game) {
 module.exports = Ui;
 
 
-/** This is the entry point for starting the app */
+/** This is the entry point for starting the app UI */
 Ui.prototype.createUi = function () {
+    window.addEventListener('beforeunload', this.beforeUnload.bind(this));
+
+    this.gsize = userPref.getValue('lastGameSize', 9);
+    this.handicap = userPref.getValue('lastGameHandicap', 0);
+    this.aiPlays = userPref.getValue('lastGameAiPlays', 'white');
+
     this.newGameDialog();
+};
+
+Ui.prototype.saveGamePreferences = function () {
+    userPref.setValue('lastGameSize', this.gsize);
+    userPref.setValue('lastGameHandicap', this.handicap);
+    userPref.setValue('lastGameAiPlays', this.aiPlays);
+    userPref.setValue('lastGameHistory', this.game.history);
+};
+
+Ui.prototype.beforeUnload = function () {
+    this.saveGamePreferences();
+    userPref.close();
 };
 
 Ui.prototype.refreshBoard = function () {
@@ -92,7 +107,8 @@ Ui.prototype.newGameDialog = function () {
     var options = {
         gsize: this.gsize,
         handicap: this.handicap,
-        aiPlays: this.aiPlays
+        aiPlays: this.aiPlays,
+        moves: userPref.getValue('lastGameHistory')
     };
     var self = this;
     new NewGameDlg(options, function validate(options) {
@@ -422,10 +438,6 @@ Ui.prototype.automaticAiPlay = function (turns) {
         self.automaticAiPlay(turns - 1);
     }, animated ? 100 : 0);
 };
-
-window.addEventListener('beforeunload', function () {
-    userPref.close();
-});
 
 Ui.prototype.replay = function (numMoves) {
     var moves = this.reviewMoves, cur = this.reviewCursor;
