@@ -86,12 +86,12 @@ PotentialTerritory.prototype.isOwned = function (i, j, color) {
     return score;
 };
 
-Heuristic.prototype.territoryScore = function (i, j, color) {
+PotentialTerritory.prototype.territoryScore = function (i, j, color) {
     return this.territory.yx[j][i] * (color === BLACK ? 1 : -1);
 };
 
 //TODO review this - why 1-color and not both grids?
-Heuristic.prototype.enemyTerritoryScore = function (i, j, color) {
+PotentialTerritory.prototype.enemyTerritoryScore = function (i, j, color) {
     var score = Grid.territory2owner[2 + this.grids[1 - color].yx[j][i]];
     return score * (color === BLACK ? 1 : -1);
 };

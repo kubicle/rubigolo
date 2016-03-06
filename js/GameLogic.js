@@ -40,6 +40,7 @@ GameLogic.prototype.setPlayer = function (color, name) {
 };
 
 GameLogic.prototype.setRules = function (rules) {
+    if (!rules) throw new Error('Invalid rules: ' + rules);
     this.rules = rules;
 };
 
@@ -138,7 +139,7 @@ GameLogic.prototype.loadSgf = function (game, errors, upToMoveNumber) {
     this.newGame(infos.boardSize, 0, infos.komi); // handicap, if any, will be in move list
     this.setPlayer(BLACK, infos.playerBlack);
     this.setPlayer(WHITE, infos.playerWhite);
-    this.rules = infos.rules;
+    this.rules = infos.rules || JP_RULES;
 
     return this.loadMoves(reader.toMoveList(), errors);
 };
