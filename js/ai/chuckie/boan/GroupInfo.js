@@ -141,17 +141,19 @@ GroupInfo.prototype.needsToConnect = function () {
     return SOMETIMES;
 };
 
-GroupInfo.prototype.getFakeSpots = function (v, stones) {
+GroupInfo.prototype.getFakeSpots = function (v, stones, isScoring) {
     if (this.needsToConnect() === NEVER) return;
     // with a dead enemy around, we are usually not forced to connect
     if (this.deadEnemies.length) return;
 
-    var color = this.group.color, numVoid = 0;
+    var color = this.group.color, numAllyVoids = 0;
     for (var i = this.nearVoids.length - 1; i >= 0; i--) {
-        if (this.nearVoids[i].color !== color) continue;
-        numVoid++;
-        if (numVoid >= 2) return;
+        var nearVoid = this.nearVoids[i];
+        if (nearVoid.color === color) numAllyVoids++;
     }
+    if (numAllyVoids >= 2) return;
+    // When scoring, having only ally voids around is enough
+    if (isScoring && numAllyVoids === this.nearVoids.length) return;
 
     for (i = this.fakeSpots.length - 1; i >= 0; i--) {
         var stone = this.fakeSpots[i];

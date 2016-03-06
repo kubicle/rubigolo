@@ -88,12 +88,12 @@ Void.prototype.markAsFakeSpot = function () {
     this.hasFakes = true;
 };
 
-Void.prototype._getMustPlayStones = function (color, stones) {
+Void.prototype._getMustPlayStones = function (color, stones, isScoring) {
     if (!stones) stones = [];
 
     var groups = this.groups[color];
     for (var i = groups.length - 1; i >= 0; i--) {
-        groups[i]._info.getFakeSpots(this, stones);
+        groups[i]._info.getFakeSpots(this, stones, isScoring);
     }
     return stones.length;
 };
@@ -188,7 +188,7 @@ Void.prototype.getScore = function (fakes) {
     fakes.length = 0;
     if (this.color === undefined) return 0;
     if (this.hasFakes)
-        this._getMustPlayStones(this.color, fakes);
+        this._getMustPlayStones(this.color, fakes, /*isScoring=*/true);
     return this.vcount;
 };
 
