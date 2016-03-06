@@ -39,7 +39,7 @@ TestBoardAnalyser.prototype.checkGame = function (moves, expScore, gsize, finalP
     this.boan.countScore(this.goban);
 
     var score = this.boan.getScoringGrid().image();
-    if (!expScore || score === expScore) return;
+    if (this.check(!expScore || score === expScore)) return;
     this.showInUi('Expected scoring grid was:<br>' + expScore + ' but we got:<br>' + score);
     this.assertEqual(expScore, score);
 };
@@ -140,9 +140,15 @@ TestBoardAnalyser.prototype.testTwoSingleEyeConnectedByEye = function () {
         'OO@O@@O,' +
         '@@@OOO:,' +
         '-@@@O:O', 7);
-    // and a variation that triggered a bug:
-    this.checkGame('a2,a3,b2,b3,c2,a4,b1,a5,c3,b6,b4,a6,b5,c6,c5,d6,d5,e6,e5,f6,f5,g5,f4,g4,f3,g3,d4,f2,e3,e2,pass,d2,pass,d3,pass,g2,pass,pass',
-        ':::::::,OOOOOO:,O@@@@@O,O@-@-@O,OO@O@@O,@@@OOOO,-@?????', 7);
+    // and a variation:
+    this.checkGame('a2,a3,b2,b3,c2,a4,b1,a5,c3,b6,b4,a6,b5,c6,c5,d6,d5,e6,e5,f6,f5,g5,f4,g4,f3,g3,d4,f2,e3,e2,pass,d2,pass,d3,d1,e1,g1,g2,c1,pass,pass',
+        ':::::::,' +
+        'OOOOOO:,' +
+        'O@@@@@O,' +
+        'O@-@-@O,' +
+        'OO@O@@O,' +
+        '@@@OOOO,' +
+        '-@@@O:&', 7);
 };
 
 TestBoardAnalyser.prototype.testUnconnectedBrothers = function () {
