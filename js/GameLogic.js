@@ -272,12 +272,6 @@ GameLogic.prototype.historyString = function () {
     return hand + color1 + h.join(',') + ' (' + h.length + ' moves)';
 };
 
-// Returns an array with the prisoner count per color
-// e.g. [3,5] means 3 black stones are prisoners, 5 white stones
-GameLogic.prototype.countPrisoners = function () {
-    return this.goban.countPrisoners();
-};
-
 // Stores a new error message
 // Always returns false.
 GameLogic.prototype._errorMsg = function (msg) {

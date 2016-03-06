@@ -43,7 +43,7 @@ TestGameLogic.prototype.testMisc = function () {
     this.game.newGame(19, 0);
     this.game.loadMoves('hand:6,f3');
     this.assertEqual('handicap:6,Wf3 (1 moves)', this.game.historyString());
-    this.assertEqual([0,0], this.game.countPrisoners());
+    this.assertEqual([0,0], this.game.goban.countPrisoners());
     this.assertEqual(true, this.game.playOneMove('resign'));
 };
 
