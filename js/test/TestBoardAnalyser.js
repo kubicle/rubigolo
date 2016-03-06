@@ -35,7 +35,7 @@ TestBoardAnalyser.prototype.checkGame = function (moves, expScore, gsize, finalP
         this.game.loadAnyGame(moves);
     }
     if (finalPos) this.assertEqual(finalPos, this.goban.image());
-    this.boan = new main.defaultAi.BoardAnalyser();
+    this.boan = new main.defaultAi.BoardAnalyser(this.game);
     this.boan.countScore(this.goban);
 
     var score = this.boan.getScoringGrid().image();
@@ -60,7 +60,6 @@ TestBoardAnalyser.prototype.loadImage = function (moves) {
 
 TestBoardAnalyser.prototype.checkScore = function (prisoners, dead, score) {
     this.assertEqual(prisoners, this.goban.countPrisoners());
-    
     var futurePrisoners = this.boan.prisoners;
     this.assertEqual(dead[BLACK], futurePrisoners[BLACK] - prisoners[BLACK], 'BLACK dead');
     this.assertEqual(dead[WHITE], futurePrisoners[WHITE] - prisoners[WHITE], 'WHITE dead');
@@ -80,7 +79,7 @@ TestBoardAnalyser.prototype.testInternals = function () {
     // ----@
     // @@@@-
     // -@-@-
-    var ba = this.boan = new main.defaultAi.BoardAnalyser();
+    var ba = this.boan = new main.defaultAi.BoardAnalyser(this.game);
     ba.analyseTerritory(this.goban, this.grid, WHITE);
 
     // Voids

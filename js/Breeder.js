@@ -26,7 +26,7 @@ function Breeder(gameSize, komi) {
     this.game.setLogLevel('all=0');
     this.game.newGame(this.gsize);
     this.goban = this.game.goban;
-    this.scorer = new ScoreAnalyser();
+    this.scorer = new ScoreAnalyser(this.game);
     this.genSize = 26; // default; must be even number
     this.seenGames = {};
     this.skipDupeEndings = false;

@@ -19,7 +19,7 @@ var GAME_NOT_STARTED = '00';
  */
 function GtpEngine(game, scorer) {
     this.game = game || new GameLogic();
-    this.scorer = scorer || new ScoreAnalyser();
+    this.scorer = scorer || new ScoreAnalyser(this.game);
     this.players = [];
     this.scoreComputedAt = null;
     this.AiClass = main.defaultAi;

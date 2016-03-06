@@ -27,7 +27,7 @@ function Ui(game) {
     this.gsize = this.handicap = 0;
     this.aiPlays = '';
     this.game = new GameLogic(game);
-    this.scorer = new ScoreAnalyser();
+    this.scorer = new ScoreAnalyser(this.game);
     this.board = null;
 
     this.initDev();
@@ -328,7 +328,7 @@ Ui.prototype.checkEnd = function () {
 };
 
 Ui.prototype.computeScore = function () {
-    var msgs = this.scorer.computeScoreAsTexts(this.game);
+    var msgs = this.scorer.computeScoreAsTexts();
     this.scoreMsg = msgs.join('<br>');
 };
 

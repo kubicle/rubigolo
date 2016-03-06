@@ -185,10 +185,11 @@ Void.prototype.setAsDeadGroupEye = function () {
 };
 
 Void.prototype.getScore = function (fakes) {
-    fakes.length = 0;
     if (this.color === undefined) return 0;
-    if (this.hasFakes)
-        this._getMustPlayStones(this.color, fakes, /*isScoring=*/true);
+    if (fakes) {
+        fakes.length = 0;
+        if (this.hasFakes) this._getMustPlayStones(this.color, fakes, /*isScoring=*/true);
+    }
     return this.vcount;
 };
 

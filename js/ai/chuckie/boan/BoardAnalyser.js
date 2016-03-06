@@ -15,9 +15,11 @@ var FAILS = GroupInfo.FAILS, LIVES = GroupInfo.LIVES, UNDECIDED = GroupInfo.UNDE
 
 /** @class Our main board analyser / score counter etc.
  */
-function BoardAnalyser() {
+function BoardAnalyser(game) {
+    this.game = game;
     this.version = 'chuckie';
     this.mode = null;
+    this.areaScoring = false;
     this.goban = null;
     this.analyseGrid = null;
     this.scoreGrid = null;
@@ -33,13 +35,15 @@ module.exports = BoardAnalyser;
 BoardAnalyser.prototype.countScore = function (goban) {
     if (main.debug) main.log.debug('Counting score...');
     this.scores[BLACK] = this.scores[WHITE] = 0;
-    this.prisoners = goban.countPrisoners();
+    this.prisoners[BLACK] = this.prisoners[WHITE] = 0;
     if (!this.scoreGrid || this.scoreGrid.gsize !== goban.gsize) {
         this.scoreGrid = new Grid(goban.gsize, GRID_BORDER);
     }
 
     if (!this._initAnalysis('SCORE', goban, this.scoreGrid)) return;
     this._runAnalysis();
+
+    if (!this.areaScoring) goban.countPrisoners(this.prisoners);
 };
 
 BoardAnalyser.prototype.getScoringGrid = function () {
@@ -86,6 +90,7 @@ BoardAnalyser.prototype.debugDump = function () {
 
 BoardAnalyser.prototype._initAnalysis = function (mode, goban, grid) {
     this.mode = mode;
+    this.areaScoring = this.game.rules !== CONST.JP_RULES && mode === 'SCORE';
     this.goban = goban;
     this.analyseGrid = grid;
     this.filler = new ZoneFiller(goban, grid);
@@ -183,6 +188,7 @@ function compareLiveliness(life) {
 }
 
 BoardAnalyser.prototype._findBattleWinners = function () {
+    if (this.areaScoring) return;
     var goban = this.goban;
     if (goban.moveNumber() < 2 * goban.gsize) return; // no battle before enough moves were played
     var life = [0, 0], size = [0, 0];
@@ -304,6 +310,7 @@ BoardAnalyser.prototype._reviewGroups = function (check, first2play) {
 
 // Reviews the groups and declare "dead" the ones who do not own enough eyes or voids
 BoardAnalyser.prototype._lifeOrDeathLoop = function (first2play) {
+    if (this.areaScoring) return;
     var checks = lifeChecks[this.mode];
     var stepNum = 0, count;
     while (stepNum < checks.length) {
@@ -330,7 +337,7 @@ BoardAnalyser.prototype._findDameVoids = function () {
         aliveColors[BLACK] = aliveColors[WHITE] = false;
         for (var c = BLACK; c <= WHITE; c++) {
             for (var g, g_array = v.groups[c], g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
-                if (g._info.liveliness() >= 2) {
+                if (this.areaScoring || g._info.liveliness() >= 2) {
                     aliveColors[c] = true;
                     break;
                 }
@@ -338,16 +345,28 @@ BoardAnalyser.prototype._findDameVoids = function () {
         }
         if (aliveColors[BLACK] && aliveColors[WHITE]) {
             v.setAsDame();
+        } else if (this.areaScoring) {
+            v.color = aliveColors[BLACK] ? BLACK : WHITE;
         }
     }
 };
 
 BoardAnalyser.prototype._finalColoring = function () {
+    this._countGroupArea();
     this._colorAndCountDeadGroups();
-    this._colorVoids();
+    this._colorAndCountVoids();
+};
+
+BoardAnalyser.prototype._countGroupArea = function () {
+    if (!this.areaScoring) return;
+    for (var ndx in this.allGroupInfos) {
+        var group = this.allGroupInfos[~~ndx].group;
+        this.scores[group.color] += group.stones.length;
+    }
 };
 
 BoardAnalyser.prototype._colorAndCountDeadGroups = function () {
+    if (this.areaScoring) return;
     for (var ndx in this.allGroupInfos) {
         var gi = this.allGroupInfos[~~ndx];
         if (!gi.isDead) continue;
@@ -374,11 +393,13 @@ BoardAnalyser.prototype._colorAndCountDeadGroups = function () {
 };
 
 // Colors the voids with owner's color
-BoardAnalyser.prototype._colorVoids = function () {
-    var fakes = [], gridYx = this.analyseGrid.yx;
+BoardAnalyser.prototype._colorAndCountVoids = function () {
+    var gridYx = this.analyseGrid.yx;
+    var fakes = [];
+
     for (var i = this.allVoids.length - 1; i >= 0; i--) {
         var v = this.allVoids[i];
-        var score = v.getScore(fakes);
+        var score = v.getScore(this.areaScoring ? null : fakes);
         if (score) {
             // Get real score added by void (not counting fakes)
             this.scores[v.color] += score - fakes.length;
