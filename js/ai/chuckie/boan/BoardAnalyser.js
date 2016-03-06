@@ -375,16 +375,23 @@ BoardAnalyser.prototype._colorAndCountDeadGroups = function () {
 
 // Colors the voids with owner's color
 BoardAnalyser.prototype._colorVoids = function () {
-    var color;
+    var fakes = [], gridYx = this.analyseGrid.yx;
     for (var i = this.allVoids.length - 1; i >= 0; i--) {
         var v = this.allVoids[i];
-        var score = v.finalScore();
+        var score = v.getScore(fakes);
         if (score) {
-            this.scores[v.color] += score;
-            color = Grid.TERRITORY_COLOR + v.color;
+            // Get real score added by void (not counting fakes)
+            this.scores[v.color] += score - fakes.length;
+            // Fill the void with its color
+            this.filler.fillWithColor(v.i, v.j, v, Grid.TERRITORY_COLOR + v.color);
+            // Mark fakes as DAME, one by one
+            for (var n = fakes.length - 1; n >= 0; n--) {
+                var s = fakes[n];
+                gridYx[s.j][s.i] = Grid.DAME_COLOR;
+            }
         } else {
-            color = Grid.DAME_COLOR;
+            // This whole void is DAME (between 2 alive groups)
+            this.filler.fillWithColor(v.i, v.j, v, Grid.DAME_COLOR);
         }
-        this.filler.fillWithColor(v.i, v.j, v, color);
     }
 };

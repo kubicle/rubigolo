@@ -28,6 +28,8 @@ function Void(goban, code) {
     this.color = undefined; // BLACK or WHITE, or undefined if no clear owner
     this.owner = undefined; // GroupInfo or undefined; NB: fake eyes don't have owner
     this.isInDeadGroup = false; // true when all groups around an eye are dead (e.g. one-eyed dead group)
+    this.hasFakes = false;
+    this.fakeSpots = [];
 }
 module.exports = Void;
 
@@ -64,7 +66,7 @@ Void.prototype.findOwner = function () {
 
     // every group around now dead = eye belongs to the killers
     if (allBlackDead && allWhiteDead) {
-        if (this.vtype && !this.isInDeadGroup) this.setAsDeadGroupEye();
+        if (!this.isInDeadGroup && this.color !== undefined) this.setAsDeadGroupEye();
         return;
     }
     if (this.vtype === vEYE) return; // eyes don't change owner unless in a dead group
@@ -72,7 +74,7 @@ Void.prototype.findOwner = function () {
 
     var color = allBlackDead ? WHITE : BLACK;
 
-    if (this.isFakeEye(color)) return;
+    if (this.checkFakeEye(color)) return;
 
     if (!blackGroups.length || !whiteGroups.length) {
         return this.setAsEye(color);
@@ -81,34 +83,40 @@ Void.prototype.findOwner = function () {
     this.setVoidOwner(color);
 };
 
-// NB: groups around a fake-eye do not count it as an eye/void
-Void.prototype.isFakeEye = function (color) {
-    // Potential fake eyes are identified only once (when vtype is still "undefined")
-    // after which they can only lose this property
-    if (this.vtype && this.vtype !== vFAKE_EYE) return false;
+Void.prototype.markAsFakeSpot = function () {
+    if (main.debug && !this.hasFakes) main.log.debug('FAKE SPOT in ' + this);
+    this.hasFakes = true;
+};
 
-    if (this.vcount > 1) return false;
+Void.prototype._getMustPlayStones = function (color, stones) {
+    if (!stones) stones = [];
+
     var groups = this.groups[color];
-    if (groups.length < 2) return false; // not shared
-
-    var isFake = false;
     for (var i = groups.length - 1; i >= 0; i--) {
-        var gi = groups[i]._info;
-        // NB: see TestBoardAnalyser#testBigGame1 for why we test deadEnemies below
-        // Idea: with a dead enemy around, we are usually not forced to connect.
-        if (gi.numContactPoints === 1 && !gi.deadEnemies.length && gi.voids.length === 0) {
-            if (main.debug && !isFake) main.log.debug('FAKE EYE: ' + this);
-            isFake = true;
-            gi.makeDependOn(groups);
-        }
+        groups[i]._info.getFakeSpots(this, stones);
     }
-    if (!isFake) return false;
-    if (this.vtype === undefined) {
+    return stones.length;
+};
+
+// Potential fake eyes are identified only once, then they can only lose this property
+// NB: groups around a fake-eye do not count it as an eye/void
+Void.prototype.checkFakeEye = function (color) {
+    if (!this.hasFakes) return false;
+
+    var realCount = this.vcount - this._getMustPlayStones(color);
+    if (realCount === this.vcount) {
+        if (main.debug) main.log.debug('FAKE SPOTS disregarded for: ' + this);
+        this.hasFakes = false;
+        return false;
+    }
+
+    if (main.debug) main.log.debug('Real vcount: ' + realCount + ' for ' + this);
+    if (realCount === 0) {
         if (this.owner) { this.owner.removeVoid(this); this.owner = null; }
-        this.vtype = vFAKE_EYE;
         this.color = color;
+        return true;
     }
-    return true;
+    return false;
 };
 
 Void.prototype.setAsEye = function (color) {
@@ -158,6 +166,7 @@ Void.prototype.setAsDeadGroupEye = function () {
     if (color === undefined) throw new Error('dead group\'s eye of undefined owner');
 
     this.isInDeadGroup = true;
+    this.hasFakes = false; // fakes become regular space if the group is dead
     if (this.owner) { this.owner.removeVoid(this); this.owner = null; }
     this.vtype = vEYE; // it could have been a fake eye but now it is an eye
     this.color = 1 - color;
@@ -175,10 +184,11 @@ Void.prototype.setAsDeadGroupEye = function () {
     // We should leave the eye inside its possibly dead group. See TestBoardAnalyser#testDoomedGivesEye2
 };
 
-Void.prototype.finalScore = function () {
-    if (this.color === undefined || this.vtype === vFAKE_EYE) {
-        return 0;
-    }
+Void.prototype.getScore = function (fakes) {
+    fakes.length = 0;
+    if (this.color === undefined) return 0;
+    if (this.hasFakes)
+        this._getMustPlayStones(this.color, fakes);
     return this.vcount;
 };
 

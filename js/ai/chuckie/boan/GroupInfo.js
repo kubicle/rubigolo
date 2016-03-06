@@ -16,7 +16,10 @@ function GroupInfo(group, boan) {
     this.nearVoids = []; // voids around, owned or not
     this.deadEnemies = [];
     this.killers = [];
-    this.potentialEyes = [];
+    this.potentialEyeCounts = [0, 0];
+    this.fakeSpots = []; // single connection points with brothers
+    this.fakeBrothers = []; // brothers for which connection is a fake spot
+    this.closeBrothers = [];
 
     this.group = group;
     this.resetAnalysis();
@@ -38,10 +41,13 @@ GroupInfo.prototype.resetAnalysis = function () {
     this.nearVoids.length = 0;
     this.band = null;
     this.isAlive = this.isDead = false;
-    this.potentialEyes.clear();
-    this.numContactPoints = 0;
+    this.inRaceWith = null;
     this.deadEnemies.length = 0;
     this.killers.length = 0;
+    this.potentialEyeCounts[EVEN] = this.potentialEyeCounts[ODD] = 0;
+    this.fakeSpots.length = 0;
+    this.fakeBrothers.length = 0;
+    this.closeBrothers.length = 0;
 };
 
 // For debug only
@@ -88,23 +94,71 @@ GroupInfo.prototype.removeVoid = function (v) {
 GroupInfo.prototype.findBrothers = function () {
     var g = this.group, color = g.color;
     // find allies 1 stone away
-    var allAllies = [];
+    var allies = [], isUnique = [], contactPoints = [];
     var empties = g.allLives();
-    var numContactPoints = 0;
+
     for (var e = empties.length - 1; e >= 0; e--) {
-        var neighbors = empties[e].neighbors, isContact = false;
+        var empty = empties[e];
+        var neighbors = empty.neighbors;
+        var ally = null;
         for (var n = neighbors.length - 1; n >= 0; n--) {
             var s = neighbors[n];
             if (s.color !== color || s.group === g) continue;
-            isContact = true;
-            if (allAllies.indexOf(s.group) < 0) allAllies.push(s.group);
+            ally = s.group;
+            var ndx = allies.indexOf(ally);
+            if (ndx >= 0) {
+                if (contactPoints[ndx] !== empty)
+                    isUnique[ndx] = false;
+                continue;
+            }
+            allies.push(ally);
+            isUnique.push(true);
+            contactPoints.push(empty);
         }
-        if (isContact) numContactPoints++;
     }
-    if (!numContactPoints) return;
-    this.numContactPoints = numContactPoints;
-    allAllies.push(g);
-    Band.gather(allAllies);
+    if (!allies.length) return;
+
+    for (var i = allies.length - 1; i >= 0; i--) {
+        if (!isUnique[i]) {
+            this.closeBrothers.push(allies[i]);
+            continue;
+        }
+        var stone = contactPoints[i];
+        this.fakeSpots.push(stone);
+        this.fakeBrothers.push(allies[i]);
+        this.boan.getVoidAt(stone).markAsFakeSpot();
+    }
+    allies.push(g);
+    Band.gather(allies);
+};
+
+//FIXME: see scoring tests; a fake spot inside our territory can be left unplayed
+GroupInfo.prototype.needsToConnect = function () {
+    if (this.eyeCount >= 2) return NEVER;
+    var numPotEyes = this._countPotEyes();
+    if (numPotEyes >= 3) return NEVER;
+    if (numPotEyes === 0) return ALWAYS;
+    return SOMETIMES;
+};
+
+GroupInfo.prototype.getFakeSpots = function (v, stones) {
+    if (this.needsToConnect() === NEVER) return;
+    // with a dead enemy around, we are usually not forced to connect
+    if (this.deadEnemies.length) return;
+
+    var color = this.group.color, numVoid = 0;
+    for (var i = this.nearVoids.length - 1; i >= 0; i--) {
+        if (this.nearVoids[i].color !== color) continue;
+        numVoid++;
+        if (numVoid >= 2) return;
+    }
+
+    for (i = this.fakeSpots.length - 1; i >= 0; i--) {
+        var stone = this.fakeSpots[i];
+        if (this.boan.getVoidAt(stone) !== v) continue; // not in given void
+
+        if (stones.indexOf(stone) < 0) stones.push(stone);
+    }
 };
 
 GroupInfo.prototype.considerDead = function (reason) {
@@ -146,6 +200,7 @@ GroupInfo.prototype.liveliness = function (strict, shallow) {
         }
     }
     racePoints /= 100;
+    if (!shallow) racePoints += lives / 10000; // is this still necessary?
 
     if (this.isDead) {
         return 0 + racePoints;
