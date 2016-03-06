@@ -30,7 +30,7 @@ TestBoardAnalyser.prototype.initBoard = function (gsize, handicap) {
 TestBoardAnalyser.prototype.checkGame = function (moves, expScore, gsize, finalPos) {
     this.initBoard(gsize || 5);
     if ('+O@'.indexOf(moves[0]) !== -1) {
-        this.goban.loadImage(moves); // an image, not the list of moves
+        this.loadImage(moves); // an image, not the list of moves
     } else {
         this.game.loadAnyGame(moves);
     }
@@ -42,6 +42,20 @@ TestBoardAnalyser.prototype.checkGame = function (moves, expScore, gsize, finalP
     if (!expScore || score === expScore) return;
     this.showInUi('Expected scoring grid was:<br>' + expScore + ' but we got:<br>' + score);
     this.assertEqual(expScore, score);
+};
+
+TestBoardAnalyser.prototype.loadImage = function (moves) {
+    var pos = 0, gsize = this.game.goban.gsize;
+    for (var j = gsize; j >= 1; j--) {
+        for (var i = 1; i <= gsize; i++) {
+            var stone = moves[pos++];
+            if (stone === '+') continue;
+            var color = stone === 'O' ? 'W' : 'B';
+            this.game.playOneStone(color + Grid.xy2move(i, j));
+        }
+        pos++; // skips the line separator
+    }
+    this.game.loadMoves('pass,pass');
 };
 
 TestBoardAnalyser.prototype.checkScore = function (prisoners, dead, score) {
@@ -86,8 +100,8 @@ TestBoardAnalyser.prototype.testInternals = function () {
 TestBoardAnalyser.prototype.testWeirdEmptyBoard = function () {
     // Just makes sure the analyser does not crash on empty boards.
     // Scoring these boards makes no sense so we don't check the result.
-    this.checkGame('', '+++++,+++++,+++++,+++++,+++++');
-    this.checkGame('c3', '-----,-----,--@--,-----,-----');
+    this.checkGame('');
+    this.checkGame('c3');
     this.checkGame('c3,d5');
     this.checkGame('c3,d4');
 };

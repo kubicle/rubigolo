@@ -158,7 +158,7 @@ GameLogic.prototype.playOneMove = function (move) {
     if (this.gameEnded) return this._errorMsg('Game already ended');
 
     if (/^[B|W]?[a-z][1-2]?[0-9]$/.test(move)) {
-        return this.playAStone(move);
+        return this.playOneStone(move);
     } else if (move === 'undo') {
         return this._requestUndo();
     } else if (move === 'half_undo') {
@@ -180,7 +180,7 @@ GameLogic.prototype.playOneMove = function (move) {
 
 // Handles a new stone move (not special commands like "pass")
 // e.g. "c3" or "Bc3" or "Wc3"
-GameLogic.prototype.playAStone = function (move) {
+GameLogic.prototype.playOneStone = function (move) {
     var coords = this.oneMove2xy(move);
     if (coords.length === 3) this.curColor = coords[2];
     var i = coords[0], j = coords[1];
