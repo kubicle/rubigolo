@@ -1,13 +1,13 @@
 'use strict';
 
+var CONST = require('../constants');
 var main = require('../main');
-
 var GameLogic = require('../GameLogic');
 var Grid = require('../Grid');
 var inherits = require('util').inherits;
 var TestCase = require('./TestCase');
 
-var BLACK = main.BLACK, WHITE = main.WHITE;
+var BLACK = CONST.BLACK, WHITE = CONST.WHITE;
 
 
 /** @class NB: for debugging think of using @goban.debug_display
@@ -19,8 +19,9 @@ inherits(TestAi, TestCase);
 module.exports = TestAi;
 
 
-TestAi.prototype.initBoard = function (size, handicap) {
+TestAi.prototype.initBoard = function (size, handicap, rules) {
     var game = this.game = new GameLogic();
+    game.setRules(rules === 'CH' ? CONST.CH_RULES : CONST.JP_RULES);
     game.newGame(size, handicap || 0);
     this.goban = game.goban;
     this.players = [
@@ -188,8 +189,8 @@ TestAi.prototype.runChecks = function (checkString) {
     }
 };
 
-TestAi.prototype.checkGame = function (moves, checks, gsize) {
-    this.initBoard(gsize || 5);
+TestAi.prototype.checkGame = function (moves, checks, gsize, rules) {
+    this.initBoard(gsize || 5, 0, rules);
     try {
         this.game.loadMoves(moves);
         this.runChecks(checks);
@@ -583,7 +584,20 @@ TestAi.prototype.testPusher2 = function () {
 
 TestAi.prototype.testPusherInC = function () {
     // White has no interest pushing into "C" shape (beside taking 1 life but it can wait)
-    this.checkGame('b1,c1,a1,c2,a2,c3,a3,c4,b3', 'b2<0.5, b4~1');
+    this.checkGame('b1,c1,a1,c2,a2,c3,a3,c4,b3', 'b2<0.5, b4~2.6');
+};
+
+TestAi.prototype.testPushOnFakeEye_DyingGroupJp = function () {
+    // B is dead; W should not push
+    this.checkGame('Bd2,c3,d3,c2,c1,c4,b2,d4,b3,b4,e4,a4,a3,e2,d5,c5,a1,e5,d1,e3',
+        'pass,pass');
+};
+
+TestAi.prototype.testPushOnFakeEye_DyingGroupCh = function () {
+    // Only with Chinese rules W should push; B is dead anyway
+    this.checkGame('Bd2,c3,d3,c2,c1,c4,b2,d4,b3,b4,e4,a4,a3,e2,d5,c5,a1,e5,d1,e3',
+        'b1,e4,pass,e1,pass,a2', 5, 'CH');
+};
 };
 
 TestAi.prototype.testConnectOnBorder = function () {
