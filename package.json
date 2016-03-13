@@ -1,11 +1,11 @@
 {
   "name": "rubigolo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "",
   "author": "Olivier Lombart (kubicle)",
   "license": "MIT",
   "scripts": {
-    "start": "watchify js/app.js -o js/build.js -t lessify -v",
+    "start": "watchify js/test/testApp.js -o build/devBuild.js -t lessify -v",
     "test": "node js/test/ciTestMain.js --ci"
   },
   "main": "js/app.js",
@@ -30,6 +30,7 @@
     "codeclimate-test-reporter": "~0.1.1",
     "browserify": "~10.2.4",
     "lessify": "~1.0.1",
-    "watchify": "^3.2.2"
+    "watchify": "~3.2.2",
+    "uglify-js": "~2.6.2"
   }
 }

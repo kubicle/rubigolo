@@ -6,15 +6,12 @@
 Game of Go (weiqi, igo, baduk), originally started in Ruby (hence the name), then translated to Javascript... In development, of course. 
 
 - [run it](http://rawgit.com/kubicle/rubigolo/master/index.html) in your browser.
-- [run tests](http://rawgit.com/kubicle/rubigolo/master/tests.html)
-
-Old Ruby version: check the [help page](http://htmlpreview.github.io/?https://github.com/kubicle/rubigolo/blob/master/help-index.html)
 
 Dependencies
 ============
 
 - [WGo.js](http://github.com/waltheri/wgo.js) is included in the project
-- Browserify, watchify, lessify are used for the build
+- Browserify, watchify, lessify and uglifyJS are used for the build
 
 How to build and test locally
 =============================
@@ -25,10 +22,17 @@ npm install
 # Start browserify build & file watcher
 npm start
 
+# Run the dev version or the tests
+Open in your browser:
+- devIndex.html
+- tests.html
+
 # Run Computer Go Test Collection (you need gogui-regress.jar from GoGui)
 cd ...\cgtc-2.0.1
 java -jar gogui-regress.jar "node ...\rubigolo\js\consoleMain.js" *.tst
 ```
+# Build the minified bundle
+browserify js/app.js -t lessify | node node_modules/uglify-js/bin/uglifyjs -o build/bld.js -m --mangle-props --reserved-file build/reserved.json --reserve-domprops --mangle-regex="/^[^.]/" -c pure_funcs=[\"main.log.debug\",\"main.log.warn\"]
 
 =======
 

@@ -34,25 +34,22 @@ var main = new Main();
 module.exports = main;
 
 
-Main.prototype.initAis = function () {
-    this.ais = {
-        Frankie: require('./ai/frankie'),
-        Droopy:  require('./ai/droopy'),
-        Chuckie: require('./ai/chuckie')
-    };
-    this.defaultAi = this.latestAi = this.ais.Chuckie;
-    this.previousAi = this.ais.Droopy;
-    this.olderAi = this.ais.Frankie;
+Main.prototype.initAis = function (ais) {
+    this.ais = {};
+    for (var i = 0; i < ais.length; i++) {
+        var ai = ais[i];
+        this.ais[ai.name] = ai.constr;
+    }
+    var latest = ais.length - 1;
+    this.defaultAi = this.latestAi = ais[latest].constr;
+    this.previousAi = latest >= 1 ? ais[latest - 1].constr : null;
+    this.olderAi = latest >= 2 ? ais[latest - 2].constr : null;
 };
 
-Main.prototype.initTests = function () {
-    var TestSeries = require('./test/TestSeries');
-    var addAllTests = require('./test/TestAll'); // one day this will only be in the testing build
-
+Main.prototype.initTests = function (TestSeries, addAllTests) {
     this.tests = new TestSeries();
     addAllTests(this.tests);
 };
-
 
 //--- Misc Helpers
 

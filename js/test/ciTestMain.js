@@ -3,6 +3,14 @@
 var main = require('../main');
 var Logger = require('../Logger');
 
+var TestSeries = require('./TestSeries');
+var addAllTests = require('./TestAll');
+
+var ais = [
+    { name: 'Droopy',  constr: require('../ai/droopy') },
+    { name: 'Chuckie', constr: require('../ai/chuckie') }
+];
+
 
 function parseArgs() {
     var args = process.argv;
@@ -17,8 +25,8 @@ function parseArgs() {
 
 function run() {
     parseArgs();
-    main.initTests();
-    main.initAis();
+    main.initTests(TestSeries, addAllTests);
+    main.initAis(ais);
 
     if (main.isCoverTest) main.log.info('Running coverage tests...');
     else main.log.info('Running tests...');
