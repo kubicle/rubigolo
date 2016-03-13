@@ -70,7 +70,7 @@ GameLogic.prototype.newGame = function (gsize, handicap, komi) {
     } else {
         this.goban.clear();
     }
-    this.goban.setRules({ positionalSuperko: this.rules === CH_RULES });
+    this.goban.setPositionalSuperko(this.rules === CH_RULES);
 
     handicap = handicap !== undefined ? handicap : 0;
     this.setHandicapAndWhoStarts(handicap);

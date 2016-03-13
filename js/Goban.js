@@ -43,7 +43,7 @@ function Goban(gsize) {
     this.numGroups = 0;
 
     this.history = [];
-    this._initSuperko(false);
+    this.setPositionalSuperko(false);
 
     // this._moveIdStack = [];
     // this._moveIdGen = this.moveId = 0; // moveId is unique per tried move
@@ -73,20 +73,10 @@ Goban.prototype.clear = function () {
     this.numGroups = 0;
 
     this.history.clear();
-    this._initSuperko(false);
+    this.setPositionalSuperko(false);
 
     // this._moveIdStack.clear();
     // this._moveIdGen = this.moveId = 0;
-};
-
-Goban.prototype.setRules = function (rules) {
-    for (var rule in rules) {
-        var setting = rules[rule];
-        switch (rule) {
-        case 'positionalSuperko': this._initSuperko(setting); break;
-        default: main.log.warn('Ignoring unsupported rule: ' + rule + ': ' + setting);
-        }
-    }
 };
 
 // Allocate a new group or recycles one from garbage list.
@@ -256,7 +246,8 @@ Goban.prototype.countPrisoners = function (prisoners) {
     return prisoners;
 };
 
-Goban.prototype._initSuperko = function (isRuleOn) {
+Goban.prototype.setPositionalSuperko = function (isRuleOn) {
+    if (this.history.length > 0) throw new Error('Superko rule changed during game');
     this.useSuperko = isRuleOn;
     if (isRuleOn) {
         this.currentPosition = this.buildCompressedImage();

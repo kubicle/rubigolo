@@ -36,7 +36,7 @@ TestGoban.prototype.testInternals = function () {
 
 TestGoban.prototype.testSignature = function () {
     var goban = this.goban;
-    goban.setRules({ positionalSuperko: true });
+    goban.setPositionalSuperko(true);
     var moves = 'a5,b5,a4,b4,c5,a3,d4,c4,d3,d5,c3,b3,a2,c2,e4,d2,e2,e1,e5,e3,b1,b2,c1,a1'.split(',');
     var color = BLACK;
     for (var n = 0; n < moves.length; n++) {
@@ -93,7 +93,7 @@ TestGoban.prototype.testSuperko = function () {
     this.game.newGame(5);
     var goban = this.goban = this.game.goban;
 
-    goban.setRules({ positionalSuperko: true });
+    goban.setPositionalSuperko(true);
 
     this.game.loadMoves('a3,b3,a2,b2,pass,a1,b1,c1,pass,a1,pass,a4,a2,pass,b1,pass,a3');
     // W-a1 now would repeat position we had after W-a4

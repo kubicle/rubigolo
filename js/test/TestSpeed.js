@@ -27,7 +27,7 @@ TestSpeed.CM_NEW = 2;
 
 TestSpeed.prototype.initBoard = function (size) {
     this.goban = new Goban(size || 9);
-    this.goban.setRules({ positionalSuperko: false });
+    this.goban.setPositionalSuperko(false);
 };
 
 TestSpeed.prototype.testSpeedBasic = function () {
@@ -109,7 +109,7 @@ TestSpeed.prototype.testSpeed63movesAndUndo = function () {
     t.stop();
 
     t.start('63 move game, ' + count + ' times and undo, using superko rule', 0.4);
-    this.goban.setRules({ positionalSuperko: true });
+    this.goban.setPositionalSuperko(true);
     for (i = 0; i < count; i++) {
         this.playGameAndClean(game2MovesIj, TestSpeed.CM_UNDO);
     }
