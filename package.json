@@ -5,7 +5,8 @@
   "author": "Olivier Lombart (kubicle)",
   "license": "MIT",
   "scripts": {
-    "start": "watchify js/test/testApp.js -o build/devBuild.js -t lessify -v",
+    "build": "browserify js/app.js -t lessify | uglifyjs -o build/bld.js -m --mangle-props --reserved-file build/reserved.json --reserve-domprops --mangle-regex=\"/^[^.]/\" -c pure_funcs=['main.log.debug','main.log.warn']",
+    "dev-build": "watchify js/test/testApp.js -o build/devBuild.js -t lessify -v",
     "test": "node js/test/ciTestMain.js --ci"
   },
   "main": "js/app.js",
