@@ -259,8 +259,10 @@ Chuckie.prototype.getMoveSurveyText = function (move, isTest) {
     var coords = this.game.oneMove2xy(move);
     if (!coords) return '';
     var i = coords[0], j = coords[1];
-    if (!this.goban.isValidMove(i, j, this.game.curColor)) return 'Invalid move: ' + move;
-    if (isTest) this._getMoveForTest(i, j);
+    if (isTest) {
+        if (!this.goban.isValidMove(i, j, this.game.curColor)) return 'Invalid move: ' + move;
+        this._getMoveForTest(i, j);
+    }
     var survey = this._getMoveSurvey(i, j);
     var score = this.scoreGrid.yx[j][i];
 
