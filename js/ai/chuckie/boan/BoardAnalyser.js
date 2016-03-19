@@ -12,6 +12,9 @@ var BLACK = CONST.BLACK, WHITE = CONST.WHITE;
 var ALIVE = GroupInfo.ALIVE;
 var FAILS = GroupInfo.FAILS, LIVES = GroupInfo.LIVES, UNDECIDED = GroupInfo.UNDECIDED;
 
+// Analyse modes:
+var SCORE = 0, TERRITORY = 1, MOVE = 2;
+
 
 /** @class Our main board analyser / score counter etc.
  */
@@ -40,7 +43,7 @@ BoardAnalyser.prototype.countScore = function (goban) {
         this.scoreGrid = new Grid(goban.gsize, GRID_BORDER);
     }
 
-    if (!this._initAnalysis('SCORE', goban, this.scoreGrid)) return;
+    if (!this._initAnalysis(SCORE, goban, this.scoreGrid)) return;
     this._runAnalysis();
 
     if (!this.areaScoring) goban.countPrisoners(this.prisoners);
@@ -55,7 +58,7 @@ BoardAnalyser.prototype.getVoidAt = function (stone) {
 };
 
 BoardAnalyser.prototype.startMoveAnalysis = function (goban, grid) {
-    this._initAnalysis('MOVE', goban, grid);
+    this._initAnalysis(MOVE, goban, grid);
 };
 
 BoardAnalyser.prototype.continueMoveAnalysis = function () {
@@ -63,7 +66,7 @@ BoardAnalyser.prototype.continueMoveAnalysis = function () {
 };
 
 BoardAnalyser.prototype.analyseTerritory = function (goban, grid, first2play) {
-    if (!this._initAnalysis('TERRITORY', goban, grid)) return;
+    if (!this._initAnalysis(TERRITORY, goban, grid)) return;
     this._runAnalysis(first2play);
 };
 
@@ -90,7 +93,7 @@ BoardAnalyser.prototype.debugDump = function () {
 
 BoardAnalyser.prototype._initAnalysis = function (mode, goban, grid) {
     this.mode = mode;
-    this.areaScoring = this.game.rules !== CONST.JP_RULES && mode === 'SCORE';
+    this.areaScoring = this.game.rules !== CONST.JP_RULES && mode === SCORE;
     this.goban = goban;
     this.analyseGrid = grid;
     this.filler = new ZoneFiller(goban, grid);
@@ -104,7 +107,7 @@ BoardAnalyser.prototype._initAnalysis = function (mode, goban, grid) {
 };
 
 BoardAnalyser.prototype._runAnalysis = function (first2play) {
-    if (this.mode === 'MOVE') {
+    if (this.mode === MOVE) {
         this._lifeOrDeathLoop();
     } else {
         this._findBattleWinners();
@@ -261,23 +264,22 @@ var raceCheck = { name: 'race', run: GroupInfo.prototype.checkAgainstEnemies, ki
 var killAtaris = { name: 'atari', run: function () { return this.group.lives <= 1 ? FAILS : UNDECIDED; } };
 var finalCheck = { name: 'final', run: function () { return this.checkLiveliness(2); } };
 
-var lifeChecks = {
-    SCORE: [
-        brotherCheck,
-        killAtaris,
-        singleEyeCheck,
-        finalCheck
-    ],
-    TERRITORY: [
-        brotherCheck,
-        singleEyeCheck
-    ],
-    MOVE: [
-        brotherCheck,
-        singleEyeCheck,
-        raceCheck
-    ]
-};
+var lifeChecks = [];
+lifeChecks[SCORE] = [
+    brotherCheck,
+    killAtaris,
+    singleEyeCheck,
+    finalCheck
+];
+lifeChecks[TERRITORY] = [
+    brotherCheck,
+    singleEyeCheck
+];
+lifeChecks[MOVE] = [
+    brotherCheck,
+    singleEyeCheck,
+    raceCheck
+];
 
 // NB: order of group should not matter; we must remember this especially when killing some of them
 BoardAnalyser.prototype._reviewGroups = function (check, first2play) {
