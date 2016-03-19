@@ -24,7 +24,7 @@ var Shaper = require('./Shaper');
 var Spacer = require('./Spacer');
 
 var GRID_BORDER = CONST.GRID_BORDER;
-var sOK = CONST.sOK, sINVALID = CONST.sINVALID, sBLUNDER = CONST.sBLUNDER, sDEBUG = CONST.sDEBUG;
+var sOK = CONST.sOK, sINVALID = CONST.sINVALID, sDEBUG = CONST.sDEBUG;
 
 var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
 
@@ -206,15 +206,6 @@ Chuckie.prototype._collectBestMove = function (stateYx, scoreYx) {
     if (this.bestScore < this.minimumScore) return 'pass';
     if (this.usedRandom) this.numRandomPicks++;
     return Grid.xy2move(this.bestI, this.bestJ);
-};
-
-/** Called by heuristics if they decide to stop looking further (rare cases) */
-Chuckie.prototype.markMoveAsBlunder = function (i, j, reason) {
-    this.stateGrid.yx[j][i] = sBLUNDER;
-    main.log.debug(Grid.xy2move(i, j) + ' seen as blunder: ' + reason);
-};
-Chuckie.prototype.isBlunderMove = function (i, j) {
-    return this.stateGrid.yx[j][i] === sBLUNDER;
 };
 
 // Called by UI only
