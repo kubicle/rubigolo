@@ -421,15 +421,15 @@ GroupInfo.prototype.checkLiveliness = function (minLife) {
     return UNDECIDED;
 };
 
-GroupInfo.prototype.callOnBand = function (method, param) {
+GroupInfo.prototype.callOnBand = function (method, p1, p2) {
     if (this.band) {
         var brothers = this.band.brothers, count = 0;
         for (var n = brothers.length - 1; n >= 0; n--) {
-            count += method.call(brothers[n], param);
+            count += method.call(brothers[n], p1, p2);
         }
         return count;
     } else {
-        return method.call(this, param);
+        return method.call(this, p1, p2);
     }
 };
 

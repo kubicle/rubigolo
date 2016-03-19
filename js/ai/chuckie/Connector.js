@@ -164,8 +164,7 @@ Connector.prototype._computeScore = function (stone, color, groups, numEnemies, 
         for (n = groups.length - 1; n >= 0; n--) {
             g = groups[n];
             if (g.xAlive === ALWAYS) continue;
-            var potEyeCount = g._info.countBandPotentialEyes();
-            score += this.groupThreat(g, /*saved=*/true) / Math.max(1, potEyeCount - 1);
+            this.mi.cutThreat(g, stone, 1 - color);
         }
         score *= this.riskCoeff;
     }

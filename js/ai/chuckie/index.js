@@ -193,6 +193,7 @@ Chuckie.prototype._runHeuristics = function (stateYx, scoreYx) {
             main.log.warn('Slowness: ' + h.name + ' took ' + time + 'ms');
         }
     }
+    this.heuristic.MoveInfo.collectScores(stateYx, scoreYx);
 };
 
 /** Returns the move which got the best score */

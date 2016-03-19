@@ -73,38 +73,6 @@ Heuristic.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
     return this.player.genes.get(this.name + '-' + name, defVal, lowLimit, highLimit);
 };
 
-/** Pass saved as true if g is an ally group (we evaluate how much we save) */
-Heuristic.prototype.groupThreat = function (g, saved) {
-    var threat = 2 * g.stones.length; // 2 points are pretty much granted for the prisonners
-
-    // TODO: instead of below, evaluate the damage caused by an *invasion* by taking group g
-    var lives = g.allLives();
-    var numEmpties = 0;
-    for (var i = lives.length - 1; i >= 0; i--) {
-        numEmpties += lives[i].numEmpties(); // TODO: count only empties not in "lives"
-    }
-    threat += this.spaceInvasionCoeff * Math.max(0, numEmpties - 1); //...and the "open gate" to territory will count a lot
-
-    if (saved) return threat;
-    return threat + this._countSavedAllies(g);
-};
-
-// Count indirectly saved groups
-Heuristic.prototype._countSavedAllies = function (killedEnemyGroup) {
-    // do not count any saved allies if we gave them a single life in corner
-    if (killedEnemyGroup.stones.length === 1 &&
-        killedEnemyGroup.stones[0].isCorner()) {
-        return 0;
-    }
-    var saving = 0;
-    var allies = killedEnemyGroup.allEnemies();
-    for (var a = allies.length - 1; a >= 0; a--) {
-        if (allies[a].lives > 1) continue;
-        saving += this.groupThreat(allies[a], /*saved=*/true);
-    }
-    return saving;
-};
-
 Heuristic.prototype._invasionCost = function (i, j, dir, color, level) {
     var s = this.goban.stoneAt(i, j);
     if (s === BORDER || s.color !== EMPTY) return 0;
