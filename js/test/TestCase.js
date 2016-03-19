@@ -73,7 +73,10 @@ TestCase.prototype.todo = function (comment) {
 };
 
 TestCase.prototype.showInUi = function (msg) {
-    if (main.testUi && this.game) {
+    if (!main.testUi || !this.game) return;
+    try {
         main.testUi.showTestGame(this.name, msg, this.game);
+    } catch (e) {
+        main.log.error('Exception loading failed test in UI: ' + e.message);
     }
 };

@@ -191,13 +191,8 @@ TestAi.prototype.runChecks = function (checkString) {
 
 TestAi.prototype.checkGame = function (moves, checks, gsize, rules) {
     this.initBoard(gsize || 5, 0, rules);
-    try {
-        this.game.loadMoves(moves);
-        this.runChecks(checks);
-    } catch (e) {
-        this.showInUi(e.message);
-        throw e;
-    }
+    this.game.loadMoves(moves);
+    this.runChecks(checks);
 };
 
 

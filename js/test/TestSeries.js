@@ -29,6 +29,7 @@ TestSeries.prototype.testOneClass = function (Klass, methodPattern) {
         test.series = this;
         try {
             test[method].call(test);
+            if (this.testCount === 1 && methodPattern) test.showInUi('First test matching "' + methodPattern + '"');
         } catch(e) {
             if (e.message.startsWith(TestSeries.FAILED_ASSERTION_MSG)) {
                 this.failedCount++;
@@ -36,6 +37,7 @@ TestSeries.prototype.testOneClass = function (Klass, methodPattern) {
                 main.log.error('Test failed: ' + main.funcName(test) + ': ' + e.message + '\n');
             } else {
                 this.errorCount++;
+                test.showInUi(e.message);
                 main.log.error('Exception during test: ' + main.funcName(test) + ':\n' + e.stack + '\n');
             }
         }
