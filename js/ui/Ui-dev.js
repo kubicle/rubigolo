@@ -95,6 +95,30 @@ Ui.prototype.totalEvalTest = function (aiColor) {
     this.board.showSpecial('value', score);
 };
 
+var heuristics = [
+    NO_HEURISTIC,
+    'GroupAnalyser',
+    'NoEasyPrisoner',
+    'Savior',
+    'Hunter',
+    'Connector',
+    'Spacer',
+    'Pusher',
+    'Shaper',
+    'MoveInfo'
+];
+
+var evalTests = [
+    ['(other eval)', Ui.prototype.refreshBoard],
+    ['Score', Ui.prototype.scoreTest],
+    ['Territory', Ui.prototype.territoryTest],
+    ['Influence B', function (aiColor) { this.influenceTest(aiColor, BLACK); }],
+    ['Influence W', function (aiColor) { this.influenceTest(aiColor, WHITE); }],
+    ['Potential eyes EVEN', function (aiColor) { this.eyesTest(aiColor, EVEN); }],
+    ['Potential eyes ODD', function (aiColor) { this.eyesTest(aiColor, ODD); }],
+    ['Total', Ui.prototype.totalEvalTest]
+];
+
 Ui.prototype.evalTestHandler = function (name) {
     var evalTest = evalTests[name];
     this.statusMessage('Showing "' + evalTest[0] + '"');
@@ -127,29 +151,6 @@ Ui.prototype.devDisplay = function () {
     }
     this.board.showSpecial('value', scoreYx);
 };
-
-var heuristics = [
-    NO_HEURISTIC,
-    'GroupAnalyser',
-    'NoEasyPrisoner',
-    'Hunter',
-    'Savior',
-    'Connector',
-    'Spacer',
-    'Pusher',
-    'Shaper'
-];
-
-var evalTests = [
-    ['(other eval)', Ui.prototype.refreshBoard],
-    ['Score', Ui.prototype.scoreTest],
-    ['Territory', Ui.prototype.territoryTest],
-    ['Influence B', function (aiColor) { this.influenceTest(aiColor, BLACK); }],
-    ['Influence W', function (aiColor) { this.influenceTest(aiColor, WHITE); }],
-    ['Potential eyes EVEN', function (aiColor) { this.eyesTest(aiColor, EVEN); }],
-    ['Potential eyes ODD', function (aiColor) { this.eyesTest(aiColor, ODD); }],
-    ['Total', Ui.prototype.totalEvalTest]
-];
 
 Ui.prototype._updateGameLink = function () {
     this.devGameLink.setAttribute('href', 'mailto:kubicle@yahoo.com?subject=' + main.appName + '%20game' +
