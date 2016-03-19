@@ -2,12 +2,26 @@
 
 var main = require('../../main');
 
-var allHeuristics = require('./AllHeuristics');
 var BoardAnalyser = require('./boan/BoardAnalyser');
 var CONST = require('../../constants');
 var Genes = require('../../Genes');
 var Grid = require('../../Grid');
 var ZoneFiller = require('./boan/ZoneFiller');
+
+// All heuristics
+var Connector = require('./Connector');
+var GroupAnalyser = require('./GroupAnalyser');
+var GroupsAndVoids = require('./GroupsAndVoids');
+var Hunter = require('./Hunter');
+var Influence = require('./Influence');
+var MoveInfo = require('./MoveInfo');
+var NoEasyPrisoner = require('./NoEasyPrisoner');
+var PotentialEyes = require('./PotentialEyes');
+var PotentialTerritory = require('./PotentialTerritory');
+var Pusher = require('./Pusher');
+var Savior = require('./Savior');
+var Shaper = require('./Shaper');
+var Spacer = require('./Spacer');
 
 var GRID_BORDER = CONST.GRID_BORDER;
 var sOK = CONST.sOK, sINVALID = CONST.sINVALID, sBLUNDER = CONST.sBLUNDER, sDEBUG = CONST.sDEBUG;
@@ -19,7 +33,7 @@ var AI_VERSION = '0.1';
 
 /** @class */
 function Chuckie(game, color, genes) {
-    this.name = this.constructor.name || main.funcName(this.constructor);
+    this.name = 'Chuckie';
     this.publicName = this.name; // could be different if needed
     this.publicVersion = AI_VERSION;
 
@@ -46,13 +60,30 @@ Chuckie.BoardAnalyser = BoardAnalyser;
 Chuckie.ZoneFiller = ZoneFiller;
 
 
+Chuckie.prototype._newHeuristic = function (Constr) {
+    var h = new Constr(this);
+    h.setName(this.heuristics.length);
+    this.heuristics.push(h);
+    return h;
+};
+
 Chuckie.prototype._createHeuristics = function () {
+    var heuristic = this.heuristic = {};
     this.heuristics = [];
-    var heuristics = allHeuristics();
-    for (var n = 0; n < heuristics.length; n++) {
-        var h = new (heuristics[n])(this);
-        this.heuristics.push(h);
-    }
+
+    heuristic.MoveInfo = this._newHeuristic(MoveInfo);
+    heuristic.PotentialTerritory = this._newHeuristic(PotentialTerritory);
+    heuristic.GroupsAndVoids = this._newHeuristic(GroupsAndVoids);
+    heuristic.Influence = this._newHeuristic(Influence);
+    heuristic.PotentialEyes = this._newHeuristic(PotentialEyes);
+    heuristic.GroupAnalyser = this._newHeuristic(GroupAnalyser);
+    heuristic.NoEasyPrisoner = this._newHeuristic(NoEasyPrisoner);
+    heuristic.Savior = this._newHeuristic(Savior);
+    heuristic.Hunter = this._newHeuristic(Hunter);
+    heuristic.Connector = this._newHeuristic(Connector);
+    heuristic.Spacer = this._newHeuristic(Spacer);
+    heuristic.Pusher = this._newHeuristic(Pusher);
+    heuristic.Shaper = this._newHeuristic(Shaper);
 };
 
 Chuckie.prototype.setColor = function (color) {
@@ -73,6 +104,7 @@ Chuckie.prototype.prepareGame = function (genes) {
     this.debugHeuristic = null;
 };
 
+/** Get a heuristic from its human name - for UI and tests */
 Chuckie.prototype.getHeuristic = function (heuristicName) {
     for (var n = 0; n < this.heuristics.length; n++) {
         var h = this.heuristics[n];
@@ -187,7 +219,7 @@ Chuckie.prototype.isBlunderMove = function (i, j) {
 
 // Called by UI only
 Chuckie.prototype.guessTerritories = function () {
-    var pot = this.getHeuristic('PotentialTerritory');
+    var pot = this.heuristic.PotentialTerritory;
     pot.evalBoard();
     return pot.territory.yx;
 };

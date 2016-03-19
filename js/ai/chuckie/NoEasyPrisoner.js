@@ -20,7 +20,7 @@ module.exports = NoEasyPrisoner;
 
 NoEasyPrisoner.prototype._beforeEvalBoard = function () {
     // We have to delay getting the hunter since it is created after us
-    if (!this.hunter) this.hunter = this.player.getHeuristic('Hunter');
+    if (!this.hunter) this.hunter = this.player.heuristic.Hunter;
 };
 
 NoEasyPrisoner.prototype._evalMove = function (i, j, color) {

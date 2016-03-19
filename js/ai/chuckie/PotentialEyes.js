@@ -16,7 +16,7 @@ function PotentialEyes(player) {
 
     this.potEyeGrids = [new Grid(this.gsize, GRID_BORDER), new Grid(this.gsize, GRID_BORDER)];
 
-    this.moveInfo = player.getHeuristic('MoveInfo');
+    this.moveInfo = player.heuristic.MoveInfo;
 }
 inherits(PotentialEyes, Heuristic);
 module.exports = PotentialEyes;

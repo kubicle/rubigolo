@@ -31,8 +31,8 @@ function Connector(player) {
     this.inflCoeff = this.getGene('infl', 0.07, 0.01, 0.5);
     this.riskCoeff = this.getGene('risk', 1, 0.1, 4.0);
 
-    this.noEasyPrisonerYx = player.getHeuristic('NoEasyPrisoner').scoreGrid.yx;
-    this.hunter = player.getHeuristic('Hunter');
+    this.noEasyPrisonerYx = player.heuristic.NoEasyPrisoner.scoreGrid.yx;
+    this.hunter = player.heuristic.Hunter;
 }
 inherits(Connector, Heuristic);
 module.exports = Connector;

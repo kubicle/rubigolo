@@ -14,7 +14,7 @@ function GroupsAndVoids(player) {
 
     this.grid = new Grid(this.gsize, GRID_BORDER);
 
-    this.moveInfo = player.getHeuristic('MoveInfo');
+    this.moveInfo = player.heuristic.MoveInfo;
 }
 inherits(GroupsAndVoids, Heuristic);
 module.exports = GroupsAndVoids;

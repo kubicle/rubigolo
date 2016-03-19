@@ -17,7 +17,7 @@ function Pusher(player) {
     this.allyCoeff = this.getGene('allyInfl', 0.03, 0.01, 1.0);
     this.enemyCoeff = this.getGene('enemyInfl', 0.13, 0.01, 1.0);
 
-    this.noEasyPrisonerYx = player.getHeuristic('NoEasyPrisoner').scoreGrid.yx;
+    this.noEasyPrisonerYx = player.heuristic.NoEasyPrisoner.scoreGrid.yx;
 }
 inherits(Pusher, Heuristic);
 module.exports = Pusher;

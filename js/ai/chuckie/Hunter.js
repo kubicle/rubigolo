@@ -18,7 +18,7 @@ function Hunter(player) {
     this.pressureCoeff = this.getGene('pressure', 1, 0.01, 2);
 
     this.snapbacks = null;
-    this.noEasyPrisonerYx = player.getHeuristic('NoEasyPrisoner').scoreGrid.yx;
+    this.noEasyPrisonerYx = player.heuristic.NoEasyPrisoner.scoreGrid.yx;
 }
 inherits(Hunter, Heuristic);
 module.exports = Hunter;

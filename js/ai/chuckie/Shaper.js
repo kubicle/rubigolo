@@ -18,7 +18,7 @@ function Shaper(player) {
 
     this.eyeCloserCoeff = this.getGene('eyeCloser', 1, 0.01, 1);
 
-    this.potEyeGrids = player.getHeuristic('PotentialEyes').potEyeGrids;
+    this.potEyeGrids = player.heuristic.PotentialEyes.potEyeGrids;
 }
 inherits(Shaper, Heuristic);
 module.exports = Shaper;

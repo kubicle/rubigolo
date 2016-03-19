@@ -14,29 +14,20 @@ var sOK = main.sOK, sDEBUG = main.sDEBUG, ALWAYS = main.ALWAYS;
 function Savior(player) {
     Heuristic.call(this, player);
 
-    this.hunter = player.getHeuristic('Hunter');
+    this.hunter = null;
 }
 inherits(Savior, Heuristic);
 module.exports = Savior;
 
 
-Savior.prototype.evalBoard = function (stateYx, scoreYx) {
-    var myScoreYx = this.scoreGrid.yx;
-    for (var j = 1; j <= this.gsize; j++) {
-        for (var i = 1; i <= this.gsize; i++) {
-            var state = stateYx[j][i];
-            if (state < sOK) continue;
-            if (state === sDEBUG && this.name === this.player.debugHeuristic)
-                main.debug = true; // set your breakpoint on this line if needed
+Savior.prototype._beforeEvalBoard = function () {
+    if (!this.hunter) this.hunter = this.player.heuristic.Hunter;
+};
 
-            var stone = this.goban.stoneAt(i, j);
-            var threat = this._evalEscape(i, j, stone);
-            if (threat === 0) continue;
-            if (main.debug) main.log.debug('=> Savior thinks we can save a threat of ' + threat + ' in ' + stone);
-            var score = myScoreYx[j][i] = threat;
-            scoreYx[j][i] += score;
-        }
-    }
+Savior.prototype._evalMove = function (i, j) {
+    var stone = this.goban.stoneAt(i, j);
+    this._evalEscape(i, j, stone);
+    return 0;
 };
 
 // i,j / stone is the stone we are proposing to play to help one of nearby groups to escape

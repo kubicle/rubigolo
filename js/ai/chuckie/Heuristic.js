@@ -18,7 +18,7 @@ var DIR0 = CONST.DIR0, DIR3 = CONST.DIR3;
  */
 function Heuristic(player) {
     this.player = player;
-    this.name = this.constructor.name || main.funcName(this.constructor);
+    this.name = null;
     this.goban = player.goban;
     this.gsize = player.goban.gsize;
     this.scoreGrid = new Grid(this.gsize, 0, GRID_BORDER);
@@ -28,12 +28,20 @@ function Heuristic(player) {
 
     this.color = this.enemyColor = null;
 
-    this.pot = player.getHeuristic('PotentialTerritory');
-    var influence = player.getHeuristic('Influence');
+    this.mi = player.heuristic.MoveInfo;
+    this.pot = player.heuristic.PotentialTerritory;
+    var influence = player.heuristic.Influence;
     this.infl = influence ? influence.infl : null;
 }
 module.exports = Heuristic;
 
+
+Heuristic.prototype.setName = function (id) {
+    var constr = this.constructor;
+    this.name = constr.name || main.funcName(constr);
+    // Mangled constructor name has file-scope so we may have dupes; we add the unique ID for that
+    if (this.name.length < 5) this.name += id;
+};
 
 Heuristic.prototype.initColor = function (color) {
     this.color = color;
