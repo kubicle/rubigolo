@@ -228,19 +228,17 @@ Ui.prototype.toggleControls = function () {
     var inReview = this.inReview, ended = this.game.gameEnded, ending = this.game.gameEnding;
     var inGame = !(ended || ending) && !inReview;
     var auto = this.aiPlays === 'both';
-    if (this.inEvalMode && !inGame) this.setEvalMode(false);
 
     this.statusBar.setVisible(!ended);
     this.reviewControls.setVisible(['review'], inGame || inReview);
     this.reviewControls.setVisible(['back1', 'back10', 'forw1', 'forw10'], inReview);
     this.controls.setVisible(['accept', 'refuse'], ending);
-    this.controls.setVisible(['undo'], inGame);
-    this.controls.setVisible(['pass', 'resi'], inGame && !auto);
+    this.controls.setVisible(['undo', 'pass', 'resi'], inGame && !auto);
     this.controls.setVisible(['next', 'next10', 'nextAll', 'aiVsAiFlags'], inGame && auto);
     this.controls.setVisible(['newg'], ended && !this.isCompactLayout);
 
     // Dev controls
-    if (!this.isProd) this.controls.setVisible(['devDiv'], this.inDevMode && (inGame || inReview));
+    if (!this.isProd) this.toggleDevControls(inGame, inReview, auto);
 };
 
 

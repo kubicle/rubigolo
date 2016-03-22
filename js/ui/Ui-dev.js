@@ -43,13 +43,6 @@ Ui.prototype.devMessage = function (html, append) {
     this.devOutput.setHtml(html);
 };
 
-Ui.prototype.setEvalMode = function (enabled) {
-    if (enabled === this.inEvalMode) return;
-    this.inEvalMode = enabled;
-    this.controls.setEnabled('ALL', !this.inEvalMode, ['evalMode','undo','next','pass', 'heuristicTest']);
-    this.controls.get('evalMode').toggleClass('toggled', enabled);
-};
-
 Ui.prototype.showDevData = function (move, aiPlayer, isTest) {
     aiPlayer = aiPlayer || this.getAiPlayer(this.game.curColor);
     var txt = aiPlayer.getMoveSurveyText(move, isTest);
@@ -72,25 +65,25 @@ Ui.prototype.scoreTest = function () {
     this.board.showSpecial('scoring', this.scorer.getScoringGrid().yx);
 };
 
-Ui.prototype.territoryTest = function (aiColor) {
-    this.board.showSpecial('territory', this.getAiPlayer(aiColor).guessTerritories());
+Ui.prototype.territoryTest = function (aiPlayer) {
+    this.board.showSpecial('territory', aiPlayer.guessTerritories());
 };
 
-Ui.prototype.influenceTest = function (aiColor, color) {
-    var infl = this.getAiPlayer(aiColor).getHeuristic('Influence').infl;
+Ui.prototype.influenceTest = function (aiPlayer, color) {
+    var infl = aiPlayer.getHeuristic('Influence').infl;
     this.board.setValueFormat(0, 1);
     this.board.showSpecial('value', infl[color]);
 };
 
-Ui.prototype.eyesTest = function (aiColor, oddOrEven) {
-    var shaper = this.getAiPlayer(aiColor).getHeuristic('Shaper');
+Ui.prototype.eyesTest = function (aiPlayer, oddOrEven) {
+    var shaper = aiPlayer.getHeuristic('Shaper');
     var yx = shaper.potEyeGrids[oddOrEven].yx;
     this.board.setValueFormat(0, 1, EMPTY);
     this.board.showSpecial('value', yx);
 };
 
-Ui.prototype.totalEvalTest = function (aiColor) {
-    var score = this.getAiPlayer(aiColor).scoreGrid.yx;
+Ui.prototype.totalEvalTest = function (aiPlayer) {
+    var score = aiPlayer.scoreGrid.yx;
     this.board.setValueFormat(1, 1);
     this.board.showSpecial('value', score);
 };
@@ -122,7 +115,9 @@ var evalTests = [
 Ui.prototype.evalTestHandler = function (name) {
     var evalTest = evalTests[name];
     this.statusMessage('Showing "' + evalTest[0] + '"');
-    evalTest[1].call(this, 1 - this.game.curColor);
+    var ai = this.getAiPlayer(this.game.curColor);
+    ai.getMove();
+    evalTest[1].call(this, ai);
     this.board.highlightStone(null);
     this.evalTestDropdown.select(0);
 };
@@ -160,28 +155,45 @@ Ui.prototype._updateGameLink = function () {
 Ui.prototype.createDevControls = function () {
     var self = this;
     var devDiv = this.gameDiv.newDiv('#devDiv');
+
     var devCtrls = devDiv.newDiv('devControls');
-
     Dome.newButton(devCtrls, '#evalMode', 'Eval mode', function () { self.setEvalMode(!self.inEvalMode); });
+    Dome.newButton(devCtrls, '#aiPass', 'Force pass', function () { self.playerMove('pass'); });
+    Dome.newButton(devCtrls, '#aiUndo', 'AI undo', function () { self.playUndo(); });
+    Dome.newButton(devCtrls, '#aiResi', 'AI resign', function () { self.playerResigns(); });
 
-    var col2 = devCtrls.newDiv('col2');
-    Dome.newCheckbox(col2, 'debug', 'Debug').on('change', function () {
+    var options = devDiv.newDiv('options');
+    Dome.newCheckbox(options, 'debug', 'Debug').on('change', function () {
         main.debug = this.isChecked();
         main.log.level = main.debug ? Logger.DEBUG : Logger.INFO;
     });
 
-    this.devGameLink = Dome.newLink(col2, 'emailGame', 'Game link');
+    this.devGameLink = Dome.newLink(options, 'emailGame', 'Game link');
     this._updateGameLink();
 
-    var tests = [], values = [];
-    for (var i = 0; i < evalTests.length; i++) { tests.push(evalTests[i][0]); values.push(i); }
-    this.evalTestDropdown = Dome.newDropdown(col2, '#evalTest', tests, values, '');
-    this.evalTestDropdown.on('change', function () {
-        self.evalTestHandler(this.value());
-    });
-    Dome.newDropdown(col2, '#heuristicTest', heuristics, null, '').on('change', function () {
+    Dome.newDropdown(options, '#heuristicTest', heuristics, null, '').on('change', function () {
         self.heuristicTestHandler(this.value());
     });
 
+    var tests = [], values = [];
+    for (var i = 0; i < evalTests.length; i++) { tests.push(evalTests[i][0]); values.push(i); }
+    this.evalTestDropdown = Dome.newDropdown(options, '#evalTest', tests, values, '');
+    this.evalTestDropdown.on('change', function () {
+        self.evalTestHandler(this.value());
+    });
+
     this.devOutput = devDiv.newDiv('logBox devLogBox');
+};
+
+Ui.prototype.toggleDevControls = function (inGame, inReview, auto) {
+    if (this.inEvalMode && !inGame) this.setEvalMode(false);
+    this.controls.setVisible(['devDiv'], this.inDevMode && (inGame || inReview));
+    this.controls.setVisible(['aiUndo', 'aiPass', 'aiResi'], inGame && auto);
+};
+
+Ui.prototype.setEvalMode = function (enabled) {
+    if (enabled === this.inEvalMode) return;
+    this.inEvalMode = enabled;
+    this.controls.setEnabled('ALL', !this.inEvalMode, ['evalMode','undo','next','pass', 'aiUndo', 'aiPass', 'heuristicTest']);
+    this.controls.get('evalMode').toggleClass('toggled', enabled);
 };
