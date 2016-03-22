@@ -78,6 +78,11 @@ Stone.prototype.isCorner = function () {
     return this.neighbors.length === 2;
 };
 
+Stone.prototype.getSubCorner = function () {
+    var goban = this.goban, size1 = goban.gsize - 1;
+    return goban.stoneAt(this.i === 1 ? 2 : size1, this.j === 1 ? 2 : size1);
+};
+
 Stone.prototype.isBorder = function () {
     return this.neighbors.length <= 3; // NB: corners are borders too
 };
