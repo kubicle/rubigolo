@@ -4,6 +4,7 @@ var main = require('../main');
 var Dome = require('./Dome');
 var Logger = require('../Logger');
 var Ui = require('./Ui');
+var userPref = require('../userPreferences');
 
 
 function TestUi() {
@@ -70,6 +71,8 @@ TestUi.prototype.createControls = function (parentDiv) {
 };
 
 TestUi.prototype.createUi = function () {
+    window.addEventListener('beforeunload', this.beforeUnload.bind(this));
+
     var title = main.appName + ' - Tests';
     Dome.setPageTitle(title);
     var testDiv = Dome.newDiv(document.body, 'testUi');
@@ -80,14 +83,23 @@ TestUi.prototype.createUi = function () {
     var defAiDiv = testDiv.newDiv();
     Dome.newLabel(defAiDiv, 'inputLbl', 'Default AI:');
     this.defaultAi = Dome.newDropdown(defAiDiv, 'defaultAi', Object.keys(main.ais), null, main.defaultAi.name);
-    
-    this.namePattern = Dome.newInput(testDiv, 'namePattern', 'Test name pattern:');
+
+    this.namePattern = Dome.newInput(testDiv, 'namePattern', 'Test name pattern:', userPref.getValue('testNamePattern'));
     this.debug = Dome.newCheckbox(testDiv, 'debug', 'Debug');
     
     testDiv.newDiv('subTitle').setText('Result');
     this.output = testDiv.newDiv('logBox testOutputBox');
     testDiv.newDiv('subTitle').setText('Errors');
     this.errors = testDiv.newDiv('logBox testErrorBox');
+};
+
+TestUi.prototype.saveTestPreferences = function () {
+    userPref.setValue('testNamePattern', this.namePattern.value());
+};
+
+TestUi.prototype.beforeUnload = function () {
+    this.saveTestPreferences();
+    userPref.close();
 };
 
 TestUi.prototype.showTestGame = function (title, msg, game) {
