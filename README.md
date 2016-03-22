@@ -20,7 +20,7 @@ How to build and test locally
 npm install
 
 # Start browserify build & file watcher
-npm start
+npm run-script dev-build
 
 # Run the dev version or the tests
 Open in your browser:
@@ -32,7 +32,7 @@ cd ...\cgtc-2.0.1
 java -jar gogui-regress.jar "node ...\rubigolo\js\consoleMain.js" *.tst
 ```
 # Build the minified bundle
-browserify js/app.js -t lessify | node node_modules/uglify-js/bin/uglifyjs -o build/bld.js -m --mangle-props --reserved-file build/reserved.json --reserve-domprops --mangle-regex="/^[^.]/" -c pure_funcs=[\"main.log.debug\",\"main.log.warn\"]
+npm run-script build
 
 =======
 
