@@ -108,6 +108,8 @@ Breeder.prototype._countAlreadySeenGames = function () {
 // @param {Genes} [genes2]
 // @param {string} [initMoves] - e.g. "e5,d4"
 Breeder.prototype.playGame = function (genes1, genes2, initMoves) {
+    var komi = initMoves && initMoves[0] === 'W' ? - this.komi : this.komi; // reverse komi if W starts
+
     this.game.newGame(this.gsize, 0, this.komi);
     this.game.loadMoves(initMoves);
     this.players[BLACK].prepareGame(genes1);
@@ -228,9 +230,9 @@ Breeder.prototype.aiVsAi = function (numGames, numGamesShowed, initMoves) {
 
     var blackName = this.game.playerNames[BLACK], whiteName = this.game.playerNames[WHITE];
     var gsize = this.gsize;
+    var descMoves = initMoves ? ' [' + initMoves + ']' : '';
     var desc = numGames + ' games on ' + gsize + 'x' + gsize + ', komi=' + this.komi + ', ' +
-        whiteName + ' VS ' + blackName + '(B)';
-    if (initMoves) desc += ' [' + initMoves + ']';
+        whiteName + ' VS ' + blackName + '(B)' + descMoves;
     var expectedDuration = numGames * 0.05 * gsize * gsize / 81;
 
     this.timer.start(desc, expectedDuration);
@@ -260,7 +262,7 @@ Breeder.prototype.aiVsAi = function (numGames, numGamesShowed, initMoves) {
     main.log.info('Average number of times White picked at random between equivalent moves: ' + (numRandom / numGames).toFixed(1));
     main.log.info('Average time per move: ' + (this.timer.duration * 1000 / numMoves).toFixed(1) + 'ms');
     main.log.info('Won games for White-' + whiteName +
-        ' VS Black-' + blackName + ': ' + (winRatio * 100).toFixed(1) + '%');
+        ' VS Black-' + blackName + descMoves + ': ' + (winRatio * 100).toFixed(1) + '%');
 
     return winRatio; // White's victory ratio
 };
