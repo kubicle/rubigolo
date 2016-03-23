@@ -48,6 +48,7 @@ GroupInfo.prototype.resetAnalysis = function () {
     this.fakeSpots.length = 0;
     this.fakeBrothers.length = 0;
     this.closeBrothers.length = 0;
+    this.splitEyeCount = 0;
 };
 
 // For debug only
@@ -135,7 +136,7 @@ GroupInfo.prototype.findBrothers = function () {
 //FIXME: see scoring tests; a fake spot inside our territory can be left unplayed
 GroupInfo.prototype.needsToConnect = function () {
     if (this.eyeCount >= 2) return NEVER;
-    var numPotEyes = this._countPotEyes();
+    var numPotEyes = this.countPotEyes();
     if (numPotEyes >= 3) return NEVER;
     if (numPotEyes === 0) return ALWAYS;
     return SOMETIMES;
@@ -359,21 +360,24 @@ GroupInfo.prototype.checkSingleEye = function (first2play) {
     var canMakeTwoEyes = this.getEyeMakerMove(coords);
     // if it depends which player plays first
     if (canMakeTwoEyes === SOMETIMES) {
+        this.splitEyeCount = 0.5;
         if (first2play === undefined) return UNDECIDED; // no idea who wins here
         if (first2play !== this.group.color) {
             canMakeTwoEyes = NEVER;
         }
     }
     if (canMakeTwoEyes === NEVER) {
+        this.splitEyeCount = 0;
         // yet we cannot say it is dead if there are brothers or dead enemies around
         if (this.band || this.deadEnemies.length) return UNDECIDED;
-        if (this.countBandPotentialEyes() >= 2)
+        if (this.countBandPotentialEyes() >= 1.5)
             return UNDECIDED;
         this._liveliness = this.liveliness();
         return FAILS;
     }
     // canMakeTwoEyes === ALWAYS or SOMETIMES & it is our turn to play
     this.isAlive = true;
+    this.splitEyeCount = 1;
     if (main.debug) main.log.debug('ALIVE-canMakeTwoEyes-' + when2str(canMakeTwoEyes) + ': ' + this);
     return LIVES;
 };
@@ -421,15 +425,15 @@ GroupInfo.prototype.checkLiveliness = function (minLife) {
     return UNDECIDED;
 };
 
-GroupInfo.prototype.callOnBand = function (method, p1, p2) {
+GroupInfo.prototype.callOnBand = function (method, param) {
     if (this.band) {
         var brothers = this.band.brothers, count = 0;
         for (var n = brothers.length - 1; n >= 0; n--) {
-            count += method.call(brothers[n], p1, p2);
+            count += method.call(brothers[n], param);
         }
         return count;
     } else {
-        return method.call(this, p1, p2);
+        return method.call(this, param);
     }
 };
 
@@ -437,12 +441,43 @@ GroupInfo.prototype.addPotentialEye = function (oddOrEven, count) {
     this.potentialEyeCounts[oddOrEven] += count;
 };
 
-GroupInfo.prototype._countPotEyes = function () {
-    return this.eyeCount + Math.max(this.potentialEyeCounts[EVEN], this.potentialEyeCounts[ODD]);
+GroupInfo.prototype.isInsideEnemy = function () {
+    var enemyColor = 1 - this.group.color;
+    for (var n = this.nearVoids.length - 1; n >= 0; n--) {
+        var v = this.nearVoids[n];
+        if (v.color !== enemyColor) return false;
+    }
+    return true;
+};
+
+// When an enemy is undead but inside our group, it can be counted as eye
+// NB: difference with isInsideEnemy is that we skip voids that are already eyes
+GroupInfo.prototype._countEyesAroundPrisoner = function () {
+    var color = this.group.color;
+    for (var n = this.nearVoids.length - 1; n >= 0; n--) {
+        var v = this.nearVoids[n];
+        if (v.color !== undefined) continue;
+        var enemies = v.groups[1 - color];
+        var canBeEye = true;
+        for (var m = enemies.length - 1; m >= 0; m--) {
+            var enemy = enemies[m];
+            if (enemy.stones.length >= 6 || enemies.xAlive === ALWAYS) {
+                canBeEye = false;
+                break;
+            }
+        }
+        if (canBeEye) return 1;
+    }
+    return 0;
+};
+
+GroupInfo.prototype.countPotEyes = function () {
+    return this.eyeCount + this.splitEyeCount + this._countEyesAroundPrisoner() +
+        Math.max(this.potentialEyeCounts[EVEN], this.potentialEyeCounts[ODD]) / 2;
 };
 
 GroupInfo.prototype.countBandPotentialEyes = function () {
-    return this.callOnBand(this._countPotEyes);
+    return this.callOnBand(this.countPotEyes);
 };
 
 GroupInfo.prototype._countSize = function () {
