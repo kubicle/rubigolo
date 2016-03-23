@@ -40,13 +40,13 @@ NoEasyPrisoner.prototype._evalMove = function (i, j, color) {
         if (g.stones.length === 1 && stone.empties()[0].moveIsKo(this.enemyColor)) {
             if (main.debug) main.log.debug('NoEasyPrisoner sees ' + move + ' starts a KO');
         } else {
-            score -= g.stones.length + 2;
+            score -= g.stones.length * 2;
             if (main.debug) main.log.debug('NoEasyPrisoner says ' + move + ' is plain foolish (' + score + ')');
         }
     } else if (g.lives === 2) {
         if (main.debug) main.log.debug('NoEasyPrisoner asking Hunter to look at ' + move);
         if (this.hunter.isEscapingAtariCaught(stone)) {
-            score -= g.stones.length + 2;
+            score -= g.stones.length * 2;
             if (main.debug) main.log.debug('NoEasyPrisoner (backed by Hunter) says ' + move + ' is foolish  (' + score + ')');
         }
     }
