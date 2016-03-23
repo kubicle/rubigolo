@@ -133,6 +133,69 @@ GroupInfo.prototype.findBrothers = function () {
     Band.gather(allies);
 };
 
+function findAndMerge(subBands, groups, subNdx) {
+    for (var i = groups.length - 1; i >= 0; i--) {
+        var gi = groups[i]._info;
+        for (var n = subBands.length - 1; n >= 0; n--) {
+            if (subBands[n].indexOf(gi) < 0) continue;
+            if (subNdx !== -1 && subNdx !== n) {
+                subBands[subNdx] = subBands[subNdx].concat(subBands[n]);
+                subBands.splice(n, 1);
+                if (n < subNdx) subNdx--;
+            } else {
+                subNdx = n;
+            }
+            break;
+        }
+    }
+    return subNdx;
+}
+
+// Insert newGroup into one of the subbands; groups1 & groups2 are brothers of newGroup
+// Subbands are merged whenever needed (when brotherhood shows 2 subbands are the same)
+function mergeSubBands(subBands, newGroup, groups1, groups2) {
+    var subNdx = -1;
+    subNdx = findAndMerge(subBands, groups1, subNdx);
+    subNdx = findAndMerge(subBands, groups2, subNdx);
+    if (subNdx < 0) {
+        subBands.push([newGroup]);
+    } else {
+        subBands[subNdx].push(newGroup);
+    }
+}
+
+GroupInfo.prototype._getFakeBrothersIfCut = function (stone) {
+    var res = [] ;
+    for (var i = this.fakeBrothers.length - 1; i >= 0; i--) {
+        if (this.fakeSpots[i] === stone) continue;
+        res.push(this.fakeBrothers[i]);
+    }
+    return res;
+};
+
+GroupInfo.prototype.getSubBandsIfCut = function (stone) {
+    var band = this.band;
+    if (!band) return [this];
+    var subBands = [];
+    for (var i = band.brothers.length - 1; i >= 0; i--) {
+        var gi = band.brothers[i];
+        mergeSubBands(subBands, gi, gi.closeBrothers, gi._getFakeBrothersIfCut(stone));
+    }
+    return subBands;
+};
+
+GroupInfo.prototype.getSubBandsIfKilled = function () {
+    var band = this.band;
+    if (!band) return [];
+    var subBands = [];
+    for (var i = band.brothers.length - 1; i >= 0; i--) {
+        var gi = band.brothers[i];
+        if (gi === this) continue;
+        mergeSubBands(subBands, gi, gi.closeBrothers, gi.fakeBrothers);
+    }
+    return subBands;
+};
+
 //FIXME: see scoring tests; a fake spot inside our territory can be left unplayed
 GroupInfo.prototype.needsToConnect = function () {
     if (this.eyeCount >= 2) return NEVER;
