@@ -52,7 +52,12 @@ PotentialEyes.prototype._findPotentialEyes = function () {
                     count = 2;
                 }
             }
-            if (!ally) continue;
+            if (!ally) {
+                if (!eye.isCorner()) continue;
+                // corner eye with no direct neighbor => take diagonal stone, must be our ally
+                ally = eye.getSubCorner().group;
+                if (!ally) continue; // see testWrongAttack2 in a7; not great square 2x2 for eye anyway
+            }
 
             var oddOrEven = (i + j) % 2;
             var potEyeYx = this.potEyeGrids[oddOrEven].yx;
@@ -70,8 +75,14 @@ PotentialEyes.prototype._eyePotential = function (i, j, eye) {
     var color = infB > infW ? BLACK : WHITE;
     var allyInf = Math.max(infB, infW), enemyInf = Math.min(infB, infW);
     if (enemyInf > 1) return null; // enemy stone closer than 2 vertexes
-    var cornerPoints = 0, gsize = this.gsize;
-    if (i === 1 || i === gsize || j === 1 || j === gsize) cornerPoints++;
-    if (allyInf + cornerPoints - 3 - enemyInf < 0) return null;
+    var borderPoint = 0, gsize = this.gsize;
+
+    if (enemyInf === 1) {
+        if (this.co.canConnect(i, j, 1 - color) && eye.numEmpties() > 1) return null; // enemy can play on eye => no good
+        if (eye.isCorner() && eye.getSubCorner().color === EMPTY) borderPoint++; // a1 in testEyeMaking_shape5safe
+    }
+
+    if (i === 1 || i === gsize || j === 1 || j === gsize) borderPoint++;
+    if (allyInf + borderPoint - 3 - enemyInf < 0) return null;
     return color;
 };
