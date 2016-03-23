@@ -59,8 +59,8 @@ Shaper.prototype._eyeCloser = function (i, j, color) {
     if (this.pot.isOwned(i, j, color) === NEVER)
         return false;
 
-    if (!this.canConnect(i, j, 1 - color))
-        return false;
+    // If enemy cannot play in i,j there is no worry
+    if (!this.co.canConnect(i, j, 1 - color)) return;
 
     var v = this.player.boan.getVoidAt(stone);
     if (v.owner && v.owner.group.color === color) {

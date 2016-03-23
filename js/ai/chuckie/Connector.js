@@ -50,6 +50,12 @@ Connector.prototype._evalMove = function (i, j, color) {
            this._connectsMyGroups(stone, 1 - color);
 };
 
+Connector.prototype._connectsMyGroups = function (stone, color) {
+    var score = this._directConnect(stone, color);
+    if (score) return score;
+    return this._diagonalConnect(stone, color);
+};
+
 Connector.prototype._diagonalConnect = function (stone, color) {
     var diag = true, grp1 = null, grp2 = null, nonDiagGrp1 = null;
     var isDiagCon = false;
@@ -130,7 +136,7 @@ Connector.prototype._directConnect = function (stone, color) {
     // Case of diagonal (strong) stones
     if (s1.i !== s2.i && s1.j !== s2.j) {
         // no need to connect now if connection is granted
-        if (this.distanceBetweenStones(s1, s2, color) === 0) {
+        if (this._distanceBetweenStones(s1, s2, color) === 0) {
             if (main.debug) main.log.debug('Connector ' + Grid.colorName(color) + ' sees no hurry to connect ' + s1 + ' and ' + s2);
             if (this.player.jpRules) return 0;
             if (s1.group._info.needsToConnect() !== NEVER ||
@@ -173,8 +179,101 @@ Connector.prototype._computeScore = function (stone, color, groups, numEnemies, 
     return score;
 };
 
-Connector.prototype._connectsMyGroups = function (stone, color) {
-    var score = this._directConnect(stone, color);
-    if (score) return score;
-    return this._diagonalConnect(stone, color);
+Connector.prototype._diagonalStones = function (s1, s2) {
+    return [this.goban.stoneAt(s1.i, s2.j), this.goban.stoneAt(s2.i, s1.j)];
+};
+
+Connector.prototype._distanceBetweenStones = function (s1, s2, color) {
+    var dx = Math.abs(s2.i - s1.i), dy = Math.abs(s2.j - s1.j);
+    if (dx + dy === 1) return 0; // already connected
+    var enemy = 1 - color;
+    var numEnemies = 0, between;
+    if (dx === 1 && dy === 1) { // hane
+        var diags = this._diagonalStones(s1, s2), c1 = diags[0], c2 = diags[1];
+        if (c1.color === color || c2.color === color) return 0; // already connected
+        if (c1.color === enemy) numEnemies++;
+        if (c2.color === enemy) numEnemies++;
+        if (numEnemies === 0) return 0; // safe hane
+        if (numEnemies === 2) return 99; // cut!
+        var whichIsEnemy = c1.color === enemy ? 0 : 1;
+        var enemyStone = diags[whichIsEnemy], connPoint = diags[1 - whichIsEnemy];
+        if (s1.isBorder() || s2.isBorder()) {
+            // if enemy cut-stone on border, we have a sente connect by doing atari
+            if (connPoint.distanceFromBorder() === 1)
+                return enemyStone.group.lives > 2 ? 1 : 0;
+            if (connPoint.allyStones(enemy) !== 0) return 1; // other enemy next to conn point
+            return 0;
+        } else if (connPoint.distanceFromBorder() === 1) {
+            if (connPoint.allyStones(enemy) !== 0) return 1;
+            return 0;
+        }
+        return 1;
+    }
+    if (dx + dy === 2) {
+        between = this.goban.stoneAt((s1.i + s2.i) / 2, (s1.j + s2.j) /2);
+        if (between.color === color) return 0; // already connected
+        if (between.color === enemy) return between.group.lives; // REVIEW ME
+        for (var i = between.neighbors.length - 1; i >= 0; i--) {
+            if (between.neighbors[i].color === enemy) numEnemies++;
+        }
+        if (numEnemies >= 1) return 1; // needs 1 move to connect (1 or 2 enemies is same)
+        if (s1.isBorder() && s2.isBorder()) {
+            return 0; // along border with 0 enemy around is safe
+        }
+        return 0.5; // REVIEW ME
+    }
+    if (dx + dy === 3 && s1.isBorder() && s2.isBorder()) {
+        // TODO code betweenStones and test it
+        var betweens = this.betweenStones(s1, s2);
+        var dist = 0;
+        for (var b = betweens.length - 1; b >= 0; b--) {
+            between = betweens[b];
+            if (between.color === enemy) dist += between.group.lives;
+            if (between.allyStones(enemy) !== 0) dist += 1;
+        }
+        return dist;
+    }
+    //TODO: add other cases like monkey-jump
+    return dx + dy;
+};
+
+/** Evaluates if a new stone at i,j will be able to connect with a "color" group around.
+ *  Basically this is to make sure i,j is not alone (and not to see if i,j is a connector!) */
+// +@+
+// O+O
+// @*@ <-- TODO review this case; looks like white here cannot connect
+Connector.prototype.canConnect = function (i, j, color) {
+    var stone = this.goban.stoneAt(i,j);
+
+    // first look around for empties and allies (a single ally means we connect!)
+    var empties = [];
+    for (var nNdx = stone.neighbors.length - 1; nNdx >= 0; nNdx--) {
+        var n = stone.neighbors[nNdx];
+        switch (n.color) {
+        case EMPTY:
+            empties.push(n);
+            break;
+        case color:
+            if (n.group.lives > 1 && n.group.xDead < ALWAYS) return n;
+            break;
+        default: // if we kill an enemy group here, consider this a connection
+            if (n.group.lives === 1) return n.group.allEnemies()[0];
+        }
+    }
+    // look around each empty for allies
+    var moveNeeded = 2;
+    for(var eNdx = empties.length - 1; eNdx >= 0; eNdx--) {
+        var empty = empties[eNdx];
+        for (var n2Ndx = empty.neighbors.length - 1; n2Ndx >= 0; n2Ndx--) {
+            var en = empty.neighbors[n2Ndx];
+            if (en === stone) continue; // same stone
+            if (en.color !== color) continue; // empty or enemy
+            if (en.group.xDead === ALWAYS) continue; // TODO: look better at group's health
+            var dist = this._distanceBetweenStones(stone, en, color);
+            if (dist >= 2) continue;
+            moveNeeded -= (2 - dist);
+            if (moveNeeded <= 0.5) return en; // REVIEW ME
+        }
+    }
+    return null;
 };

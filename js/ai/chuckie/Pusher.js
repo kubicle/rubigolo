@@ -1,10 +1,16 @@
 //Translated from pusher.rb using babyruby2js
 'use strict';
 
+var CONST = require('../../constants');
 var main = require('../../main');
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
+var Stone = require('../../Stone');
+
+var EMPTY = CONST.EMPTY, BORDER = CONST.BORDER;
+var XY_AROUND = Stone.XY_AROUND;
+var DIR0 = CONST.DIR0, DIR3 = CONST.DIR3;
 
 
 /** @class
@@ -31,7 +37,7 @@ Pusher.prototype._evalMove = function (i, j, color) {
     if (this.noEasyPrisonerYx[j][i] < 0) return 0;
 
     // Only push where we can connect to
-    if (!this.canConnect(i, j, color)) return 0;
+    if (!this.co.canConnect(i, j, color)) return 0;
     // Stones that would "fill a blank" are not for Pusher to evaluate
     if (this.goban.stoneAt(i, j).numEmpties() === 0) return 0;
 
@@ -42,4 +48,34 @@ Pusher.prototype._evalMove = function (i, j, color) {
         ', influences:' + allyInf + ' - ' + enemyInf + ' at ' + Grid.xy2move(i, j) +
         ' -> ' + '%.03f'.format(score));
     return score;
+};
+
+Heuristic.prototype._invasionCost = function (i, j, dir, color, level) {
+    var s = this.goban.stoneAt(i, j);
+    if (s === BORDER || s.color !== EMPTY) return 0;
+    var cost = this.pot.enemyTerritoryScore(i, j, color);
+    if (s.isBorder()) cost /= 2;
+    if (cost <= 0) return 0;
+    if (--level === 0) return cost;
+
+    var dx = XY_AROUND[dir][0], dy = XY_AROUND[dir][1];
+    var spread = XY_AROUND[(dir + 3) % 4];
+    var vx = spread[0], vy = spread[1];
+
+    cost += this._invasionCost(i + dx + vx, j + dy + vy, dir, color, level);
+    cost += this._invasionCost(i + dx - vx, j + dy - vy, dir, color, level);
+    return cost;
+};
+
+var INVASION_DEEPNESS = 1; // TODO: better algo for this
+
+Heuristic.prototype.invasionCost = function (i, j, color) {
+    var cost = Math.max(0, this.pot.enemyTerritoryScore(i, j, color));
+    for (var dir = DIR0; dir <= DIR3; dir++) {
+        cost += this._invasionCost(i + XY_AROUND[dir][0], j + XY_AROUND[dir][1], dir, color, INVASION_DEEPNESS);
+    }
+    var s = this.goban.stoneAt(i, j);
+    if (s.isCorner()) cost = Math.max(cost - 1, 0);
+    else if (s.isBorder()) cost = Math.max(cost - 0.85, 0);
+    return cost;
 };

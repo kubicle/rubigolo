@@ -84,6 +84,10 @@ Chuckie.prototype._createHeuristics = function () {
     heuristic.Spacer = this._newHeuristic(Spacer);
     heuristic.Pusher = this._newHeuristic(Pusher);
     heuristic.Shaper = this._newHeuristic(Shaper);
+
+    for (var n = 0; n < this.heuristics.length; n++) {
+        this.heuristics[n].updateCrossRef();
+    }
 };
 
 Chuckie.prototype.setColor = function (color) {

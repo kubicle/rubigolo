@@ -35,7 +35,7 @@ PotentialEyes.prototype._findPotentialEyes = function () {
             var eye = this.goban.stoneAt(i, j);
             if (eye.color !== EMPTY) continue;
 
-            var color = this.eyePotential(i, j);
+            var color = this._eyePotential(i, j, eye);
             if (color === null) continue;
 
             var v = this.player.boan.getVoidAt(eye);
@@ -64,12 +64,11 @@ PotentialEyes.prototype._findPotentialEyes = function () {
 };
 
 /** @return {color|null} - null if no chance to make an eye here */
-Heuristic.prototype.eyePotential = function (i, j) {
+PotentialEyes.prototype._eyePotential = function (i, j, eye) {
     var infB = this.infl[BLACK][j][i];
     var infW = this.infl[WHITE][j][i];
     var color = infB > infW ? BLACK : WHITE;
     var allyInf = Math.max(infB, infW), enemyInf = Math.min(infB, infW);
-
     if (enemyInf > 1) return null; // enemy stone closer than 2 vertexes
     var cornerPoints = 0, gsize = this.gsize;
     if (i === 1 || i === gsize || j === 1 || j === gsize) cornerPoints++;
