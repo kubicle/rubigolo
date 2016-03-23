@@ -37,9 +37,9 @@ TestSeries.prototype.testOneClass = function (Klass, methodPattern) {
                 main.log.error('Test failed: ' + main.funcName(test) + ': ' + e.message + '\n');
             } else {
                 this.errorCount++;
-                test.showInUi(e.message);
                 main.log.error('Exception during test: ' + main.funcName(test) + ':\n' + e.stack + '\n');
             }
+            test.showInUi(e.message);
         }
     }
 };
