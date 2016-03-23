@@ -130,6 +130,7 @@ Hunter.prototype._countPreAtariThreat = function (stone, enemies, empties, color
             isSnapback = true;
             if (main.debug) main.log.debug('Hunter ' + Grid.colorName(color) + ' sees a snapback in ' + stone);
         }
+        if (!level && eg._info.isInsideEnemy()) continue; // avoid chasing inside our groups - eyes are #1 goal
         if (main.debug) main.log.debug('Hunter ' + Grid.colorName(color) + '(level ' + level + ') looking at threat ' + stone + ' on ' + eg);
         egroups.push(eg);
     }
