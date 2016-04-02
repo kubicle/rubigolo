@@ -48,19 +48,19 @@ Shaper.prototype._evalSingleEyeSplit = function (scoreYx, g) {
 };
 
 Shaper.prototype._evalMove = function (i, j, color) {
-    this._eyeCloser(i, j, color); // we can save 1 eye for us
-    this._eyeCloser(i, j, 1 - color); // we can attack 1 eye from enemy
+    var stone = this.goban.stoneAt(i, j);
+    this._eyeCloser(stone, color); // we can save 1 eye for us
+    this._eyeCloser(stone, 1 - color); // we can attack 1 eye from enemy
     return 0;
 };
 
-Shaper.prototype._eyeCloser = function (i, j, color) {
-    var stone = this.goban.stoneAt(i, j);
+Shaper.prototype._eyeCloser = function (stone, color) {
     // Below optim is "risky" since we give up making 2 eyes without trying when
     // our PotentialTerritory eval thinks we are dead. And we know PotentialTerritory is loose.
-    if (this.pot.isOwned(i, j, color) === NEVER) return;
+    if (this.pot.isOwned(stone.i, stone.j, color) === NEVER) return;
 
-    // If enemy cannot play in i,j there is no worry
-    if (!this.co.canConnect(i, j, 1 - color)) return;
+    // If enemy cannot connect there is no worry
+    if (!this.co.canConnect(stone, 1 - color)) return;
 
     var v = this.player.boan.getVoidAt(stone);
     if (v.owner && v.owner.group.color === color) {

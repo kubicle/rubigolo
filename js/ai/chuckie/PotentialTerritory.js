@@ -27,10 +27,13 @@ function PotentialTerritory(player) {
 
     this.realGrid = new Grid(this.gsize, GRID_BORDER);
     this.realYx = this.realGrid.yx; // simple shortcut to real yx
-    // grids below are used in the evaluation process
-    this.grids = [new Grid(this.gsize, GRID_BORDER), new Grid(this.gsize, GRID_BORDER)];
     this.reducedGrid = new Grid(this.gsize, GRID_BORDER);
-    this.territory = new Grid(this.gsize, GRID_BORDER); // result of evaluation
+
+    // Result of evaluation: this.grids[first2play] (Black or White)
+    this.grids = [new Grid(this.gsize, GRID_BORDER), new Grid(this.gsize, GRID_BORDER)];
+
+    // Sum of B-first + W-first as a number between -1=always Black and +1=always White
+    this.territory = new Grid(this.gsize, GRID_BORDER);
 
     this._computeBorderConnectConstants();
 
@@ -97,7 +100,7 @@ PotentialTerritory.prototype.enemyTerritoryScore = function (i, j, color) {
 };
 
 PotentialTerritory.prototype.toString = function () {
-    return '\n+1=white, -1=black, 0=no one\n' +
+    return '\n+1=white, -1=black, 0=no one or both\n' +
         this.territory.toText(function (v) { return v === 0 ? '    0' : '%+.1f'.format(v); }) +
         this.territory.toText(function (v) { return POT2CHAR[2 + v * 2]; });
 };
@@ -243,7 +246,7 @@ PotentialTerritory.prototype.diagonalMoveOk = function (yx, i, j, first, second)
     for (var v = DIR0; v <= DIR3; v++) {
         var vect = XY_DIAGONAL[v];
         if (yx[j + vect[1]][i + vect[0]] !== first) continue;
-        if (yx[j + vect[1]][i] === second || yx[j][i + vect[0]] === second) continue;
+//        if (yx[j + vect[1]][i] === second || yx[j][i + vect[0]] === second) continue;
         return true;
     }
     return false;
@@ -292,18 +295,21 @@ PotentialTerritory.prototype.connectToBorders = function (yx, first) {
         var s1i = gi + dx, s1j = gj + dy; // spot 1
         var color = yx[s1j][s1i];
         if (color !== EMPTY) {
+            if (color !== first) continue;
             l0 = yx[gj-dx][gi-dy]; r0 = yx[gj+dx][gi+dy];
-            if (l0 === color || r0 === color) continue; // no need for goal if s0 or r0
             l1 = yx[s1j-dx][s1i-dy]; r1 = yx[s1j+dx][s1i+dy];
-            if (l0 === EMPTY && r0 === EMPTY && l1 === color && r1 === color) continue;
-            var ll0 = yx[gj-2*dx][gi-2*dy], rr0 = yx[gj+2*dx][gi+2*dy];
-            if (ll0 === color || rr0 === color) continue;
+            if (l0 === color && l1 !== 1 - color) continue;
+            if (r0 === color && r1 !== 1 - color) continue;
+            //if (l0 === EMPTY && r0 === EMPTY && l1 === color && r1 === color) continue;
+            //var ll0 = yx[gj-2*dx][gi-2*dy], rr0 = yx[gj+2*dx][gi+2*dy];
+            //if (ll0 === color || rr0 === color) continue;
             this.addStone(yx, gi, gj, color, true);
             continue;
         }
         var s2i = s1i + dx, s2j = s1j + dy;
         color = yx[s2j][s2i];
         if (color !== EMPTY) {
+            if (color !== first) continue;
             l0 = yx[gj-dx][gi-dy]; r0 = yx[gj+dx][gi+dy];
             l1 = yx[s1j-dx][s1i-dy]; r1 = yx[s1j+dx][s1i+dy];
             if (l0 !== 1 - color && l1 === color) continue;
@@ -316,6 +322,7 @@ PotentialTerritory.prototype.connectToBorders = function (yx, first) {
         var s3i = s2i + dx, s3j = s2j + dy;
         color = yx[s3j][s3i];
         if (color !== EMPTY) {
+            if (color !== first) continue;
             l0 = yx[gj-dx][gi-dy]; r0 = yx[gj+dx][gi+dy];
             l1 = yx[s1j-dx][s1i-dy]; r1 = yx[s1j+dx][s1i+dy];
             l2 = yx[s2j-dx][s2i-dy]; r2 = yx[s2j+dx][s2i+dy];

@@ -1,9 +1,12 @@
 'use strict';
 
-//var CONST = require('../../constants');
+var main = require('../../main');
+var CONST = require('../../constants');
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
+
+var ALWAYS = CONST.ALWAYS;
 
 
 /** @class */
@@ -12,9 +15,10 @@ function MoveInfo(player) {
 
     this.grid = new Grid(this.gsize, null);
     this.groupDeath = [];
-    this.groupKills = [];
-    this.cuts = [];
-    this.connects = [];
+    //this.groupKills = [];
+    // this.cuts = [];
+    // this.connects = [];
+    this.what = '';
 
     this.pressureCoeff = this.getGene('pressure', 1, 0.01, 2);
     this.eyeCloserCoeff = this.getGene('eyeCloser', 1, 0.01, 1);
@@ -23,23 +27,12 @@ inherits(MoveInfo, Heuristic);
 module.exports = MoveInfo;
 
 
-//---
-
-function CellInfo() {
-    this.fakeEyeForColor = null;
-    this.score = 0;
-    this.goals = [];
-    this.goalFactors = [];
-}
-
-//---
-
 MoveInfo.prototype.evalBoard = function () {
     this.grid.init(null);
     this.groupDeath.length = 0;
-    this.groupKills.length = 0;
-    this.cuts.length = 0;
-    this.connects.length = 0;
+    // this.groupKills.length = 0;
+    // this.cuts.length = 0;
+    // this.connects.length = 0;
 };
 
 MoveInfo.prototype.collectScores = function (stateYx, scoreYx) {
@@ -49,13 +42,25 @@ MoveInfo.prototype.collectScores = function (stateYx, scoreYx) {
 MoveInfo.prototype._evalMove = function (i, j) {
     var cell = this.grid.yx[j][i];
     if (!cell) return 0;
+    return cell.computeScore();
+};
 
-    var score = cell.score;
-    var goals = cell.goals;
+function CellInfo() {
+    this.fakeEyeForColor = null;
+    this.score = 0;
+    this.goals = [];
+    this.goalFactors = [];
+    this.goalNumMoves = [];
+}
+
+CellInfo.prototype.computeScore = function () {
+    var score = this.score;
+    var goals = this.goals;
     if (!goals.length) return score;
 
     for (var n = goals.length - 1; n >= 0; n--) {
-        score += goals[n].countScore();
+        var goal = goals[n];
+        score += goal.score * this.goalFactors[n];
     }
     return score;
 };
@@ -84,34 +89,44 @@ MoveInfo.prototype.isFakeEye = function (stone, color) {
 
 //---
 
-function Goal(type, score, g, factor) {
-    this.type = type;
+function Goal(name, score, g) {
+    this.name = name;
     this.score = score;
-    this.finalScore = null;
+    // this.finalScore = null;
     this.group = g;
+    this.minMoves = Infinity;
     //this.moves = [];
-    this.consequences = [];
-    this.factor = factor || 1;
+    // this.consequences = [];
 }
 
-Goal.prototype.countScore = function () {
-    if (this.finalScore !== null) return this.finalScore;
-    this.finalScore = 0; // blocks cycles
-    var score = 0;
-    for (var i = this.consequences.length - 1; i >= 0; i--) {
-        score += this.consequences[i].countScore(); // recursive call
-    }
-    this.finalScore = score = score * this.factor + this.score;
-    return score;
+Goal.prototype.toString = function () {
+    return this.name + ' (on: #' + this.group.ndx +
+        (this.minMoves !== Infinity ? ', minMoves:' + this.minMoves : '') +
+        ', score:' + this.score.toFixed(2) + ')';
 };
 
-Goal.prototype.implies = function (goal) {
-    var goals = this.consequences;
-    if (goals.indexOf(goal) < 0) goals.push(goal);
-};
+// Goal.prototype.countScore = function () {
+//     if (this.finalScore !== null) return this.finalScore;
+//     this.finalScore = 0; // blocks cycles
+//     var score = 0;
+//     for (var i = this.consequences.length - 1; i >= 0; i--) {
+//         score += this.consequences[i].countScore(); // recursive call
+//     }
+//     this.finalScore = score = score * this.factor + this.score;
+//     return score;
+// };
+
+// Goal.prototype.implies = function (goal) {
+//     var goals = this.consequences;
+//     if (goals.indexOf(goal) < 0) goals.push(goal);
+// };
 
 
 //---
+
+MoveInfo.prototype._enter = function (name, g, stone) {
+    this.what = name + '#' + g.ndx + '-' + stone;
+};
 
 MoveInfo.prototype._groupDeath = function (g) {
     var goal = this.groupDeath[g.ndx];
@@ -125,27 +140,82 @@ MoveInfo.prototype._groupDeath = function (g) {
         numEmpties += lives[i].numEmpties(); // TODO: count only empties not in "lives"
     }
     cost += this.spaceInvasionCoeff * Math.max(0, numEmpties - 1); //...and the "open gate" to territory will count a lot
-    goal = this.groupDeath[g.ndx] = new Goal('death', cost, g);
+
+    this.groupDeath[g.ndx] = goal = new Goal(this.what || 'death', cost, g);
     return goal;
 };
 
-MoveInfo.prototype._goalReachedByMove = function (goal, stone, factor) {
-    if (!stone)  return goal;
+MoveInfo.prototype._goalReachedByMove = function (goal, stone, factor, numMoves) {
+    if (!stone)  throw new Error('Unexpected'); //return goal;
     factor = factor || 1;
+    numMoves = numMoves || 1;
+    if (main.debug) main.log.debug('Goal reached: ' + goal + ' at ' + stone +
+        (factor ? ' factor:' + factor : '') + (numMoves ? ' numMoves:' + numMoves : ''));
 
     // var moves = goal.moves;
     // if (moves.indexOf(stone) < 0) moves.push(stone);
 
     var cell = this._getCell(stone.i, stone.j);
-    var goals = cell.goals, goalFactors = cell.goalFactors;
+    var goals = cell.goals, goalFactors = cell.goalFactors, goalNumMoves = cell.goalNumMoves;
     var n = goals.indexOf(goal);
     if (n < 0) {
         goals.push(goal);
         goalFactors.push(factor);
+        goalNumMoves.push(numMoves);
     } else {
         goalFactors[n] = Math.max(goalFactors[n], factor);
+        goalNumMoves[n] = Math.min(goalNumMoves[n], numMoves);
     }
+    goal.minMoves = Math.min(goal.minMoves, numMoves);
     return goal;
+};
+
+MoveInfo.prototype._bandThreat = function (ginfos, stone, saving, factor, numMoves) {
+    factor = factor || 1;
+    var potEyeCount = 0, lives = numMoves || 0;
+    for (var n = ginfos.length - 1; n >= 0; n--) {
+        var gi = ginfos[n];
+        potEyeCount += gi.countPotEyes();
+        lives += gi.group.lives;
+    }
+    if (potEyeCount >= 2.5) factor /= (potEyeCount - 1.5) * (potEyeCount - 1.5) * lives / 5;
+
+    for (n = ginfos.length - 1; n >= 0; n--) {
+        this._groupThreat(ginfos[n].group, stone, saving, factor, lives);
+    }
+};
+
+MoveInfo.prototype._groupThreat = function (g, stone, saving, factor, numMoves) {
+    var goal = this._groupDeath(g);
+
+    if (!saving) this._countSavedAllies(g, stone, factor, numMoves);
+
+    return this._goalReachedByMove(goal, stone, factor, numMoves);
+};
+
+// Count indirectly saved groups
+MoveInfo.prototype._countSavedAllies = function (killedEnemy, stone, factor, numMoves) {
+    // do not count any saved allies if we gave them a single life in corner
+    if (killedEnemy.stones.length === 1 && killedEnemy.stones[0].isCorner()) {
+        return;
+    }
+    numMoves = numMoves || 1;
+    var allies = killedEnemy.allEnemies();
+    for (var a = allies.length - 1; a >= 0; a--) {
+        var ally = allies[a];
+        if (ally.lives < numMoves) continue;
+        if (ally.xAlive === ALWAYS) continue;
+
+        this._rescueGroup(ally, stone, factor, numMoves);
+    }
+};
+
+MoveInfo.prototype._rescueGroup = function (g, stone, factor, numMoves) {
+    var bands = g._info.getSubBandsIfKilled();
+    for (var i = bands.length - 1; i >= 0; i--) {
+        this._bandThreat(bands[i], stone, /*saving=*/true, factor, numMoves);
+    }
+    this._groupThreat(g, stone, true, factor, numMoves);
 };
 
 MoveInfo.prototype.addPressure = function (g, stone) {
@@ -153,88 +223,50 @@ MoveInfo.prototype.addPressure = function (g, stone) {
     this._getCell(stone.i, stone.j).score += pressure;
 };
 
+MoveInfo.prototype.giveMinimumScore = function (stone) {
+    this._getCell(stone.i, stone.j).score += this.minimumScore;
+};
+
 MoveInfo.prototype.raceThreat = function (g, stone) {
-    this._groupThreat(g, stone, false);
-    //TODO in _countSavedAllies: this._groupThreat(allyInRace, stone, /*saved=*/true);
-    // and make sure this is the shortest race around - otherwise it is not a race at all
-};
-
-MoveInfo.prototype.singleEyeThreat = function (g, stone, color) {
-    this._eyeThreatOnBand(g, stone, color, 1);
-};
-
-function countThreatOnBand(self, params) {
-    var goal0 = params[2];
-    var goal = self._groupThreat(this.group, /*stone=*/params[0], /*saving=*/params[1], goal0.factor);
-    goal0.implies(goal);
-    return 0; // not used
-}
-
-MoveInfo.prototype._eyeThreatOnBand = function (g, stone, color, extraPotEye) {
+    if (main.debug) this._enter('race', g, stone);
     var gi = g._info;
-    var potEyeCount = gi.countBandPotentialEyes() + extraPotEye;
-    if (potEyeCount < 2) return false;
-
-    var factor = 1 / (potEyeCount - 1);
-    var id = gi.band ? gi.band : g;
-    var goal0 = new Goal('eye', 0, id, factor); // TODO: cache them!
-    var saving = color === g.color;
-    gi.callOnBand(countThreatOnBand, this, [stone, saving, goal0]);
-    return true;
+    var ginfos = gi.band ? gi.band.brothers : [gi];
+    this._bandThreat(ginfos, stone, false);
 };
 
 MoveInfo.prototype.eyeThreat = function (g, stone, color) {
-    return this._eyeThreatOnBand(g, stone, color, 0);
+    if (main.debug) this._enter('eye', g, stone);
+    var gi = g._info;
+    var potEyeCount = gi.countBandPotentialEyes();
+    if (potEyeCount < 1.5) return false;
+
+    if (main.debug) main.log.debug('MoveInfo ' + Grid.colorName(color) + ' - eye threat at ' + stone);
+    var ginfos = gi.band ? gi.band.brothers : [gi];
+    this._bandThreat(ginfos, stone, color === g.color);
+    return true;
 };
 
-MoveInfo.prototype.cutThreat = function (g, stone, color) {
-    var isConnect = color === g.color;
-    var goals = isConnect ? this.connects : this.cuts;
-    var goal = goals[g.ndx];
-    if (goal) return goal;
+MoveInfo.prototype.cutThreat = function (groups, stone, color) {
+    var g = groups[0];
+    if (main.debug) this._enter('cut', g, stone);
+    var saving = color === g.color;
 
-    // goal = goals[g.ndx] = new Goal(isConnect ? 'connect' : 'cut', 0, g);
-
-    var potEyeCount = g._info.countBandPotentialEyes();
-    var factor = 1 / Math.max(1, potEyeCount - 1);
-
-    goal = goals[g.ndx] = this._groupThreat(g, stone, /*saving=*/isConnect, factor);
-
-    return goal;
+    var bands = g._info.getSubBandsIfCut(stone);
+    for (var i = bands.length - 1; i >= 0; i--) {
+        this._bandThreat(bands[i], stone, saving);
+    }
 };
 
 MoveInfo.prototype.killThreat = function (g, stone) {
-    return this._groupThreat(g, stone, /*saving=*/false);
+    if (main.debug) this._enter('kill', g, stone);
+    var bands = g._info.getSubBandsIfKilled();
+    for (var i = bands.length - 1; i >= 0; i--) {
+        this._bandThreat(bands[i], stone, /*saving=*/false);
+    }
+    this._groupThreat(g, stone, false, 1, g.lives);
 };
 
 MoveInfo.prototype.rescueGroup = function (g, stone) {
-    return this._groupThreat(g, stone, /*saving=*/true);
-};
-
-MoveInfo.prototype._groupThreat = function (g, stone, saving, factor) {
-    var goal = this.groupKills[g.ndx];
-    if (goal) return this._goalReachedByMove(goal, stone, factor);
-
-    goal = this.groupKills[g.ndx] = this._groupDeath(g);
-
-    if (!saving) this._countSavedAllies(g, stone, factor);
-
-    return this._goalReachedByMove(goal, stone, factor);
-};
-
-// Count indirectly saved groups
-MoveInfo.prototype._countSavedAllies = function (killedEnemy, stone, factor) {
-    // do not count any saved allies if we gave them a single life in corner
-    if (killedEnemy.stones.length === 1 && killedEnemy.stones[0].isCorner()) {
-        return;
-    }
-
-    var allies = killedEnemy.allEnemies();
-    for (var a = allies.length - 1; a >= 0; a--) {
-        var ally = allies[a];
-        if (ally.lives > 2) continue; //TODO later races etc.
-        if (ally.lives === 2 && !this.groupKills[ally.ndx]) continue;
-
-        this._groupThreat(ally, stone, /*saving=*/true, factor);
-    }
+    if (main.debug) this._enter('rescue', g, stone);
+    this._rescueGroup(g, stone);
 };

@@ -238,8 +238,11 @@ Hunter.prototype._countMultipleChaseThreat = function (stone, egroups, canEscape
     case 3: //TODO
     case 2:
         if (!level) {
-            var t0 = this.mi.killThreat(egroups[0]), t1 = this.mi.killThreat(egroups[1]);
-            this.mi._goalReachedByMove(canEscape[1] ? t0 : t1, stone);
+            if (canEscape[1]) {
+                this.mi.killThreat(egroups[0], stone);
+            } else {
+                this.mi.killThreat(egroups[1], stone);
+            }
         }
         // if (!canEscape[0] && !canEscape[1]) return Math.max(this.groupThreat(egroups[0]), this.groupThreat(egroups[1]));
         // if ( canEscape[0] &&  canEscape[1]) return Math.min(this.groupThreat(egroups[0]), this.groupThreat(egroups[1]));

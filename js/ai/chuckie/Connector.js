@@ -29,7 +29,6 @@ function Connector(player) {
     Heuristic.call(this, player);
 
     this.inflCoeff = this.getGene('infl', 0.07, 0.01, 0.5);
-    this.riskCoeff = this.getGene('risk', 1, 0.1, 4.0);
 
     this.noEasyPrisonerYx = player.heuristic.NoEasyPrisoner.scoreGrid.yx;
     this.hunter = player.heuristic.Hunter;
@@ -82,6 +81,7 @@ Connector.prototype._diagonalConnect = function (stone, color) {
             break;
         default:
             if (s.group.xDead === ALWAYS) continue;
+            if (s.group.lives < 2) continue;
             numEnemies++;
         }
     }
@@ -110,7 +110,8 @@ Connector.prototype._directConnect = function (stone, color) {
                 if (s.group !== s2.group) s3 = s; else s2b = s;
             }
             break;
-        default: numEnemies++;
+        default:
+            numEnemies++;
         }
     }
     
@@ -153,26 +154,10 @@ Connector.prototype._directConnect = function (stone, color) {
 Connector.prototype._computeScore = function (stone, color, groups, numEnemies, desc) {
     var score = 0;
     if (numEnemies === 0) {
+        //if (this.canConnect(stone, 1 - color)) this.mi.cutThreat(groups, stone, 1 - color);
         score = this.inflCoeff / this.infl[color][stone.j][stone.i];
     } else {
-        var someAlive = false, g;
-        for (var n = groups.length - 1; n >= 0; n--) {
-            g = groups[n];
-            // lives 1 or 2 are counted by Hunter/Savior; TODO: centralize how this is counted
-            if (g.lives <= 2 && g.xAlive < ALWAYS) return 0;
-            if (g.xDead < ALWAYS) {
-                someAlive = true;
-                break;
-            }
-        }
-        if (!someAlive) return 0; // don't try to connect dead groups
-
-        for (n = groups.length - 1; n >= 0; n--) {
-            g = groups[n];
-            if (g.xAlive === ALWAYS) continue;
-            this.mi.cutThreat(g, stone, 1 - color);
-        }
-        score *= this.riskCoeff;
+        this.mi.cutThreat(groups, stone, 1 - color);
     }
     if (main.debug) main.log.debug('Connector ' + desc + ' for ' + Grid.colorName(color) + ' gives ' +
         score.toFixed(3) + ' to ' + stone + ' (allies:' + groups.length + ' enemies: ' + numEnemies + ')');
@@ -238,13 +223,11 @@ Connector.prototype._distanceBetweenStones = function (s1, s2, color) {
 };
 
 /** Evaluates if a new stone at i,j will be able to connect with a "color" group around.
- *  Basically this is to make sure i,j is not alone (and not to see if i,j is a connector!) */
+ *  Basically this is to make sure stone is not alone (and not to see if stone is a connector!) */
 // +@+
 // O+O
 // @*@ <-- TODO review this case; looks like white here cannot connect
-Connector.prototype.canConnect = function (i, j, color) {
-    var stone = this.goban.stoneAt(i,j);
-
+Connector.prototype.canConnect = function (stone, color) {
     // first look around for empties and allies (a single ally means we connect!)
     var empties = [];
     for (var nNdx = stone.neighbors.length - 1; nNdx >= 0; nNdx--) {
@@ -257,7 +240,7 @@ Connector.prototype.canConnect = function (i, j, color) {
             if (n.group.lives > 1 && n.group.xDead < ALWAYS) return n;
             break;
         default: // if we kill an enemy group here, consider this a connection
-            if (n.group.lives === 1) return n.group.allEnemies()[0];
+            if (n.group.lives === 1) return n.group.allEnemies()[0].stones[0];
         }
     }
     // look around each empty for allies

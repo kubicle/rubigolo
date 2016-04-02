@@ -155,3 +155,20 @@ TestPotentialTerritory.prototype.testConnectBordersNoC7 = function () {
     this.checkBasicGame('d4,f4,e6,g6,d2,f7,e7,f2,e8,e3,e5,d3,c3,e2,c2,g5,f8,g8,f9',
         "------?::,------:::,-----::::,-----?:::,-----?:::,----?::::,---::::::,----:::::,----:::::", 9);
 };
+
+TestPotentialTerritory.prototype.test5by5withCornerCatch = function () {
+    // Black a5 left as is would be captured, and full black group would die
+    // @OOO+
+    // +@@O+
+    // +@+O+
+    // @@+O+
+    // +@+O+
+    this.checkBasicGame('a2,d3,b2,d4,b1,d2,b3,d1,a5,b5,b4,c5,c4,d5',
+        "'::::,'''::,''?::,''?::,''?::", 5);
+};
+
+TestPotentialTerritory.prototype.test5by5withCornerCatch2 = function () {
+    // Simple flip of above game
+    this.checkBasicGame('a4,d3,b4,d2,b5,d4,b3,d5,a1,b1,b2,c1,c2,d1',
+        "''?::,''?::,''?::,'''::,'::::", 5);
+};

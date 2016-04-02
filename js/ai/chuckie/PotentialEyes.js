@@ -78,7 +78,7 @@ PotentialEyes.prototype._eyePotential = function (i, j, eye) {
     var borderPoint = 0, gsize = this.gsize;
 
     if (enemyInf === 1) {
-        if (this.co.canConnect(i, j, 1 - color) && eye.numEmpties() > 1) return null; // enemy can play on eye => no good
+        if (this.co.canConnect(eye, 1 - color) && eye.numEmpties() > 1) return null; // enemy can play on eye => no good
         if (eye.isCorner() && eye.getSubCorner().color === EMPTY) borderPoint++; // a1 in testEyeMaking_shape5safe
     }
 
