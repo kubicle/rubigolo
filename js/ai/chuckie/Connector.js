@@ -124,7 +124,7 @@ Connector.prototype._directConnect = function (stone, color) {
     // 3 of our stones around: no need to connect unless enemy comes by or threatens
     if (numStones === 3) {
         if (numEnemies === 0 && s1.group.lives > 1 && s2.group.lives > 1 && (!s3 || s3.group.lives > 1)) {
-            return this.player.jpRules ? 0 : this.minimumScore;
+            return this.player.areaScoring ? this.minimumScore : 0;
         }
         return this._computeScore(stone, color, groups, numEnemies, 'direct3');
     }
@@ -139,7 +139,7 @@ Connector.prototype._directConnect = function (stone, color) {
         // no need to connect now if connection is granted
         if (this._distanceBetweenStones(s1, s2, color) === 0) {
             if (main.debug) main.log.debug('Connector ' + Grid.colorName(color) + ' sees no hurry to connect ' + s1 + ' and ' + s2);
-            if (this.player.jpRules) return 0;
+            if (!this.player.areaScoring) return 0;
             if (s1.group._info.needsToConnect() !== NEVER ||
                 s2.group._info.needsToConnect() !== NEVER)
                 return this.minimumScore;

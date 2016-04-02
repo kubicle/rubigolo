@@ -22,7 +22,7 @@ function BoardAnalyser(game) {
     this.game = game;
     this.version = 'chuckie';
     this.mode = null;
-    this.areaScoring = false;
+    this.areaScoring = false; // true if we count area; false if we count territory & prisoners
     this.goban = null;
     this.analyseGrid = null;
     this.scoreGrid = null;
@@ -93,7 +93,7 @@ BoardAnalyser.prototype.debugDump = function () {
 
 BoardAnalyser.prototype._initAnalysis = function (mode, goban, grid) {
     this.mode = mode;
-    this.areaScoring = this.game.rules !== CONST.JP_RULES && mode === SCORE;
+    this.areaScoring = this.game.useAreaScoring && mode === SCORE;
     this.goban = goban;
     this.analyseGrid = grid;
     this.filler = new ZoneFiller(goban, grid);

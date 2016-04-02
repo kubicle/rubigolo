@@ -9,7 +9,6 @@ var GameLogic = require('./GameLogic');
 var ScoreAnalyser = require('./ScoreAnalyser');
 
 var BLACK = CONST.BLACK, WHITE = CONST.WHITE;
-var JP_RULES = CONST.JP_RULES, CH_RULES = CONST.CH_RULES;
 
 var MUTATION_RATE = 0.03; // e.g. 0.02 is 2%
 var WIDE_MUTATION_RATE = 0.1; // how often do we "widely" mutate
@@ -22,7 +21,7 @@ function Breeder(gameSize, komi) {
     this.komi = komi;
     this.timer = new TimeKeeper();
     this.game = new GameLogic();
-    this.game.setRules(JP_RULES);
+    this.game.setRules(CONST.JP_RULES);
     this.game.setLogLevel('all=0');
     this.game.newGame(this.gsize);
     this.goban = this.game.goban;

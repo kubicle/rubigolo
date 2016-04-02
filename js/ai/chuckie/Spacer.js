@@ -41,7 +41,7 @@ Spacer.prototype._evalMove = function (i, j) {
     
     // remove points only if we fill up our own territory
     var fillTer = 0;
-    if (this.player.jpRules) {
+    if (!this.player.areaScoring) {
         fillTer = this.pot.territoryScore(i, j, this.color);
         if (fillTer > 0) fillTer = 0; // Pusher will count >0 scores
     }

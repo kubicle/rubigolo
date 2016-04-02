@@ -42,7 +42,7 @@ function Chuckie(game, color, genes) {
     this.boan = new BoardAnalyser(game); // several heuristics can share this boan
     this.genes = genes || new Genes();
     this.gsize = this.goban.gsize;
-    this.jpRules = game.rules === CONST.JP_RULES;
+    this.areaScoring = game.useAreaScoring;
     this.stateGrid = new Grid(this.gsize, GRID_BORDER);
     this.scoreGrid = new Grid(this.gsize, 0, GRID_BORDER);
 

@@ -1,13 +1,14 @@
 'use strict';
 /* eslint no-console: 0 */
 
+var CONST = require('../constants');
 var main = require('../main');
 var GameLogic = require('../GameLogic');
 var Grid = require('../Grid');
 var Gtp = require('./Gtp');
 var ScoreAnalyser = require('../ScoreAnalyser');
 
-var WHITE = main.WHITE, BLACK = main.BLACK, EMPTY = main.EMPTY;
+var WHITE = CONST.WHITE, BLACK = CONST.BLACK, EMPTY = CONST.EMPTY;
 var DEAD_COLOR = Grid.DEAD_COLOR;
 var DEAD = Gtp.DEAD, ALIVE = Gtp.ALIVE;
 
@@ -15,11 +16,12 @@ var GAME_NOT_STARTED = '00';
 
 
 /** @class
- * Interface between the game engine (GameLogic, etc.) and Gtp.
+ * Interface between a game engine and Gtp.
+ * @param {GameLogic} game
  */
-function GtpEngine(game, scorer) {
+function GtpEngine(game) {
     this.game = game || new GameLogic();
-    this.scorer = scorer || new ScoreAnalyser(this.game);
+    this.scorer = new ScoreAnalyser(this.game);
     this.players = [];
     this.scoreComputedAt = null;
     this.AiClass = main.defaultAi;
@@ -54,6 +56,13 @@ GtpEngine.prototype.name = function () {
 GtpEngine.prototype.version = function () {
     var ai = this.getAiPlayer(BLACK) || this.getAiPlayer(WHITE);
     return ai.publicVersion;
+};
+
+/** Must be called BEFORE initBoardSize/clearBoard
+ * @param {string} rulesName - e.g. Chinese, Japanese or CGOS
+ */
+GtpEngine.prototype.setRules = function (rulesName) {
+    this.game.setRules(rulesName);
 };
 
 GtpEngine.prototype.initBoardSize = function (size) {
