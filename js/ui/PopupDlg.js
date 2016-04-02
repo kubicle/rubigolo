@@ -23,8 +23,12 @@ function PopupDlg(parent, msg, title, options, validateFn) {
     this.validateFn = validateFn;
 
     this.dialogRoot = Dome.newDiv(this.parent, 'popupBackground');
-    this.dialogRoot.setStyle('top', this.parent.elt.offsetTop + 'px');
-    this.dialogRoot.setStyle('height', this.parent.elt.clientHeight + 'px');
+
+    var parentElt = this.dialogRoot.elt.parentElement;
+    this.dialogRoot.setStyle('left', parentElt.offsetLeft + 'px');
+    this.dialogRoot.setStyle('top', parentElt.offsetTop + 'px');
+    this.dialogRoot.setStyle('width', parentElt.scrollWidth + 'px');
+    this.dialogRoot.setStyle('height', parentElt.scrollHeight + 'px');
 
     var dialog = this.dialogRoot.newDiv('popupDlg dialog');
     dialog.newDiv('dialogTitle').setText(title || 'Problem');
