@@ -16,25 +16,37 @@ Dependencies
 How to build and test locally
 =============================
 
-```
-npm install
+`npm install`
 
-# Start browserify build & file watcher
-npm run-script dev-build
+Start browserify build & file watcher
+`npm run-script dev-build`
 
-# Run the dev version or the tests
-Open in your browser:
+Run the dev version or the tests by opening in your browser:
 - devIndex.html
 - tests.html
 
-# Run Computer Go Test Collection (you need gogui-regress.jar from GoGui)
+Run Computer Go Test Collection (you need gogui-regress.jar from GoGui)
+```
 cd ...\cgtc-2.0.1
 java -jar gogui-regress.jar "node ...\rubigolo\js\consoleMain.js" *.tst
 ```
-# Build the minified bundle
-npm run-script build
+
+Build the minified bundle
+`npm run-script build`
+
+Run on CGOS
+- download `cgos-client-python-0.3.0.zip`
+- download `gogui-1.4.9` to get real-time display of your engine's matches (much more fun!)
+- copy and edit files from samples directory (config.cfg, gtpBot.bat)
+- run `python pythonClient/bin/cgosclient.py config.cfg`
 
 =======
+
+## April 2016 News
+* AI understands Chinese / CGOS rules - can play on yss-aya.com and cgos.boardspace.net using GTP
+* AI understands eye-making up to 6 vertex size
+* Game Review mode and improved UI
+* Uglified build and separated release build from dev build - release build is just above 108 KB
 
 ## Christmas 2015 News
 * GTP is working! Used it to run with [GoGui](http://gogui.sf.net/) and [Computer Go Test Collection](https://webdocs.cs.ualberta.ca/~games/go/cgtc/).
