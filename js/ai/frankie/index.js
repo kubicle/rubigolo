@@ -16,8 +16,6 @@ var sOK = main.sOK, sINVALID = main.sINVALID, sBLUNDER = main.sBLUNDER;
 
 var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
 
-var AI_VERSION = '0.1';
-
 
 /** @class
  *  public read-only attribute: goban, inf, ter, enemyColor, genes
@@ -28,10 +26,7 @@ var AI_VERSION = '0.1';
  *  - an eye shape constructor
  */
 function Frankie(game, color, genes) {
-    this.name = this.constructor.name || main.funcName(this.constructor);
-    this.publicName = this.name; // could be different if needed
-    this.publicVersion = AI_VERSION;
-
+    this.name = 'Frankie';
     this.goban = game.goban;
     this.inf = new InfluenceMap(this.goban);
     this.ter = new PotentialTerritory(this.goban);
@@ -55,6 +50,9 @@ function Frankie(game, color, genes) {
     this.prepareGame(this.genes);
 }
 module.exports = Frankie;
+
+Frankie.publicName = 'Frankie';
+Frankie.publicVersion = '0.1';
 
 Frankie.BoardAnalyser = BoardAnalyser;
 Frankie.PotentialTerritory = PotentialTerritory;

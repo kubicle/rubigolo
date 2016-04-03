@@ -249,9 +249,9 @@ Ui.prototype.createPlayers = function (isGameLoaded) {
     this.playerIsAi = [false, false];
     for (var color = BLACK; color <= WHITE; color++) {
         if (this.aiPlays === Grid.COLOR_NAMES[color] || this.aiPlays === 'both') {
-            var ai = this.getAiPlayer(color);
+            var Ai = this.getAiPlayer(color).constructor;
             this.playerIsAi[color] = true;
-            if (!isGameLoaded) this.game.setPlayer(color, ai.publicName + '-' + ai.publicVersion);
+            if (!isGameLoaded) this.game.setPlayer(color, Ai.publicName + '-' + Ai.publicVersion);
         } else {
             if (!isGameLoaded) this.game.setPlayer(color, 'human');
         }

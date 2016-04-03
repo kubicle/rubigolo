@@ -37,13 +37,13 @@ function Breeder(gameSize, komi) {
 module.exports = Breeder;
 
 
-function getAiName(ai) { return ai.publicName + '-' + ai.publicVersion; }
+function getAiName(Ai) { return Ai.publicName + '-' + Ai.publicVersion; }
 
 Breeder.prototype.initPlayers = function (BlackAi, WhiteAi) {
     for (var color = BLACK; color <= WHITE; color++) {
         var Ai = (color === BLACK ? BlackAi : WhiteAi) || main.defaultAi;
-        var ai = this.players[color] = new Ai(this.game, color);
-        this.game.setPlayer(color, getAiName(ai));
+        this.players[color] = new Ai(this.game, color);
+        this.game.setPlayer(color, getAiName(Ai));
     }
 };
 

@@ -49,13 +49,11 @@ GtpEngine.prototype.getAiPlayer = function (color) {
 };
 
 GtpEngine.prototype.name = function () {
-    var ai = this.getAiPlayer(BLACK) || this.getAiPlayer(WHITE);
-    return ai.publicName;
+    return this.AiClass.publicName;
 };
 
 GtpEngine.prototype.version = function () {
-    var ai = this.getAiPlayer(BLACK) || this.getAiPlayer(WHITE);
-    return ai.publicVersion;
+    return this.AiClass.publicVersion;
 };
 
 /** Must be called BEFORE initBoardSize/clearBoard

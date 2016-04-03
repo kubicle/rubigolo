@@ -14,15 +14,10 @@ var sOK = main.sOK, sINVALID = main.sINVALID, sBLUNDER = main.sBLUNDER, sDEBUG =
 
 var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
 
-var AI_VERSION = '0.1';
-
 
 /** @class */
 function Droopy(game, color, genes) {
-    this.name = this.constructor.name || main.funcName(this.constructor);
-    this.publicName = this.name; // could be different if needed
-    this.publicVersion = AI_VERSION;
-
+    this.name = 'Droopy';
     this.game = game;
     this.goban = game.goban;
     this.genes = genes || new Genes();
@@ -38,6 +33,9 @@ function Droopy(game, color, genes) {
     this.prepareGame();
 }
 module.exports = Droopy;
+
+Droopy.publicName = 'Droopy';
+Droopy.publicVersion = '0.1';
 
 // Used only by tests
 Droopy.BoardAnalyser = BoardAnalyser;

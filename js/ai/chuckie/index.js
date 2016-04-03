@@ -28,15 +28,10 @@ var sOK = CONST.sOK, sINVALID = CONST.sINVALID, sDEBUG = CONST.sDEBUG;
 
 var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
 
-var AI_VERSION = '0.1';
-
 
 /** @class */
 function Chuckie(game, color, genes) {
     this.name = 'Chuckie';
-    this.publicName = this.name; // could be different if needed
-    this.publicVersion = AI_VERSION;
-
     this.game = game;
     this.goban = game.goban;
     this.boan = new BoardAnalyser(game); // several heuristics can share this boan
@@ -54,6 +49,9 @@ function Chuckie(game, color, genes) {
     this.prepareGame();
 }
 module.exports = Chuckie;
+
+Chuckie.publicName = 'Chuckie';
+Chuckie.publicVersion = '0.1';
 
 // Used only by tests
 Chuckie.BoardAnalyser = BoardAnalyser;
