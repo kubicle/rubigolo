@@ -28,7 +28,7 @@ Run the dev version or the tests by opening in your browser:
 Run Computer Go Test Collection (you need gogui-regress.jar from GoGui)
 ```
 cd ...\cgtc-2.0.1
-java -jar gogui-regress.jar "node ...\rubigolo\js\consoleMain.js" *.tst
+java -jar gogui-regress.jar "node ...\rubigolo\js\gtpMain.js" *.tst
 ```
 
 Build the minified bundle
