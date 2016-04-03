@@ -42,6 +42,7 @@ GameLogic.prototype.setPlayer = function (color, name) {
 };
 
 GameLogic.prototype.setRules = function (rulesName, okIfUnknown) {
+    rulesName = rulesName || 'unspecified';
     this.rulesName = rulesName;
     var rules = ruleConfig[rulesName.toLowerCase()];
     if (!rules) {
