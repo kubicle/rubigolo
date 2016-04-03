@@ -39,9 +39,8 @@ TestBoardAnalyser.prototype.checkGame = function (moves, expScore, gsize, finalP
     this.boan.countScore(this.goban);
 
     var score = this.boan.getScoringGrid().image();
-    if (this.check(!expScore || score === expScore)) return;
+    if (this.check(!expScore || score === expScore, /*isError=*/true)) return;
     this.showInUi('Expected scoring grid was:<br>' + expScore + ' but we got:<br>' + score);
-    this.assertEqual(expScore, score);
 };
 
 TestBoardAnalyser.prototype.loadImage = function (moves) {

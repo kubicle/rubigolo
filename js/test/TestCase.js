@@ -12,10 +12,12 @@ function TestCase(name) {
 module.exports = TestCase;
 
 
-TestCase.prototype.check = function (result) {
+TestCase.prototype.check = function (result, isError) {
     this.series.checkCount++;
     if (result) return true;
-    this.series.warningCount++;
+
+    if (isError) this.series.failedCount++;
+    else this.series.warningCount++;
     return false;
 };
 
