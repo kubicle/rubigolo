@@ -48,7 +48,7 @@ GameLogic.prototype.setRules = function (rulesName, okIfUnknown) {
     if (!rules) {
         if (!okIfUnknown) throw new Error('Invalid rules: ' + rulesName +
             '\nValid values: ' + Object.keys(ruleConfig).map(function (s) { return s.substr(1); }).join(', '));
-        rules = ruleConfig[DEFAULT_RULES.toLowerCase()];
+        rules = ruleConfig['.' + DEFAULT_RULES.toLowerCase()];
     }
     this.usePositionalSuperko = rules.usePositionalSuperko || false;
     this.useAreaScoring = rules.useAreaScoring || false;
@@ -163,29 +163,49 @@ GameLogic.prototype.loadAnyGame = function (game, errors) {
     }
 }; 
 
+function getMoveColor(move) {
+    switch (move[0]) {
+    case 'B': return BLACK;
+    case 'W': return WHITE;
+    default: return undefined;
+    }
+}
+
+GameLogic.prototype.stripMoveColor = function (move) {
+    if (move[0] !== 'B' && move[0] !== 'W') return move;
+    if (move[1] !== '-') return move.substr(1);
+    return move.substr(2);
+};
+
+function addMoveColor(move, color) {
+    return (color === BLACK ? 'B-' : 'W-') + move;
+}
+
 // Handles a regular move + the special commands (pass, resign, undo, load, hand, log)
 // Returns false if a problem occured. In this case the error message is available.
 GameLogic.prototype.playOneMove = function (move) {
     if (this.gameEnded) return this._errorMsg('Game already ended');
 
-    if (/^[B|W]?[a-z][1-2]?[0-9]$/.test(move)) {
+    if (/^[B|W]?-?[a-z][1-2]?[0-9]$/.test(move)) {
         return this.playOneStone(move);
-    } else if (move === 'undo') {
-        return this._requestUndo();
-    } else if (move === 'half_undo') {
-        return this._requestUndo(true);
-    } else if (move.startsWith('resi')) {
-        return this.resign();
-    } else if (move === 'pass') {
+    }
+    var cmd = this.stripMoveColor(move);
+    if (cmd.startsWith('pass')) {
         return this.passOneMove();
-    } else if (move.startsWith('hand')) {
-        return this.setHandicapAndWhoStarts(move.split(':')[1]);
-    } else if (move.startsWith('load:')) {
-        return this.loadMoves(move.slice(5));
-    } else if (move.startsWith('log')) {
-        return this.setLogLevel(move.split(':')[1]);
+    } else if (cmd.startsWith('resi')) {
+        return this.resign(getMoveColor(move));
+    } else if (cmd === 'undo') {
+        return this._requestUndo();
+    } else if (cmd === 'half_undo') {
+        return this._requestUndo(true);
+    } else if (cmd.startsWith('hand')) {
+        return this.setHandicapAndWhoStarts(cmd.split(':')[1]);
+    } else if (cmd.startsWith('load:')) {
+        return this.loadMoves(cmd.slice(5));
+    } else if (cmd.startsWith('log')) {
+        return this.setLogLevel(cmd.split(':')[1]);
     } else {
-        return this._errorMsg('Invalid command: ' + move);
+        return this._errorMsg('Invalid command: ' + cmd);
     }
 };
 
@@ -208,15 +228,15 @@ GameLogic.prototype.playOneStone = function (move) {
 // Parses a move like "c12" into [3,12]; OR "Bc1" into [3,1,0]
 // Returns null if move is "pass" or "resi(gn)"; throws if move is illegal
 GameLogic.prototype.oneMove2xy = function (move) {
-    var color = move[0];
-    if (color === 'B' || color === 'W') {
-        return Grid.move2xy(move.substr(1)).concat(color === 'B' ? BLACK : WHITE);
-    }
+    var color = getMoveColor(move);
+    if (color !== undefined) move = this.stripMoveColor(move);
+
     var coords = Grid.move2xy(move, /*dontThrow=*/true);
     if (!coords) {
-        if (move === 'pass' || move.substr(0,4) === 'resi') return null;
+        if (move === 'pass' || move.startsWith('resi')) return null;
         throw new Error('Illegal move parsed: ' + move);
     }
+    if (color !== undefined) return coords.concat(color);
     return coords;
 };
 
@@ -225,7 +245,7 @@ GameLogic.prototype.resign = function (color, reason) {
     color = color !== undefined ? color : this.curColor;
     this.whoResigned = color;
     this.resignReason = reason;
-    var move = (color === BLACK ? 'B' : 'W') + 'resign' + (reason ? '-' + reason : '');
+    var move = addMoveColor('resign', color) + (reason ? '-' + reason : '');
     this._storeMoveInHistory(move);
     this.gameEnded = true;
     this.gameEnding = false;
@@ -237,8 +257,8 @@ GameLogic.prototype.resign = function (color, reason) {
 // Caller is responsible of checking the GameLogic#game_ending flag:
 // If the flag goes to true, the method accept_ending (below) should be called next.
 GameLogic.prototype.passOneMove = function () {
-    this._storeMoveInHistory('pass');
-    this.numPass += 1;
+    this._storeMoveInHistory(addMoveColor('pass', this.curColor));
+    this.numPass++;
     if (this.numPass >= 2) {
         this.gameEnding = true;
     }
@@ -278,8 +298,8 @@ GameLogic.prototype.moveNumber = function () {
 GameLogic.prototype.historyString = function () {
     var hand = this.handicap > 0 ? 'handicap:' + this.handicap + ',' : '';
     var h = this.history;
-    var color1 = h.length && h[0].length === 2 ? (this.whoStarts === BLACK ? 'B' : 'W') : '';
-    return hand + color1 + h.join(',') + ' (' + h.length + ' moves)';
+    var color1 = h.length && h[0].length === 2 ? addMoveColor('', this.whoStarts) : '';
+    return hand + color1 + h.join(',');
 };
 
 // Stores a new error message

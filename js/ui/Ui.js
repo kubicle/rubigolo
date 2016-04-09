@@ -157,7 +157,7 @@ Ui.prototype.showLastMove = function () {
     var moves = this.game.history;
     if (moves.length) {
         var move = moves[moves.length - 1];
-        this.lastMoveElt.setMove(move, 1 - this.game.curColor);
+        this.lastMoveElt.setMove(this.game.stripMoveColor(move), 1 - this.game.curColor);
         var pos = this.game.oneMove2xy(move);
         if (pos) this.board.highlightStone('CR', pos[0], pos[1]);
         else this.board.highlightStone(null);
