@@ -1,11 +1,11 @@
 {
-    "cgos": {
+    ".cgos": {
         "useAreaScoring": true,
         "usePositionalSuperko": true
     },
-    "chinese": {
+    ".chinese": {
         "useAreaScoring": true,
         "usePositionalSuperko": true
     },
-    "japanese": {}
+    ".japanese": {}
 }

@@ -44,10 +44,10 @@ GameLogic.prototype.setPlayer = function (color, name) {
 GameLogic.prototype.setRules = function (rulesName, okIfUnknown) {
     rulesName = rulesName || 'unspecified';
     this.rulesName = rulesName;
-    var rules = ruleConfig[rulesName.toLowerCase()];
+    var rules = ruleConfig['.' + rulesName.toLowerCase()];
     if (!rules) {
         if (!okIfUnknown) throw new Error('Invalid rules: ' + rulesName +
-            '\nValid values: ' + Object.keys(ruleConfig));
+            '\nValid values: ' + Object.keys(ruleConfig).map(function (s) { return s.substr(1); }).join(', '));
         rules = ruleConfig[DEFAULT_RULES.toLowerCase()];
     }
     this.usePositionalSuperko = rules.usePositionalSuperko || false;
