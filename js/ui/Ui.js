@@ -149,15 +149,15 @@ Ui.prototype.showGameInfo = function () {
     var gameInfo = this.game.playerNames[WHITE] + ' VS ' + this.game.playerNames[BLACK] + ' (B)';
     gameInfo += ', komi: ' + this.game.komi;
     if (this.handicap) gameInfo += ', hand: ' + this.handicap;
-    if (this.game.rules) gameInfo += ', rules: ' + this.game.rules;
+    if (this.game.rulesName) gameInfo += ', rules: ' + this.game.rulesName;
     this.gameInfoElt.setText(gameInfo);
 };
 
 Ui.prototype.showLastMove = function () {
     var moves = this.game.history;
     if (moves.length) {
-        var move = moves[moves.length - 1];
-        this.lastMoveElt.setMove(this.game.stripMoveColor(move), 1 - this.game.curColor);
+        var move = this.game.stripMoveColor(moves[moves.length - 1]);
+        this.lastMoveElt.setMove(move, 1 - this.game.curColor);
         var pos = this.game.oneMove2xy(move);
         if (pos) this.board.highlightStone('CR', pos[0], pos[1]);
         else this.board.highlightStone(null);
@@ -170,7 +170,8 @@ Ui.prototype.showLastMove = function () {
 
 Ui.prototype.showNextPlayer = function (move) {
     if (move === null) return this.nextPlayerElt.setMove(null);
-    this.nextPlayerElt.setMove(move || '', this.game.curColor);
+    move = this.game.stripMoveColor(move || '');
+    this.nextPlayerElt.setMove(move, this.game.curColor);
 };
 
 Ui.prototype.statusMessage = function (msg) {
