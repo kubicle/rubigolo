@@ -173,6 +173,12 @@ TestBoardAnalyser.prototype.testTwoFakeEyesChained = function () {
         '-#-#-,#@##@,@@@##,#-@@#,-@-@#');
 };
 
+TestBoardAnalyser.prototype.testTwoFakeEyesChained2 = function () {
+    // Similar but a4 not in atari and W is alive - b5 needs to connect because a4 needs it
+    this.checkGame('c3,c4,b4,e4,d2,e3,pass,b5,b1,a4,b3,d5,d1,e2,c2,d3,a2,e1,pass,pass',
+        '?O?O:,O@O:O,?@@OO,@-@@O,-@-@O');
+};
+
 TestBoardAnalyser.prototype.testSeeTwoGroupsSharingSingleEyeAreDead = function () {
     // 5 O&:&&
     // 4 O&:&&
