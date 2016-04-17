@@ -247,6 +247,7 @@ TestAi.prototype.testEyeMaking_3inCorner = function () {
 };
 
 TestAi.prototype.testEyeMaking_3withPrisoners = function () {
+    // TODO: actually only a4 is mandatory to save 1 W eye; a3 is less urgent
     this.checkGame('c4,b4,d4,b3,a2,b5,b2,c5,c2,c3,d2,d3,b1,e3,d1',
         '?e5~1.3, a3>18'); //a3 is best considering NE black is dead
 };

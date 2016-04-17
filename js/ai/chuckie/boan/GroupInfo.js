@@ -300,6 +300,7 @@ GroupInfo.prototype.getEyeMakerMove = function (coords) {
 
     var g = this.group, color = g.color;
     var best = null, bestLives = 0, bestEnemies = 0, numMoves = 0;
+    var enemy1 = null, enemy2 = null, numVertexAwayFromEnemy = 0, vertexAwayFromEnemy;
     var empties = singleEye.vertexes, oneMoveIsCorner = false, lives = [0, 0, 0, 0, 0];
 
     for (var n = 0; n < vcount; n++) {
@@ -314,13 +315,21 @@ GroupInfo.prototype.getEyeMakerMove = function (coords) {
                 break;
             case color: numAllies++; break;
             default:
-                if (s2.group.lives > 1) numEnemies++;
-                else numLives++;
+                if (s2.group.lives === 1) {
+                    numLives++; // playing here kills enemy
+                    numVertexAwayFromEnemy += 2;
+                    break;
+                }
+                numEnemies++;
+                if (!enemy1) enemy1 = s2.group;
+                else if (s2.group !== enemy1) enemy2 = s2.group;
             }
         }
         if (numEnemies) {
             if (numLives + (numAllies ? 1 : 0) < 2) continue;
         } else {
+            numVertexAwayFromEnemy++;
+            vertexAwayFromEnemy = s;
             if (numLives < 2) continue;
             lives[numLives]++;
         }
@@ -342,7 +351,10 @@ GroupInfo.prototype.getEyeMakerMove = function (coords) {
     if (main.debug) main.log.debug('getEyeMakerMove result: ' + best + ' - ' + (best ? (numMoves > 1 ? 'ALWAYS' : 'SOMETIMES') : 'NEVER'));
 
     if (!best) return NEVER;
-    
+    if (numVertexAwayFromEnemy === 1 && !enemy2 && enemy1.stones.length < 3) {
+        if (this._enemyCanReach(enemy1, vertexAwayFromEnemy, best))
+            return NEVER; // see testEyeMaking_3withPrisoners
+    }
     if (numMoves >= 2) {
         // except for shape "5" with 1 forced move, we are good if 2 moves or more
         var isWeak5 = vcount === 5 && bestEnemies === 0 && lives[3] === 1 && lives[2] === 3;
@@ -351,6 +363,15 @@ GroupInfo.prototype.getEyeMakerMove = function (coords) {
     }
     coords[0] = best.i; coords[1] = best.j;
     return SOMETIMES;
+};
+
+GroupInfo.prototype._enemyCanReach = function (enemy, vertex, best) {
+    for (var i = vertex.neighbors.length - 1; i >= 0; i--) {
+        var s = vertex.neighbors[i];
+        if (s.color !== EMPTY || s === best) continue;
+        if (s.isNextTo(enemy)) return true;
+    }
+    return false;
 };
 
 // TODO better algo
