@@ -103,7 +103,7 @@ TestAi.prototype.checkMoveIsBetter = function (move1, move2) {
  */
 TestAi.prototype.playAndCheck = function (expMove, expEval, doNotPlay) {
     expMove = this._parseMove(expMove);
-    if (doNotPlay) return this.checkEval(expMove, expEval);
+    if (doNotPlay && expEval) return this.checkEval(expMove, expEval);
     var color = this.game.curColor;
     var player = this.players[color];
 
@@ -122,7 +122,7 @@ TestAi.prototype.playAndCheck = function (expMove, expEval, doNotPlay) {
     if (expEval) this.checkScore(player, color, move, score, expEval);
     else this.check(true); // just counts the check
 
-    this.game.playOneMove(move);
+    if (!doNotPlay) this.game.playOneMove(move);
 };
 
 TestAi.prototype.checkMovesAreEquivalent = function (moves) {
