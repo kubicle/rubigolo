@@ -131,7 +131,6 @@ Hunter.prototype._countPreAtariThreat = function (stone, enemies, empties, color
             if (main.debug) main.log.debug('Hunter ' + Grid.colorName(color) + ' sees a snapback in ' + stone);
         }
         if (!level && eg._info.isInsideEnemy()) continue; // avoid chasing inside our groups - eyes are #1 goal
-        if (main.debug) main.log.debug('Hunter ' + Grid.colorName(color) + '(level ' + level + ') looking at threat ' + stone + ' on ' + eg);
         egroups.push(eg);
     }
     return isSnapback;
@@ -207,6 +206,7 @@ Hunter.prototype._isKill = function (i, j, color, level) {
     // see attacks that fail
     var canEscape = [false, false, false];
     for (var g = egroups.length - 1; g >= 0; g--) {
+        if (main.debug) main.log.debug('Hunter ' + Grid.colorName(color) + '(level ' + level + ') looking at threat ' + stone + ' on ' + egroups[g]);
         if (this._isAtariGroupCaught(egroups[g], level)) continue;
         if (egroups.length === 1) { egroups.pop(); break; }
         canEscape[g] = true;
