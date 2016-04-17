@@ -211,7 +211,7 @@ TestAi.prototype.testAiInternals = function () {
     this.assertEqual('c3 (6.40)\n- Spacer: 6.40\n', this.players[BLACK].getMoveSurveyText('c3', true));
 };
 
-TestAi.prototype.testEyeMaking = function () {
+TestAi.prototype.testEyeMaking1 = function () {
     // ++@@@
     // +@@OO
     // +@OO+
@@ -278,7 +278,7 @@ TestAi.prototype.testEyeMaking_4inTshape2 = function () {
 TestAi.prototype.testEyeMaking_4inTshape3 = function () {
     // Similar to above but W is so weak its 2 groups can be killed hence making eyes in c2 become less important
     this.checkGame('b1,a4,a2,b5,b3,c5,c4,d5,d3,e4,b4,e5,e3,pass,e2,pass,d1,pass,e1,pass,a1,pass,c3',
-        'c2>5, c2<15, #pass, c2>5, c2<15');
+        '?c2~36, #pass, ?c2~36, a3=d4');
 };
 
 TestAi.prototype.testEyeMaking_shape5 = function () {
@@ -352,7 +352,7 @@ TestAi.prototype.testWrongSaviorInsteadOfKill = function () {
 };
 
 TestAi.prototype.testWrongSaviorGoingTowardWall = function () {
-    this.checkGame('b2,b3,c2,c3,pass,d2,pass,a2', 'd1'); // b1 would be wrong
+    this.checkGame('b2,b3,c2,c3,pass,d2,pass,a2', '!b1,!c1,?d1~0.2,d4~0.2');
 };
 
 TestAi.prototype.testBorderLock = function () {
@@ -403,6 +403,12 @@ TestAi.prototype.testHunter1 = function () {
         '?h6~14.6, ?h7~13.6,' + // h7 is OK too but capturing same 2 stones in a ladder
         '#h6, #h7, g7', // force black in h6 - choice between h6 and h7 may vary due to smaller differences
         9);
+};
+
+TestAi.prototype.testHunterChaseFailsBecauseOfAtari = function () {
+    // Black b6 is atari before the chase starts in a1; a1 is not worth much
+    this.checkGame('d4,f6,c7,d6,g3,e5,e3,c5,b6,b5,d8,f4,f3,g4,e7,h3,c3,f7,f8,g2,b4,g7,g8,h8,f2,h2,g1,g9,e9,a4,h1,b3,b2,c4,d5,a2,c2,j2,b1,a6,a7,c6',
+        '?a1~2.3', 9);
 };
 
 TestAi.prototype.testHunterCountsSavedGroupsToo = function () {
@@ -574,7 +580,7 @@ TestAi.prototype.testKillingSavesToo = function () {
         'j3', 9); // should be j8
 };
 
-TestAi.prototype.testAiSeesSnapbackAttack = function () {
+TestAi.prototype.testAiSeesSnapbackAttack1 = function () {
     // 5 O@+O+
     // 4 O@*@@  <-- here
     // 3 OO@++
