@@ -139,11 +139,9 @@ TestAi.prototype.checkMovesAreEquivalent = function (moves) {
     return true;
 };
 
-// Verify the move played is one of the equivalent moves given.
+// Verify the move played is one of the given moves.
 // This can only be the last check of a series (since we are not sure which move was played)
-TestAi.prototype.playAndCheckEquivalentMoves = function (moves) {
-    if (!this.checkMovesAreEquivalent(moves)) return;
-
+TestAi.prototype.playAndCheckMoveIsOneOf = function (moves) {
     var color = this.game.curColor;
     var player = this.players[color];
     var move = player.getMove();
@@ -189,7 +187,7 @@ TestAi.prototype.runChecks = function (checkString) {
         } else if (check.indexOf('=') >= 0) {
             this.checkMovesAreEquivalent(check.split('='));
         } else if (check.indexOf('|') >= 0) {
-            this.playAndCheckEquivalentMoves(check.split('|'));
+            this.playAndCheckMoveIsOneOf(check.split('|'));
         } else if (check.indexOf('~') >= 0) {
             c = check.split('~');
             this.playAndCheck(c[0], parseFloat(c[1]), doNotPlay);
@@ -361,7 +359,7 @@ TestAi.prototype.testBorderLock = function () {
     this.checkGame('d4,c3,c4,d3,e3,e2,e4', 'd2'); //FIXME: should be c2
 };
 
-TestAi.prototype.testCornerKill = function () {
+TestAi.prototype.testCornerKillIgnored = function () {
     // 9 ++++++++O
     // 8 ++++++++@
     // 7 +++@+++++
@@ -369,7 +367,7 @@ TestAi.prototype.testCornerKill = function () {
     // 5 ++O++++++
     // 4 +++++@+++
     //   abcdefghj
-    this.checkGame('j8,j9,d7,c5,f4,pass,g6,pass', 'h9<1.4, h8<1.6, c3', 9);
+    this.checkGame('j8,j9,d7,c5,f4,pass,g6,pass', 'h9<1.4, h8<1.6, c3>5, e3>5, c3|e3', 9);
 };
 
 TestAi.prototype.testWrongAttack = function () {
