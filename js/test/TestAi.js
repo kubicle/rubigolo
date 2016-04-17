@@ -672,7 +672,7 @@ TestAi.prototype.testPushOnFakeEye_DyingGroupCh = function () {
         'b1,e4,pass,e1,pass,a2', 5, 'CH');
 };
 
-TestAi.prototype.testBlockOnBorder = function () {
+TestAi.prototype.testBlockOnBorder1 = function () {
     this.checkGame('b2,b3,c2,c3,d2,d3,e2,e3,a3', 'a4>b4, a4');
 };
 
@@ -686,6 +686,10 @@ TestAi.prototype.testBlockOnBorder3 = function () {
     // Similar but threat on eye and whole group
     this.checkGame('d4,c2,d2,e5,d6,e4,d5,d3,e3,c3,f4,f5,f6,f3,e6,e2,b4,b3,c4,a4,a5,a3,b5,d1,pass,g4,pass,g6,pass,g7,pass,f7',
         '?Be7, #pass, We7, ?Bd7, #pass, Wd7, Bc7', 7);
+};
+
+TestAi.prototype.testBlockOnBorder4 = function () {
+    this.checkGame('e5,e3,d6,g5,f4,g7,c3,f6,d4,g3,f3,g4,f2,e7,c7,g2,d8,e8,e9', 'f9', 9);
 };
 
 TestAi.prototype.testConnectOnBorder = function () {

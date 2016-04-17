@@ -49,36 +49,32 @@ Pusher.prototype._evalMove = function (i, j, color) {
     return this._attackPush(i, j, color);
 };
 
+Pusher.prototype._checkBlock = function (cut, pushStone, backupStone, score, scoreYx) {
+    if (this.noEasyPrisonerYx[cut.j][cut.i] < 0) return; // we cannot play in cut anyway
+    var color = 1 - backupStone.group.color;
+    var cutBackupStone = this.co.canConnect(cut, color);
+    if (!cutBackupStone) return;
+    if (this.mi.groupChance(cutBackupStone.group._info) < 0.5) return;
+
+    if (main.debug) main.log.debug('Pusher sees ' + cut + ' as blocking ' +
+        Grid.colorName(1 - color) + ' push in ' + pushStone + ', score: ' + score.toFixed(2));
+    scoreYx[cut.j][cut.i] += score;
+    this.scoreGrid.yx[cut.j][cut.i] += score; // not needed beside for UI to show
+};
+
 Pusher.prototype._blockPush = function (attack, scoreYx) {
     var pushStone = attack[0], backupStone = attack[1], score = attack[2];
-    var group = backupStone.group, color = group.color;
-    var cut, triedPushStone = false;
+    var group = backupStone.group;
     for (var n = 0; n < 8; n++) {
         var s = pushStone.allNeighbors[n];
-        if (s === BORDER) continue;
-        if (s.color === color) { // push attack is next to enemy group
-            // if (triedPushStone) continue; // try only once
-            // triedPushStone = true;
-            // if (this.noEasyPrisonerYx[pushStone.j][pushStone.i] < 0) continue; // we cannot play in pushStone anyway
-            // if (!this.co.canConnect(pushStone, 1 - color)) continue; // or could not connect there
-            cut = pushStone;
-            break;
-        }
-        if (s.color !== EMPTY) continue;
+        if (s === BORDER || s.color !== EMPTY) continue;
+
         if (!s.isNextTo(group)) continue;
-        if (this.noEasyPrisonerYx[s.j][s.i] < 0) continue; // we cannot play in s anyway
-//        if (!this.co.canConnect(s, 1 - color)) continue; // or could not connect there
-        cut = s; // TODO more than 1 cut can exist
-        break;
+        this._checkBlock(s, pushStone, backupStone, score, scoreYx);
     }
-    if (!cut) {
-        if (main.debug) main.log.debug('Pusher found no way to block ' + pushStone);
-        return;
-    }
-//if (group.lives <= 2)
-    if (main.debug) main.log.debug('Pusher sees ' + cut + ' as blocking push in ' + pushStone + ', score: ' + score.toFixed(2));
-    scoreYx[cut.j][cut.i] += score;
-    this.scoreGrid.yx[cut.j][cut.i] += score; // no needed beside UI to show
+    this._checkBlock(pushStone, pushStone, backupStone, score, scoreYx);
+
+    // if (!cut && main.debug) main.log.debug('Pusher found no way to block ' + pushStone);
 };
 
 Pusher.prototype._attackPush = function (i, j, color, isEnemy) {
@@ -94,17 +90,22 @@ Pusher.prototype._attackPush = function (i, j, color, isEnemy) {
     // Only push where we can connect to
     var backupStone = this.co.canConnect(pushStone, color);
     if (!backupStone) return 0;
+    if (!isEnemy && !this.co.canConnect(pushStone, 1 - color)) return 0;
 
     var invasion = this.invasionCost(i, j, color);
 
     var score = invasion + this.enemyCoeff * enemyInf - this.allyCoeff * allyInf;
-    if (main.debug) main.log.debug('Pusher sees invasion:' + invasion +
-        ', influences:' + allyInf + ' - ' + enemyInf + ' at ' + Grid.xy2move(i, j) + ' -> ' + score.toFixed(3));
-    if (isEnemy) this.enemyAttacks.push([pushStone, backupStone, score]);
+    score *= this.mi.groupChance(backupStone.group._info);
+
+    if (isEnemy) {
+        if (main.debug) main.log.debug('Pusher notes enemy invasion at ' + Grid.xy2move(i, j) + ' (for ' + score.toFixed(2) + ')');
+        return this.enemyAttacks.push([pushStone, backupStone, score]);
+    }
+    if (main.debug) main.log.debug('Pusher ' + Grid.colorName(color) + ' sees push at ' + Grid.xy2move(i, j) + ' -> ' + score.toFixed(2));
     return score;
 };
 
-Heuristic.prototype._invasionCost = function (i, j, dir, color, level) {
+Pusher.prototype._invasionCost = function (i, j, dir, color, level) {
     var s = this.goban.stoneAt(i, j);
     if (s === BORDER || s.color !== EMPTY) return 0;
     var cost = this.pot.enemyTerritoryScore(i, j, color);
@@ -123,7 +124,7 @@ Heuristic.prototype._invasionCost = function (i, j, dir, color, level) {
 
 var INVASION_DEEPNESS = 1; // TODO: better algo for this
 
-Heuristic.prototype.invasionCost = function (i, j, color) {
+Pusher.prototype.invasionCost = function (i, j, color) {
     var cost = Math.max(0, this.pot.enemyTerritoryScore(i, j, color));
     for (var dir = DIR0; dir <= DIR3; dir++) {
         cost += this._invasionCost(i + XY_AROUND[dir][0], j + XY_AROUND[dir][1], dir, color, INVASION_DEEPNESS);
