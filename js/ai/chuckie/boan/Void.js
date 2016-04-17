@@ -2,12 +2,13 @@
 
 var CONST = require('../../../constants');
 var main = require('../../../main');
+var FakeSpot = require('./FakeSpot');
 var Grid = require('../../../Grid');
 
 var BLACK = CONST.BLACK, WHITE = CONST.WHITE;
 
-var vEYE = 1, vDAME = 2;
-var VTYPES = ['void', 'eye', 'dame'];
+var vEYE = 1, vFAKE = 2, vDAME = 3;
+var VTYPES = ['void', 'eye', 'fake', 'dame'];
 
 
 /** @class Class used by BoardAnalyser class.
@@ -28,8 +29,10 @@ function Void(goban, code) {
     this.color = undefined; // BLACK or WHITE, or undefined if no clear owner
     this.owner = undefined; // GroupInfo or undefined; NB: fake eyes don't have owner
     this.isInDeadGroup = false; // true when all groups around an eye are dead (e.g. one-eyed dead group)
-    this.hasFakes = false;
-    this.fakeSpots = [];
+    this.hasFakeSpots = false;
+    this.realCount = -1;
+    this.fakeSpots = null;
+    this.isSingleColor = false;
 }
 module.exports = Void;
 
@@ -37,6 +40,7 @@ module.exports = Void;
 Void.prototype.prepare = function (i, j) {
     this.i = i;
     this.j = j;
+    this.fakeSpots = [];
     this.groups = [[], []];
     this.vertexes = [];
     return this.groups;
@@ -58,6 +62,16 @@ function areGroupsAllDead(groups) {
     return true;
 }
 
+Void.prototype.getFakeSpot = function (stone, groups) {
+    if (main.debug) main.log.debug('FAKE SPOT in ' + this + ' at ' + stone + ' for ' + groups.map(function (g) { return g.ndx; }));
+    this.hasFakeSpots = true;
+    var index = this.vertexes.indexOf(stone);
+    var fakeSpot = this.fakeSpots[index];
+    if (!fakeSpot) fakeSpot = this.fakeSpots[index] = new FakeSpot(stone, groups);
+    else fakeSpot.addGroups(groups);
+    return fakeSpot;
+};
+
 Void.prototype.findOwner = function () {
     var blackGroups = this.groups[BLACK], whiteGroups = this.groups[WHITE];
     // see which color has yet-alive groups around this void
@@ -66,71 +80,101 @@ Void.prototype.findOwner = function () {
 
     // every group around now dead = eye belongs to the killers
     if (allBlackDead && allWhiteDead) {
-        if (!this.isInDeadGroup && this.color !== undefined) this.setAsDeadGroupEye();
-        return;
+        if (this.isInDeadGroup || this.color === undefined) return false;
+        return this._setAsDeadGroupEye();
     }
-    if (this.vtype === vEYE) return; // eyes don't change owner unless in a dead group
-    if (!allBlackDead && !allWhiteDead) return; // still undefined owner
+    if (this.vtype === vEYE) return false; // eyes don't change owner unless in a dead group
+    if (!allBlackDead && !allWhiteDead) return false; // still undefined owner
 
     var color = allBlackDead ? WHITE : BLACK;
+    this.isSingleColor = !blackGroups.length || !whiteGroups.length;
 
-    if (this.checkFakeEye(color)) return;
+    if (this.hasFakeSpots) return this._initFakeEye(color);
 
-    if (!blackGroups.length || !whiteGroups.length) {
-        return this.setAsEye(color);
+    this.realCount = this.vcount;
+    return this._setOwner(color);
+};
+
+Void.prototype._initFakeEye = function (color) {
+    this.vtype = vFAKE;
+    this.color = color;
+
+    if (this.owner) {
+        this.owner.removeVoid(this); this.owner = null;
     }
 
-    this.setVoidOwner(color);
+    for (var n = this.fakeSpots.length - 1; n >= 0; n--) {
+        var fakeSpot = this.fakeSpots[n];
+        if (fakeSpot) fakeSpot.mustBePlayed = false;
+    }
+    return true;
 };
 
-Void.prototype.markAsFakeSpot = function () {
-    if (main.debug && !this.hasFakes) main.log.debug('FAKE SPOT in ' + this);
-    this.hasFakes = true;
+Void.prototype.checkFakeEye = function () {
+    if (this.vtype !== vFAKE) return false;
+
+    var prevCount = this.realCount;
+    var realCount = this.realCount = this.vcount - this._getMustPlayStones();
+    if (main.debug) main.log.debug('Real vcount: ' + realCount + ' for ' + this);
+
+    return realCount !== prevCount;
 };
 
-Void.prototype._getMustPlayStones = function (color, stones, isScoring) {
+Void.prototype._getMustPlayStones = function (stones) {
     if (!stones) stones = [];
 
-    var groups = this.groups[color];
-    for (var i = groups.length - 1; i >= 0; i--) {
-        groups[i]._info.getFakeSpots(this, stones, isScoring);
+    for (var n = this.fakeSpots.length - 1; n >= 0; n--) {
+        var fakeSpot = this.fakeSpots[n];
+        if (!fakeSpot || fakeSpot.color !== this.color) continue;
+        var groups = fakeSpot.groups;
+        for (var i = groups.length - 1; i >= 0; i--) {
+            if (groups[i]._info.needsBrothers()) {
+                if (main.debug && !fakeSpot.mustBePlayed) main.log.debug('Must be played: ' + fakeSpot.stone);
+                fakeSpot.mustBePlayed = true;
+                stones.push(fakeSpot.stone);
+                break;
+            }
+        }    
     }
     return stones.length;
 };
 
-// Potential fake eyes are identified only once, then they can only lose this property
-// NB: groups around a fake-eye do not count it as an eye/void
-Void.prototype.checkFakeEye = function (color) {
-    if (!this.hasFakes) return false;
+Void.prototype.finalizeFakeEye = function () {
+    if (this.vtype !== vFAKE) return;
 
-    var realCount = this.vcount - this._getMustPlayStones(color);
-    if (realCount === this.vcount) {
-        if (main.debug) main.log.debug('FAKE SPOTS disregarded for: ' + this);
-        this.hasFakes = false;
-        return false;
+    if (this.realCount === 0) {
+        if (this.owner) throw new Error('NEVER HAPPENS');
+        if (main.debug) main.log.debug('FAKE EYE remains fake: ' + this);
+        return;
     }
 
-    if (main.debug) main.log.debug('Real vcount: ' + realCount + ' for ' + this);
-    if (realCount === 0) {
-        if (this.owner) { this.owner.removeVoid(this); this.owner = null; }
-        this.color = color;
-        return true;
-    }
-    return false;
+    if (main.debug) main.log.debug('FAKE SPOTS disregarded for: ' + this);
+    var color = this.color;
+    this.color = this.vtype = undefined;
+    return this._setOwner(color);
 };
 
-Void.prototype.setAsEye = function (color) {
+Void.prototype._setOwner = function (color) {
+    if (this.isSingleColor) {
+        return this._setAsEye(color);
+    } else {
+        return this.setVoidOwner(color);
+    }
+};
+
+Void.prototype._setAsEye = function (color) {
     if (main.debug) main.log.debug('EYE: ' + Grid.colorName(color) + ' owns ' + this);
     this.vtype = vEYE;
     this.color = color;
     // ONE of the groups now owns this void
     var groups = this.groups[color];
     this.owner = groups[0]._info.addVoid(this, groups);
+    return true;
 };
 
 /** Sets the "stronger color" that will probably own a void - vtype == undefined */
 Void.prototype.setVoidOwner = function (color) {
-    if (color === this.color) return;
+    if (color === this.color) return false;
     if (main.debug) main.log.debug('VOID: ' + Grid.colorName(color) + ' owns ' + this);
 
     if (this.owner) { this.owner.removeVoid(this); this.owner = null; }
@@ -143,12 +187,13 @@ Void.prototype.setVoidOwner = function (color) {
         var evoids = enemies[e]._info.nearVoids;
         for (var n = evoids.length - 1; n >= 0; n--) {
             if (evoids[n] === this) continue;
-            if (evoids[n].color === color) return;
+            if (evoids[n].color === color) return true;
         }
     }
     // ONE of the groups now owns this void
     var groups = this.groups[color];
     this.owner = groups[0]._info.addVoid(this, groups);
+    return true;
 };
 
 // Called during final steps for voids that have both B&W groups alive close-by
@@ -160,13 +205,13 @@ Void.prototype.setAsDame = function () {
 };
 
 // Called for eyes or fake eyes when their owner group is captured
-Void.prototype.setAsDeadGroupEye = function () {
+Void.prototype._setAsDeadGroupEye = function () {
     if (main.debug) main.log.debug('EYE-IN-DEAD-GROUP: ' + this);
     var color = this.color;
     if (color === undefined) throw new Error('dead group\'s eye of undefined owner');
 
     this.isInDeadGroup = true;
-    this.hasFakes = false; // fakes become regular space if the group is dead
+    this.hasFakeSpots = false; // fakes become regular space if the group is dead
     if (this.owner) { this.owner.removeVoid(this); this.owner = null; }
     this.vtype = vEYE; // it could have been a fake eye but now it is an eye
     this.color = 1 - color;
@@ -177,18 +222,19 @@ Void.prototype.setAsDeadGroupEye = function () {
         var gi = groups[i]._info;
         if (gi.killers.length) {
             this.owner = gi.killers[0]._info.addVoid(this);
-            return;
+            return true;
         }
     }
     // Found no killer; happens for eye inside dead group lost inside enemy zone.
     // We should leave the eye inside its possibly dead group. See TestBoardAnalyser#testDoomedGivesEye2
+    return true;
 };
 
 Void.prototype.getScore = function (fakes) {
     if (this.color === undefined) return 0;
     if (fakes) {
         fakes.length = 0;
-        if (this.hasFakes) this._getMustPlayStones(this.color, fakes, /*isScoring=*/true);
+        if (this.hasFakeSpots) this._getMustPlayStones(fakes);
     }
     return this.vcount;
 };

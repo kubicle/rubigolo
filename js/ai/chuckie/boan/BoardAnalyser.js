@@ -167,8 +167,20 @@ BoardAnalyser.prototype._findBrothers = function () {
 // Find voids surrounded by a single color -> eyes
 BoardAnalyser.prototype._findEyeOwners = function () {
     if (main.debug) main.log.debug('---Finding eye owners...');
-    for (var n = this.allVoids.length - 1; n >= 0; n--) {
-        this.allVoids[n].findOwner();
+    var allVoids = this.allVoids, count = allVoids.length;
+    for (var n = count - 1; n >= 0; n--) {
+        allVoids[n].findOwner();
+    }
+    var changed;
+    for (;;) {
+        changed = false;
+        for (n = count - 1; n >= 0; n--) {
+            if (allVoids[n].checkFakeEye()) changed = true;
+        }
+        if (!changed) break;
+    }
+    for (n = count - 1; n >= 0; n--) {
+        allVoids[n].finalizeFakeEye();
     }
 };
 

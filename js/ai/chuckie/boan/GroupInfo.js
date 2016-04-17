@@ -125,9 +125,9 @@ GroupInfo.prototype.findBrothers = function () {
             continue;
         }
         var stone = contactPoints[i];
-        this.fakeSpots.push(stone);
+        var fakeSpot = this.boan.getVoidAt(stone).getFakeSpot(stone, [g, allies[i]]);
+        this.fakeSpots.push(fakeSpot);
         this.fakeBrothers.push(allies[i]);
-        this.boan.getVoidAt(stone).markAsFakeSpot();
     }
     allies.push(g);
     Band.gather(allies);
@@ -167,7 +167,7 @@ function mergeSubBands(subBands, newGroup, groups1, groups2) {
 GroupInfo.prototype._getFakeBrothersIfCut = function (stone) {
     var res = [] ;
     for (var i = this.fakeBrothers.length - 1; i >= 0; i--) {
-        if (this.fakeSpots[i] === stone) continue;
+        if (this.fakeSpots[i].stone === stone) continue;
         res.push(this.fakeBrothers[i]);
     }
     return res;
@@ -196,7 +196,6 @@ GroupInfo.prototype.getSubBandsIfKilled = function () {
     return subBands;
 };
 
-//FIXME: see scoring tests; a fake spot inside our territory can be left unplayed
 GroupInfo.prototype.needsToConnect = function () {
     if (this.eyeCount >= 2) return NEVER;
     var numPotEyes = this.countPotEyes();
@@ -205,26 +204,20 @@ GroupInfo.prototype.needsToConnect = function () {
     return SOMETIMES;
 };
 
-GroupInfo.prototype.getFakeSpots = function (v, stones, isScoring) {
-    if (this.needsToConnect() === NEVER) return;
-    // with a dead enemy around, we are usually not forced to connect
-    if (this.deadEnemies.length) return;
+GroupInfo.prototype.needsBrothers = function () {
+    if (this.needsToConnect() === NEVER) return false;
+    if (this.closeBrothers.length) return false;
 
-    var color = this.group.color, numAllyVoids = 0;
+    var color = this.group.color, numAllyVoids = 0, extraLife = 0;
     for (var i = this.nearVoids.length - 1; i >= 0; i--) {
         var nearVoid = this.nearVoids[i];
-        if (nearVoid.color === color) numAllyVoids++;
+        if (nearVoid.color !== color || nearVoid.realCount === 0) continue;
+        numAllyVoids++;
+        if (nearVoid.realCount >= 3) extraLife++;
+        if (this.deadEnemies.length) extraLife++;
     }
-    if (numAllyVoids >= 2) return;
-    // When scoring, having only ally voids around is enough
-    if (isScoring && numAllyVoids === this.nearVoids.length) return;
-
-    for (i = this.fakeSpots.length - 1; i >= 0; i--) {
-        var stone = this.fakeSpots[i];
-        if (this.boan.getVoidAt(stone) !== v) continue; // not in given void
-
-        if (stones.indexOf(stone) < 0) stones.push(stone);
-    }
+    if (numAllyVoids + extraLife >= 2) return false;
+    return true;
 };
 
 GroupInfo.prototype.considerDead = function (reason) {

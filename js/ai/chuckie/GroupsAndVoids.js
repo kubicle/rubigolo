@@ -39,7 +39,9 @@ GroupsAndVoids.prototype._updateGroupState = function () {
         // g.xInRaceWith will be updated in GroupAnalyser
 
         for (var i = gi.fakeSpots.length - 1; i >= 0; i--) {
-            this.moveInfo.setAsFakeEye(gi.fakeSpots[i], g.color);
+            var fakeSpot = gi.fakeSpots[i];
+            if (!fakeSpot.mustBePlayed) continue;
+            this.moveInfo.setAsFakeEye(fakeSpot.stone, g.color);
         }
     }
 };
