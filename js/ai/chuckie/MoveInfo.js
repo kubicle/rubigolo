@@ -257,7 +257,7 @@ MoveInfo.prototype._countSavedAllies = function (killedEnemy, stone, factor, num
 
 // Counts threats saved on g's band if g is saved
 MoveInfo.prototype._bandThreatIfKilled = function (g, stone, factor, numMoves) {
-    var bands = g._info.getSubBandsIfKilled();
+    var bands = g._info.getSubBandsIfKilled(stone);
     for (var i = bands.length - 1; i >= 0; i--) {
         this._bandThreat(bands[i], stone, /*saving=*/true, factor, numMoves);
     }
@@ -300,7 +300,7 @@ MoveInfo.prototype.cutThreat = function (groups, stone, color) {
     if (this.debug) this._enter('cut', g, stone);
     var saving = color === g.color;
 
-    var bands = g._info.getSubBandsIfCut(stone);
+    var bands = g._info.getSubBandsIfCut(groups, stone);
     for (var i = bands.length - 1; i >= 0; i--) {
         this._bandThreat(bands[i], stone, saving);
     }
@@ -308,7 +308,7 @@ MoveInfo.prototype.cutThreat = function (groups, stone, color) {
 
 MoveInfo.prototype.killThreat = function (g, stone) {
     if (this.debug) this._enter('kill', g, stone);
-    var bands = g._info.getSubBandsIfKilled();
+    var bands = g._info.getSubBandsIfKilled(stone);
     for (var i = bands.length - 1; i >= 0; i--) {
         this._bandThreat(bands[i], stone, /*saving=*/false);
     }

@@ -164,6 +164,7 @@ function mergeSubBands(subBands, newGroup, groups1, groups2) {
     }
 }
 
+// Returns the list of fake brothers not separated from "this" by a cut in "stone"
 GroupInfo.prototype._getFakeBrothersIfCut = function (stone) {
     var res = [] ;
     for (var i = this.fakeBrothers.length - 1; i >= 0; i--) {
@@ -173,25 +174,31 @@ GroupInfo.prototype._getFakeBrothersIfCut = function (stone) {
     return res;
 };
 
-GroupInfo.prototype.getSubBandsIfCut = function (stone) {
-    var band = this.band;
-    if (!band) return [this];
+GroupInfo.prototype.getSubBandsIfCut = function (groups, stone) {
     var subBands = [];
-    for (var i = band.brothers.length - 1; i >= 0; i--) {
-        var gi = band.brothers[i];
-        mergeSubBands(subBands, gi, gi.closeBrothers, gi._getFakeBrothersIfCut(stone));
+    for (var n = groups.length - 1; n >= 0; n--) {
+        var gi0 = groups[n]._info;
+        var band = gi0.band;
+        if (band) {
+            for (var i = band.brothers.length - 1; i >= 0; i--) {
+                var gi = band.brothers[i];
+                mergeSubBands(subBands, gi, gi.closeBrothers, gi._getFakeBrothersIfCut(stone));
+            }
+        } else {
+            subBands.push([gi0]);
+        }
     }
     return subBands;
 };
 
-GroupInfo.prototype.getSubBandsIfKilled = function () {
+GroupInfo.prototype.getSubBandsIfKilled = function (stone) {
     var band = this.band;
     if (!band) return [];
     var subBands = [];
     for (var i = band.brothers.length - 1; i >= 0; i--) {
         var gi = band.brothers[i];
         if (gi === this) continue;
-        mergeSubBands(subBands, gi, gi.closeBrothers, gi.fakeBrothers);
+        mergeSubBands(subBands, gi, gi.closeBrothers, gi._getFakeBrothersIfCut(stone));
     }
     return subBands;
 };
