@@ -20,10 +20,12 @@ TestSeries.prototype.add = function (klass) {
 };
 
 TestSeries.prototype.testOneClass = function (Klass, methodPattern) {
+    var pattern = methodPattern ? methodPattern.toLowerCase() : '';
+
     for (var method in Klass.prototype) {
         if (typeof Klass.prototype[method] !== 'function') continue;
         if (method.substr(0,4) !== 'test') continue;
-        if (methodPattern && method.indexOf(methodPattern) === -1) continue;
+        if (method.toLowerCase().indexOf(pattern) === -1) continue;
         this.testCount++;
         var test = new Klass(main.funcName(Klass) + '#' + method);
         test.series = this;
