@@ -58,7 +58,7 @@ GameLogic.prototype.copy = function (src) {
     this.setWhoStarts(src.whoStarts);
     this.setPlayer(BLACK, src.playerNames[BLACK]);
     this.setPlayer(WHITE, src.playerNames[WHITE]);
-    this.setRules(src.rulesName);
+    this.setRules(src.rulesName, /*okIfUnknown=*/true);
 
     this.newGame(src.goban.gsize, src.handicap, src.komi);
 
