@@ -42,9 +42,10 @@ Shaper.prototype._evalSingleEyeSplit = function (scoreYx, g) {
     var alive = g._info.getEyeMakerMove(coords);
     if (alive !== SOMETIMES) return;
     var stone = this.goban.stoneAt(coords[0], coords[1]);
+    var numEyes = stone.numEmpties();
 
     if (main.debug) main.log.debug('Shaper ' + Grid.colorName(this.color) + ' sees single eye split at ' + stone);
-    this.mi.eyeThreat(g, stone, this.color);
+    this.mi.eyeThreat(g, stone, this.color, numEyes);
 };
 
 Shaper.prototype._evalMove = function (i, j, color) {
@@ -78,7 +79,7 @@ Shaper.prototype._realEyeCloser = function (stone, color, v) {
         var s = stone.neighbors[n];
         if (s.color === color && s.group.lives === 1) {
             if (main.debug) main.log.debug('Shaper ' + Grid.colorName(color) + ' sees threat on real eye ' + v);
-            this.mi.eyeThreat(s.group, stone, color);
+            this.mi.eyeThreat(s.group, stone, color, 1);
             break;
         }
     }
@@ -87,18 +88,20 @@ Shaper.prototype._realEyeCloser = function (stone, color, v) {
 Shaper.prototype._potEyeCloser = function (stone, color) {
     var potEyeEvenYx = this.potEyeGrids[EVEN].yx;
     var potEyeOddYx = this.potEyeGrids[ODD].yx;
-    var potEye = null, g = null;
+    var potEye = null, g = null, numEyes = 0;
 
     for (var n = stone.neighbors.length - 1; n >= 0; n--) {
         var s = stone.neighbors[n];
         switch (s.color) {
         case EMPTY:
-            if (potEyeEvenYx[s.j][s.i] === color || potEyeOddYx[s.j][s.i] === color) potEye = s;
+            if (potEyeEvenYx[s.j][s.i] === color || potEyeOddYx[s.j][s.i] === color) {
+                potEye = s;
+                numEyes++;
+            }
             break;
         case color:
-            g = s.group;
+            if (!g) g = s.group;
         }
-        if (potEye && g) break;
     }
     if (!potEye) return;
     if (!g) {
@@ -108,5 +111,5 @@ Shaper.prototype._potEyeCloser = function (stone, color) {
     }
     if (g.xAlive === ALWAYS || g.xDead === ALWAYS) return;
 
-    this.mi.eyeThreat(g, stone, color);
+    this.mi.eyeThreat(g, stone, color, numEyes);
 };
