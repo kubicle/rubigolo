@@ -27,7 +27,7 @@ Savior.prototype.evalBoard = function (stateYx, scoreYx) {
             var state = stateYx[j][i];
             if (state < sOK) continue;
             if (state === sDEBUG && this.name === this.player.debugHeuristic)
-                main.debug = true; // set your breakpoint on this line if needed
+                main.debug = true;
 
             var stone = this.goban.stoneAt(i, j);
             var threat = this._evalEscape(i, j, stone);
