@@ -45,8 +45,7 @@ TestAi.prototype.checkScore = function(player, color, move, score, expScore, heu
         ' got ' + score.toFixed(3) + ' instead of ' + expScore +
         (heuristic ? ' for ' + heuristic : '');
     this.logErrorContext(player, move);
-    this.showInUi(msg);
-    main.log.warn('Discrepancy in ' + this.name + ': ' + msg);
+    this.fail(msg);
 };
 
 // if expEval is null there is not check: value is returned
@@ -93,8 +92,7 @@ TestAi.prototype.checkMoveIsBetter = function (move1, move2) {
     if (this.check(m2[0] < m1[0])) return;
 
     var msg = m1[1] + ' should have been greater than ' + m2[1];
-    main.log.warn(msg);
-    this.showInUi(msg);
+    this.fail(msg);
 };
 
 /** Lets AI play and verify we got the right move.
@@ -132,9 +130,8 @@ TestAi.prototype.checkMovesAreEquivalent = function (moves) {
         if (this.check(score0 === score)) continue;
 
         var color = this.game.curColor;
-        this.showInUi(Grid.colorName(color) + '-' + moves + ' should be equivalent but ' +
+        this.fail(Grid.colorName(color) + '-' + moves + ' should be equivalent but ' +
             moves[m] + ' got ' + score + ' instead of ' + score0);
-        return false; // stop after 1
     }
     return true;
 };
@@ -148,7 +145,7 @@ TestAi.prototype.playAndCheckMoveIsOneOf = function (moves) {
     if (this.check(moves.indexOf(move) >= 0)) return; // one of the given moves was played => GOOD
 
     var score = player.bestScore.toFixed(3);
-    this.showInUi(Grid.colorName(color) + '-' + move + ' got ' + score +
+    this.fail(Grid.colorName(color) + '-' + move + ' got ' + score +
         ' so it was played instead of one of ' + moves);
 };
 
@@ -157,7 +154,7 @@ TestAi.prototype.checkMoveIsBad = function (move) {
     if (this.check(score <= 0.1)) return;
 
     var color = this.game.curColor;
-    this.showInUi(Grid.colorName(color) + '-' + move + ' should be a bad move but got ' + score.toFixed(3));
+    this.fail(Grid.colorName(color) + '-' + move + ' should be a bad move but got ' + score.toFixed(3));
 };
 
 function parseBinaryOp(op, check) {
@@ -203,6 +200,10 @@ TestAi.prototype.checkGame = function (moves, checks, gsize, rules) {
     this.runChecks(checks);
 };
 
+TestAi.prototype.checkGameTODO = function (moves, checks, gsize, rules) {
+    this.startBrokenTest();
+    this.checkGame(moves, checks, gsize, rules);
+};
 
 //--- Tests are below
 
@@ -332,6 +333,17 @@ TestAi.prototype.testEyeMaking_sideEyeMustBeClosed = function () {
     // Same as above but no black stone in a5
     this.checkGame('a2,d3,b2,d4,b1,d2,b3,d1,pass,b5,b4,c5,c4,d5',
         'a4>19, #pass, a4>19'); // TODO: Shaper should find 19 here
+};
+
+TestAi.prototype.testRace1 = function () {
+    // W loses the race because j1 & g2
+    this.checkGameTODO('e5,e3,e4,d6,g6,e6,f7,f5,f6,f4,d4,c5,f3,g4,e2,c3,d3,c4,c2,h5,g3,h4,h3,b2,j4,e7,e8,c1,d7,d2,c7,b6,b7,e1,f1,d1,a6,c6,b5,b4,h6,a5,a7,g1,f2,h2,j2,d5,e3,j5',
+        'j6<2,j3>20,j3,!g2,!j1,!h1,#pass,j6', 9);
+};
+
+TestAi.prototype.testConnect_misc2 = function () {
+    this.checkGameTODO('e5,e3,e4,d6,g6,e6,f7,f5,f6,f4,d4,c5,f3,g4,e2,c3,d3,c4,c2,h5,g3,h4,h3,b2,j4,e7,e8,c1,d7,d2,c7,b6,b7,e1,f1,d1,a6,c6,b5,b4,h6,a5,a7,g1,f2,h2,j2,d5,e3,j5,j3,h1,j6,g8,f8,b8,h7,c8',
+        '!d9,d8>15,d8', 9);
 };
 
 TestAi.prototype.testPushFromDeadGroup = function () {

@@ -2,16 +2,19 @@
 
 var main = require('../main');
 
+var FAILED_ASSERTION_MSG = 'Failed assertion: ';
+
 
 /** @class */
 function TestSeries() {
     this.testCases = {};
-    this.testCount = this.failedCount = this.errorCount = 0;
-    this.warningCount = 0;
+    this.testCount = 0;
+    this.failedCount = this.errorCount = 0;
+    this.failedCount0 = this.errorCount0 = 0;
+    this.currentTest = '';
+    this.inBrokenTest = false;
 }
 module.exports = TestSeries;
-
-TestSeries.FAILED_ASSERTION_MSG = 'Failed assertion: ';
 
 
 TestSeries.prototype.add = function (klass) {
@@ -27,23 +30,58 @@ TestSeries.prototype.testOneClass = function (Klass, methodPattern) {
         if (method.substr(0,4) !== 'test') continue;
         if (method.toLowerCase().indexOf(pattern) === -1) continue;
         this.testCount++;
-        var test = new Klass(main.funcName(Klass) + '#' + method);
+        this.currentTest = main.funcName(Klass) + '#' + method;
+        var test = new Klass(this.currentTest);
         test.series = this;
-        try {
-            test[method].call(test);
-            if (this.testCount === 1 && methodPattern) test.showInUi('First test matching "' + methodPattern + '"');
-        } catch(e) {
-            if (e.message.startsWith(TestSeries.FAILED_ASSERTION_MSG)) {
-                this.failedCount++;
-                e.message = e.message.substr(TestSeries.FAILED_ASSERTION_MSG.length);
-                main.log.error('Test failed: ' + main.funcName(test) + ': ' + e.message + '\n');
-            } else {
-                this.errorCount++;
-                main.log.error('Exception during test: ' + main.funcName(test) + ':\n' + e.stack + '\n');
-            }
-            test.showInUi(e.message);
-        }
+
+        this._testOneMethod(test, test[method], methodPattern);
     }
+};
+
+TestSeries.prototype._testOneMethod = function (test, method, methodPattern) {
+    try {
+        this.inBrokenTest = false;
+
+        method.call(test);
+
+        if (this.inBrokenTest) this._endBrokenTest(/*failed=*/false);
+        if (this.testCount === 1 && methodPattern) test.showInUi('First test matching "' + methodPattern + '"');
+    } catch(e) {
+        if (this.inBrokenTest && !main.debug) {
+            return this._endBrokenTest(/*failed=*/true);
+        }
+        var msg = e.message;
+        if (msg.startsWith(FAILED_ASSERTION_MSG)) {
+            this.failedCount++;
+            msg = msg.substr(FAILED_ASSERTION_MSG.length);
+            main.log.error('Test failed: ' + this.currentTest + ': ' + msg + '\n');
+        } else {
+            this.errorCount++;
+            main.log.error('Exception during test: ' + this.currentTest + ':\n' + e.stack + '\n');
+        }
+        test.showInUi(msg);
+    }
+};
+
+TestSeries.prototype.failTest = function (msg, comment) {
+    comment = comment ? comment + ': ' : '';
+    throw new Error(FAILED_ASSERTION_MSG + comment + msg);
+};
+
+TestSeries.prototype.startBrokenTest = function () {
+    this.inBrokenTest = true;
+    this.failedCount0 = this.failedCount;
+    this.errorCount0 = this.errorCount;
+};
+
+TestSeries.prototype._endBrokenTest = function (failed) {
+    if (failed) {
+        main.log.info('BROKEN: ' + this.currentTest);
+    } else {
+        main.log.info('FIXED: ' + this.currentTest);
+    }
+    this.failedCount = this.failedCount0;
+    this.errorCount = this.errorCount0;
 };
 
 /** Runs the registered test cases
@@ -55,7 +93,7 @@ TestSeries.prototype.run = function (specificClass, methodPattern) {
     var logLevel = main.log.level;
     var classCount = 0;
     this.testCount = this.checkCount = this.count = 0;
-    this.failedCount = this.errorCount = this.warningCount = this.todoCount = 0;
+    this.failedCount = this.errorCount = this.todoCount = 0;
     var startTime = Date.now();
 
     for (var t in this.testCases) {
@@ -70,7 +108,7 @@ TestSeries.prototype.run = function (specificClass, methodPattern) {
 };
 
 TestSeries.prototype._logReport = function (specificClass, classCount, duration) {
-    var numIssues = this.errorCount + this.failedCount + this.warningCount;
+    var numIssues = this.errorCount + this.failedCount;
     var classes = specificClass ? 'class ' + specificClass : classCount + ' classes';
 
     var report = 'Completed tests. (' + classes + ', ' + this.testCount + ' tests, ' +
@@ -84,8 +122,7 @@ TestSeries.prototype._logReport = function (specificClass, classCount, duration)
         main.log.info(report);
     } else {
         report += '*** ISSUES: exceptions: ' + this.errorCount +
-            ', failed: ' + this.failedCount +
-            ', warnings: ' + this.warningCount + ' ***';
+            ', failed: ' + this.failedCount + ' ***';
         main.log.error(report);
     }
     return numIssues;

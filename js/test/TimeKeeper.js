@@ -105,12 +105,12 @@ TimeKeeper.prototype._checkLimits = function (lenientIfSlow) {
     var diff = this.duration - this.expectedTime * this.tolerance;
     if (diff <= 0) return '';
 
-    var msg = 'Duration over limit: ' + this.duration.toFixed(2) +
+    var msg = this.taskName + ': duration over limit: ' + this.duration.toFixed(2) +
         ' instead of ' + this.expectedTime.toFixed(2);
-    this.log.warn(this.taskName + ': ' + msg);
 
     if (!lenientIfSlow && !main.isCiTest && diff > DELAY_THRESHOLD) {
-        main.tests.warningCount++;
+        main.tests.failTest(msg);
     }
+    this.log.warn(msg);
     return msg;
 };

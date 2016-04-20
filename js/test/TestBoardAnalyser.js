@@ -39,8 +39,13 @@ TestBoardAnalyser.prototype.checkGame = function (moves, expScore, gsize, finalP
     this.boan.countScore(this.goban);
 
     var score = this.boan.getScoringGrid().image();
-    if (this.check(!expScore || score === expScore, /*isError=*/true)) return;
-    this.showInUi('Expected scoring grid was:<br>' + expScore + ' but we got:<br>' + score);
+    if (this.check(!expScore || score === expScore)) return;
+    this.fail('Expected scoring grid was:<br>' + expScore + ' but we got:<br>' + score);
+};
+
+TestBoardAnalyser.prototype.checkGameTODO = function (moves, expScore, gsize, finalPos) {
+    this.startBrokenTest();
+    this.checkGame(moves, expScore, gsize, finalPos);
 };
 
 TestBoardAnalyser.prototype.loadImage = function (moves) {
@@ -330,7 +335,7 @@ TestBoardAnalyser.prototype.testSmallGame2 = function () {
 
 TestBoardAnalyser.prototype.testSmallGame3 = function () {
     // White S-W group connects through a dead enemy - otherwise it would die
-    this.checkGame('f4,f6,d6,c3,d4,e5,g5,e4,e7,d3,g7,d5,c4,b4,g6,c5,f7,b6,c7,f3,e6,f5,g4,g2,g3,h3,c6,h4,b7,h5,a6,h6,b5,h7,h8,j8,a4,g8,b3,b2,c4,f8,a2,c2,e8,h9,f9,b1,e2,e3,f2,h2,d2,f1,d1,c1,pass,g9,e9,d8,d9,c8,b8,pass,c9,pass,d7,pass,pass',
+    this.checkGameTODO('f4,f6,d6,c3,d4,e5,g5,e4,e7,d3,g7,d5,c4,b4,g6,c5,f7,b6,c7,f3,e6,f5,g4,g2,g3,h3,c6,h4,b7,h5,a6,h6,b5,h7,h8,j8,a4,g8,b3,b2,c4,f8,a2,c2,e8,h9,f9,b1,e2,e3,f2,h2,d2,f1,d1,c1,pass,g9,e9,d8,d9,c8,b8,pass,c9,pass,d7,pass,pass',
         '--@@@@OO:,' +
         '-@--@OO:O,' +
         '-@@@@@@O:,' +

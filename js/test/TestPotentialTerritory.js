@@ -27,16 +27,20 @@ TestPotentialTerritory.prototype.initBoard = function (size, handicap) {
     this.pot = this.aiPlayer.getHeuristic('PotentialTerritory');
 };
 
-TestPotentialTerritory.prototype.checkBasicGame = function (moves, expected, gsize, finalPos) {
+TestPotentialTerritory.prototype.checkGame = function (moves, expected, gsize, finalPos) {
     this.initBoard(gsize || 7);
     this.game.loadMoves(moves);
     if (finalPos) this.assertEqual(finalPos, this.goban.image());
 
     this.pot.evalBoard();
     var territory = this.pot.image();
-    if (territory === expected) return;
-    this.showInUi('Expected territory was<br>' + expected + ' but got<br>' + territory);
-    this.assertEqual(expected, territory);
+    if (this.check(territory === expected)) return;
+    this.fail('Expected territory was<br>' + expected + ' but got<br>' + territory);
+};
+
+TestPotentialTerritory.prototype.checkGameTODO = function (moves, expected, gsize, finalPos) {
+    this.startBrokenTest();
+    this.checkGame(moves, expected, gsize, finalPos);
 };
 
 //---
@@ -53,7 +57,7 @@ TestPotentialTerritory.prototype.testBigEmptySpace = function () {
     +++++++
     +++++++
     */
-    this.checkBasicGame('d4,c5,d6,c7,c4,c6,b4',
+    this.checkGameTODO('d4,c5,d6,c7,c4,c6,b4',
         //'-------,-------,-------,-------,-------,-------,-------'); // if White group is seen dead
         '???????,???????,???????,-------,-------,-------,-------'); // if White group is seen in dispute
 };
@@ -69,7 +73,7 @@ TestPotentialTerritory.prototype.testInMidGame = function () {
     // 2 +++@O++++
     // 1 +++++++++
     //   abcdefghj
-    this.checkBasicGame('c3,c6,e7,g3,g7,e2,d2,b4,b3,c7,g5,h4,h5,d8,e8,e5,c4,b5,e3',
+    this.checkGameTODO('c3,c6,e7,g3,g7,e2,d2,b4,b3,c7,g5,h4,h5,d8,e8,e5,c4,b5,e3',
         "::::-'---," +
         "::::-'---," +
         ":::?-'---," +
@@ -92,7 +96,7 @@ TestPotentialTerritory.prototype.testOnFinishedGame = function () {
     // 2 +++@OOO++
     // 1 +++@@O+++
     //   abcdefghj
-    this.checkBasicGame('c3,c6,e7,g3,g7,e2,d2,b4,b3,c7,g5,h4,h5,d8,e8,e5,c4,b5,e3,f2,c5,f6,f7,g6,h6,d7,a4,a5,b6,a3,a6,b7,a4,a7,d9,c9,b8,e6,d5,d6,e9,g4,f5,f4,e1,f1,d1,j5,j6,e4,j4,j3,h8,c8,d3,j5,f3,g2,j4,b5,b4,a5,j5',
+    this.checkGameTODO('c3,c6,e7,g3,g7,e2,d2,b4,b3,c7,g5,h4,h5,d8,e8,e5,c4,b5,e3,f2,c5,f6,f7,g6,h6,d7,a4,a5,b6,a3,a6,b7,a4,a7,d9,c9,b8,e6,d5,d6,e9,g4,f5,f4,e1,f1,d1,j5,j6,e4,j4,j3,h8,c8,d3,j5,f3,g2,j4,b5,b4,a5,j5',
         ':::------,::::-----,::::-----,:::::::--,::--:----,---?::::-,------:::,----:::::,-----::::', 9,
         '++O@@++++,+@OO@++@+,OOOO@@@++,++OOOOO@@,OO@@O@@@@,@@@+OOOO@,O@@@@@O+O,+++@OOO++,+++@@O+++');
 };
@@ -105,7 +109,7 @@ TestPotentialTerritory.prototype.testMessyBoard = function () {
     // +O@@@O+
     // @@OOOO+
     // ++++@@+
-    this.checkBasicGame('d4,d2,e3,b4,e1,c5,d6,d5,c3,e5,d3,b3,b2,c2,a2,e2,f1,f2,b6,c6,f6,e6,f4,d7,f5,f3',
+    this.checkGameTODO('d4,d2,e3,b4,e1,c5,d6,d5,c3,e5,d3,b3,b2,c2,a2,e2,f1,f2,b6,c6,f6,e6,f4,d7,f5,f3',
         '??.:.??,' +
         '??:::??,' +
         '??:::??,' +
@@ -128,7 +132,7 @@ TestPotentialTerritory.prototype.testConnectBorders = function () {
     // ++@OO++++
     // ++@@OO+++
     // +++++++++
-    this.checkBasicGame('d4,f4,e6,g6,d2,f7,e7,f2,e8,e3,e5,d3,c3,e2,c2,g5,f8,g8,f9,c7',
+    this.checkGameTODO('d4,f4,e6,g6,d2,f7,e7,f2,e8,e3,e5,d3,c3,e2,c2,g5,f8,g8,f9,c7',
         "????'-?::," +
         "????--:::," +
         "????-::::," +
@@ -152,7 +156,7 @@ TestPotentialTerritory.prototype.testConnectBorders = function () {
 // ++@@OO+++
 // +++++++++
 TestPotentialTerritory.prototype.testConnectBordersNoC7 = function () {
-    this.checkBasicGame('d4,f4,e6,g6,d2,f7,e7,f2,e8,e3,e5,d3,c3,e2,c2,g5,f8,g8,f9',
+    this.checkGameTODO('d4,f4,e6,g6,d2,f7,e7,f2,e8,e3,e5,d3,c3,e2,c2,g5,f8,g8,f9',
         "------?::,------:::,-----::::,-----?:::,-----?:::,----?::::,---::::::,----:::::,----:::::", 9);
 };
 
@@ -163,12 +167,12 @@ TestPotentialTerritory.prototype.test5by5withCornerCatch = function () {
     // +@+O+
     // @@+O+
     // +@+O+
-    this.checkBasicGame('a2,d3,b2,d4,b1,d2,b3,d1,a5,b5,b4,c5,c4,d5',
+    this.checkGameTODO('a2,d3,b2,d4,b1,d2,b3,d1,a5,b5,b4,c5,c4,d5',
         "'::::,'''::,''?::,''?::,''?::", 5);
 };
 
 TestPotentialTerritory.prototype.test5by5withCornerCatch2 = function () {
     // Simple flip of above game
-    this.checkBasicGame('a4,d3,b4,d2,b5,d4,b3,d5,a1,b1,b2,c1,c2,d1',
+    this.checkGameTODO('a4,d3,b4,d2,b5,d4,b3,d5,a1,b1,b2,c1,c2,d1',
         "''?::,''?::,''?::,'''::,'::::", 5);
 };
