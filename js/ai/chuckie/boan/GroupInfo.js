@@ -362,7 +362,7 @@ GroupInfo.prototype.getEyeMakerMove = function (coords) {
     if (main.debug) main.log.debug('getEyeMakerMove result: ' + best + ' - ' + (best ? (numMoves > 1 ? 'ALWAYS' : 'SOMETIMES') : 'NEVER'));
 
     if (!best) return NEVER;
-    if (numVertexAwayFromEnemy === 1 && !enemy2 && enemy1.stones.length < 3) {
+    if (numVertexAwayFromEnemy === 1 && !enemy2 && enemy1 && enemy1.stones.length < 3) {
         if (this._enemyCanReach(enemy1, vertexAwayFromEnemy, best))
             return NEVER; // see testEyeMaking_3withPrisoners
     }
