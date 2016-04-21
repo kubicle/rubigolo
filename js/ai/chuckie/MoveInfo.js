@@ -168,7 +168,6 @@ MoveInfo.prototype._goalReachedByMove = function (goal, stone, factor, numMoves)
 };
 
 MoveInfo.prototype._countWideSpace = function (g) {
-    if (g.lives <= g.stones.length) return 0; // blunt simplification
     var count = 0, color = g.color;
     var enemyInf = this.infl[1 - color];
     var lives = g.allLives();
@@ -227,6 +226,10 @@ MoveInfo.prototype._bandThreat = function (ginfos, stone, saving, factor, numMov
         if (main.debug) main.log.debug('MoveInfo: juging safe the band of ' + ginfos[0].group.toString(1));
         return;
     }
+    //REVIEW this; line below is wrong, but we should make the difference between
+    //- having 0 chance to save the band once "addedEyes" are removed
+    //- ...and having 0 chance anyway (band is dead for good and should not be helped)
+    //if (saving && factor === 1) return;
 
     var lives = numMoves || 0;
     for (var n = ginfos.length - 1; n >= 0; n--) {
@@ -236,7 +239,6 @@ MoveInfo.prototype._bandThreat = function (ginfos, stone, saving, factor, numMov
     for (n = ginfos.length - 1; n >= 0; n--) {
         this._groupCost(ginfos[n].group, stone, saving, factor, lives);
     }
-    return factor;
 };
 
 MoveInfo.prototype._groupCost = function (g, stone, saving, factor, numMoves) {
@@ -260,12 +262,10 @@ MoveInfo.prototype._countSavedAllies = function (killedEnemy, stone, factor, num
     var allies = killedEnemy.allEnemies();
     for (var a = allies.length - 1; a >= 0; a--) {
         var ally = allies[a];
-        if (ally.lives < numMoves) continue;
         if (ally.xAlive === ALWAYS) continue;
-
-        var threatFactor = factor * this._bandThreat([ally._info], stone, false, factor, numMoves);
-        if (threatFactor < MIN_FACTOR) continue;
-        this._bandThreatIfKilled(ally, stone, threatFactor, numMoves);
+        if (ally.lives !== numMoves) continue;
+        if (ally.lives === 1) this._groupCost(ally, stone, /*saving=*/true, factor, numMoves);
+        this._bandThreatIfKilled(ally, stone, factor, numMoves);
     }
 };
 
@@ -316,7 +316,8 @@ MoveInfo.prototype.cutThreat = function (groups, stone, color) {
 
     var bands = g._info.getSubBandsIfCut(groups, stone);
     for (var i = bands.length - 1; i >= 0; i--) {
-        this._bandThreat(bands[i], stone, saving);
+        // NB: numMoves=1 since cut is needed first
+        this._bandThreat(bands[i], stone, saving, undefined, /*numMoves=*/1);
     }
 };
 
