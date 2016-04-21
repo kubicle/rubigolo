@@ -90,6 +90,7 @@ Hunter.prototype._countAtariThreat = function (killerStone, enemies, level) {
         //TODO also verify no group in "enemies" is strong
         if (!level && this._isAtariGroupCaught(eg, level) && !this._gotLivesFromKillingAround(eg, 1)) {
             if (this.player.areaScoring) minimumScore = true;
+            // TODO: instead, mark group's death goal as pointless (min score)
             continue;
         }
         isKill = true;
