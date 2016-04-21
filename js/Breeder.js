@@ -223,8 +223,12 @@ Breeder.prototype.control = function (numGames) {
 // Play many games AI VS AI
 // Returns the ratio of games won by White, e.g. 0.6 for 60% won
 Breeder.prototype.aiVsAi = function (numGames, numGamesShowed, initMoves) {
-    var BlackAi = main.defaultAi, WhiteAi = main.latestAi;
-    if (BlackAi === WhiteAi) BlackAi = main.previousAi; // no point of match latest against itself
+    var BlackAi, WhiteAi = main.latestAi;
+    switch (main.defaultAi) {
+    case main.latestAi: BlackAi = main.previousAi; break;
+    case main.previousAi: BlackAi = main.olderAi; WhiteAi = main.previousAi; break;
+    case main.olderAi: BlackAi = main.defaultAi; break;
+    }
     this.initPlayers(BlackAi, WhiteAi);
 
     var blackName = this.game.playerNames[BLACK], whiteName = this.game.playerNames[WHITE];
