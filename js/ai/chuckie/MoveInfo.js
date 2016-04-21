@@ -44,6 +44,12 @@ MoveInfo.prototype._evalMove = function (i, j) {
     return cell.computeScore();
 };
 
+// Redefines Heuristic#getMoveSurvey
+MoveInfo.prototype.getMoveSurvey = function (i, j, survey) {
+    var cell = this.grid.yx[j][i];
+    if (cell) cell.computeScore(survey, this.name);
+};
+
 function CellInfo() {
     this.fakeEyeForColor = null;
     this.score = 0;
@@ -52,14 +58,21 @@ function CellInfo() {
     this.goalNumMoves = [];
 }
 
-CellInfo.prototype.computeScore = function () {
+CellInfo.prototype.computeScore = function (survey, hName) {
     var score = this.score;
+    if (survey && score) survey[hName + '-base'] = score;
     var goals = this.goals;
     if (!goals.length) return score;
 
     for (var n = goals.length - 1; n >= 0; n--) {
         var goal = goals[n];
-        score += goal.score * this.goalFactors[n];
+        var goalScore = goal.score * this.goalFactors[n];
+        score += goalScore;
+
+        if (survey) {
+            var f = this.goalFactors[n], factorStr = f !== 1 ? ' factor:' + f.toFixed(2) : '';
+            survey[hName + '-' + goal + factorStr] = goalScore;
+        }
     }
     return score;
 };
@@ -96,19 +109,19 @@ function Goal(name, score, g) {
 }
 
 Goal.prototype.toString = function () {
-    return this.name + ' (on ' + this.group.toString(1) +
-        (this.minMoves !== Infinity ? ', minMoves:' + this.minMoves : '') +
-        ', score:' + this.score.toFixed(2) + ')';
+    return this.name +
+        (this.minMoves !== Infinity ? ' minMoves:' + this.minMoves : '') +
+        ' score:' + this.score.toFixed(2);
 };
 
 //---
 
 MoveInfo.prototype._enter = function (name, g, stone) {
-    this.what = name + ' at ' + stone + ' on ' + g.toString(1);
+    this.what = name + ' on ' + g.toString(1);
 
     if (stone.i === this.player.testI && stone.j === this.player.testJ) {
         main.debug = true; // set your breakpoint here if needed
-        main.log.debug('MoveInfo scoring ' + this.what);
+        main.log.debug('MoveInfo scoring ' + stone + ': ' + this.what);
     } else {
         main.debug = false;
     }
@@ -127,7 +140,7 @@ MoveInfo.prototype._groupDeathGoal = function (g) {
     }
     cost += this.spaceInvasionCoeff * Math.max(0, numEmpties - 1); //...and the "open gate" to territory will count a lot
 
-    this.groupDeath[g.ndx] = goal = new Goal(this.what || 'death', cost, g);
+    this.groupDeath[g.ndx] = goal = new Goal('death of ' + g.toString(1), cost, g);
     return goal;
 };
 
@@ -135,7 +148,7 @@ MoveInfo.prototype._goalReachedByMove = function (goal, stone, factor, numMoves)
     if (!stone)  throw new Error('Unexpected'); //return goal;
     factor = factor || 1;
     numMoves = numMoves || 1;
-    if (main.debug) main.log.debug('Goal reached: ' + goal +
+    if (main.debug) main.log.debug('Goal reached by ' + stone + ': ' + goal +
         (factor ? ' factor:' + factor.toFixed(2) : '') + (numMoves ? ' numMoves:' + numMoves : ''));
 
     var cell = this._getCell(stone.i, stone.j);
@@ -193,7 +206,7 @@ MoveInfo.prototype._bandChance = function (ginfos, addedEyes) {
     }
     var twoEyeCh = twoEyeChance(potEyeCount);
     if (twoEyeCh === 1) {
-        if (main.debug) main.log.debug('MoveInfo: 2 eyes granted for band of ' + ginfos[0]);
+        if (main.debug) main.log.debug('MoveInfo: ' + potEyeCount + ' pot eyes for band of ' + ginfos[0]);
         return 1;
     }
 
@@ -210,8 +223,8 @@ MoveInfo.prototype._bandThreat = function (ginfos, stone, saving, factor, numMov
     var chance = this._bandChance(ginfos, addedEyes);
     factor *= (1 - chance);
     if (factor < MIN_FACTOR) {
-        if (main.debug) main.log.debug('MoveInfo: juging safe the band of ' + ginfos[0]);
-        return factor;
+        if (main.debug) main.log.debug('MoveInfo: juging safe the band of ' + ginfos[0].group.toString(1));
+        return;
     }
 
     var lives = numMoves || 0;

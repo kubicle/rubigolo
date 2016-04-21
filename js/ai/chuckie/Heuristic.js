@@ -70,6 +70,11 @@ Heuristic.prototype.evalBoard = function (stateYx, scoreYx) {
     }
 };
 
+Heuristic.prototype.getMoveSurvey = function (i, j, survey) {
+    var s = this.scoreGrid.yx[j][i];
+    if (s) survey[this.name] = s;
+};
+
 Heuristic.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
     return this.player.genes.get(this.name + '-' + name, defVal, lowLimit, highLimit);
 };

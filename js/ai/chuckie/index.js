@@ -230,9 +230,7 @@ Chuckie.prototype._getMoveForTest = function (i, j) {
 Chuckie.prototype._getMoveSurvey = function (i, j) {
     var survey = {};
     for (var n = 0; n < this.heuristics.length; n++) {
-        var h = this.heuristics[n];
-        var s = h.scoreGrid.yx[j][i];
-        if (s) survey[h.name] = s;
+        this.heuristics[n].getMoveSurvey(i, j, survey);
     }
     return survey;
 };
