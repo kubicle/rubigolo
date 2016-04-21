@@ -3877,7 +3877,7 @@ var ALWAYS = CONST.ALWAYS;
  */
 function Heuristic(player) {
     this.player = player;
-    this.name = null;
+    this._setName();
     this.goban = player.goban;
     this.gsize = player.goban.gsize;
     this.scoreGrid = new Grid(this.gsize, 0, GRID_BORDER);
@@ -3891,11 +3891,11 @@ function Heuristic(player) {
 module.exports = Heuristic;
 
 
-Heuristic.prototype.setName = function (id) {
+Heuristic.prototype._setName = function () {
     var constr = this.constructor;
     this.name = constr.name || main.funcName(constr);
     // Mangled constructor name has file-scope so we may have dupes; we add the unique ID for that
-    if (this.name.length < 5) this.name += id;
+    if (this.name.length < 5) this.name += this.player.heuristics.length;
 };
 
 Heuristic.prototype.updateCrossRef = function () {
@@ -6525,7 +6525,7 @@ GroupInfo.prototype.getEyeMakerMove = function (coords) {
     if (main.debug) main.log.debug('getEyeMakerMove result: ' + best + ' - ' + (best ? (numMoves > 1 ? 'ALWAYS' : 'SOMETIMES') : 'NEVER'));
 
     if (!best) return NEVER;
-    if (numVertexAwayFromEnemy === 1 && !enemy2 && enemy1.stones.length < 3) {
+    if (numVertexAwayFromEnemy === 1 && !enemy2 && enemy1 && enemy1.stones.length < 3) {
         if (this._enemyCanReach(enemy1, vertexAwayFromEnemy, best))
             return NEVER; // see testEyeMaking_3withPrisoners
     }
@@ -7147,7 +7147,6 @@ Chuckie.ZoneFiller = ZoneFiller;
 
 Chuckie.prototype._newHeuristic = function (Constr) {
     var h = new Constr(this);
-    h.setName(this.heuristics.length);
     this.heuristics.push(h);
     return h;
 };

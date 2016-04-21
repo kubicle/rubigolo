@@ -15,7 +15,7 @@ var ALWAYS = CONST.ALWAYS;
  */
 function Heuristic(player) {
     this.player = player;
-    this.name = null;
+    this._setName();
     this.goban = player.goban;
     this.gsize = player.goban.gsize;
     this.scoreGrid = new Grid(this.gsize, 0, GRID_BORDER);
@@ -29,11 +29,11 @@ function Heuristic(player) {
 module.exports = Heuristic;
 
 
-Heuristic.prototype.setName = function (id) {
+Heuristic.prototype._setName = function () {
     var constr = this.constructor;
     this.name = constr.name || main.funcName(constr);
     // Mangled constructor name has file-scope so we may have dupes; we add the unique ID for that
-    if (this.name.length < 5) this.name += id;
+    if (this.name.length < 5) this.name += this.player.heuristics.length;
 };
 
 Heuristic.prototype.updateCrossRef = function () {

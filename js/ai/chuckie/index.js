@@ -60,7 +60,6 @@ Chuckie.ZoneFiller = ZoneFiller;
 
 Chuckie.prototype._newHeuristic = function (Constr) {
     var h = new Constr(this);
-    h.setName(this.heuristics.length);
     this.heuristics.push(h);
     return h;
 };
