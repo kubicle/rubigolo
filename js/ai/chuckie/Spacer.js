@@ -10,7 +10,7 @@ var inherits = require('util').inherits;
 function Spacer(player) {
     Heuristic.call(this, player);
 
-    this.inflCoeff = this.getGene('infl', 1, 0.5, 3);
+    this.inflCoeff = this.getGene('infl', 0.07, 0.01, 0.5);
     this.borderCoeff = this.getGene('border', 10, 0, 20);
 
     this.rowCoeff = this.gsize <= 9 ?

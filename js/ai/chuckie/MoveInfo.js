@@ -20,6 +20,7 @@ function MoveInfo(player) {
     this.groupDeath = [];
     this.what = '';
 
+    this.spaceInvasionCoeff = this.getGene('spaceInvasion', 2.0, 0.01, 4.0);
     this.pressureCoeff = this.getGene('pressure', 1, 0.01, 2);
     this.eyeCloserCoeff = this.getGene('eyeCloser', 1, 0.01, 1);
     this.wideSpaceToEyeCoeff = this.getGene('wideSpaceToEye', 0.5, 0.01, 1);

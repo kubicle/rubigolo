@@ -21,8 +21,6 @@ function Heuristic(player) {
     this.scoreGrid = new Grid(this.gsize, 0, GRID_BORDER);
     this.minimumScore = player.minimumScore;
 
-    this.spaceInvasionCoeff = this.getGene('spaceInvasion', 2.0, 0.01, 4.0);
-
     this.color = this.enemyColor = null;
     this.updateCrossRef(); // just for creating entries on "this"; will be called again by player
 }

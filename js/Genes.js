@@ -77,7 +77,8 @@ Genes.prototype.get = function (name, defValue, lowLimit, highLimit) {
     if (lowLimit === undefined) lowLimit = null;
     if (highLimit === undefined) highLimit = null;
     var val = this._map[name];
-    if (val) return val;
+    if (val)
+        return val;
 
     this._map[name] = defValue;
 
