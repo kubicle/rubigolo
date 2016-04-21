@@ -23,6 +23,7 @@ function MoveInfo(player) {
     this.pressureCoeff = this.getGene('pressure', 1, 0.01, 2);
     this.eyeCloserCoeff = this.getGene('eyeCloser', 1, 0.01, 1);
     this.wideSpaceToEyeCoeff = this.getGene('wideSpaceToEye', 0.5, 0.01, 1);
+    this.potEyeCoeff2 = this.getGene('potEyeCoeff2', 0.78, 0.75, 0.85);
 }
 inherits(MoveInfo, Heuristic);
 module.exports = MoveInfo;
@@ -181,12 +182,12 @@ MoveInfo.prototype._countWideSpace = function (g) {
     return count;
 };
 
-function twoEyeChance(potEyeCount) {
+MoveInfo.prototype._twoEyeChance = function (potEyeCount) {
     if (potEyeCount >= 2.5) return 1;
     if (potEyeCount < 1.5) return 0;
     if (potEyeCount < 2) return 0.5;
-    return 0.9; // REVIEW ME
-}
+    return this.potEyeCoeff2;
+};
 
 MoveInfo.prototype.groupChance = function (gi) {
     var band = gi.band;
@@ -204,7 +205,7 @@ MoveInfo.prototype._bandChance = function (ginfos, addedEyes) {
     for (var n = ginfos.length - 1; n >= 0; n--) {
         potEyeCount += ginfos[n].countPotEyes();
     }
-    var twoEyeCh = twoEyeChance(potEyeCount);
+    var twoEyeCh = this._twoEyeChance(potEyeCount);
     if (twoEyeCh === 1) {
         if (main.debug) main.log.debug('MoveInfo: ' + potEyeCount + ' pot eyes for band of ' + ginfos[0]);
         return 1;
@@ -215,7 +216,7 @@ MoveInfo.prototype._bandChance = function (ginfos, addedEyes) {
         wideSpace += this._countWideSpace(ginfos[n].group);
     }
     wideSpace *= this.wideSpaceToEyeCoeff;
-    return twoEyeChance(potEyeCount + wideSpace);
+    return this._twoEyeChance(potEyeCount + wideSpace);
 };
 
 MoveInfo.prototype._bandThreat = function (ginfos, stone, saving, factor, numMoves, addedEyes) {
