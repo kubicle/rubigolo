@@ -38,8 +38,8 @@ TestBreeder.prototype.testAiVsAi = function () {
     var initMoves = ['d4,f6', 'Wd4,f6', 'e5,e3', 'We5,e3', 'e5,d4', 'We5,d4'];
     var totalNumGames = 300;
     var numGamesShowed = 1;
-    var expectedWinRatio = 0.80; // number going up shows new AI gets stronger compared to default AI
-    var tolerance = 0.05; // + or -; the more games you play the lower tolerance you can set
+    var expectedWinRatio = 0.60; // number going up shows new AI gets stronger compared to default AI
+    var tolerance = 0.1; // + or -; the more games you play the lower tolerance you can set
 
     var numVariations = initMoves.length;
     // For coverage tests no need to run many games

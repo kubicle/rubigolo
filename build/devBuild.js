@@ -1142,7 +1142,7 @@ Breeder.prototype._countAlreadySeenGames = function () {
 Breeder.prototype.playGame = function (genes1, genes2, initMoves) {
     var komi = initMoves && initMoves[0] === 'W' ? - this.komi : this.komi; // reverse komi if W starts
 
-    this.game.newGame(this.gsize, 0, this.komi);
+    this.game.newGame(this.gsize, 0, komi);
     this.game.loadMoves(initMoves);
     this.players[BLACK].prepareGame(genes1);
     this.players[WHITE].prepareGame(genes2);
@@ -1763,7 +1763,8 @@ Genes.prototype.get = function (name, defValue, lowLimit, highLimit) {
     if (lowLimit === undefined) lowLimit = null;
     if (highLimit === undefined) highLimit = null;
     var val = this._map[name];
-    if (val) return val;
+    if (val)
+        return val;
 
     this._map[name] = defValue;
 
@@ -3883,8 +3884,6 @@ function Heuristic(player) {
     this.scoreGrid = new Grid(this.gsize, 0, GRID_BORDER);
     this.minimumScore = player.minimumScore;
 
-    this.spaceInvasionCoeff = this.getGene('spaceInvasion', 2.0, 0.01, 4.0);
-
     this.color = this.enemyColor = null;
     this.updateCrossRef(); // just for creating entries on "this"; will be called again by player
 }
@@ -4372,6 +4371,7 @@ function MoveInfo(player) {
     this.groupDeath = [];
     this.what = '';
 
+    this.spaceInvasionCoeff = this.getGene('spaceInvasion', 2.0, 0.01, 4.0);
     this.pressureCoeff = this.getGene('pressure', 1, 0.01, 2);
     this.eyeCloserCoeff = this.getGene('eyeCloser', 1, 0.01, 1);
     this.wideSpaceToEyeCoeff = this.getGene('wideSpaceToEye', 0.5, 0.01, 1);
@@ -5596,7 +5596,7 @@ var inherits = require('util').inherits;
 function Spacer(player) {
     Heuristic.call(this, player);
 
-    this.inflCoeff = this.getGene('infl', 1, 0.5, 3);
+    this.inflCoeff = this.getGene('infl', 0.07, 0.01, 0.5);
     this.borderCoeff = this.getGene('border', 10, 0, 20);
 
     this.rowCoeff = this.gsize <= 9 ?
@@ -14863,8 +14863,8 @@ TestBreeder.prototype.testAiVsAi = function () {
     var initMoves = ['d4,f6', 'Wd4,f6', 'e5,e3', 'We5,e3', 'e5,d4', 'We5,d4'];
     var totalNumGames = 300;
     var numGamesShowed = 1;
-    var expectedWinRatio = 0.80; // number going up shows new AI gets stronger compared to default AI
-    var tolerance = 0.05; // + or -; the more games you play the lower tolerance you can set
+    var expectedWinRatio = 0.60; // number going up shows new AI gets stronger compared to default AI
+    var tolerance = 0.1; // + or -; the more games you play the lower tolerance you can set
 
     var numVariations = initMoves.length;
     // For coverage tests no need to run many games

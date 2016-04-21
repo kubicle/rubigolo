@@ -109,7 +109,7 @@ Breeder.prototype._countAlreadySeenGames = function () {
 Breeder.prototype.playGame = function (genes1, genes2, initMoves) {
     var komi = initMoves && initMoves[0] === 'W' ? - this.komi : this.komi; // reverse komi if W starts
 
-    this.game.newGame(this.gsize, 0, this.komi);
+    this.game.newGame(this.gsize, 0, komi);
     this.game.loadMoves(initMoves);
     this.players[BLACK].prepareGame(genes1);
     this.players[WHITE].prepareGame(genes2);
