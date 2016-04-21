@@ -33,6 +33,7 @@ TestAi.prototype.initBoard = function (size, handicap, rules) {
 };
 
 TestAi.prototype.logErrorContext = function (player, move) {
+    if (this.isBroken) return;
     main.log.error(this.goban.toString());
     main.log.error(player.getMoveSurveyText(move));
 };

@@ -11,6 +11,7 @@ function TestSeries() {
     this.testCount = 0;
     this.failedCount = this.errorCount = 0;
     this.failedCount0 = this.errorCount0 = 0;
+    this.brokenCount = this.fixedCount = 0;
     this.currentTest = '';
     this.inBrokenTest = false;
 }
@@ -77,8 +78,10 @@ TestSeries.prototype.startBrokenTest = function () {
 TestSeries.prototype._endBrokenTest = function (failed) {
     if (failed) {
         main.log.info('BROKEN: ' + this.currentTest);
+        this.brokenCount++;
     } else {
         main.log.info('FIXED: ' + this.currentTest);
+        this.fixedCount++;
     }
     this.failedCount = this.failedCount0;
     this.errorCount = this.errorCount0;
@@ -94,6 +97,7 @@ TestSeries.prototype.run = function (specificClass, methodPattern) {
     var classCount = 0;
     this.testCount = this.checkCount = this.count = 0;
     this.failedCount = this.errorCount = this.todoCount = 0;
+    this.brokenCount = this.fixedCount = 0;
     var startTime = Date.now();
 
     for (var t in this.testCases) {
@@ -113,10 +117,15 @@ TestSeries.prototype._logReport = function (specificClass, classCount, duration)
 
     var report = 'Completed tests. (' + classes + ', ' + this.testCount + ' tests, ' +
         this.checkCount + ' checks in ' + duration + 's)\n\n';
+
     if (numIssues === 0) {
         if (this.testCount || this.checkCount) report += 'SUCCESS!';
         else report += '*** 0 TESTS DONE ***  Check your filter?';
-        // Less important test data
+
+        if (this.brokenCount || this.fixedCount) {
+            report += ' (known broken: ' + this.brokenCount +
+                (this.fixedCount ? ', fixed: ' + this.fixedCount : '') + ')';
+        }
         if (this.todoCount) report += '  (Todos: ' + this.todoCount + ')';
         if (this.count) report += '\n(generic count: ' + this.count + ')';
         main.log.info(report);
