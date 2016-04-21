@@ -43,7 +43,7 @@ TestScoreAnalyser.prototype.testComputeScore = function () {
     this.initGame(7, 1.5);
     var s = this.sa.computeScoreAsTexts();
     this.assertEqual('white wins by 6.5 points', s.shift());
-    this.assertEqual('black: 12 points (12 + 0 prisoners)', s.shift());
+    this.assertEqual('black: 12 points', s.shift());
     this.assertEqual('white: 18.5 points (14 + 3 prisoners + 1.5 komi)', s.shift());
     this.assertEqual(undefined, s.shift());
     // test message when someone resigns
