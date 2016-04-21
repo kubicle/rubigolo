@@ -77,7 +77,9 @@ GroupInfo.prototype.addVoid = function (v, groups) {
     this.eyeCount++;
 
     // an eye between several groups makes them brothers
-    if (groups && groups.length > 1) Band.gather(groups);
+    // REVIEW THIS; disable because far away groups were ending up brothers before mid-game...
+    // No noticeable impact on win rate.
+    // if (groups && groups.length > 1) Band.gather(groups);
     return this;
 };
 
@@ -235,7 +237,9 @@ GroupInfo.prototype.considerDead = function (reason) {
         enemies[i]._info.deadEnemies.push(this);
     }
     // All enemies are now "connected" via this dead group
-    if (enemies.length > 1) Band.gather(enemies);
+    // REVIEW: this seemed to make sense but decreases our win rate by ~7% against droopy
+    // if (enemies.length > 1) Band.gather(enemies);
+
     if (main.debug) main.log.debug('DEAD-' + reason + ': ' + this);
 };
 
@@ -537,6 +541,8 @@ GroupInfo.prototype.isInsideEnemy = function () {
 // When an enemy is undead but inside our group, it can be counted as eye
 // NB: difference with isInsideEnemy is that we skip voids that are already eyes
 GroupInfo.prototype._countEyesAroundPrisoner = function () {
+    //TODO: see why 3 tests broken by this & fix this algo; note 3 others are fixed...
+    // testLadder1, testBigConnectScore, testBlockAndConnect
     var color = this.group.color;
     for (var n = this.nearVoids.length - 1; n >= 0; n--) {
         var v = this.nearVoids[n];
@@ -556,8 +562,9 @@ GroupInfo.prototype._countEyesAroundPrisoner = function () {
 };
 
 GroupInfo.prototype.countPotEyes = function () {
+    // TODO: potential eyes odd/even could be counted differently; e.g. use a min/max param or first2play
     return this.eyeCount + this.splitEyeCount + this._countEyesAroundPrisoner() +
-        Math.max(this.potentialEyeCounts[EVEN], this.potentialEyeCounts[ODD]) / 2;
+        (this.potentialEyeCounts[EVEN] + this.potentialEyeCounts[ODD]) / 2;
 };
 
 GroupInfo.prototype.countBandPotentialEyes = function () {
