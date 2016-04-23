@@ -158,10 +158,6 @@ Heuristic.prototype.invasionCost = function (i, j, color) {
     return cost;
 };
 
-Heuristic.prototype.markMoveAsBlunder = function (i, j, reason) {
-    this.player.markMoveAsBlunder(i, j, this.name + ':' + reason);
-};
-
 Heuristic.prototype.diagonalStones = function (s1, s2) {
     return [this.goban.stoneAt(s1.i, s2.j), this.goban.stoneAt(s2.i, s1.j)];
 };

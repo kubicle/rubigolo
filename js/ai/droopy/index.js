@@ -6,11 +6,10 @@ var BoardAnalyser = require('./boan/BoardAnalyser');
 var CONST = require('../../constants');
 var Genes = require('../../Genes');
 var Grid = require('../../Grid');
-var log = require('../../log');
 var ZoneFiller = require('./boan/ZoneFiller');
 
 var GRID_BORDER = CONST.GRID_BORDER;
-var sOK = CONST.sOK, sINVALID = CONST.sINVALID, sBLUNDER = CONST.sBLUNDER, sDEBUG = CONST.sDEBUG;
+var sOK = CONST.sOK, sINVALID = CONST.sINVALID, sDEBUG = CONST.sDEBUG;
 
 var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
 
@@ -154,15 +153,6 @@ Droopy.prototype._collectBestMove = function (stateYx, scoreYx) {
     }
     if (this.bestScore < this.minimumScore) return 'pass';
     return Grid.xy2move(this.bestI, this.bestJ);
-};
-
-/** Called by heuristics if they decide to stop looking further (rare cases) */
-Droopy.prototype.markMoveAsBlunder = function (i, j, reason) {
-    this.stateGrid.yx[j][i] = sBLUNDER;
-    if (log.debug) log.debug(Grid.xy2move(i, j) + ' seen as blunder: ' + reason);
-};
-Droopy.prototype.isBlunderMove = function (i, j) {
-    return this.stateGrid.yx[j][i] === sBLUNDER;
 };
 
 Droopy.prototype.guessTerritories = function () {

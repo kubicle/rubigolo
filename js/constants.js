@@ -16,7 +16,6 @@ function Constants() {
     this.sOK = 0;
     this.sDEBUG = 1;
     this.sINVALID = -1;
-    this.sBLUNDER = -2;
 
     this.NEVER = 0;
     this.SOMETIMES = 1; // e.g. depends who plays first

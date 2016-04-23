@@ -12,7 +12,7 @@ var PotentialTerritory = require('./boan/PotentialTerritory');
 var ZoneFiller = require('./boan/ZoneFiller');
 
 var GRID_BORDER = CONST.GRID_BORDER;
-var sOK = CONST.sOK, sINVALID = CONST.sINVALID, sBLUNDER = CONST.sBLUNDER;
+var sOK = CONST.sOK, sINVALID = CONST.sINVALID;
 
 var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
 
@@ -183,15 +183,6 @@ Frankie.prototype._prepareEval = function () {
 
     // get "raw" group info
     this.boan.analyse(this.goban, null, this.color);
-};
-
-/** Called by heuristics if they decide to stop looking further (rare cases) */
-Frankie.prototype.markMoveAsBlunder = function (i, j, reason) {
-    this.stateGrid.yx[j][i] = sBLUNDER;
-    if (log.debug) log.debug(Grid.xy2move(i, j) + ' seen as blunder: ' + reason);
-};
-Frankie.prototype.isBlunderMove = function (i, j) {
-    return this.stateGrid.yx[j][i] === sBLUNDER;
 };
 
 /** For tests */
