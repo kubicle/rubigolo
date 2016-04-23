@@ -1,11 +1,10 @@
-//Translated from pusher.rb using babyruby2js
 'use strict';
 
 var CONST = require('../../constants');
-var main = require('../../main');
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
+var log = require('../../log');
 var Stone = require('../../Stone');
 
 var EMPTY = CONST.EMPTY, BORDER = CONST.BORDER;
@@ -56,7 +55,7 @@ Pusher.prototype._checkBlock = function (cut, pushStone, backupStone, score, sco
     if (!cutBackupStone) return;
     if (this.mi.groupChance(cutBackupStone.group._info) < 0.5) return;
 
-    if (main.debug) main.log.debug('Pusher sees ' + cut + ' as blocking ' +
+    if (log.debug) log.debug('Pusher sees ' + cut + ' as blocking ' +
         Grid.colorName(1 - color) + ' push in ' + pushStone + ', score: ' + score.toFixed(2));
     scoreYx[cut.j][cut.i] += score;
     this.scoreGrid.yx[cut.j][cut.i] += score; // not needed beside for UI to show
@@ -74,7 +73,7 @@ Pusher.prototype._blockPush = function (attack, scoreYx) {
     }
     this._checkBlock(pushStone, pushStone, backupStone, score, scoreYx);
 
-    // if (!cut && main.debug) main.log.debug('Pusher found no way to block ' + pushStone);
+    // if (!cut && log.debug) log.debug('Pusher found no way to block ' + pushStone);
 };
 
 Pusher.prototype._attackPush = function (i, j, color, isEnemy) {
@@ -98,10 +97,10 @@ Pusher.prototype._attackPush = function (i, j, color, isEnemy) {
     score *= this.mi.groupChance(backupStone.group._info);
 
     if (isEnemy) {
-        if (main.debug) main.log.debug('Pusher notes enemy invasion at ' + Grid.xy2move(i, j) + ' (for ' + score.toFixed(2) + ')');
+        if (log.debug) log.debug('Pusher notes enemy invasion at ' + Grid.xy2move(i, j) + ' (for ' + score.toFixed(2) + ')');
         return this.enemyAttacks.push([pushStone, backupStone, score]);
     }
-    if (main.debug) main.log.debug('Pusher ' + Grid.colorName(color) + ' sees push at ' + Grid.xy2move(i, j) + ' -> ' + score.toFixed(2));
+    if (log.debug) log.debug('Pusher ' + Grid.colorName(color) + ' sees push at ' + Grid.xy2move(i, j) + ' -> ' + score.toFixed(2));
     return score;
 };
 

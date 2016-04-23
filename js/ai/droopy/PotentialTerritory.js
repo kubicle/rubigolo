@@ -1,16 +1,17 @@
 'use strict';
 
-var main = require('../../main');
+var CONST = require('../../constants');
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
+var log = require('../../log');
 var Stone = require('../../Stone');
 
-var GRID_BORDER = main.GRID_BORDER;
-var EMPTY = main.EMPTY, BLACK = main.BLACK, WHITE = main.WHITE;
-var NEVER = main.NEVER;
-var UP = main.UP, RIGHT = main.RIGHT, DOWN = main.DOWN, LEFT = main.LEFT;
-var DIR0 = main.DIR0, DIR3 = main.DIR3;
+var GRID_BORDER = CONST.GRID_BORDER;
+var EMPTY = CONST.EMPTY, BLACK = CONST.BLACK, WHITE = CONST.WHITE;
+var NEVER = CONST.NEVER;
+var UP = CONST.UP, RIGHT = CONST.RIGHT, DOWN = CONST.DOWN, LEFT = CONST.LEFT;
+var DIR0 = CONST.DIR0, DIR3 = CONST.DIR3;
 
 var POT2CHAR = Grid.territory2char;
 var POT2OWNER = Grid.territory2owner;
@@ -95,7 +96,7 @@ PotentialTerritory.prototype._mergeResults = function () {
             terrYx[j][i] = (POT2OWNER[2 + blackYx[j][i]] + POT2OWNER[2 + whiteYx[j][i]]) / 2;
         }
     }
-    if (main.debug) main.log.debug('Guessing territory for:\n' + this.realGrid +
+    if (log.debug) log.debug('Guessing territory for:\n' + this.realGrid +
         '\nBLACK first:\n' + this.grids[BLACK] + 'WHITE first:\n' + this.grids[WHITE] + this);
 };
 
@@ -126,24 +127,24 @@ PotentialTerritory.prototype._connectThings = function (grid, color) {
     // enlarging starts with real grid
     this.enlarge(this.realGrid, grid.copy(this.realGrid), color);
 
-    if (main.debug) main.log.debug('after 1st enlarge (before connectToBorders):\n' + grid);
+    if (log.debug) log.debug('after 1st enlarge (before connectToBorders):\n' + grid);
     this.connectToBorders(grid.yx);
-    if (main.debug) main.log.debug('after connectToBorders:\n' + grid);
+    if (log.debug) log.debug('after connectToBorders:\n' + grid);
 
     // for reducing we start from the enlarged grid
     this.reduce(this.reducedGrid.copy(grid));
     this.reducedYx = this.reducedGrid.yx;
-    if (main.debug) main.log.debug('after reduce:\n' + this.reducedGrid);
+    if (log.debug) log.debug('after reduce:\n' + this.reducedGrid);
 
     // now we have the reduced goban, play the enlarge moves again minus the extra
     this.enlarge(this.realGrid, grid.copy(this.realGrid), color);
-    if (main.debug) main.log.debug('after 2nd enlarge (before connectToBorders):\n' + grid);
+    if (log.debug) log.debug('after 2nd enlarge (before connectToBorders):\n' + grid);
     this.connectToBorders(grid.yx);
-    if (main.debug) main.log.debug('after connectToBorders:\n' + grid);
+    if (log.debug) log.debug('after connectToBorders:\n' + grid);
 };
 
 PotentialTerritory.prototype.enlarge = function (inGrid, outGrid, color) {
-    if (main.debug) main.log.debug('---enlarge ' + Grid.colorName(color));
+    if (log.debug) log.debug('---enlarge ' + Grid.colorName(color));
     var inYx = inGrid.yx, outYx = outGrid.yx;
     for (var j = this.gsize; j >= 1; j--) {
         var inYxj = inYx[j];

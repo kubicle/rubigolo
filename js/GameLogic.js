@@ -1,10 +1,11 @@
 'use strict';
 
 var CONST = require('./constants');
-var main = require('./main');
 var Goban = require('./Goban');
 var Grid = require('./Grid');
 var HandicapSetter = require('./HandicapSetter');
+var log = require('./log');
+var main = require('./main');
 var SgfReader = require('./SgfReader');
 var ruleConfig = require('../config/rules.json');
 
@@ -111,7 +112,7 @@ GameLogic.prototype.setHandicapAndWhoStarts = function (h) {
 };
 
 GameLogic.prototype._failLoad = function (msg, errors) {
-    main.log.error(msg);
+    if (log.error) log.error(msg);
     if (!errors) throw new Error(msg);
     errors.push(msg);
     return false;

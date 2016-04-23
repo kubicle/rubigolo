@@ -1,9 +1,9 @@
-//Translated from test_breeder.rb using babyruby2js
 'use strict';
 
-var main = require('../main');
 var inherits = require('util').inherits;
 var Breeder = require('../Breeder');
+var log = require('../log');
+var main = require('../main');
 var TestCase = require('./TestCase');
 
 
@@ -54,8 +54,8 @@ TestBreeder.prototype.testAiVsAi = function () {
         winRatio += ratio;
     }
     winRatio /= numVariations;
-    for (i = 0; i < numVariations; i++) main.log.info(initMoves[i] + ': ' + (winRatios[i] * 100).toFixed(1) + '%');
-    main.log.info('---Average won games for White: ' + (winRatio * 100).toFixed(1) + '%');
+    if (log.info) for (i = 0; i < numVariations; i++) log.info(initMoves[i] + ': ' + (winRatios[i] * 100).toFixed(1) + '%');
+    if (log.info) log.info('---Average won games for White: ' + (winRatio * 100).toFixed(1) + '%');
 
     if (!main.isCoverTest) this.assertInDelta(winRatio, expectedWinRatio, tolerance);
 };

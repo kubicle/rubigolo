@@ -1,9 +1,9 @@
 'use strict';
 
-var main = require('../../../main');
+var CONST = require('../../../constants');
 
-var GRID_BORDER = main.GRID_BORDER;
-var BORDER = main.BORDER;
+var GRID_BORDER = CONST.GRID_BORDER;
+var BORDER = CONST.BORDER;
 
 
 /** @class Fills & collect info about zones.

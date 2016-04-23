@@ -1,10 +1,10 @@
 //Translated from pusher.rb using babyruby2js
 'use strict';
 
-var main = require('../../main');
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
+var log = require('../../log');
 
 
 /** @class
@@ -41,7 +41,7 @@ Pusher.prototype._evalMove = function (i, j, color) {
     var invasion = this.invasionCost(i, j, color);
 
     var score = invasion + this.enemyCoeff * enemyInf - this.allyCoeff * allyInf;
-    if (main.debug) main.log.debug('Pusher heuristic sees invasion:' + invasion +
+    if (log.debug) log.debug('Pusher heuristic sees invasion:' + invasion +
         ', influences:' + allyInf + ' - ' + enemyInf + ' at ' + Grid.xy2move(i, j) +
         ' -> ' + '%.03f'.format(score));
     return score;

@@ -1,10 +1,10 @@
 'use strict';
 
 var CONST = require('../../constants');
-var main = require('../../main');
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
+var log = require('../../log');
 
 var EMPTY = CONST.EMPTY;
 var NEVER = CONST.NEVER, SOMETIMES = CONST.SOMETIMES, ALWAYS = CONST.ALWAYS;
@@ -44,7 +44,7 @@ Shaper.prototype._evalSingleEyeSplit = function (scoreYx, g) {
     var stone = this.goban.stoneAt(coords[0], coords[1]);
     var numEyes = stone.numEmpties();
 
-    if (main.debug) main.log.debug('Shaper ' + Grid.colorName(this.color) + ' sees single eye split at ' + stone);
+    if (log.debug) log.debug('Shaper ' + Grid.colorName(this.color) + ' sees single eye split at ' + stone);
     this.mi.eyeThreat(g, stone, this.color, numEyes);
 };
 
@@ -78,7 +78,7 @@ Shaper.prototype._realEyeCloser = function (stone, color, v) {
     for (var n = stone.neighbors.length - 1; n >= 0; n--) {
         var s = stone.neighbors[n];
         if (s.color === color && s.group.lives === 1) {
-            if (main.debug) main.log.debug('Shaper ' + Grid.colorName(color) + ' sees threat on real eye ' + v);
+            if (log.debug) log.debug('Shaper ' + Grid.colorName(color) + ' sees threat on real eye ' + v);
             this.mi.eyeThreat(s.group, stone, color, 1);
             break;
         }

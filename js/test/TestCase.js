@@ -1,5 +1,6 @@
 'use strict';
 
+var log = require('../log');
 var main = require('../main');
 
 
@@ -71,7 +72,7 @@ TestCase.prototype.fail = function (comment) {
 
 TestCase.prototype.todo = function (comment) {
     this.series.todoCount++;
-    main.log.info('TODO: ' + comment);
+    log.info('TODO: ' + comment);
 };
 
 TestCase.prototype.showInUi = function (msg) {
@@ -80,6 +81,6 @@ TestCase.prototype.showInUi = function (msg) {
     try {
         main.testUi.showTestGame(this.name, msg, this.game);
     } catch (e) {
-        main.log.error('Exception loading failed test in UI: ' + e.message);
+        log.error('Exception loading failed test in UI: ' + e.message);
     }
 };

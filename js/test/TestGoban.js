@@ -1,14 +1,14 @@
 // NB Stone & Goban can hardly be tested separately
 'use strict';
 
-var main = require('../main');
+var CONST = require('../constants');
 var inherits = require('util').inherits;
 var GameLogic = require('../GameLogic');
 var Goban = require('../Goban');
 var Grid = require('../Grid');
 var TestCase = require('./TestCase');
 
-var BLACK = main.BLACK, WHITE = main.WHITE;
+var BLACK = CONST.BLACK, WHITE = CONST.WHITE;
 
 
 /** @class */

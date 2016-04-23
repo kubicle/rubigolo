@@ -1,13 +1,9 @@
 'use strict';
 
 var pkg = require('../package.json');
-var Logger = require('./Logger');
-var constants = require('./constants');
 
 
 function Main() {
-    constants.attachConstants(this);
-
     this.debug = false;
     this.debugGroup = this.debugAi = this.debugBreed = false;
 
@@ -25,8 +21,6 @@ function Main() {
 
     this.tests = null;
     this.testUi = null;
-
-    this.log = new Logger();
 }
 
 /** Singleton "main" */

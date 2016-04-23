@@ -1,9 +1,10 @@
 'use strict';
 
 var CONST = require('./constants');
-var main = require('./main');
 var Genes = require('./Genes');
 var Grid = require('./Grid');
+var log = require('./log');
+var main = require('./main');
 var TimeKeeper = require('./test/TimeKeeper');
 var GameLogic = require('./GameLogic');
 var ScoreAnalyser = require('./ScoreAnalyser');
@@ -74,7 +75,7 @@ Breeder.prototype.playUntilGameEnds = function () {
     var numTimesSeen = this._countAlreadySeenGames();
     if (moveNum === maxMoveNum) {
         if (numTimesSeen === 1) this.showInUi('Never stopping game');
-        main.log.error('Never stopping game. Times seen: ' + numTimesSeen);
+        log.logError('Never stopping game. Times seen: ' + numTimesSeen);
     }
     return numTimesSeen === 1;
 };
@@ -118,17 +119,17 @@ Breeder.prototype.playGame = function (genes1, genes2, initMoves) {
         if (!this.playUntilGameEnds() && this.skipDupeEndings) return 0;
         scoreDiff = this.scorer.computeScoreDiff(this.game);
     } catch (err) {
-        main.log.error('Exception occurred during a breeding game: ' + err);
-        main.log.error(this.game.historyString());
+        log.logError('Exception occurred during a breeding game: ' + err);
+        log.logError(this.game.historyString());
         this.showInUi('Exception in breeding game', err);
         throw err;
     }
-    if (main.debugBreed) {
-        main.log.debug('\n' + genes1.name + '\nagainst\n' + genes2.name);
-        main.log.debug('Distance: ' + genes1.distance(genes2).toFixed(2));
-        main.log.debug('Score: ' + scoreDiff);
-        main.log.debug('Moves: ' + this.game.historyString());
-        main.log.debug(this.goban.toString());
+    if (main.debugBreed && log.debug) {
+        log.debug('\n' + genes1.name + '\nagainst\n' + genes2.name);
+        log.debug('Distance: ' + genes1.distance(genes2).toFixed(2));
+        log.debug('Score: ' + scoreDiff);
+        log.debug('Moves: ' + this.game.historyString());
+        log.debug(this.goban.toString());
     }
     return scoreDiff;
 };
@@ -136,7 +137,7 @@ Breeder.prototype.playGame = function (genes1, genes2, initMoves) {
 // NB: we only update score for black so komi unbalance does not matter.
 // Sadly this costs us a lot: we need to play twice more games to get score data...
 Breeder.prototype.oneTournament = function (numMatchPerAi) {
-    if (main.debugBreed) main.log.debug('One tournament starts for ' + this.generation.length + ' AIs');
+    if (main.debugBreed) log.logDebug('One tournament starts for ' + this.generation.length + ' AIs');
 
     for (var p1 = 0; p1 < this.genSize; p1++) {
         this.scoreDiff[p1] = 0;
@@ -155,14 +156,14 @@ Breeder.prototype.oneTournament = function (numMatchPerAi) {
             }
             // diff is now -1, 0 or +1
             this.scoreDiff[p1] += diff;
-            if (main.debugBreed) main.log.debug('Match #' + p1 + ' against #' + p2 + '; final scores #' +
+            if (main.debugBreed) log.logDebug('Match #' + p1 + ' against #' + p2 + '; final scores #' +
                 p1 + ':' + this.scoreDiff[p1] + ', #' + p2 + ':' + this.scoreDiff[p2]);
         }
     }
 };
 
 Breeder.prototype.reproduction = function () {
-    if (main.debugBreed) main.log.debug('=== Reproduction time for ' + this.generation.length + ' AI');
+    if (main.debugBreed) log.logDebug('=== Reproduction time for ' + this.generation.length + ' AI');
 
     this.picked = main.newArray(this.genSize, 0);
     this.maxScore = Math.max.apply(Math, this.scoreDiff);
@@ -175,7 +176,7 @@ Breeder.prototype.reproduction = function () {
     }
     if (main.debugBreed) {
         for (i = 0; i < this.genSize; i++) {
-            main.log.debug('#' + i + ', score ' + this.scoreDiff[i] + ', picked ' + this.picked[i] + ' times');
+            log.logDebug('#' + i + ', score ' + this.scoreDiff[i] + ', picked ' + this.picked[i] + ' times');
         }
     }
     // swap new generation to replace old one
@@ -201,7 +202,7 @@ Breeder.prototype.control = function (numGames) {
     var previous = main.debugBreed;
     main.debugBreed = false; // never want debug during control games
 
-    main.log.info('Playing ' + numGames * 2 + ' games to measure the current winner against our control AI...');
+    log.logInfo('Playing ' + numGames * 2 + ' games to measure the current winner against our control AI...');
     totalScore = numWins = numWinsW = 0;
     for (var i = 0; i < numGames; i++) {
         var score = this.playGame(this.controlGenes, this.winner);
@@ -210,7 +211,7 @@ Breeder.prototype.control = function (numGames) {
         if (scoreW < 0) numWinsW++;
         totalScore += score - scoreW;
     }
-    main.log.info('Average score: ' + totalScore / numGames +
+    log.logInfo('Average score: ' + totalScore / numGames +
         '\nWinner genes:\n' + this.winner +
         '\nControl genes:\n' + this.controlGenes +
         '\nDistance between control and current winner: ' + this.controlGenes.distance(this.winner).toFixed(2) +
@@ -258,13 +259,13 @@ Breeder.prototype.aiVsAi = function (numGames, numGamesShowed, initMoves) {
 
     var uniqGames = numGames - numDupes;
     var winRatio = won[WHITE] / uniqGames;
-    main.log.info('Unique games: ' + uniqGames + ' (' + ~~(uniqGames  / numGames * 100) + '%)');
-    main.log.info('Average score difference: ' + (-totalScore / uniqGames).toFixed(1));
-    main.log.info('Close match (score diff < 3 pts): ' + ~~(numCloseMatch / uniqGames * 100) + '%');
-    main.log.info('Average number of moves: ' + ~~(numMoves / numGames));
-    main.log.info('Average number of times White picked at random between equivalent moves: ' + (numRandom / numGames).toFixed(1));
-    main.log.info('Average time per move: ' + (this.timer.duration * 1000 / numMoves).toFixed(1) + 'ms');
-    main.log.info('Won games for White-' + whiteName +
+    log.logInfo('Unique games: ' + uniqGames + ' (' + ~~(uniqGames  / numGames * 100) + '%)');
+    log.logInfo('Average score difference: ' + (-totalScore / uniqGames).toFixed(1));
+    log.logInfo('Close match (score diff < 3 pts): ' + ~~(numCloseMatch / uniqGames * 100) + '%');
+    log.logInfo('Average number of moves: ' + ~~(numMoves / numGames));
+    log.logInfo('Average number of times White picked at random between equivalent moves: ' + (numRandom / numGames).toFixed(1));
+    log.logInfo('Average time per move: ' + (this.timer.duration * 1000 / numMoves).toFixed(1) + 'ms');
+    log.logInfo('Won games for White-' + whiteName +
         ' VS Black-' + blackName + descMoves + ': ' + (winRatio * 100).toFixed(1) + '%');
 
     return winRatio; // White's victory ratio

@@ -1,13 +1,13 @@
-//Translated from hunter.rb using babyruby2js
 'use strict';
 
-var main = require('../../main');
-
+var CONST = require('../../constants');
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
+var log = require('../../log');
 
-var ALWAYS = main.ALWAYS;
+var ALWAYS = CONST.ALWAYS;
+var EMPTY = CONST.EMPTY;
 
 
 /** @class Hunters find threats to struggling enemy groups.
@@ -63,7 +63,7 @@ Hunter.prototype._killScore = function (empty, color) {
     for (var i = empty.neighbors.length - 1; i >= 0; i--) {
         var n = empty.neighbors[i];
         switch (n.color) {
-        case main.EMPTY:
+        case EMPTY:
             life += 0.01;
             break;
         case color: // ally
@@ -129,7 +129,7 @@ Hunter.prototype._countPreAtariThreat = function (stone, enemies, empties, color
             // Unless a snapback, this is a dumb move
             if (!this._isSnapback(stone, empties[0], eg)) continue;
             isSnapback = true;
-            if (main.debug) main.log.debug('Hunter ' + Grid.colorName(color) + ' sees a snapback in ' + stone);
+            if (log.debug) log.debug('Hunter ' + Grid.colorName(color) + ' sees a snapback in ' + stone);
         }
         if (!level && eg._info.isInsideEnemy()) continue; // avoid chasing inside our groups - eyes are #1 goal
         egroups.push(eg);
@@ -207,7 +207,7 @@ Hunter.prototype._isKill = function (i, j, color, level) {
     // see attacks that fail
     var canEscape = [false, false, false];
     for (var g = egroups.length - 1; g >= 0; g--) {
-        if (main.debug) main.log.debug('Hunter ' + Grid.colorName(color) + '(level ' + level + ') looking at threat ' + stone + ' on ' + egroups[g]);
+        if (log.debug) log.debug('Hunter ' + Grid.colorName(color) + '(level ' + level + ') looking at threat ' + stone + ' on ' + egroups[g]);
         if (this._isAtariGroupCaught(egroups[g], level)) continue;
         if (egroups.length === 1) { egroups.pop(); break; }
         canEscape[g] = true;
@@ -217,7 +217,7 @@ Hunter.prototype._isKill = function (i, j, color, level) {
 
     var isChaseKill = this._countMultipleChaseThreat(stone, egroups, canEscape, level);
 
-    if (main.debug && (isAtariKill || isRaceKill || isChaseKill)) main.log.debug('Hunter ' + Grid.colorName(color) +
+    if (log.debug && (isAtariKill || isRaceKill || isChaseKill)) log.debug('Hunter ' + Grid.colorName(color) +
         ' found a kill at ' + Grid.xy2move(i, j) +
         (isAtariKill ? ' #atari' : '') + (isRaceKill ? ' #race' : '') + (isChaseKill ? ' #chase' : ''));
     return isAtariKill || isRaceKill || isChaseKill;
@@ -271,7 +271,7 @@ Hunter.prototype._isAtariGroupCaught = function (g, level) {
     var stone = this.goban.tryAt(lastLife.i, lastLife.j, g.color); // enemy's escape move
     var isCaught = this._isEscapingAtariCaught(stone, level);
     this.goban.untry();
-    if (main.debug) main.log.debug('Hunter: group with last life ' + lastLife + ' would ' + (isCaught ? 'be caught: ' : 'escape: ') + g);
+    if (log.debug) log.debug('Hunter: group with last life ' + lastLife + ' would ' + (isCaught ? 'be caught: ' : 'escape: ') + g);
     return isCaught;
 };
 
@@ -319,7 +319,7 @@ Hunter.prototype._isEscapingAtariCaught = function (stone, level) {
     }
     if (empties.length !== 2) throw new Error('Unexpected: hunter #2');
     var e1 = empties[0], e2 = empties[1];
-    if (main.debug) main.log.debug('Hunter: group has 2 lives left: ' + e1 + ' and ' + e2);
+    if (log.debug) log.debug('Hunter: group has 2 lives left: ' + e1 + ' and ' + e2);
 
     // try blocking the 2 moves (recursive descent)
     var color = 1 - g.color;

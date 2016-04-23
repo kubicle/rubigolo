@@ -2,14 +2,14 @@
 
 var main = require('../main');
 var Dome = require('./Dome');
-var Logger = require('../Logger');
+var log = require('../log');
 var Ui = require('./Ui');
 var userPref = require('../userPreferences');
 
 
 function TestUi() {
     main.debug = false;
-    main.log.level = Logger.INFO;
+    log.setLevel(log.INFO);
     main.testUi = this;
 }
 module.exports = TestUi;
@@ -29,11 +29,11 @@ TestUi.prototype.runTest = function (name, pattern) {
     var specificClass = name;
     if (name === 'ALL' || name === 'FILTER') specificClass = undefined;
 
-    main.log.level = main.debug ? Logger.DEBUG : Logger.INFO;
-    main.log.setLogFunc(this.logfn.bind(this));
+    log.setLevel(main.debug ? log.DEBUG : log.INFO);
+    log.setLogFunc(this.logfn.bind(this));
 
     var numIssues = main.tests.run(specificClass, pattern);
-    if (numIssues) this.logfn(Logger.INFO, '\n*** ' + numIssues + ' ISSUE' + (numIssues !== 1 ? 'S' : '') + ' - See below ***');
+    if (numIssues) this.logfn(log.INFO, '\n*** ' + numIssues + ' ISSUE' + (numIssues !== 1 ? 'S' : '') + ' - See below ***');
 
     this.output.scrollToBottom();
     this.errors.scrollToBottom();
@@ -54,8 +54,8 @@ TestUi.prototype.initTest = function (name) {
 
 TestUi.prototype.logfn = function (lvl, msg) {
     msg = msg.replace(/\n/g, '<br>').replace(/ /g, '&nbsp;') + '<br>';
-    if (lvl >= Logger.WARN) this.errors.setHtml(this.errors.html() + msg);
-    else if (lvl > Logger.DEBUG) this.output.setHtml(this.output.html() + msg);
+    if (lvl >= log.WARN) this.errors.setHtml(this.errors.html() + msg);
+    else if (lvl > log.DEBUG) this.output.setHtml(this.output.html() + msg);
     return true; // also log in console
 };
 

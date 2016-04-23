@@ -1,13 +1,12 @@
 'use strict';
 
 var CONST = require('../../constants');
-var main = require('../../main');
 var Grid = require('../../Grid');
+var log = require('../../log');
+var main = require('../../main');
 
 var GRID_BORDER = CONST.GRID_BORDER;
-var EMPTY = CONST.EMPTY;
 var sOK = CONST.sOK, sDEBUG = CONST.sDEBUG;
-var ALWAYS = CONST.ALWAYS;
 
 
 /** @class Base class for all heuristics.
@@ -50,7 +49,7 @@ Heuristic.prototype.initColor = function (color) {
 // For heuristics which do not handle evalBoard (but _evalMove)
 // NB: _evalMove is "private": only called from here (base class), and from inside a heuristic
 Heuristic.prototype.evalBoard = function (stateYx, scoreYx) {
-    var prevDebug = main.debug;
+    var prevLevel = log.level;
     var color = this.player.color;
     var myScoreYx = this.scoreGrid.yx;
     for (var j = 1; j <= this.gsize; j++) {
@@ -58,12 +57,12 @@ Heuristic.prototype.evalBoard = function (stateYx, scoreYx) {
             var state = stateYx[j][i];
             if (state < sOK) continue;
             if (state === sDEBUG && this.name === this.player.debugHeuristic)
-                main.debug = true; // set your breakpoint on this line if needed
+                log.setLevel(log.DEBUG); // set your breakpoint on this line if needed
 
             var score = myScoreYx[j][i] = this._evalMove(i, j, color);
             scoreYx[j][i] += score;
 
-            if (state === sDEBUG) main.debug = prevDebug;
+            if (state === sDEBUG) log.setLevel(prevLevel);
         }
     }
 };

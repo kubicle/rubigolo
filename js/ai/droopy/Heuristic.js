@@ -1,16 +1,17 @@
 //Translated from heuristic.rb using babyruby2js
 'use strict';
 
+var CONST = require('../../constants');
 var main = require('../../main');
 var Grid = require('../../Grid');
 var Stone = require('../../Stone');
 
-var GRID_BORDER = main.GRID_BORDER;
-var BLACK = main.BLACK, WHITE = main.WHITE, EMPTY = main.EMPTY, BORDER = main.BORDER;
-var sOK = main.sOK, sDEBUG = main.sDEBUG;
-var ALWAYS = main.ALWAYS, NEVER = main.NEVER;
+var GRID_BORDER = CONST.GRID_BORDER;
+var BLACK = CONST.BLACK, WHITE = CONST.WHITE, EMPTY = CONST.EMPTY, BORDER = CONST.BORDER;
+var sOK = CONST.sOK, sDEBUG = CONST.sDEBUG;
+var ALWAYS = CONST.ALWAYS, NEVER = CONST.NEVER;
 var XY_AROUND = Stone.XY_AROUND;
-var DIR0 = main.DIR0, DIR3 = main.DIR3;
+var DIR0 = CONST.DIR0, DIR3 = CONST.DIR3;
 
 
 /** @class Base class for all heuristics.
@@ -64,12 +65,12 @@ Heuristic.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
 };
 
 Heuristic.prototype.territoryScore = function (i, j, color) {
-    return this.pot.territory.yx[j][i] * (color === main.BLACK ? 1 : -1);
+    return this.pot.territory.yx[j][i] * (color === BLACK ? 1 : -1);
 };
 
 /** @return {number} - NEVER, SOMETIMES, ALWAYS */
 Heuristic.prototype.isOwned = function (i, j, color) {
-    var myColor = color === main.BLACK ? -1 : +1;
+    var myColor = color === BLACK ? -1 : +1;
     var score = NEVER;
     if (Grid.territory2owner[2 + this.pot.grids[BLACK].yx[j][i]] === myColor) score++;
     if (Grid.territory2owner[2 + this.pot.grids[WHITE].yx[j][i]] === myColor) score++;
@@ -92,7 +93,7 @@ Heuristic.prototype.eyePotential = function (i, j) {
 //TODO review this - why 1-color and not both grids?
 Heuristic.prototype.enemyTerritoryScore = function (i, j, color) {
     var score = Grid.territory2owner[2 + this.pot.grids[1 - color].yx[j][i]];
-    return score * (color === main.BLACK ? 1 : -1);
+    return score * (color === BLACK ? 1 : -1);
 };
 
 /** Pass saved as true if g is an ally group (we evaluate how much we save) */
@@ -230,7 +231,7 @@ Heuristic.prototype.canConnect = function (i, j, color) {
     for (var nNdx = stone.neighbors.length - 1; nNdx >= 0; nNdx--) {
         var n = stone.neighbors[nNdx];
         if (n.color === color && n.group.xDead < ALWAYS) return n;
-        if (n.color === main.EMPTY) empties.push(n);
+        if (n.color === EMPTY) empties.push(n);
     }
     // look around each empty for allies
     var moveNeeded = 2;

@@ -1,18 +1,18 @@
 //Translated from ai1_player.rb using babyruby2js
 'use strict';
 
-var main = require('../../main');
-
 var allHeuristics = require('./AllHeuristics');
 var BoardAnalyser = require('./boan/BoardAnalyser');
+var CONST = require('../../constants');
 var Genes = require('../../Genes');
 var Grid = require('../../Grid');
 var InfluenceMap = require('./boan/InfluenceMap');
+var log = require('../../log');
 var PotentialTerritory = require('./boan/PotentialTerritory');
 var ZoneFiller = require('./boan/ZoneFiller');
 
-var GRID_BORDER = main.GRID_BORDER;
-var sOK = main.sOK, sINVALID = main.sINVALID, sBLUNDER = main.sBLUNDER;
+var GRID_BORDER = CONST.GRID_BORDER;
+var sOK = CONST.sOK, sINVALID = CONST.sINVALID, sBLUNDER = CONST.sBLUNDER;
 
 var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
 
@@ -91,20 +91,20 @@ function score2str(i, j, score) {
 }
 
 Frankie.prototype._foundSecondBestMove = function(i, j, score) {
-    if (main.debug) {
-        main.log.debug('=> ' + score2str(i,j,score) + ' becomes 2nd best move');
-        if (this.secondBestI !== NO_MOVE) main.log.debug(' (replaces ' + score2str(this.secondBestI, this.secondBestJ, this.secondBestScore) + ')');
+    if (log.debug) {
+        log.debug('=> ' + score2str(i,j,score) + ' becomes 2nd best move');
+        if (this.secondBestI !== NO_MOVE) log.debug(' (replaces ' + score2str(this.secondBestI, this.secondBestJ, this.secondBestScore) + ')');
     }
     this.secondBestScore = score;
     this.secondBestI = i; this.secondBestJ = j;
 };
 
 Frankie.prototype._foundBestMove = function(i, j, score) {
-    if (main.debug) {
+    if (log.debug) {
         if (this.numBestTwins > 1) {
-            main.log.debug('=> TWIN ' + score2str(i, j, score) + ' replaces equivalent best move ' + score2str(this.bestI, this.bestJ, this.bestScore));
+            log.debug('=> TWIN ' + score2str(i, j, score) + ' replaces equivalent best move ' + score2str(this.bestI, this.bestJ, this.bestScore));
         } else if (this.bestI !== NO_MOVE) {
-            main.log.debug('=> ' + score2str(i, j, score) + ' becomes the best move');
+            log.debug('=> ' + score2str(i, j, score) + ' becomes the best move');
         }
     }
     if (this.numBestTwins === 1) {
@@ -188,7 +188,7 @@ Frankie.prototype._prepareEval = function () {
 /** Called by heuristics if they decide to stop looking further (rare cases) */
 Frankie.prototype.markMoveAsBlunder = function (i, j, reason) {
     this.stateGrid.yx[j][i] = sBLUNDER;
-    main.log.debug(Grid.xy2move(i, j) + ' seen as blunder: ' + reason);
+    if (log.debug) log.debug(Grid.xy2move(i, j) + ' seen as blunder: ' + reason);
 };
 Frankie.prototype.isBlunderMove = function (i, j) {
     return this.stateGrid.yx[j][i] === sBLUNDER;

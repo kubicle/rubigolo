@@ -1,4 +1,3 @@
-//Translated from test_sgf_reader.rb using babyruby2js
 'use strict';
 
 var inherits = require('util').inherits;

@@ -1,13 +1,13 @@
 'use strict';
 
-var main = require('../main');
-
+var CONST = require('../constants');
 var Grid = require('../Grid');
+var log = require('../log');
 var touchManager = require('./touchManager.js');
 
 var WGo = window.WGo;
 
-var WHITE = main.WHITE, BLACK = main.BLACK, EMPTY = main.EMPTY;
+var WHITE = CONST.WHITE, BLACK = CONST.BLACK, EMPTY = CONST.EMPTY;
 
 var pixelRatio = window.devicePixelRatio || 1;
 
@@ -249,7 +249,7 @@ var displayFunctions = {
 
 Board.prototype.showSpecial = function (displayType, yx) {
     var fn = displayFunctions[displayType];
-    if (!fn) { return main.log.error('invalid display type:', displayType); }
+    if (!fn) { return log.error && log.error('invalid display type:', displayType); }
     this.show(displayType, yx, fn);
 };
 

@@ -1,15 +1,16 @@
 //Translated from heuristic.rb using babyruby2js
 'use strict';
 
+var CONST = require('../../constants');
 var main = require('../../main');
 var Grid = require('../../Grid');
 var Stone = require('../../Stone');
 
-var sOK = main.sOK, ALWAYS = main.ALWAYS;
-var GRID_BORDER = main.GRID_BORDER;
-var EMPTY = main.EMPTY, BORDER = main.BORDER;
+var sOK = CONST.sOK, ALWAYS = CONST.ALWAYS;
+var GRID_BORDER = CONST.GRID_BORDER;
+var EMPTY = CONST.EMPTY, BORDER = CONST.BORDER, BLACK = CONST.BLACK;
 var XY_AROUND = Stone.XY_AROUND;
-var DIR0 = main.DIR0, DIR3 = main.DIR3;
+var DIR0 = CONST.DIR0, DIR3 = CONST.DIR3;
 
 
 /** @class Base class for all heuristics.
@@ -60,12 +61,12 @@ Heuristic.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
 
 Heuristic.prototype.territoryScore = function (i, j, color) {
     var ter = this.ter.potential().yx;
-    return ter[j][i] * ( color === main.BLACK ? 1 : -1);
+    return ter[j][i] * ( color === BLACK ? 1 : -1);
 };
 
 Heuristic.prototype.enemyTerritoryScore = function (i, j, color) {
     var score = Grid.territory2owner[2 + this.ter.grids[1 - color].yx[j][i]];
-    return score * (color === main.BLACK ? 1 : -1);
+    return score * (color === BLACK ? 1 : -1);
 };
 
 /** Pass saved as true if g is an ally group (we evaluate how much we save) */
@@ -205,7 +206,7 @@ Heuristic.prototype.canConnect = function (i, j, color) {
     for (var nNdx = stone.neighbors.length - 1; nNdx >= 0; nNdx--) {
         var n = stone.neighbors[nNdx];
         if (n.color === color && n.group.xDead < ALWAYS) return n;
-        if (n.color === main.EMPTY) empties.push(n);
+        if (n.color === EMPTY) empties.push(n);
     }
     // look around each empty for allies
     var moveNeeded = 2;

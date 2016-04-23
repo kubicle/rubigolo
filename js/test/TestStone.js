@@ -1,11 +1,11 @@
 'use strict';
 
-var main = require('../main');
+var CONST = require('../constants');
 var inherits = require('util').inherits;
 var Goban = require('../Goban');
 var TestCase = require('./TestCase');
 
-var BLACK = main.BLACK, WHITE = main.WHITE;
+var BLACK = CONST.BLACK, WHITE = CONST.WHITE;
 
 
 /** @class */

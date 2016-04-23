@@ -1,5 +1,6 @@
 'use strict';
 
+var log = require('../log');
 var main = require('../main');
 
 var FAILED_ASSERTION_MSG = 'Failed assertion: ';
@@ -55,10 +56,10 @@ TestSeries.prototype._testOneMethod = function (test, method, methodPattern) {
         if (msg.startsWith(FAILED_ASSERTION_MSG)) {
             this.failedCount++;
             msg = msg.substr(FAILED_ASSERTION_MSG.length);
-            main.log.error('Test failed: ' + this.currentTest + ': ' + msg + '\n');
+            log.error('Test failed: ' + this.currentTest + ': ' + msg + '\n');
         } else {
             this.errorCount++;
-            main.log.error('Exception during test: ' + this.currentTest + ':\n' + e.stack + '\n');
+            log.error('Exception during test: ' + this.currentTest + ':\n' + e.stack + '\n');
         }
         test.showInUi(msg);
     }
@@ -77,10 +78,10 @@ TestSeries.prototype.startBrokenTest = function () {
 
 TestSeries.prototype._endBrokenTest = function (failed) {
     if (failed) {
-        main.log.info('BROKEN: ' + this.currentTest);
+        log.info('BROKEN: ' + this.currentTest);
         this.brokenCount++;
     } else {
-        main.log.info('FIXED: ' + this.currentTest);
+        log.info('FIXED: ' + this.currentTest);
         this.fixedCount++;
     }
     this.failedCount = this.failedCount0;
@@ -93,7 +94,7 @@ TestSeries.prototype._endBrokenTest = function (failed) {
  * @return {number} - number of issues detected (exceptions + errors + warnings); 0 if all fine
  */
 TestSeries.prototype.run = function (specificClass, methodPattern) {
-    var logLevel = main.log.level;
+    var logLevel = log.level;
     var classCount = 0;
     this.testCount = this.checkCount = this.count = 0;
     this.failedCount = this.errorCount = this.todoCount = 0;
@@ -105,7 +106,7 @@ TestSeries.prototype.run = function (specificClass, methodPattern) {
         classCount++;
         var Klass = this.testCases[t];
         this.testOneClass(Klass, methodPattern);
-        main.log.level = logLevel; // restored to initial level
+        log.setLevel(logLevel); // restored to initial level
     }
     var duration = ((Date.now() - startTime) / 1000).toFixed(2);
     return this._logReport(specificClass, classCount, duration);
@@ -128,11 +129,11 @@ TestSeries.prototype._logReport = function (specificClass, classCount, duration)
         }
         if (this.todoCount) report += '  (Todos: ' + this.todoCount + ')';
         if (this.count) report += '\n(generic count: ' + this.count + ')';
-        main.log.info(report);
+        log.info(report);
     } else {
         report += '*** ISSUES: exceptions: ' + this.errorCount +
             ', failed: ' + this.failedCount + ' ***';
-        main.log.error(report);
+        log.error(report);
     }
     return numIssues;
 };

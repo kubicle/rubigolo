@@ -1,10 +1,10 @@
 'use strict';
 
-var main = require('../../main');
 var CONST = require('../../constants');
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
+var log = require('../../log');
 
 var ALWAYS = CONST.ALWAYS;
 
@@ -122,10 +122,10 @@ MoveInfo.prototype._enter = function (name, g, stone) {
     this.what = name + ' on ' + g.toString(1);
 
     if (stone.i === this.player.testI && stone.j === this.player.testJ) {
-        main.debug = true; // set your breakpoint here if needed
-        main.log.debug('MoveInfo scoring ' + stone + ': ' + this.what);
+        log.setLevel(log.DEBUG); // set your breakpoint here if needed
+        log.debug('MoveInfo scoring ' + stone + ': ' + this.what);
     } else {
-        main.debug = false;
+        if (log.level === log.DEBUG) log.setLevel(log.INFO);
     }
 };
 
@@ -150,7 +150,7 @@ MoveInfo.prototype._goalReachedByMove = function (goal, stone, factor, numMoves)
     if (!stone)  throw new Error('Unexpected'); //return goal;
     factor = factor || 1;
     numMoves = numMoves || 1;
-    if (main.debug) main.log.debug('Goal reached by ' + stone + ': ' + goal +
+    if (log.debug) log.debug('Goal reached by ' + stone + ': ' + goal +
         (factor ? ' factor:' + factor.toFixed(2) : '') + (numMoves ? ' numMoves:' + numMoves : ''));
 
     var cell = this._getCell(stone.i, stone.j);
@@ -207,7 +207,7 @@ MoveInfo.prototype._bandChance = function (ginfos, addedEyes) {
     }
     var twoEyeCh = this._twoEyeChance(potEyeCount);
     if (twoEyeCh === 1) {
-        if (main.debug) main.log.debug('MoveInfo: ' + potEyeCount + ' pot eyes for band of ' + ginfos[0]);
+        if (log.debug) log.debug('MoveInfo: ' + potEyeCount + ' pot eyes for band of ' + ginfos[0]);
         return 1;
     }
 
@@ -224,7 +224,7 @@ MoveInfo.prototype._bandThreat = function (ginfos, stone, saving, factor, numMov
     var chance = this._bandChance(ginfos, addedEyes);
     factor *= (1 - chance);
     if (factor < MIN_FACTOR) {
-        if (main.debug) main.log.debug('MoveInfo: juging safe the band of ' + ginfos[0].group.toString(1));
+        if (log.debug) log.debug('MoveInfo: juging safe the band of ' + ginfos[0].group.toString(1));
         return;
     }
     //REVIEW this; line below is wrong, but we should make the difference between
@@ -285,8 +285,8 @@ MoveInfo.prototype.addPressure = function (g, stone) {
         pressure = this.minimumScore;
     }
     this._getCell(stone.i, stone.j).score += pressure;
-    if (this.debug && stone.i === this.player.testI && stone.j === this.player.testJ) {
-        main.log.debug('MoveInfo ' + Grid.colorName(1 - g.color) + ' - pressure at ' + stone + ': ' + pressure.toFixed(2));
+    if (log.debug && stone.i === this.player.testI && stone.j === this.player.testJ) {
+        log.debug('MoveInfo ' + Grid.colorName(1 - g.color) + ' - pressure at ' + stone + ': ' + pressure.toFixed(2));
     }
 };
 

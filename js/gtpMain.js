@@ -1,10 +1,9 @@
 'use strict';
 
-var main = require('./main');
-
 var Gtp = require('./net/Gtp');
 var GtpEngine = require('./net/GtpEngine');
-var Logger = require('./Logger');
+var log = require('./log');
+var main = require('./main');
 var readline = require('readline');
 
 var ais = [
@@ -31,7 +30,7 @@ function run() {
     parseArgs();
 
     // NB: any unexpected log on stdout will break GTP
-    main.log.level = Logger.ERROR;
+    log.setLevel(log.ERROR);
     main.initAis(ais);
 
     var gtpEngine = new GtpEngine();

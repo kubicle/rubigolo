@@ -1,8 +1,9 @@
 'use strict';
 
 var CONST = require('./constants');
-var main = require('./main');
 var Grid = require('./Grid');
+var log = require('./log');
+var main = require('./main');
 
 var EMPTY = CONST.EMPTY;
 
@@ -117,7 +118,7 @@ Group.prototype.allEnemies = function () {
             if (enemies.indexOf(en.group) < 0) enemies.push(en.group);
         }
     }
-    if (main.debugGroup) main.log.debug(this + ' has ' + enemies.length + ' enemies');
+    if (main.debugGroup && log.debug) log.debug(this + ' has ' + enemies.length + ' enemies');
     return enemies;
 };
 
@@ -137,13 +138,13 @@ Group.prototype.livesAddedByStone = function (stone) {
             }
         }
     }
-    if (main.debugGroup) main.log.debug(lives + ' lives added by ' + stone + ' for group ' + this);
+    if (main.debugGroup && log.debug) log.debug(lives + ' lives added by ' + stone + ' for group ' + this);
     return lives;
 };
 
 // Connects a new stone or a merged stone to this group
 Group.prototype.connectStone = function (stone) {
-    if (main.debugGroup) main.log.debug('Connecting ' + stone + ' to group ' + this);
+    if (main.debugGroup && log.debug) log.debug('Connecting ' + stone + ' to group ' + this);
 
     this.stones.push(stone);
     this.lives += this.livesAddedByStone(stone);
@@ -151,19 +152,19 @@ Group.prototype.connectStone = function (stone) {
     if (this.lives < 0) { // can be 0 if suicide-kill
         throw new Error('Unexpected error (lives<0 on connect)');
     }
-    if (main.debugGroup) main.log.debug('Final group: ' + this);
+    if (main.debugGroup && log.debug) log.debug('Final group: ' + this);
 };
 
 // Disconnects a stone
 Group.prototype.disconnectStone = function (stone) {
-    if (main.debugGroup) main.log.debug('Disconnecting ' + stone + ' from group ' + this);
+    if (main.debugGroup && log.debug) log.debug('Disconnecting ' + stone + ' from group ' + this);
 
     if (this.stones.length > 1) {
         this.lives -= this.livesAddedByStone(stone);
         if (this.lives < 0) throw new Error('Lives<0 on disconnect'); // =0 if suicide-kill
     } else { // groups of 1 stone become empty groups (->garbage)
         this.goban.deleteGroup(this);
-        if (main.debugGroup) main.log.debug('Group going to recycle bin: ' + this);
+        if (main.debugGroup && log.debug) log.debug('Group going to recycle bin: ' + this);
     }
     // we always remove them in the reverse order they came
     if (this.stones.pop() !== stone) throw new Error('Unexpected error (disconnect order)');
@@ -181,7 +182,7 @@ Group.prototype.attackedBy = function (stone) {
 // NB: it can never kill anything
 Group.prototype._attackedByResuscitated = function (stone) {
     this.lives--;
-    if (main.debugGroup) main.log.debug(this + ' attacked by resuscitated ' + stone);
+    if (main.debugGroup && log.debug) log.debug(this + ' attacked by resuscitated ' + stone);
 
     if (this.lives < 1) throw new Error('Unexpected error (lives<1 on attack by resucitated)');
 };
@@ -189,7 +190,7 @@ Group.prototype._attackedByResuscitated = function (stone) {
 // Stone parameter is just for debug for now
 Group.prototype.notAttackedAnymore = function (stone) {
     this.lives++;
-    if (main.debugGroup) main.log.debug(this + ' not attacked anymore by ' + stone);
+    if (main.debugGroup && log.debug) log.debug(this + ' not attacked anymore by ' + stone);
 };
 
 // Merges a subgroup with this group
@@ -197,7 +198,7 @@ Group.prototype.merge = function (subgroup, byStone) {
     if (subgroup.mergedWith === this || subgroup === this || this.color !== subgroup.color) {
         throw new Error('Invalid merge');
     }
-    if (main.debugGroup) main.log.debug('Merging subgroup:' + subgroup + ' to main:' + this);
+    if (main.debugGroup && log.debug) log.debug('Merging subgroup:' + subgroup + ' to main:' + this);
 
     this.lives += subgroup.stones.length;
     for (var s, s_array = subgroup.stones, s_ndx = 0; s=s_array[s_ndx], s_ndx < s_array.length; s_ndx++) {
@@ -207,12 +208,12 @@ Group.prototype.merge = function (subgroup, byStone) {
     subgroup.mergedWith = this;
     subgroup.mergedBy = byStone;
     this.goban.mergedGroups.push(subgroup);
-    if (main.debugGroup) main.log.debug('After merge: subgroup:' + subgroup + ' main:' + this);
+    if (main.debugGroup && log.debug) log.debug('After merge: subgroup:' + subgroup + ' main:' + this);
 };
 
 // Reverse of merge
 Group.prototype._unmerge = function (subgroup) {
-    if (main.debugGroup) main.log.debug('Unmerging subgroup:' + subgroup + ' from main:' + this);
+    if (main.debugGroup && log.debug) log.debug('Unmerging subgroup:' + subgroup + ' from main:' + this);
 
     for (var s, s_array = subgroup.stones, s_ndx = s_array.length - 1; s=s_array[s_ndx], s_ndx >= 0; s_ndx--) {
         this.disconnectStone(s);
@@ -220,7 +221,7 @@ Group.prototype._unmerge = function (subgroup) {
     }
     this.lives -= subgroup.stones.length;
     subgroup.mergedBy = subgroup.mergedWith = null;
-    if (main.debugGroup) main.log.debug('After _unmerge: subgroup:' + subgroup + ' main:' + this);
+    if (main.debugGroup && log.debug) log.debug('After _unmerge: subgroup:' + subgroup + ' main:' + this);
 };
 
 Group.prototype.unmergeFrom = function (stone) {
@@ -235,7 +236,7 @@ Group.prototype.unmergeFrom = function (stone) {
 
 // Called when the group has no more life left
 Group.prototype._dieFrom = function (killerStone) {
-    if (main.debugGroup) main.log.debug('Group dying: ' + this);
+    if (main.debugGroup && log.debug) log.debug('Group dying: ' + this);
     if (this.lives < 0) throw new Error('Unexpected error (lives<0)');
 
     for (var stone, stone_array = this.stones, stone_ndx = 0; stone=stone_array[stone_ndx], stone_ndx < stone_array.length; stone_ndx++) {
@@ -246,7 +247,7 @@ Group.prototype._dieFrom = function (killerStone) {
     }
     this.killedBy = killerStone;
     this.goban.killedGroups.push(this);
-    if (main.debugGroup) main.log.debug('Group dead: ' + this);
+    if (main.debugGroup && log.debug) log.debug('Group dead: ' + this);
 };
 
 // Called when "undo" operation removes the killer stone of this group
@@ -267,7 +268,7 @@ Group.resuscitateGroupsFrom = function (killerStone) {
         var group = killedGroups[last];
         if (group.killedBy !== killerStone) break;
         killedGroups.pop();
-        if (main.debugGroup) main.log.debug('taking back ' + killerStone + ' so we resuscitate ' + group);
+        if (main.debugGroup && log.debug) log.debug('taking back ' + killerStone + ' so we resuscitate ' + group);
         group._resuscitate();
     }
 };

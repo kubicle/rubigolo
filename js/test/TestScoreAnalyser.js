@@ -1,7 +1,5 @@
-//Translated from test_score_analyser.rb using babyruby2js
 'use strict';
 
-var main = require('../main');
 var CONST = require('../constants');
 var inherits = require('util').inherits;
 var Grid = require('../Grid');
@@ -10,6 +8,7 @@ var ScoreAnalyser = require('../ScoreAnalyser');
 var TestCase = require('./TestCase');
 
 var BLACK = CONST.BLACK, WHITE = CONST.WHITE;
+var EMPTY = CONST.EMPTY;
 
 
 /** @class */
@@ -76,7 +75,7 @@ TestScoreAnalyser.prototype.testScoringGrid = function () {
     this.sa.computeScoreDiff();
     var sgridYx = this.sa.getScoringGrid().yx;
     var goban = this.game.goban;
-    this.assertEqual(main.EMPTY, goban.stoneAt(1, 1).color); // score analyser leaves the goban untouched
+    this.assertEqual(EMPTY, goban.stoneAt(1, 1).color); // score analyser leaves the goban untouched
     this.assertEqual(Grid.TERRITORY_COLOR + WHITE, sgridYx[1][1]); // a1
     this.assertEqual(Grid.TERRITORY_COLOR + BLACK, sgridYx[6][2]); // b6
 };

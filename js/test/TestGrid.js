@@ -1,11 +1,11 @@
 'use strict';
 
-var main = require('../main');
+var CONST = require('../constants');
 var Grid = require('../Grid');
 var inherits = require('util').inherits;
 var TestCase = require('./TestCase');
 
-var BLACK = main.BLACK, WHITE = main.WHITE, EMPTY = main.EMPTY;
+var BLACK = CONST.BLACK, WHITE = CONST.WHITE, EMPTY = CONST.EMPTY;
 
 
 function TestGrid(testName) {

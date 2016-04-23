@@ -3,11 +3,10 @@
 var Ui = require('./Ui'); // we add methods to Ui class here
 
 var CONST = require('../constants');
-var main = require('../main');
-
 var Dome = require('./Dome');
 var Gtp = require('../net/Gtp');
-var Logger = require('../Logger');
+var log = require('../log');
+var main = require('../main');
 var UiGtpEngine = require('../net/UiGtpEngine');
 var userPref = require('../userPreferences');
 
@@ -165,7 +164,7 @@ Ui.prototype.createDevControls = function () {
     var options = devDiv.newDiv('options');
     Dome.newCheckbox(options, 'debug', 'Debug').on('change', function () {
         main.debug = this.isChecked();
-        main.log.level = main.debug ? Logger.DEBUG : Logger.INFO;
+        log.setLevel(main.debug ? log.DEBUG : log.INFO);
     });
 
     this.devGameLink = Dome.newLink(options, 'emailGame', 'Game link');

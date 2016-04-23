@@ -1,9 +1,11 @@
 //Translated from spacer.rb using babyruby2js
 'use strict';
 
-var main = require('../../main');
+var CONST = require('../../constants');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
+
+var EMPTY = CONST.EMPTY;
 
 
 /** @class Tries to occupy empty space + counts when filling up territory */
@@ -24,7 +26,7 @@ Spacer.prototype._evalMove = function (i, j) {
     allyInf += inf[this.color];
     for (var n = stone.neighbors.length - 1; n >= 0; n--) {
         var s = stone.neighbors[n];
-        if (s.color !== main.EMPTY) return 0;
+        if (s.color !== EMPTY) return 0;
         inf = this.infl[s.j][s.i];
         enemyInf += inf[this.enemyColor];
         allyInf += inf[this.color];

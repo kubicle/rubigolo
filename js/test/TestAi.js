@@ -1,10 +1,11 @@
 'use strict';
 
 var CONST = require('../constants');
-var main = require('../main');
 var GameLogic = require('../GameLogic');
 var Grid = require('../Grid');
 var inherits = require('util').inherits;
+var log = require('../log');
+var main = require('../main');
 var TestCase = require('./TestCase');
 
 var BLACK = CONST.BLACK, WHITE = CONST.WHITE;
@@ -34,8 +35,8 @@ TestAi.prototype.initBoard = function (size, handicap, rules) {
 
 TestAi.prototype.logErrorContext = function (player, move) {
     if (this.isBroken) return;
-    main.log.error(this.goban.toString());
-    main.log.error(player.getMoveSurveyText(move));
+    log.error(this.goban.toString());
+    log.error(player.getMoveSurveyText(move));
 };
 
 TestAi.prototype.checkScore = function(player, color, move, score, expScore, heuristic) {
@@ -112,7 +113,7 @@ TestAi.prototype.playAndCheck = function (expMove, expEval, doNotPlay) {
         this.logErrorContext(player, move);
         // if expMove got a very close score, our test scenario bumps on twin moves
         if (expMove !== 'pass' && Math.abs(this.checkEval(expMove) - score) < 0.001) {
-            main.log.error('CAUTION: ' + expMove + ' and ' + move + 
+            log.error('CAUTION: ' + expMove + ' and ' + move + 
                 ' are twins or very close => consider modifying the test scenario');
         }
         expMove = Grid.colorName(color) + '-' + expMove;

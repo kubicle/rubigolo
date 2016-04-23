@@ -1,9 +1,10 @@
 'use strict';
 
-var main = require('../../../main');
+var CONST = require('../../../constants');
 var Grid = require('../../../Grid');
+var log = require('../../../log');
 
-var BLACK = main.BLACK, WHITE = main.WHITE;
+var BLACK = CONST.BLACK, WHITE = CONST.WHITE;
 
 
 /** @class Class used by BoardAnalyser class.
@@ -92,7 +93,7 @@ Void.prototype.isFakeEye = function (color) {
         // NB: see TestBoardAnalyser#testBigGame1 for why we test deadEnemies below
         // Idea: with a dead enemy around, we are usually not forced to connect.
         if (gi.numContactPoints === 1 && !gi.deadEnemies.length && gi.voids.length === 0) {
-            if (main.debug && !isFake) main.log.debug('FAKE EYE: ' + this);
+            if (log.debug && !isFake) log.debug('FAKE EYE: ' + this);
             isFake = true;
             gi.makeDependOn(groups);
         }
@@ -107,7 +108,7 @@ Void.prototype.isFakeEye = function (color) {
 };
 
 Void.prototype.setAsEye = function (color) {
-    if (main.debug) main.log.debug('EYE: ' + Grid.colorName(color) + ' owns ' + this);
+    if (log.debug) log.debug('EYE: ' + Grid.colorName(color) + ' owns ' + this);
     this.vtype = vEYE;
     this.color = color;
     // ONE of the groups now owns this void
@@ -118,7 +119,7 @@ Void.prototype.setAsEye = function (color) {
 /** Sets the "stronger color" that will probably own a void - vtype == undefined */
 Void.prototype.setVoidOwner = function (color) {
     if (color === this.color) return;
-    if (main.debug) main.log.debug('VOID: ' + Grid.colorName(color) + ' owns ' + this);
+    if (log.debug) log.debug('VOID: ' + Grid.colorName(color) + ' owns ' + this);
 
     if (this.owner) { this.owner.removeVoid(this); this.owner = null; }
     this.color = color;
@@ -140,7 +141,7 @@ Void.prototype.setVoidOwner = function (color) {
 
 // Called during final steps for voids that have both B&W groups alive close-by
 Void.prototype.setAsDame = function () {
-    if (main.debug) main.log.debug('DAME: ' + this);
+    if (log.debug) log.debug('DAME: ' + this);
     if (this.owner) { this.owner.removeVoid(this); this.owner = null; }
     this.vtype = vDAME;
     this.color = undefined;
@@ -148,7 +149,7 @@ Void.prototype.setAsDame = function () {
 
 // Called for eyes or fake eyes when their owner group is captured
 Void.prototype.setAsDeadGroupEye = function () {
-    if (main.debug) main.log.debug('EYE-IN-DEAD-GROUP: ' + this);
+    if (log.debug) log.debug('EYE-IN-DEAD-GROUP: ' + this);
     var color = this.color;
     if (color === undefined) throw new Error('dead group\'s eye of undefined owner');
 

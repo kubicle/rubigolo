@@ -1,11 +1,11 @@
 'use strict';
 
-var main = require('../../main');
-
 var BoardAnalyser = require('./boan/BoardAnalyser');
 var CONST = require('../../constants');
 var Genes = require('../../Genes');
 var Grid = require('../../Grid');
+var log = require('../../log');
+var main = require('../../main');
 var ZoneFiller = require('./boan/ZoneFiller');
 
 // All heuristics
@@ -148,7 +148,7 @@ Chuckie.prototype.getMove = function () {
     this._runHeuristics(stateYx, scoreYx);
     var move = this._collectBestMove(stateYx, scoreYx);
 
-    main.debug = this.debugMode;
+    log.setLevel(this.debugMode ? log.DEBUG : log.INFO);
     return move;
 };
 
@@ -156,8 +156,8 @@ Chuckie.prototype._prepareEval = function () {
     this.bestScore = this.minimumScore - 0.001;
     this.bestI = NO_MOVE;
 
-    this.debugMode = main.debug;
-    main.debug = false;
+    this.debugMode = !!log.debug;
+    log.setLevel(log.INFO);
 };
 
 /** Init grids (and mark invalid moves) */
@@ -183,7 +183,7 @@ Chuckie.prototype._initScoringGrid = function (stateYx, scoreYx) {
 Chuckie.prototype._runHeuristics = function (stateYx, scoreYx) {
     for (var n = 0; n < this.heuristics.length; n++) {
         var h = this.heuristics[n];
-        main.debug = this.debugMode && this.debugHeuristic === h.name;
+        log.setLevel(this.debugMode && this.debugHeuristic === h.name ? log.DEBUG : log.INFO);
         var t0 = Date.now();
 
         if (h._beforeEvalBoard) h._beforeEvalBoard();
@@ -191,7 +191,7 @@ Chuckie.prototype._runHeuristics = function (stateYx, scoreYx) {
 
         var time = Date.now() - t0;
         if (time >= 3 && !main.isCoverTest) {
-            main.log.warn('Slowness: ' + h.name + ' took ' + time + 'ms');
+            log.logWarn('Slowness: ' + h.name + ' took ' + time + 'ms');
         }
     }
     this.heuristic.MoveInfo.collectScores(stateYx, scoreYx);

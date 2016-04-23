@@ -1,13 +1,14 @@
 'use strict';
 
-var main = require('../../main');
+var CONST = require('../../constants');
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
+var log = require('../../log');
 
-var GRID_BORDER = main.GRID_BORDER;
-var EMPTY = main.EMPTY, sOK = main.sOK;
-var SOMETIMES = main.SOMETIMES, ALWAYS = main.ALWAYS;
+var GRID_BORDER = CONST.GRID_BORDER;
+var EMPTY = CONST.EMPTY, sOK = CONST.sOK;
+var SOMETIMES = CONST.SOMETIMES, ALWAYS = CONST.ALWAYS;
 
 
 /** @class Cares about good shapes
@@ -77,7 +78,7 @@ Shaper.prototype._evalSingleEyeSplit = function (scoreYx, g) {
     score = score / Math.max(1, potEyeCount - 1);
     this.scoreGrid.yx[j][i] += score;
     scoreYx[j][i] += score;
-    if (main.debug) main.log.debug('Shaper ' + Grid.colorName(this.color) + ' sees single eye split at ' +
+    if (log.debug) log.debug('Shaper ' + Grid.colorName(this.color) + ' sees single eye split at ' +
         i + ',' + j + ' score: ' + score);
 };
 
@@ -115,7 +116,7 @@ Shaper.prototype._eyeCloser = function (i, j, color) {
     if (potEye && eyeThreatened && allyNeedsEye) {
         threat += this.groupThreat(g, /*saved=*/true);
         var potEyeCount = g._info.countPotentialEyes();
-        if (main.debug) main.log.debug('Shaper ' + Grid.colorName(color) + ' sees potential threat ' +
+        if (log.debug) log.debug('Shaper ' + Grid.colorName(color) + ' sees potential threat ' +
             threat + ' on eye ' + potEye + ' with ' + potEyeCount + ' potential eyes');
         return threat / Math.max(1, potEyeCount - 1);
     }

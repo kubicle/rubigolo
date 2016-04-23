@@ -1,6 +1,6 @@
-//Translated from time_keeper.rb using babyruby2js
 'use strict';
 
+var log = require('../log');
 var main = require('../main');
 
 var DELAY_THRESHOLD = 5; // we tolerate delays under this value
@@ -12,7 +12,6 @@ var systemPerf = null;
  */
 function TimeKeeper(tolerance) {
     this.tolerance = tolerance || 1.15;
-    this.log = main.log;
 
     this.ratio = this.duration = this.taskName = this.expectedTime = this.t0 = undefined;
 }
@@ -61,7 +60,7 @@ TimeKeeper.prototype._calibrate = function (expected) {
     var duration = (Date.now() - t0) / 1000;
     systemPerf = duration / expected;
 
-    if (!main.isCoverTest) this.log.info('TimeKeeper calibrated at ratio=' + systemPerf.toFixed(2) +
+    if (!main.isCoverTest) log.logInfo('TimeKeeper calibrated at ratio=' + systemPerf.toFixed(2) +
         ' (ran calibration in ' + duration.toFixed(2) + ' instead of ' + expected + ')');
     return systemPerf;
 };
@@ -79,7 +78,7 @@ TimeKeeper.prototype.start = function (taskName, expectedInSec) {
 
     this.taskName = taskName;
     this.expectedTime = expectedInSec ? expectedInSec * this.ratio : undefined;
-    this.log.info('Started "' + taskName + '"...');
+    log.logInfo('Started "' + taskName + '"...');
     this.t0 = Date.now();
 };
 
@@ -87,7 +86,7 @@ TimeKeeper.prototype.start = function (taskName, expectedInSec) {
 // If lenientIfSlow is true, the warning is not counted (still displayed)
 TimeKeeper.prototype.stop = function (lenientIfSlow) {
     this.duration = (Date.now() - this.t0) / 1000;
-    if (!main.isCoverTest) this.log.info(' => ' + this.resultReport());
+    if (!main.isCoverTest) log.logInfo(' => ' + this.resultReport());
     return this._checkLimits(lenientIfSlow);
 };
 
@@ -111,6 +110,6 @@ TimeKeeper.prototype._checkLimits = function (lenientIfSlow) {
     if (!lenientIfSlow && !main.isCiTest && diff > DELAY_THRESHOLD) {
         main.tests.failTest(msg);
     }
-    this.log.warn(msg);
+    log.logWarn(msg);
     return msg;
 };

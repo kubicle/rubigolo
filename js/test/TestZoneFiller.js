@@ -1,14 +1,14 @@
-//Translated from test_zone_filler.rb using babyruby2js
 'use strict';
 
-var main = require('../main');
+var CONST = require('../constants');
 var inherits = require('util').inherits;
 var Grid = require('../Grid');
 var GameLogic = require('../GameLogic');
+var main = require('../main');
 var TestCase = require('./TestCase');
 
-var GRID_BORDER = main.GRID_BORDER;
-var EMPTY = main.EMPTY;
+var GRID_BORDER = CONST.GRID_BORDER;
+var EMPTY = CONST.EMPTY;
 
 var CODE_X = 123; // we use this color for replacements - should be rendered as "X"
 

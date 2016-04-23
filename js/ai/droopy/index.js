@@ -1,16 +1,16 @@
 //Translated from ai1_player.rb using babyruby2js
 'use strict';
 
-var main = require('../../main');
-
 var allHeuristics = require('./AllHeuristics');
 var BoardAnalyser = require('./boan/BoardAnalyser');
+var CONST = require('../../constants');
 var Genes = require('../../Genes');
 var Grid = require('../../Grid');
+var log = require('../../log');
 var ZoneFiller = require('./boan/ZoneFiller');
 
-var GRID_BORDER = main.GRID_BORDER;
-var sOK = main.sOK, sINVALID = main.sINVALID, sBLUNDER = main.sBLUNDER, sDEBUG = main.sDEBUG;
+var GRID_BORDER = CONST.GRID_BORDER;
+var sOK = CONST.sOK, sINVALID = CONST.sINVALID, sBLUNDER = CONST.sBLUNDER, sDEBUG = CONST.sDEBUG;
 
 var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
 
@@ -109,16 +109,12 @@ Droopy.prototype.getMove = function () {
     this._runHeuristics(stateYx, scoreYx);
     var move = this._collectBestMove(stateYx, scoreYx);
 
-    main.debug = this.debugMode;
     return move;
 };
 
 Droopy.prototype._prepareEval = function () {
     this.bestScore = this.minimumScore - 0.001;
     this.bestI = NO_MOVE;
-
-    this.debugMode = main.debug;
-    main.debug = false;
 };
 
 /** Init grids (and mark invalid moves) */
@@ -142,7 +138,6 @@ Droopy.prototype._initScoringGrid = function (stateYx, scoreYx) {
 Droopy.prototype._runHeuristics = function (stateYx, scoreYx) {
     for (var n = 0; n < this.heuristics.length; n++) {
         var h = this.heuristics[n];
-        main.debug = this.debugMode && this.debugHeuristic === h.name;
 
         if (h._beforeEvalBoard) h._beforeEvalBoard();
         h.evalBoard(stateYx, scoreYx);
@@ -164,7 +159,7 @@ Droopy.prototype._collectBestMove = function (stateYx, scoreYx) {
 /** Called by heuristics if they decide to stop looking further (rare cases) */
 Droopy.prototype.markMoveAsBlunder = function (i, j, reason) {
     this.stateGrid.yx[j][i] = sBLUNDER;
-    main.log.debug(Grid.xy2move(i, j) + ' seen as blunder: ' + reason);
+    if (log.debug) log.debug(Grid.xy2move(i, j) + ' seen as blunder: ' + reason);
 };
 Droopy.prototype.isBlunderMove = function (i, j) {
     return this.stateGrid.yx[j][i] === sBLUNDER;

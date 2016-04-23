@@ -1,13 +1,13 @@
 //Translated from savior.rb using babyruby2js
 'use strict';
 
-var main = require('../../main');
-
+var CONST = require('../../constants');
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
+var log = require('../../log');
 
-var sOK = main.sOK, ALWAYS = main.ALWAYS;
+var sOK = CONST.sOK, ALWAYS = CONST.ALWAYS;
 
 
 /** @class Saviors rescue ally groups in atari */
@@ -28,7 +28,7 @@ Savior.prototype.evalBoard = function (stateYx, scoreYx) {
             var stone = this.goban.stoneAt(i, j);
             var threat = this._evalEscape(i, j, stone);
             if (threat === 0) continue;
-            if (main.debug) main.log.debug('=> Savior thinks we can save a threat of ' + threat + ' in ' + stone);
+            if (log.debug) log.debug('=> Savior thinks we can save a threat of ' + threat + ' in ' + stone);
             var score = myScoreYx[j][i] = threat;
             scoreYx[j][i] += score;
         }
@@ -46,7 +46,7 @@ Savior.prototype._evalEscape = function (i, j, stone) {
         } else if (g.lives === 2) {
             groups.push(g);
             if (hunterThreat !== null) continue;
-            if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' asking hunter to look at ' + Grid.xy2move(i, j) + ': pre-atari on ' + g);
+            if (log.debug) log.debug('Savior ' + Grid.colorName(this.color) + ' asking hunter to look at ' + Grid.xy2move(i, j) + ': pre-atari on ' + g);
             hunterThreat = this.hunter.evalMove(i, j, this.enemyColor);
             threat += hunterThreat;
         } else if (g.xDead < ALWAYS) {
@@ -69,11 +69,11 @@ Savior.prototype._evalEscape = function (i, j, stone) {
     }
     if (livesAdded === 2) {
         if (this.distanceFromStoneToBorder(stone) === 0) {
-            if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' sees an escape along border in ' + Grid.xy2move(i, j));
+            if (log.debug) log.debug('Savior ' + Grid.colorName(this.color) + ' sees an escape along border in ' + Grid.xy2move(i, j));
             return this.canConnectAlongBorder(i, j, this.color) ? threat : 0;
         }
         // when we get 2 lives from the new stone, get our hunter to evaluate if we can escape
-        if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' asking hunter to look at ' + Grid.xy2move(i, j) + ': threat=' + threat + ', lives_added=' + livesAdded);
+        if (log.debug) log.debug('Savior ' + Grid.colorName(this.color) + ' asking hunter to look at ' + Grid.xy2move(i, j) + ': threat=' + threat + ', lives_added=' + livesAdded);
         this.goban.tryAt(i, j, this.color);
         var isCaught = this.hunter.isEscapingAtariCaught(stone);
         this.goban.untry();
@@ -81,6 +81,6 @@ Savior.prototype._evalEscape = function (i, j, stone) {
             return threat;
         }
     }
-    if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' giving up on threat of ' + threat + ' in ' + Grid.xy2move(i, j));
+    if (log.debug) log.debug('Savior ' + Grid.colorName(this.color) + ' giving up on threat of ' + threat + ' in ' + Grid.xy2move(i, j));
     return 0; // nothing we can do to help
 };

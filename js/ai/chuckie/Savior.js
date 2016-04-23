@@ -1,12 +1,10 @@
-//Translated from savior.rb using babyruby2js
 'use strict';
-
-var main = require('../../main');
 
 var CONST = require('../../constants');
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
+var log = require('../../log');
 
 var ALWAYS = CONST.ALWAYS;
 var EMPTY = CONST.EMPTY, BORDER = CONST.BORDER;
@@ -50,7 +48,7 @@ Savior.prototype._evalEscape = function (i, j, stone) {
     livesAdded += stone.numEmpties();
 
     // Not really intuitive: we check if enemy could chase us starting in i,j
-    if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) +
+    if (log.debug) log.debug('Savior ' + Grid.colorName(this.color) +
         ' asking hunter to look at ' + stone + ' pre-atari on ' + groups[0] +
         (groups.length > 1 ? ' AND ' + (groups.length - 1) + ' other groups' : ''));
     if (!this.hunter.isKill(i, j, this.enemyColor)) return false;
@@ -69,14 +67,14 @@ Savior.prototype._evalEscape = function (i, j, stone) {
     if (livesAdded === 2) {
         // we get 2 lives from the new stone - first check special case of border
         if (groups.length === 1 && stone.isBorder()) {
-            if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) +
+            if (log.debug) log.debug('Savior ' + Grid.colorName(this.color) +
                 ' checks an escape along border in ' + Grid.xy2move(i, j));
             var savior = this._canEscapeAlongBorder(groups[0], i, j);
             if (savior !== undefined) canSave = !!savior;
         }
         if (!canSave) {
             // get our hunter to evaluate if we can escape
-            if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) +
+            if (log.debug) log.debug('Savior ' + Grid.colorName(this.color) +
                 ' asking hunter to look at ' + Grid.xy2move(i, j) + ', lives_added=' + livesAdded);
             this.goban.tryAt(i, j, this.color);
             canSave = !this.hunter.isEscapingAtariCaught(stone);
@@ -84,14 +82,14 @@ Savior.prototype._evalEscape = function (i, j, stone) {
         }
     }
     if (!canSave) {
-        if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' giving up on threat in ' + Grid.xy2move(i, j));
+        if (log.debug) log.debug('Savior ' + Grid.colorName(this.color) + ' giving up on threat in ' + Grid.xy2move(i, j));
         return false; // nothing we can do to help
     }
 
     for (n = groups.length - 1; n >= 0; n--) {
         g = groups[n];
         this.mi.rescueGroup(g, stone);
-        if (main.debug) main.log.debug('=> Savior thinks we can save a threat in ' + stone + ' against ' + g);
+        if (log.debug) log.debug('=> Savior thinks we can save a threat in ' + stone + ' against ' + g);
     }
     return true;
 };

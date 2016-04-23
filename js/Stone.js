@@ -1,12 +1,11 @@
-//Translated from stone.rb using babyruby2js
 'use strict';
 
-var main = require('./main');
+var CONST = require('./constants');
 var Grid = require('./Grid');
 var Group = require('./Group');
 
-var EMPTY = main.EMPTY, BORDER = main.BORDER;
-var DIR0 = main.DIR0, DIR3 = main.DIR3;
+var EMPTY = CONST.EMPTY, BORDER = CONST.BORDER;
+var DIR0 = CONST.DIR0, DIR3 = CONST.DIR3;
 
 
 /** @class A "stone" stores everything we want to keep track of regarding an intersection on the board.

@@ -1,8 +1,8 @@
 'use strict';
 
 var CONST = require('../../../constants');
-var main = require('../../../main');
 var Band = require('./Band');
+var log = require('../../../log');
 
 var EMPTY = CONST.EMPTY;
 var NEVER = CONST.NEVER, SOMETIMES = CONST.SOMETIMES, ALWAYS = CONST.ALWAYS;
@@ -72,7 +72,7 @@ GroupInfo.prototype.toString = function () {
  * @return {GroupInfo} - "this"
  */
 GroupInfo.prototype.addVoid = function (v, groups) {
-    if (main.debug) main.log.debug('OWNED: ' + v + ' owned by ' + this);
+    if (log.debug) log.debug('OWNED: ' + v + ' owned by ' + this);
     this.voids.push(v);
     this.eyeCount++;
 
@@ -87,7 +87,7 @@ GroupInfo.prototype.addVoid = function (v, groups) {
 GroupInfo.prototype.removeVoid = function (v) {
     var ndx = this.voids.indexOf(v);
     if (ndx === -1) throw new Error('remove unknown void');
-    if (main.debug) main.log.debug('LOST: ' + v + ' lost by ' + this);
+    if (log.debug) log.debug('LOST: ' + v + ' lost by ' + this);
     this.voids.splice(ndx, 1);
     this.eyeCount--;
 };
@@ -240,7 +240,7 @@ GroupInfo.prototype.considerDead = function (reason) {
     // REVIEW: this seemed to make sense but decreases our win rate by ~7% against droopy
     // if (enemies.length > 1) Band.gather(enemies);
 
-    if (main.debug) main.log.debug('DEAD-' + reason + ': ' + this);
+    if (log.debug) log.debug('DEAD-' + reason + ': ' + this);
 };
 
 /** Returns a number telling how "alive" a group is.
@@ -293,6 +293,11 @@ GroupInfo.prototype.liveliness = function (strict, shallow) {
 //   NEVER => cannot make 2 eyes
 //   SOMETIMES => can make 2 eyes if we play now; coords will receive [i,j]
 //   ALWAYS => can make 2 eyes even if opponent plays first
+// 3 shapes: OOO or in corner
+// 4 shapes:
+//   "line" or "Z" => safe
+//   "T" shape => 3 is must-play now
+//   "square" shape => doomed (2 moves needed)
 // 5 shapes:
 //   4-1-1-1-1 "+" shape => center is must-play now
 //   2-2-2-1-1 "line" => safe
@@ -307,7 +312,7 @@ GroupInfo.prototype.getEyeMakerMove = function (coords) {
     if (this.eyeCount === 0) return NEVER;
     var singleEye = this.voids[0], vcount = singleEye.vcount;
     if (vcount > 6) return ALWAYS;
-    if (main.debug) main.log.debug('getEyeMakerMove checking ' + this + ' with single eye: ' + singleEye);
+    if (log.debug) log.debug('getEyeMakerMove checking ' + this + ' with single eye: ' + singleEye);
 
     var g = this.group, color = g.color;
     var best = null, bestLives = 0, bestEnemies = 0, numMoves = 0;
@@ -344,7 +349,7 @@ GroupInfo.prototype.getEyeMakerMove = function (coords) {
             if (numLives < 2) continue;
             lives[numLives]++;
         }
-        if (main.debug) main.log.debug('getEyeMakerMove sees ' + numLives + (numEnemies < 1 ? '' : (numEnemies > 1 ? 'e' + numEnemies : 'E')) + ' in ' + s);
+        if (log.debug) log.debug('getEyeMakerMove sees ' + numLives + (numEnemies < 1 ? '' : (numEnemies > 1 ? 'e' + numEnemies : 'E')) + ' in ' + s);
 
         numMoves++; // count successful moves; if more than 1 => ALWAYS good
         if (s.isCorner()) oneMoveIsCorner = true;
@@ -359,7 +364,7 @@ GroupInfo.prototype.getEyeMakerMove = function (coords) {
         bestLives = numLives;
     }
     if (oneMoveIsCorner && numMoves > 1) numMoves--;
-    if (main.debug) main.log.debug('getEyeMakerMove result: ' + best + ' - ' + (best ? (numMoves > 1 ? 'ALWAYS' : 'SOMETIMES') : 'NEVER'));
+    if (log.debug) log.debug('getEyeMakerMove result: ' + best + ' - ' + (best ? (numMoves > 1 ? 'ALWAYS' : 'SOMETIMES') : 'NEVER'));
 
     if (!best) return NEVER;
     if (numVertexAwayFromEnemy === 1 && !enemy2 && enemy1 && enemy1.stones.length < 3) {
@@ -423,7 +428,7 @@ GroupInfo.prototype.checkBrothers = function () {
         }
     }
     if (!oneIsAlive) return UNDECIDED;
-    if (main.debug) main.log.debug('ALIVE-brothers: ' + this, ' numEyes: ' + numEyes);
+    if (log.debug) log.debug('ALIVE-brothers: ' + this, ' numEyes: ' + numEyes);
     this.isAlive = true;
     return LIVES;
 };
@@ -439,7 +444,7 @@ GroupInfo.prototype._isLostInEnemyZone = function () {
 GroupInfo.prototype.checkSingleEye = function (first2play) {
     if (this.eyeCount >= 2) {
         this.isAlive = true;
-        if (main.debug) main.log.debug('ALIVE-doubleEye: ' + this);
+        if (log.debug) log.debug('ALIVE-doubleEye: ' + this);
         return LIVES;
     }
     if (this._isLostInEnemyZone()) return FAILS;
@@ -466,7 +471,7 @@ GroupInfo.prototype.checkSingleEye = function (first2play) {
     // canMakeTwoEyes === ALWAYS or SOMETIMES & it is our turn to play
     this.isAlive = true;
     this.splitEyeCount = 1;
-    if (main.debug) main.log.debug('ALIVE-canMakeTwoEyes-' + when2str(canMakeTwoEyes) + ': ' + this);
+    if (log.debug) log.debug('ALIVE-canMakeTwoEyes-' + when2str(canMakeTwoEyes) + ': ' + this);
     return LIVES;
 };
 
@@ -479,14 +484,14 @@ GroupInfo.prototype.checkAgainstEnemies = function () {
     for (var e = 0; e < enemies.length; e++) {
         var enemy = enemies[e]._info;
         var cmp = liveliness - enemy.liveliness();
-        if (main.debug) main.log.debug('comparing group #' + this.group.ndx + ' with ' +
+        if (log.debug) log.debug('comparing group #' + this.group.ndx + ' with ' +
             liveliness.toFixed(4) + ' against ' + (liveliness - cmp).toFixed(4) +
             ' for enemy group #' + enemy.group.ndx);
         if (cmp > 0) {
-            if (main.debug) main.log.debug(this + ' is stronger than ' + enemy);
+            if (log.debug) log.debug(this + ' is stronger than ' + enemy);
             return UNDECIDED;
         } else if (cmp === 0) {
-            if (main.debug) main.log.debug('RACE between ' + this.group + ' and ' + enemy.group);
+            if (log.debug) log.debug('RACE between ' + this.group + ' and ' + enemy.group);
             inRaceWith = enemy; // we continue looping: not a race if a weaker is found
         }
     }
@@ -503,7 +508,7 @@ GroupInfo.prototype.checkLiveliness = function (minLife) {
     var life = this._liveliness = this.liveliness(true);
     if (life >= 2) {
         this.isAlive = true;
-        if (main.debug) main.log.debug('ALIVE-liveliness ' + life + ': ' + this);
+        if (log.debug) log.debug('ALIVE-liveliness ' + life + ': ' + this);
         return LIVES;
     }
     if (life < minLife) {

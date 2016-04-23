@@ -1,10 +1,10 @@
 'use strict';
 
-var main = require('../../main');
+var CONST = require('../../constants');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
 
-var ALWAYS = main.ALWAYS;
+var ALWAYS = CONST.ALWAYS;
 
 
 /** @class Cares about good shapes

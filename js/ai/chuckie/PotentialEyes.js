@@ -1,10 +1,10 @@
 'use strict';
 
 var CONST = require('../../constants');
-var main = require('../../main');
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
+var log = require('../../log');
 
 var GRID_BORDER = CONST.GRID_BORDER;
 var EMPTY = CONST.EMPTY, BLACK = CONST.BLACK, WHITE = CONST.WHITE;
@@ -63,7 +63,7 @@ PotentialEyes.prototype._findPotentialEyes = function () {
             var potEyeYx = this.potEyeGrids[oddOrEven].yx;
             potEyeYx[j][i] = color;
             ally._info.addPotentialEye(oddOrEven, count);
-            if (main.debug) main.log.debug('Potential eye in ' + eye);
+            if (log.debug) log.debug('Potential eye in ' + eye);
         }
     }
 };

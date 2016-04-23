@@ -1,9 +1,9 @@
 'use strict';
 
 var CONST = require('../../../constants');
-var main = require('../../../main');
 var FakeSpot = require('./FakeSpot');
 var Grid = require('../../../Grid');
+var log = require('../../../log');
 
 var BLACK = CONST.BLACK, WHITE = CONST.WHITE;
 
@@ -63,7 +63,7 @@ function areGroupsAllDead(groups) {
 }
 
 Void.prototype.getFakeSpot = function (stone, groups) {
-    if (main.debug) main.log.debug('FAKE SPOT in ' + this + ' at ' + stone + ' for ' + groups.map(function (g) { return g.ndx; }));
+    if (log.debug) log.debug('FAKE SPOT in ' + this + ' at ' + stone + ' for ' + groups.map(function (g) { return g.ndx; }));
     this.hasFakeSpots = true;
     var index = this.vertexes.indexOf(stone);
     var fakeSpot = this.fakeSpots[index];
@@ -115,7 +115,7 @@ Void.prototype.checkFakeEye = function () {
 
     var prevCount = this.realCount;
     var realCount = this.realCount = this.vcount - this._getMustPlayStones();
-    if (main.debug) main.log.debug('Real vcount: ' + realCount + ' for ' + this);
+    if (log.debug) log.debug('Real vcount: ' + realCount + ' for ' + this);
 
     return realCount !== prevCount;
 };
@@ -129,7 +129,7 @@ Void.prototype._getMustPlayStones = function (stones) {
         var groups = fakeSpot.groups;
         for (var i = groups.length - 1; i >= 0; i--) {
             if (groups[i]._info.needsBrothers()) {
-                if (main.debug && !fakeSpot.mustBePlayed) main.log.debug('Must be played: ' + fakeSpot.stone);
+                if (log.debug && !fakeSpot.mustBePlayed) log.debug('Must be played: ' + fakeSpot.stone);
                 fakeSpot.mustBePlayed = true;
                 stones.push(fakeSpot.stone);
                 break;
@@ -144,11 +144,11 @@ Void.prototype.finalizeFakeEye = function () {
 
     if (this.realCount === 0) {
         if (this.owner) throw new Error('NEVER HAPPENS');
-        if (main.debug) main.log.debug('FAKE EYE remains fake: ' + this);
+        if (log.debug) log.debug('FAKE EYE remains fake: ' + this);
         return;
     }
 
-    if (main.debug) main.log.debug('FAKE SPOTS disregarded for: ' + this);
+    if (log.debug) log.debug('FAKE SPOTS disregarded for: ' + this);
     var color = this.color;
     this.color = this.vtype = undefined;
     return this._setOwner(color);
@@ -163,7 +163,7 @@ Void.prototype._setOwner = function (color) {
 };
 
 Void.prototype._setAsEye = function (color) {
-    if (main.debug) main.log.debug('EYE: ' + Grid.colorName(color) + ' owns ' + this);
+    if (log.debug) log.debug('EYE: ' + Grid.colorName(color) + ' owns ' + this);
     this.vtype = vEYE;
     this.color = color;
     // ONE of the groups now owns this void
@@ -175,7 +175,7 @@ Void.prototype._setAsEye = function (color) {
 /** Sets the "stronger color" that will probably own a void - vtype == undefined */
 Void.prototype.setVoidOwner = function (color) {
     if (color === this.color) return false;
-    if (main.debug) main.log.debug('VOID: ' + Grid.colorName(color) + ' owns ' + this);
+    if (log.debug) log.debug('VOID: ' + Grid.colorName(color) + ' owns ' + this);
 
     if (this.owner) { this.owner.removeVoid(this); this.owner = null; }
     this.color = color;
@@ -198,7 +198,7 @@ Void.prototype.setVoidOwner = function (color) {
 
 // Called during final steps for voids that have both B&W groups alive close-by
 Void.prototype.setAsDame = function () {
-    if (main.debug) main.log.debug('DAME: ' + this);
+    if (log.debug) log.debug('DAME: ' + this);
     if (this.owner) { this.owner.removeVoid(this); this.owner = null; }
     this.vtype = vDAME;
     this.color = undefined;
@@ -206,7 +206,7 @@ Void.prototype.setAsDame = function () {
 
 // Called for eyes or fake eyes when their owner group is captured
 Void.prototype._setAsDeadGroupEye = function () {
-    if (main.debug) main.log.debug('EYE-IN-DEAD-GROUP: ' + this);
+    if (log.debug) log.debug('EYE-IN-DEAD-GROUP: ' + this);
     var color = this.color;
     if (color === undefined) throw new Error('dead group\'s eye of undefined owner');
 

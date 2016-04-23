@@ -1,20 +1,21 @@
-//Translated from test_speed.rb using babyruby2js
 'use strict';
 
-var main = require('../main');
+var CONST = require('../constants');
 var inherits = require('util').inherits;
 var Grid = require('../Grid');
 var Goban = require('../Goban');
+var log = require('../log');
+var main = require('../main');
 var TestCase = require('./TestCase');
 var TimeKeeper = require('./TimeKeeper');
 
-var BLACK = main.BLACK, WHITE = main.WHITE;
+var BLACK = CONST.BLACK, WHITE = CONST.WHITE;
 
 
 /** @class */
 function TestSpeed(testName) {
     TestCase.call(this, testName);
-    main.debug = false; // if true it takes forever...
+    log.setLevel(log.INFO); // if DEBUG it takes forever...
     this.initBoard();
 }
 inherits(TestSpeed, TestCase);
@@ -145,7 +146,7 @@ TestSpeed.prototype.playMoves = function (movesIj) {
 
 TestSpeed.prototype.playGameAndClean = function (movesIj, cleanMode) {
     var numMoves = movesIj.length / 2;
-    if (main.debug) main.log.debug('About to play a game of ' + numMoves + ' moves');
+    if (log.debug) log.debug('About to play a game of ' + numMoves + ' moves');
     this.assertEqual(numMoves, this.playMoves(movesIj));
     switch (cleanMode) {
     case TestSpeed.CM_UNDO:

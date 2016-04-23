@@ -1,9 +1,9 @@
 'use strict';
 
 var CONST = require('../../../constants');
-var main = require('../../../main');
 var Grid = require('../../../Grid');
 var GroupInfo = require('./GroupInfo');
+var log = require('../../../log');
 var Void = require('./Void');
 var ZoneFiller = require('./ZoneFiller');
 
@@ -36,7 +36,7 @@ module.exports = BoardAnalyser;
 
 
 BoardAnalyser.prototype.countScore = function (goban) {
-    if (main.debug) main.log.debug('Counting score...');
+    if (log.debug) log.debug('Counting score...');
     this.scores[BLACK] = this.scores[WHITE] = 0;
     this.prisoners[BLACK] = this.prisoners[WHITE] = 0;
     if (!this.scoreGrid || this.scoreGrid.gsize !== goban.gsize) {
@@ -134,7 +134,7 @@ BoardAnalyser.prototype._addGroup = function (g, v) {
  * Voids know which groups are around them, but groups do not own any void yet.
  */
 BoardAnalyser.prototype._initVoidsAndGroups = function () {
-    if (main.debug) main.log.debug('---Initialising voids & groups...');
+    if (log.debug) log.debug('---Initialising voids & groups...');
     var voidCode = Grid.ZONE_CODE;
     this.allGroupInfos = {};
     this.allVoids.clear();
@@ -166,7 +166,7 @@ BoardAnalyser.prototype._findBrothers = function () {
 
 // Find voids surrounded by a single color -> eyes
 BoardAnalyser.prototype._findEyeOwners = function () {
-    if (main.debug) main.log.debug('---Finding eye owners...');
+    if (log.debug) log.debug('---Finding eye owners...');
     var allVoids = this.allVoids, count = allVoids.length;
     for (var n = count - 1; n >= 0; n--) {
         allVoids[n].findOwner();
@@ -229,10 +229,10 @@ BoardAnalyser.prototype._findBattleWinners = function () {
             var winner = compareLiveliness(life);
             // make sure we have a winner, not a tie
             if (winner === undefined) {
-                if (main.debug) main.log.debug('BATTLED VOID in dispute: ' + v + ' with ' + life[0]);
+                if (log.debug) log.debug('BATTLED VOID in dispute: ' + v + ' with ' + life[0]);
                 continue;
             }
-            if (main.debug) main.log.debug('BATTLED VOID: ' + Grid.colorName(winner) +
+            if (log.debug) log.debug('BATTLED VOID: ' + Grid.colorName(winner) +
                 ' wins with ' + life[winner].toFixed(4) + ' VS ' + life[1 - winner].toFixed(4));
             v.setVoidOwner(winner);
             foundOne = true;
@@ -246,7 +246,7 @@ function killWeakest(check, fails) {
     // For all groups that failed the test, filter out these that have a weaker neighbor
     for (var i = 0; i < fails.length; i++) {
         var fail = fails[i];
-        if (main.debug) main.log.debug('FAIL-' + check.name + ': group #' + fail.group.ndx);
+        if (log.debug) log.debug('FAIL-' + check.name + ': group #' + fail.group.ndx);
         if (fail.checkAgainstEnemies() !== FAILS)
             fails[i] = null;
     }
@@ -295,7 +295,7 @@ lifeChecks[MOVE] = [
 
 // NB: order of group should not matter; we must remember this especially when killing some of them
 BoardAnalyser.prototype._reviewGroups = function (check, first2play) {
-    if (main.debug) main.log.debug('---REVIEWING groups for "' + check.name + '" checks');
+    if (log.debug) log.debug('---REVIEWING groups for "' + check.name + '" checks');
     var count = 0, reviewedCount = 0, fails = [];
     for (var ndx in this.allGroupInfos) {
         var gi = this.allGroupInfos[~~ndx];
@@ -315,7 +315,7 @@ BoardAnalyser.prototype._reviewGroups = function (check, first2play) {
         // if no dedicated method is given, simply kill them all
         count += check.kill ? check.kill(check, fails) : killAllFails(check, fails);
     }
-    if (main.debug && count) main.log.debug('==> "' + check.name + '" checks found ' +
+    if (log.debug && count) log.debug('==> "' + check.name + '" checks found ' +
         count + '/' + reviewedCount + ' groups alive/dead');
     if (count === reviewedCount) return 0; // really finished
     if (count === 0) return reviewedCount; // remaining count
@@ -340,7 +340,7 @@ BoardAnalyser.prototype._lifeOrDeathLoop = function (first2play) {
             continue;
         }
     }
-    if (main.debug && count > 0) main.log.debug('*** UNDECIDED groups after _lifeOrDeathLoop:' + count);
+    if (log.debug && count > 0) log.debug('*** UNDECIDED groups after _lifeOrDeathLoop:' + count);
 };
 
 // Looks for "dame" = neutral voids (if alive groups from more than one color are around)
