@@ -127,10 +127,6 @@ Heuristic.prototype.invasionCost = function (i, j, color) {
     return cost;
 };
 
-Heuristic.prototype.markMoveAsBlunder = function (i, j, reason) {
-    this.player.markMoveAsBlunder(i, j, this.name + ':' + reason);
-};
-
 Heuristic.prototype.distanceFromStoneToBorder = function (stone) {
     var gsize = this.gsize;
     var i = stone.i, j = stone.j;
