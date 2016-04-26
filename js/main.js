@@ -4,12 +4,10 @@ var pkg = require('../package.json');
 
 
 function Main() {
-    this.debug = false;
-    this.debugGroup = this.debugAi = this.debugBreed = false;
-
     this.appName = pkg.name;
     this.appVersion = pkg.version;
 
+    this.debug = false;
     this.isCiTest = this.isCoverTest = false;
 
     // Known AIs and default one

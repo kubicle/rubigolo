@@ -14,6 +14,9 @@ function Logger() {
     this.WARN = 2;
     this.ERROR = 3;
     this.FATAL = 4;
+
+    this.debugBreed = false;
+    this.debugGroup = false;
 }
 
 Logger.prototype.setLevel = function (level) {

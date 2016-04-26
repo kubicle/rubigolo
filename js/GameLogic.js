@@ -203,8 +203,6 @@ GameLogic.prototype.playOneMove = function (move) {
         return this.setHandicapAndWhoStarts(cmd.split(':')[1]);
     } else if (cmd.startsWith('load:')) {
         return this.loadMoves(cmd.slice(5));
-    } else if (cmd.startsWith('log')) {
-        return this.setLogLevel(cmd.split(':')[1]);
     } else {
         return this._errorMsg('Invalid command: ' + cmd);
     }
@@ -315,25 +313,6 @@ GameLogic.prototype.getErrors = function () {
     var errors = this.errors;
     this.errors = [];
     return errors;
-};
-
-GameLogic.prototype.setLogLevel = function (cmd) {
-    var args = cmd.split('=');
-    var flag = parseInt(args[1]) !== 0;
-    switch (args[0]) {
-    case 'group':
-        main.debugGroup = flag;
-        break;
-    case 'ai':
-        main.debugAi = flag;
-        break;
-    case 'all':
-        main.debug = main.debugGroup = main.debugAi = flag;
-        break;
-    default: 
-        return this._errorMsg('Invalid log command: ' + cmd);
-    }
-    return true;
 };
 
 GameLogic.prototype._nextPlayer = function () {
