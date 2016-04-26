@@ -11,8 +11,6 @@ var TestCase = require('./TestCase');
 var BLACK = CONST.BLACK, WHITE = CONST.WHITE;
 
 
-/** @class NB: for debugging think of using @goban.debug_display
- */
 function TestAi(testName) {
     TestCase.call(this, testName);
 }

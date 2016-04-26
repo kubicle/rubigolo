@@ -27,8 +27,7 @@ function Breeder(gameSize, komi) {
     this.goban = this.game.goban;
     this.scorer = new ScoreAnalyser(this.game);
     this.genSize = 26; // default; must be even number
-    this.seenGames = {};
-    this.skipDupeEndings = false;
+    this._skipDupeEndings(false);
 
     this.controlGenes = null;
     this.players = [];
@@ -79,6 +78,11 @@ Breeder.prototype.playUntilGameEnds = function () {
     return numTimesSeen === 1;
 };
 
+Breeder.prototype._skipDupeEndings = function (doSkip) {
+    this.seenGames = {};
+    this.skipDupeEndings = doSkip;
+};
+
 // Returns the number of times we saw this game ending
 Breeder.prototype._countAlreadySeenGames = function () {
     var img = this.goban.image(), seenGames = this.seenGames;
@@ -102,17 +106,21 @@ Breeder.prototype._countAlreadySeenGames = function () {
     return 1;
 };
 
-// Plays a game and returns the score difference in points (>0 if black wins)
-// @param {Genes} [genes1] - AI will use its default genes otherwise
-// @param {Genes} [genes2]
-// @param {string} [initMoves] - e.g. "e5,d4"
-Breeder.prototype.playGame = function (genes1, genes2, initMoves) {
+Breeder.prototype._prepareGame = function (genes1, genes2, initMoves) {
     var komi = initMoves && initMoves[0] === 'W' ? - this.komi : this.komi; // reverse komi if W starts
 
     this.game.newGame(this.gsize, 0, komi);
     this.game.loadMoves(initMoves);
     this.players[BLACK].prepareGame(genes1);
     this.players[WHITE].prepareGame(genes2);
+};
+
+// Plays a game and returns the score difference in points (>0 if black wins)
+// @param {Genes} [genes1] - AI will use its default genes otherwise
+// @param {Genes} [genes2]
+// @param {string} [initMoves] - e.g. "e5,d4"
+Breeder.prototype.playGame = function (genes1, genes2, initMoves) {
+    this._prepareGame(genes1, genes2, initMoves);
     var scoreDiff;
     try {
         if (!this.playUntilGameEnds() && this.skipDupeEndings) return 0;
@@ -230,6 +238,7 @@ Breeder.prototype.aiVsAi = function (numGames, numGamesShowed, initMoves) {
     case main.olderAi: BlackAi = main.defaultAi; break;
     }
     this.initPlayers(BlackAi, WhiteAi);
+    this._skipDupeEndings(true);
 
     var blackName = this.game.playerNames[BLACK], whiteName = this.game.playerNames[WHITE];
     var gsize = this.gsize;
@@ -239,7 +248,6 @@ Breeder.prototype.aiVsAi = function (numGames, numGamesShowed, initMoves) {
     var expectedDuration = numGames * 0.05 * gsize * gsize / 81;
 
     this.timer.start(desc, expectedDuration);
-    this.skipDupeEndings = true;
     var totalScore = 0, numDupes = 0, numCloseMatch = 0, numMoves = 0, numRandom = 0;
     var won = [0, 0];
     for (var i = 0; i < numGames; i++) {

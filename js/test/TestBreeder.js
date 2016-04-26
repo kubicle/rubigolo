@@ -31,8 +31,6 @@ TestBreeder.prototype.testBreeding = function () {
     breeder.run(genSize, numTournaments, numMatchPerAi);
 };
 
-// Example of observed results:
-//  'd4,f6' 73.3%!; 'e5,e3' 57%; 'e5,d4' 75%; 'We5,d4' 97%!; 'We5,e3' <50%
 TestBreeder.prototype.testAiVsAi = function () {
     var size = 9, komi = 5.5;
     var initMoves = ['d4,f6', 'Wd4,f6', 'e5,e3', 'We5,e3', 'e5,d4', 'We5,d4'];
