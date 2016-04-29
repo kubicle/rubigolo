@@ -296,3 +296,67 @@ Breeder.prototype.run = function (genSize, numTournaments, numMatchPerAi) {
         this.control(numMatchPerAi);
     }
 };
+
+Breeder.prototype.collectRefGames = function (games, numGames, initMoves) {
+    this.players[WHITE] = new main.latestAi(this.game, WHITE);
+    this.players[BLACK] = new main.previousAi(this.game, BLACK);
+    this._skipDupeEndings(true);
+
+    for (var i = 0; i < numGames; i++) {
+        var score = this.playGame(null, null, initMoves);
+        if (score === 0) { continue; }
+        games.push({
+            id: '#' + games.length,
+            gsize: this.gsize,
+            komi: this.komi,
+            init: initMoves,
+            moves: this.game.history.join(),
+            wScore: -score
+        });
+    }
+};
+
+Breeder.prototype.playRefGames = function (refGames, numDiffShowed) {
+    var game = this.game;
+    this.players[WHITE] = new main.latestAi(game, WHITE);
+    this.players[BLACK] = new main.previousAi(game, BLACK);
+    var numDiff = 0;
+
+    for (var n = 0; n < refGames.length; n++) {
+        var refGame = refGames[n];
+        this.gsize = refGame.gsize;
+        this.komi = refGame.komi;
+        this._prepareGame(null, null, refGame.init);
+        var moves = refGame.moves.split(',');
+        for (var i = refGame.init.split(',').length; i < moves.length; i++) {
+            var expMove = moves[i];
+            if (game.curColor === BLACK) {
+                game.playOneMove(expMove);
+                continue;
+            }
+            var newMove = this._checkExpectedMove(expMove);
+            if (newMove && ++numDiff <= numDiffShowed) {
+                this.showInUi('Ref game #' + n + ', move #' + i,
+                    'AI played ' + newMove + ' instead of ' + expMove);
+            }
+            game.playOneMove(expMove);
+        }
+    }
+    return numDiff;
+};
+
+Breeder.prototype._checkExpectedMove = function (expMove) {
+    expMove = this.game.stripMoveColor(expMove);
+    var ai = this.players[WHITE];
+
+    var playedMove = ai.getMove();
+    if (playedMove === expMove) return '';
+
+    // if AI gives same score to both moves, also OK
+    var coords = this.game.oneMove2xy(expMove);
+    if (coords && ai.testMoveEval(coords[0], coords[1]) === ai.bestScore) {
+        return '';
+    }
+
+    return playedMove; // different from expMove
+};

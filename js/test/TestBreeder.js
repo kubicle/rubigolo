@@ -58,3 +58,30 @@ TestBreeder.prototype.testAiVsAi = function () {
 
     if (!main.isCoverTest) this.assertInDelta(winRatio, expectedWinRatio, tolerance);
 };
+
+TestBreeder.prototype.testPlayRefGames = function () {
+    var refGames = require('./refGames.json');
+    var breeder = new Breeder(9, 5.5);
+    var numChanges = breeder.playRefGames(refGames, 10);
+    if (log.info) log.info('Played ' + refGames.length + ' reference games. Differences found: ' + numChanges);
+    this.assertEqual(0, numChanges, 'Differences in ref games');
+};
+
+TestBreeder.prototype.testCollectRefGames = function () {
+    if (!log.debug) return;
+    var size = 9, komi = 5.5;
+    var initMoves = ['d4,f6', 'Wd4,f6', 'e5,e3', 'We5,e3', 'e5,d4', 'We5,d4'];
+    var totalNumGames = 300;
+
+    var numVariations = initMoves.length;
+    // For coverage tests no need to run many games
+    if (main.isCoverTest) totalNumGames = numVariations = 1;
+
+    var breeder = new Breeder(size, komi);
+    var numGamesPerVariation = Math.round(totalNumGames / numVariations);
+    var games = [];
+    for (var i = 0; i < numVariations; i++) {
+        breeder.collectRefGames(games, numGamesPerVariation, initMoves[i]);
+    }
+    log.debug(JSON.stringify(games, null, 4));
+};
