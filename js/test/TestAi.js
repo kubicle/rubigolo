@@ -111,7 +111,7 @@ TestAi.prototype.playAndCheck = function (expMove, expEval, doNotPlay) {
         this.logErrorContext(player, move);
         // if expMove got a very close score, our test scenario bumps on twin moves
         if (expMove !== 'pass' && Math.abs(this.checkEval(expMove) - score) < 0.001) {
-            log.error('CAUTION: ' + expMove + ' and ' + move + 
+            log.error(this.name + ': ' + expMove + ' and ' + move + 
                 ' are twins or very close => consider modifying the test scenario');
         }
         expMove = Grid.colorName(color) + '-' + expMove;

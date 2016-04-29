@@ -10,6 +10,7 @@ var TestCase = require('./TestCase');
 /** @class */
 function TestBreeder(testName) {
     TestCase.call(this, testName);
+    log.setLevel(log.INFO); // log.DEBUG is too slow for sure
 }
 inherits(TestBreeder, TestCase);
 module.exports = TestBreeder;

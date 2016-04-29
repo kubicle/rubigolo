@@ -20,6 +20,7 @@ function Logger() {
 }
 
 Logger.prototype.setLevel = function (level) {
+    if (level === this.level) return;
     this.level = level;
     this.debug = level <= DEBUG ? this.logDebug : null;
     this.info =  level <= INFO ?  this.logInfo : null;
