@@ -72,24 +72,29 @@ RefGame.prototype.getForcedMoves = function () {
     return this._getMoves().slice(0, this.upToMove).join(',');
 };
 
-function getStdOrExpMoves(moves, wantStd) {
-    var res = [];
-    for (var i = 0; i < moves.length; i++) {
-        var move = moves[i];
-        var op = move.indexOf(CHANGED_TO);
-        if (op >= 0) move = wantStd ? move.substr(0, op) : move.substr(op + CHANGED_TO.length);
-        res.push(move);
-    }
-    return res;
+function getStdMove(move) {
+    var op = move.indexOf(CHANGED_TO);
+    return op >= 0 ? move.substr(0, op) : move;
+}
+
+function getExpMove(move) {
+    var op = move.indexOf(CHANGED_TO);
+    return op >= 0 ? move.substr(op + CHANGED_TO.length) : move;
 }
 
 RefGame.prototype.getStandardMoves = function () {
-    if (!this._stdMoves) this._stdMoves = getStdOrExpMoves(this._getMoves(), /*wantStd=*/true);
+    if (!this._stdMoves) {
+        var res = this._stdMoves = [], moves = this._getMoves();
+        for (var i = 0; i < moves.length; i++) res.push(getStdMove(moves[i]));
+    }
     return this._stdMoves;
 };
 
 RefGame.prototype.getExpectedMoves = function () {
-    if (!this._expMoves) this._expMoves = getStdOrExpMoves(this._getMoves(), /*wantStd=*/false);
+    if (!this._expMoves) {
+        var res = this._expMoves = [], moves = this._getMoves();
+        for (var i = 0; i < moves.length; i++) res.push(getExpMove(moves[i]));
+    }
     return this._expMoves;
 };
 
@@ -131,5 +136,5 @@ RefGame.collectRefGame = function (games, gameLogic, initMoves, wScore) {
 RefGame.prototype.logChange = function (i, newMove) {
     this.hasChanged = true;
     var moves = this._getMoves();
-    moves[i] += CHANGED_TO + newMove;
+    moves[i] = getStdMove(moves[i]) + CHANGED_TO + newMove;
 };
