@@ -156,11 +156,11 @@ Connector.prototype._computeScore = function (stone, color, groups, numEnemies, 
     if (numEnemies === 0) {
         //if (this.canConnect(stone, 1 - color)) this.mi.cutThreat(groups, stone, 1 - color);
         score = this.inflCoeff / this.infl[color][stone.j][stone.i];
+        if (log.debug) log.debug('Connector ' + desc + ' for ' + Grid.colorName(color) + ' gives ' +
+            score.toFixed(3) + ' to ' + stone + ' (allies:' + groups.length + ' enemies: ' + numEnemies + ')');
     } else {
         this.mi.cutThreat(groups, stone, 1 - color);
     }
-    if (log.debug) log.debug('Connector ' + desc + ' for ' + Grid.colorName(color) + ' gives ' +
-        score.toFixed(3) + ' to ' + stone + ' (allies:' + groups.length + ' enemies: ' + numEnemies + ')');
     return score;
 };
 

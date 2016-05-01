@@ -285,8 +285,8 @@ MoveInfo.prototype.addPressure = function (g, stone) {
         pressure = this.minimumScore;
     }
     this._getCell(stone.i, stone.j).score += pressure;
-    if (log.debug && stone.i === this.player.testI && stone.j === this.player.testJ) {
-        log.debug('MoveInfo ' + Grid.colorName(1 - g.color) + ' - pressure at ' + stone + ': ' + pressure.toFixed(2));
+    if (this.debug && stone.i === this.player.testI && stone.j === this.player.testJ) {
+        log.logInfo('MoveInfo ' + Grid.colorName(1 - g.color) + ' - pressure at ' + stone + ': ' + pressure.toFixed(2));
     }
 };
 

@@ -304,9 +304,10 @@ Ui.prototype.startGame = function (firstMoves, isLoaded) {
     this.board.create(this.boardElt, this.boardWidth, game.goban, options);
     this.initDisplay();
 
-    if (!isLoaded && !firstMoves) this.statusMessage('Game started. Your turn...'); // erased if a move is played below
-    if (!this.checkEnd()) this.letNextPlayerPlay();
-
+    if (!isLoaded) {
+        if (!firstMoves) this.statusMessage('Game started. Your turn...'); // erased if a move is played below
+        if (!this.checkEnd()) this.letNextPlayerPlay();
+    }
     return true;
 };
 
