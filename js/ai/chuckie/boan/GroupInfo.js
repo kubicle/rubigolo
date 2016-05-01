@@ -435,8 +435,10 @@ GroupInfo.prototype.checkBrothers = function () {
 
 GroupInfo.prototype._isLostInEnemyZone = function () {
     if (this.band) return false;
-    if (this.nearVoids[0].color === this.group.color) return false;
     if (this.group.stones.length >= 6) return false;
+    for (var i = this.nearVoids.length - 1; i >= 0; i--) {
+        if (this.nearVoids[i].color === this.group.color) return false;
+    }
     return true;
 };
 
