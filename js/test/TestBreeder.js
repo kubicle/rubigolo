@@ -1,9 +1,10 @@
 'use strict';
 
 var inherits = require('util').inherits;
-var Breeder = require('../Breeder');
+var Breeder = require('./Breeder');
 var log = require('../log');
 var main = require('../main');
+var refGameData = require('./refGames.json');
 var TestCase = require('./TestCase');
 
 
@@ -60,28 +61,31 @@ TestBreeder.prototype.testAiVsAi = function () {
 };
 
 TestBreeder.prototype.testPlayRefGames = function () {
-    var refGames = require('./refGames.json');
     var breeder = new Breeder(9, 5.5);
-    var numChanges = breeder.playRefGames(refGames, 10);
-    if (log.info) log.info('Played ' + refGames.length + ' reference games. Differences found: ' + numChanges);
+    var numChanges = breeder.playRefGames(refGameData, 10);
+    if (log.info) log.info('Played ' + refGameData.length + ' reference games. Differences found: ' + numChanges);
     this.assertEqual(0, numChanges, 'Differences in ref games');
 };
 
-TestBreeder.prototype.testCollectRefGames = function () {
-    if (!log.debug) return;
-    var size = 9, komi = 5.5;
+TestBreeder.prototype.collectRefGames = function () {
+    var gsize = 9, komi = 5.5;
     var initMoves = ['d4,f6', 'Wd4,f6', 'e5,e3', 'We5,e3', 'e5,d4', 'We5,d4'];
-    var totalNumGames = 300;
+    var totalNumGames = 100;
 
     var numVariations = initMoves.length;
     // For coverage tests no need to run many games
     if (main.isCoverTest) totalNumGames = numVariations = 1;
 
-    var breeder = new Breeder(size, komi);
+    var breeder = new Breeder(gsize, komi);
+    var updatedGames = [];
+    breeder.initRefGameCollection(refGameData, updatedGames);
+
     var numGamesPerVariation = Math.round(totalNumGames / numVariations);
-    var games = [];
     for (var i = 0; i < numVariations; i++) {
-        breeder.collectRefGames(games, numGamesPerVariation, initMoves[i]);
+        breeder.collectRefGames(updatedGames, numGamesPerVariation, gsize, komi, initMoves[i]);
     }
-    log.debug(JSON.stringify(games, null, 4));
+
+    for (i = 0; i < updatedGames.length; i++) {
+        log.info(updatedGames[i].serialize() + ',');
+    }
 };

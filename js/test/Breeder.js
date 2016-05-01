@@ -1,13 +1,14 @@
 'use strict';
 
-var CONST = require('./constants');
-var Genes = require('./Genes');
-var Grid = require('./Grid');
-var log = require('./log');
-var main = require('./main');
-var TimeKeeper = require('./test/TimeKeeper');
-var GameLogic = require('./GameLogic');
-var ScoreAnalyser = require('./ScoreAnalyser');
+var CONST = require('../constants');
+var GameLogic = require('../GameLogic');
+var Genes = require('../Genes');
+var Grid = require('../Grid');
+var log = require('../log');
+var main = require('../main');
+var RefGame = require('./RefGame');
+var ScoreAnalyser = require('../ScoreAnalyser');
+var TimeKeeper = require('./TimeKeeper');
 
 var BLACK = CONST.BLACK, WHITE = CONST.WHITE;
 
@@ -69,7 +70,7 @@ Breeder.prototype.playUntilGameEnds = function () {
         game.playOneMove(move);
         if (++moveNum === maxMoveNum) break;
     }
-    var numTimesSeen = this._countAlreadySeenGames();
+    var numTimesSeen = this._countAlreadySeenGame();
     if (moveNum === maxMoveNum) {
         if (numTimesSeen === 1) this.showInUi('Never stopping game');
         log.logError('Never stopping game. Times seen: ' + numTimesSeen);
@@ -83,7 +84,7 @@ Breeder.prototype._skipDupeEndings = function (doSkip) {
 };
 
 // Returns the number of times we saw this game ending
-Breeder.prototype._countAlreadySeenGames = function () {
+Breeder.prototype._countAlreadySeenGame = function () {
     var img = this.game.goban.image(), seenGames = this.seenGames;
 
     if (seenGames[img])
@@ -318,26 +319,33 @@ Breeder.prototype.run = function (genSize, numTournaments, numMatchPerAi) {
     }
 };
 
-Breeder.prototype.collectRefGames = function (games, numGames, initMoves) {
-    this.players[WHITE] = new main.latestAi(this.game, WHITE);
-    this.players[BLACK] = new main.previousAi(this.game, BLACK);
+Breeder.prototype.initRefGameCollection = function (refGameData, updatedGames) {
+    var refGames = RefGame.loadRefGames(refGameData);
     this._skipDupeEndings(true);
-
-    for (var i = 0; i < numGames; i++) {
-        var score = this.playGame(null, null, initMoves);
-        if (score === 0) { continue; }
-        games.push({
-            id: '#' + games.length,
-            gsize: this.gsize,
-            komi: this.komi,
-            init: initMoves,
-            moves: this.game.history.join(),
-            wScore: -score
-        });
+    for (var n = 0; n < refGames.length; n++) {
+        var refGame = refGames[n];
+        this._prepareGame(refGame.gsize, refGame.komi, refGame.moves);
+        this._countAlreadySeenGame();
+        if (updatedGames) {
+            RefGame.collectRefGame(updatedGames, this.game, refGame.initMoves, refGame.wScore);
+        }
     }
 };
 
-Breeder.prototype.playRefGames = function (refGames, numDiffShowed) {
+Breeder.prototype.collectRefGames = function (games, numGames, gsize, komi, initMoves) {
+    this.gsize = gsize;
+    this.komi = komi;
+    this.initPlayers(main.previousAi, main.latestAi);
+
+    for (var i = 0; i < numGames; i++) {
+        var score = this.playGame(null, null, initMoves);
+        if (score === 0) continue; // skip dupe games
+        RefGame.collectRefGame(games, this.game, initMoves, -score);
+    }
+};
+
+Breeder.prototype.playRefGames = function (refGameData, numDiffShowed) {
+    var refGames = RefGame.loadRefGames(refGameData);
     var game = this.game;
     var numDiff = 0;
     this.initPlayers();
@@ -345,11 +353,11 @@ Breeder.prototype.playRefGames = function (refGames, numDiffShowed) {
 
     for (var n = 0; n < refGames.length; n++) {
         var refGame = refGames[n];
-        this.gsize = refGame.gsize;
-        this.komi = refGame.komi;
-        this._prepareGame(null, null, refGame.init);
-        var moves = refGame.moves.split(',');
-        for (var i = refGame.init.split(',').length; i < moves.length; i++) {
+        this._prepareGame(refGame.gsize, refGame.komi, refGame.getForcedMoves());
+        ai.prepareGame();
+        var moves = refGame.getMoves();
+
+        for (var i = refGame.numForcedMoves(); i < moves.length; i++) {
             var expMove = moves[i];
             if (game.curColor === BLACK) {
                 game.playOneMove(expMove);
