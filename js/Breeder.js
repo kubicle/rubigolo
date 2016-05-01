@@ -102,6 +102,23 @@ Breeder.prototype._countAlreadySeenGames = function () {
     if (seenGames[mfImg])
         return ++seenGames[mfImg];
 
+    var rotImg = Grid.rotateImage(img);
+
+    if (seenGames[rotImg])
+        return ++seenGames[rotImg];
+    
+    flippedImg = Grid.flipImage(rotImg);
+    if (seenGames[flippedImg])
+        return ++seenGames[flippedImg];
+
+    mirroredImg = Grid.mirrorImage(rotImg);
+    if (seenGames[mirroredImg])
+        return ++seenGames[mirroredImg];
+
+    mfImg = Grid.flipAndMirrorImage(rotImg);
+    if (seenGames[mfImg])
+        return ++seenGames[mfImg];
+
     seenGames[img] = 1;
     return 1;
 };

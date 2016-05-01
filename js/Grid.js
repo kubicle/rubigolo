@@ -217,6 +217,19 @@ Grid.flipAndMirrorImage = function (image) {
     return reverseStr(image);
 };
 
+// Rotate given image 90 degrees counter-clockwise
+Grid.rotateImage = function (image) {
+    var res = '';
+    var rows = image.split(',');
+    for (var col = rows[0].length - 1; col >= 0; col--) {
+        res += ',';
+        for (var row = 0; row < rows.length; row++) {
+            res += rows[row][col];
+        }
+    }
+    return res.substr(1);
+};
+
 
 var COLUMNS = 'abcdefghjklmnopqrstuvwxyz'; // NB: "i" is skipped
 
