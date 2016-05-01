@@ -29,7 +29,7 @@ TestSeries.prototype.testOneClass = function (Klass, methodPattern) {
 
     for (var method in Klass.prototype) {
         if (typeof Klass.prototype[method] !== 'function') continue;
-        if (method.substr(0,4) !== 'test') continue;
+        if (method.substr(0,4) !== 'test' && method !== methodPattern) continue;
         if (method.toLowerCase().indexOf(pattern) === -1) continue;
         this.testCount++;
         this.currentTest = main.funcName(Klass) + '#' + method;
