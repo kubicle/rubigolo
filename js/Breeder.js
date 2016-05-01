@@ -23,8 +23,6 @@ function Breeder(gameSize, komi) {
     this.timer = new TimeKeeper();
     this.game = new GameLogic();
     this.game.setRules(CONST.JP_RULES);
-    this.game.newGame(this.gsize);
-    this.goban = this.game.goban;
     this.scorer = new ScoreAnalyser(this.game);
     this.genSize = 26; // default; must be even number
     this._skipDupeEndings(false);
@@ -39,6 +37,7 @@ module.exports = Breeder;
 function getAiName(Ai) { return Ai.publicName + '-' + Ai.publicVersion; }
 
 Breeder.prototype.initPlayers = function (BlackAi, WhiteAi) {
+    this.game.newGame(this.gsize); // just because old AI need an initialized game
     for (var color = BLACK; color <= WHITE; color++) {
         var Ai = (color === BLACK ? BlackAi : WhiteAi) || main.defaultAi;
         this.players[color] = new Ai(this.game, color);
@@ -85,7 +84,7 @@ Breeder.prototype._skipDupeEndings = function (doSkip) {
 
 // Returns the number of times we saw this game ending
 Breeder.prototype._countAlreadySeenGames = function () {
-    var img = this.goban.image(), seenGames = this.seenGames;
+    var img = this.game.goban.image(), seenGames = this.seenGames;
 
     if (seenGames[img])
         return ++seenGames[img];
@@ -123,13 +122,15 @@ Breeder.prototype._countAlreadySeenGames = function () {
     return 1;
 };
 
-Breeder.prototype._prepareGame = function (genes1, genes2, initMoves) {
-    var komi = initMoves && initMoves[0] === 'W' ? - this.komi : this.komi; // reverse komi if W starts
+Breeder.prototype._prepareGame = function (gsize, komi, initMoves) {
+    this.gsize = gsize;
+    this.komi = komi;
+
+    // reverse komi if W starts
+    if (initMoves && initMoves[0] === 'W') komi = -komi;
 
     this.game.newGame(this.gsize, 0, komi);
     this.game.loadMoves(initMoves);
-    this.players[BLACK].prepareGame(genes1);
-    this.players[WHITE].prepareGame(genes2);
 };
 
 // Plays a game and returns the score difference in points (>0 if black wins)
@@ -137,7 +138,10 @@ Breeder.prototype._prepareGame = function (genes1, genes2, initMoves) {
 // @param {Genes} [genes2]
 // @param {string} [initMoves] - e.g. "e5,d4"
 Breeder.prototype.playGame = function (genes1, genes2, initMoves) {
-    this._prepareGame(genes1, genes2, initMoves);
+    this._prepareGame(this.gsize, this.komi, initMoves);
+    this.players[BLACK].prepareGame(genes1);
+    this.players[WHITE].prepareGame(genes2);
+
     var scoreDiff;
     try {
         if (!this.playUntilGameEnds() && this.skipDupeEndings) return 0;
@@ -153,7 +157,7 @@ Breeder.prototype.playGame = function (genes1, genes2, initMoves) {
         log.debug('Distance: ' + genes1.distance(genes2).toFixed(2));
         log.debug('Score: ' + scoreDiff);
         log.debug('Moves: ' + this.game.historyString());
-        log.debug(this.goban.toString());
+        log.debug(this.game.goban.toString());
     }
     return scoreDiff;
 };
@@ -335,9 +339,9 @@ Breeder.prototype.collectRefGames = function (games, numGames, initMoves) {
 
 Breeder.prototype.playRefGames = function (refGames, numDiffShowed) {
     var game = this.game;
-    this.players[WHITE] = new main.latestAi(game, WHITE);
-    this.players[BLACK] = new main.previousAi(game, BLACK);
     var numDiff = 0;
+    this.initPlayers();
+    var ai = this.players[WHITE];
 
     for (var n = 0; n < refGames.length; n++) {
         var refGame = refGames[n];
@@ -351,7 +355,7 @@ Breeder.prototype.playRefGames = function (refGames, numDiffShowed) {
                 game.playOneMove(expMove);
                 continue;
             }
-            var newMove = this._checkExpectedMove(expMove);
+            var newMove = this._checkExpectedMove(ai, expMove);
             if (newMove && ++numDiff <= numDiffShowed) {
                 this.showInUi('Ref game #' + n + ', move #' + i,
                     'AI played ' + newMove + ' instead of ' + expMove);
@@ -362,9 +366,8 @@ Breeder.prototype.playRefGames = function (refGames, numDiffShowed) {
     return numDiff;
 };
 
-Breeder.prototype._checkExpectedMove = function (expMove) {
+Breeder.prototype._checkExpectedMove = function (ai, expMove) {
     expMove = this.game.stripMoveColor(expMove);
-    var ai = this.players[WHITE];
 
     var playedMove = ai.getMove();
     if (playedMove === expMove) return '';

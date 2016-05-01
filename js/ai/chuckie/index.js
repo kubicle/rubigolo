@@ -33,20 +33,10 @@ var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
 function Chuckie(game, color, genes) {
     this.name = 'Chuckie';
     this.game = game;
-    this.goban = game.goban;
     this.boan = new BoardAnalyser(game); // several heuristics can share this boan
-    this.genes = genes || new Genes();
-    this.gsize = this.goban.gsize;
-    this.areaScoring = game.useAreaScoring;
-    this.stateGrid = new Grid(this.gsize, GRID_BORDER);
-    this.scoreGrid = new Grid(this.gsize, 0, GRID_BORDER);
 
-    // genes need to exist before we create heuristics
-    this.minimumScore = this.getGene('smallerMove', 0.03, 0.01, 0.1);
-
-    this._createHeuristics();
+    this.prepareGame(genes);
     this.setColor(color);
-    this.prepareGame();
 }
 module.exports = Chuckie;
 
@@ -96,9 +86,20 @@ Chuckie.prototype.setColor = function (color) {
 
 /** Can be called from Breeder with different genes */
 Chuckie.prototype.prepareGame = function (genes) {
-    if (genes) this.genes = genes;
-    this.numMoves = this.numRandomPicks = 0;
+    this.genes = genes || this.genes || new Genes();
 
+    // genes need to exist before we create heuristics
+    this.minimumScore = this.getGene('smallerMove', 0.03, 0.01, 0.1);
+
+    if (this.goban !== this.game.goban) {
+        this.goban = this.game.goban;
+        this.gsize = this.goban.gsize;
+        this.areaScoring = this.game.useAreaScoring;
+        this.stateGrid = new Grid(this.gsize, GRID_BORDER);
+        this.scoreGrid = new Grid(this.gsize, 0, GRID_BORDER);
+        this._createHeuristics();
+    }
+    this.numMoves = this.numRandomPicks = 0;
     this.bestScore = this.bestI = this.bestJ = 0;
     this.usedRandom = false;
     this.testI = this.testJ = NO_MOVE;
