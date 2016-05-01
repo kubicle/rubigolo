@@ -84,7 +84,7 @@ Chuckie.prototype.setColor = function (color) {
     }
 };
 
-/** Can be called from Breeder with different genes */
+/** @param {Genes} [genes] - default genes are used if omitted */
 Chuckie.prototype.prepareGame = function (genes) {
     this.genes = genes || this.genes || new Genes();
 

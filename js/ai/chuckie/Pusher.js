@@ -97,6 +97,7 @@ Pusher.prototype._attackPush = function (i, j, color, isEnemy) {
     score *= this.mi.groupChance(backupStone.group._info);
 
     if (isEnemy) {
+        if (!score) return 0;
         if (log.debug) log.debug('Pusher notes enemy invasion at ' + Grid.xy2move(i, j) + ' (for ' + score.toFixed(2) + ')');
         return this.enemyAttacks.push([pushStone, backupStone, score]);
     }
