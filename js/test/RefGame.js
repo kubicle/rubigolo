@@ -1,5 +1,9 @@
 'use strict';
 
+var log = require('../log');
+
+var CHANGED_TO = '->';
+
 
 function RefGame(id, gsize, komi, initMoves, moves, wScore, basedOn, upToMove) {
     this.id = id;
@@ -9,8 +13,9 @@ function RefGame(id, gsize, komi, initMoves, moves, wScore, basedOn, upToMove) {
     this.moves = moves;
     this.wScore = wScore;
     this.basedOn = basedOn;
-    this.upToMove = upToMove; // first move that is different from base game
+    this.upToMove = upToMove; // number of common moves with base game
     this._moves = null; // moves as an array
+    this.hasChanged = false;
 }
 module.exports = RefGame;
 
@@ -28,13 +33,13 @@ RefGame.loadRefGames = function (refGameData) {
     return refGames;
 };
 
-RefGame.prototype.serialize = function () {
+RefGame.prototype._serialize = function () {
     var map = {
         id: this.id,
         gsize: this.gsize,
         komi: this.komi,
         init: this.initMoves,
-        moves: this.moves,
+        moves: this.hasChanged ? this._moves.join(',') : this.moves,
         wScore: this.wScore
     };
     if (this.basedOn) {
@@ -44,19 +49,48 @@ RefGame.prototype.serialize = function () {
     return JSON.stringify(map, null, 4);
 };
 
-RefGame.prototype.getMoves = function () {
+/** Used to output ref games (new ones or updated ones).
+ * For now this is only as log - actual update is manual. */
+RefGame.updateRefGames = function (refGames) {
+    for (var i = 0; i < refGames.length; i++) {
+        log.info(refGames[i]._serialize() + ',');
+    }
+};
+
+RefGame.prototype._getMoves = function () {
      if (!this._moves) this._moves = this.moves.split(',');
      return this._moves;
 };
 
 RefGame.prototype.numForcedMoves = function () {
     if (!this.basedOn) return this.initMoves.split(',').length;
-    return this.upToMove - 1;
+    return this.upToMove;
 };
 
 RefGame.prototype.getForcedMoves = function () {
     if (!this.basedOn) return this.initMoves;
-    return this.getMoves().slice(0, this.upToMove - 1).join(',');
+    return this._getMoves().slice(0, this.upToMove).join(',');
+};
+
+function getStdOrExpMoves(moves, wantStd) {
+    var res = [];
+    for (var i = 0; i < moves.length; i++) {
+        var move = moves[i];
+        var op = move.indexOf(CHANGED_TO);
+        if (op >= 0) move = wantStd ? move.substr(0, op) : move.substr(op + CHANGED_TO.length);
+        res.push(move);
+    }
+    return res;
+}
+
+RefGame.prototype.getStandardMoves = function () {
+    if (!this._stdMoves) this._stdMoves = getStdOrExpMoves(this._getMoves(), /*wantStd=*/true);
+    return this._stdMoves;
+};
+
+RefGame.prototype.getExpectedMoves = function () {
+    if (!this._expMoves) this._expMoves = getStdOrExpMoves(this._getMoves(), /*wantStd=*/false);
+    return this._expMoves;
 };
 
 RefGame.prototype.baseOn = function (baseGame, charLen) {
@@ -92,4 +126,10 @@ RefGame.collectRefGame = function (games, gameLogic, initMoves, wScore) {
     }
     if (bestLen) newGame.baseOn(baseGame, bestLen);
     games.push(newGame);
+};
+
+RefGame.prototype.logChange = function (i, newMove) {
+    this.hasChanged = true;
+    var moves = this._getMoves();
+    moves[i] += CHANGED_TO + newMove;
 };

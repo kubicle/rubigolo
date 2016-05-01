@@ -324,7 +324,7 @@ Breeder.prototype.initRefGameCollection = function (refGameData, updatedGames) {
     this._skipDupeEndings(true);
     for (var n = 0; n < refGames.length; n++) {
         var refGame = refGames[n];
-        this._prepareGame(refGame.gsize, refGame.komi, refGame.moves);
+        this._prepareGame(refGame.gsize, refGame.komi, refGame.getStandardMoves().join(','));
         this._countAlreadySeenGame();
         if (updatedGames) {
             RefGame.collectRefGame(updatedGames, this.game, refGame.initMoves, refGame.wScore);
@@ -355,21 +355,27 @@ Breeder.prototype.playRefGames = function (refGameData, numDiffShowed) {
         var refGame = refGames[n];
         this._prepareGame(refGame.gsize, refGame.komi, refGame.getForcedMoves());
         ai.prepareGame();
-        var moves = refGame.getMoves();
+        var stdMoves = refGame.getStandardMoves();
+        var expMoves = refGame.getExpectedMoves();
 
-        for (var i = refGame.numForcedMoves(); i < moves.length; i++) {
-            var expMove = moves[i];
+        for (var i = refGame.numForcedMoves(); i < stdMoves.length; i++) {
+            var stdMove = stdMoves[i];
             if (game.curColor === BLACK) {
-                game.playOneMove(expMove);
+                game.playOneMove(stdMove);
                 continue;
             }
+            var expMove = expMoves[i];
             var newMove = this._checkExpectedMove(ai, expMove);
-            if (newMove && ++numDiff <= numDiffShowed) {
-                this.showInUi('Ref game #' + n + ', move #' + i,
+            if (newMove) {
+                refGame.logChange(i, newMove);
+                if (++numDiff <= numDiffShowed) this.showInUi('Ref game #' + n + ', move #' + i,
                     'AI played ' + newMove + ' instead of ' + expMove);
             }
-            game.playOneMove(expMove);
+            game.playOneMove(stdMove);
         }
+    }
+    if (numDiff) {
+        RefGame.updateRefGames(refGames);
     }
     return numDiff;
 };
