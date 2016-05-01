@@ -80,6 +80,7 @@ Pusher.prototype._attackPush = function (i, j, color, isEnemy) {
     var enemyInf = this.infl[1 - color][j][i];
     if (enemyInf === 0) return 0;
     var allyInf = this.infl[color][j][i];
+    if (allyInf > 6) return 0; // no point in pushing where we are all around
 
     if (!isEnemy && this.noEasyPrisonerYx[j][i] < 0) return 0;
 
