@@ -42,6 +42,11 @@ Run on CGOS
 
 =======
 
+## June 2016 News
+* Last commits before renaming the project "1g0".
+* Added regression tests - 88 "Reference games".
+* Refactored log statements and constants.
+
 ## April 2016 News
 * AI understands Chinese / CGOS rules - can play on yss-aya.com and cgos.boardspace.net using GTP
 * AI understands eye-making up to 6 vertex size
