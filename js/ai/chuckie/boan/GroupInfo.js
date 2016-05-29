@@ -558,7 +558,7 @@ GroupInfo.prototype._countEyesAroundPrisoner = function () {
         var canBeEye = true;
         for (var m = enemies.length - 1; m >= 0; m--) {
             var enemy = enemies[m];
-            if (enemy.stones.length >= 6 || enemies.xAlive === ALWAYS) {
+            if (enemy.stones.length >= 6 || enemy.xAlive === ALWAYS) {
                 canBeEye = false;
                 break;
             }
