@@ -176,7 +176,7 @@ MoveInfo.prototype._countWideSpace = function (g) {
         var s = lives[i];
         if (enemyInf[s.j][s.i] > 0) continue;
         var v = this.player.boan.getVoidAt(s);
-        if (v.owner && v.owner.group.color === color) continue;
+        if (v.color !== undefined) continue;
         count++;
     }
     return count;
