@@ -352,7 +352,7 @@ TestAi.prototype.testPushFromDeadGroup = function () {
 };
 
 TestAi.prototype.testWrongSaviorAlongBorder = function () {
-    this.checkGameTODO('e1,e2,d2', 'c3');
+    this.checkGame('e1,e2,d2', 'c3');
 };
 
 TestAi.prototype.testWrongSaviorInCorner = function () {
@@ -714,8 +714,9 @@ TestAi.prototype.testBlockOnBorder4 = function () {
     this.checkGameTODO('e5,e3,d6,g5,f4,g7,c3,f6,d4,g3,f3,g4,f2,e7,c7,g2,d8,e8,e9', 'f9', 9);
 };
 
-TestAi.prototype.testConnectOnBorder = function () {
-    this.checkGame('b4,b3,c4,c3,d4,d3,e4,e3,b2,c2,b1,d1', 'a3>6, a3');
+TestAi.prototype.testConnectOnBorder1 = function () {
+    // a3 is slightly better but there is no way to save Black b1-b2
+    this.checkGame('b4,b3,c4,c3,d4,d3,e4,e3,b2,c2,b1,d1', 'a3>6, a4>6, a3|a4');
 };
 
 TestAi.prototype.testConnectOnBorderFails = function () {
@@ -754,7 +755,7 @@ TestAi.prototype.testConnect1 = function () {
 
 TestAi.prototype.testConnectSavesMore = function () {
     // Not connecting in d8 seems wrong; W loses around 12 pts
-    this.checkGameTODO('e5,d7,g6,c4,e3,d3,d2,d5,e6,d6,c3,g3,d4,f2,b4,f4,c5,e8,c6,f7,c7,f5,e2,f6,e4,g8,f1,c8,b8,b9,a8,g1,e1,h6,e7',
+    this.checkGame('e5,d7,g6,c4,e3,d3,d2,d5,e6,d6,c3,g3,d4,f2,b4,f4,c5,e8,c6,f7,c7,f5,e2,f6,e4,g8,f1,c8,b8,b9,a8,g1,e1,h6,e7',
         'd8>g5, d8>h7, d8', 9);
 };
 
