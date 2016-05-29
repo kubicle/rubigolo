@@ -139,6 +139,15 @@ Void.prototype._getMustPlayStones = function (stones) {
     return stones.length;
 };
 
+Void.prototype.mustBePlayed = function (stone) {
+    for (var n = this.fakeSpots.length - 1; n >= 0; n--) {
+        var fakeSpot = this.fakeSpots[n];
+        if (!fakeSpot || fakeSpot.color !== this.color) continue;
+        if (fakeSpot.stone === stone) return fakeSpot.mustBePlayed;
+    }
+    return false;
+};
+
 Void.prototype.finalizeFakeEye = function () {
     if (this.vtype !== vFAKE) return;
 

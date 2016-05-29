@@ -124,7 +124,7 @@ Connector.prototype._directConnect = function (stone, color) {
     // 3 of our stones around: no need to connect unless enemy comes by or threatens
     if (numStones === 3) {
         if (numEnemies === 0 && s1.group.lives > 1 && s2.group.lives > 1 && (!s3 || s3.group.lives > 1)) {
-            return this.player.areaScoring ? this.minimumScore : 0;
+            return this._computeNoHurryScore(stone, color, s1, s2, s3);
         }
         return this._computeScore(stone, color, groups, numEnemies, 'direct3');
     }
@@ -138,17 +138,30 @@ Connector.prototype._directConnect = function (stone, color) {
     if (s1.i !== s2.i && s1.j !== s2.j) {
         // no need to connect now if connection is granted
         if (this._distanceBetweenStones(s1, s2, color) === 0) {
-            if (log.debug) log.debug('Connector ' + Grid.colorName(color) + ' sees no hurry to connect ' + s1 + ' and ' + s2);
-            if (!this.player.areaScoring) return 0;
-            if (s1.group._info.needsToConnect() !== NEVER ||
-                s2.group._info.needsToConnect() !== NEVER)
-                return this.minimumScore;
-            return 0;
+            return this._computeNoHurryScore(stone, color, s1, s2);
         }
         // We count the cutting stone as enemy (we did not "see" it above because it's diagonal)
         numEnemies++;
     }
     return this._computeScore(stone, color, groups, numEnemies, 'direct');
+};
+
+Connector.prototype._computeNoHurryScore = function (stone, color, s1, s2, s3) {
+    if (color !== this.color) return 0; // no points for cutting enemy on no hurry to connect
+    if (log.debug) log.debug('Connector ' + Grid.colorName(color) + ' sees no hurry to connect ' + s1 + ' and ' + s2);
+    var v = this.player.boan.getVoidAt(stone);
+    if (v.mustBePlayed(stone) && !s3) {
+        //TODO also check stone would not an easy prisoner for enemy (need EasyPrisoner work)
+        if (this.player.areaScoring) return 0.5; //return this.minimumScore;
+        var chance = this.mi.groupChance(s1.group._info);
+        if (chance > 0 && chance < 1) return 0.5;
+        return 0;
+    } else {
+        if (v.color !== color) return 0;
+        // REVIEW ME: if vcount is 1 we might be removing an eye and dying; but no other heuristic
+        // should give points to such a move, so a small negative score as below could be enough.
+        return this.player.areaScoring ? -0.5 : -1;
+    }
 };
 
 Connector.prototype._computeScore = function (stone, color, groups, numEnemies, desc) {
