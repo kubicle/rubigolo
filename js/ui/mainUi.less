@@ -1,11 +1,14 @@
 .gameUi {
+  padding: 2px;
+
   .board {
     background-color: #402F23;
     border-radius: 7px;
 
     .wgo-board {
       margin: 0 auto;
-      /* Below avoid issues when tap-hold on mobile */
+      -webkit-tap-highlight-color: rgba(0,0,0,0); /* disables grey shade on long-tap for Safari */
+      /* Below avoid issues when tap-hold on Android */
       -webkit-user-select: none;
       -webkit-touch-callout: none;
     }
@@ -18,12 +21,103 @@
 
   button {
     min-width: 160px;
+    height: 80px;
+  }
+
+  a {
+    color: #a63;
+  }
+
+  .statusBar {
+    position: relative;
+    box-sizing: border-box;
+    margin-top: 7px;
+    background-color: #B9A698;
+    border: rgba(0,0,0,0.35) 1px solid;
+    border-radius: 5px;
+
+    .gameInfo {
+      display: inline-block;
+      box-sizing: border-box;
+      margin: 4px 5px 0 10px;
+      padding: 1px 3px;
+      width: 280px;
+      height: 44px;
+      overflow-y: auto;
+      font-size: 16px;
+      font-family: tahoma;
+      background-color: #EDDDCE;
+      border-radius: 7px;
+      border: rgba(0,0,0,0.35) 1px solid;
+    }
+
+    .message {
+      display: inline-block;
+      position: relative;
+      top: 4px;
+      vertical-align: top;
+      width: calc(~"100% - 495px");
+      overflow-y: auto;
+      font-size: 20px;
+    }
+
+    .oneMove {
+      height: 44px;
+      .icon .text { color: #C12A04; }
+      &.black {
+        .icon { background-image: url("./js/ui/stoneBlack.png"); }
+        .text { color: white; }
+      }
+      &.white {
+        .icon { background-image: url("./js/ui/stoneWhite.png"); }
+        .text { color: black; }
+      }
+
+      .label {
+        display: inline-block;
+        position: relative;
+        top: -12px;
+        font-size: 20px;
+        margin-right: 2px;
+      }
+
+      .icon {
+        display: inline-block;
+        position: relative;
+        top: 3px;
+        background-repeat: no-repeat;
+        background-size: 100%;
+        width: 42px;
+        height: 42px;
+
+        .text {
+          position: absolute;
+          width: 100%;
+          text-align: center;
+          top: 8px;
+          font-size: 20px;
+          font-weight: bold;
+        }
+      }
+    }
+
+    .lastMove {
+      display: inline-block;
+      position: relative;
+      top: -1px;
+      padding-left: 3px;
+    }
+
+    .nextPlayer {
+      position: absolute;
+      right: 10px;
+      top: 3px;
+    }
+    
   }
 
   .mainControls {
     margin-top: 10px;
-    display: flex;
-
 
     .outputBox {
       width: 410px;
@@ -36,7 +130,6 @@
   }
 
   .devDiv {
-    display: flex;
     min-width: 600px;
     border: #755;
     border-width: 1px 2px 2px 1px;
@@ -46,15 +139,18 @@
     padding: 7px;
 
     .devControls {
-      display: flex;
+        font-size: 24px;
+    }
+
+    .options {
+      display: inline-block;
+      vertical-align: top;
+      max-width: 252px;
+      margin-right: 5px;
 
       .emailGameLink {
         display: inline-block;
         margin-right: 10px;
-      }
-      button {
-        height: 90px;
-        font-size: 24px;
       }
       .dropDwn {
         font-size: 24px;
@@ -63,9 +159,9 @@
     }
 
     .devLogBox {
+      display: inline-block;
       height: 102px;
       width: 460px;
-      min-width: 200px;
       font-size: 20px;
       font-weight: bold;
     }

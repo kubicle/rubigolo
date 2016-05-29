@@ -1,13 +1,13 @@
 'use strict';
 
-var main = require('../../../main');
+var CONST = require('../../../constants');
 var Grid = require('../../../Grid');
-var Group = require('../../../Group');
 var GroupInfo = require('./GroupInfo');
+var log = require('../../../log');
 var Void = require('./Void');
 var ZoneFiller = require('./ZoneFiller');
 
-var EMPTY = main.EMPTY, BLACK = main.BLACK, WHITE = main.WHITE;
+var EMPTY = CONST.EMPTY, BLACK = CONST.BLACK, WHITE = CONST.WHITE;
 var ALIVE = GroupInfo.ALIVE;
 var FAILS = GroupInfo.FAILS, LIVES = GroupInfo.LIVES;
 
@@ -15,9 +15,10 @@ var FAILS = GroupInfo.FAILS, LIVES = GroupInfo.LIVES;
 /** @class Our main board analyser / score counter etc.
  */
 function BoardAnalyser() {
-    this.version = BoardAnalyser.VERSION;
+    this.version = 'droopy';
     this.mode = null;
     this.goban = null;
+    this.analyseGrid = null;
     this.allVoids = [];
     this.allGroups = null;
     this.scores = [0, 0];
@@ -27,19 +28,16 @@ function BoardAnalyser() {
 module.exports = BoardAnalyser;
 
 
-var BOAN_VERSION = BoardAnalyser.VERSION = 'droopy';
-
-
 BoardAnalyser.prototype.countScore = function (goban) {
-    if (main.debug) main.log.debug('Counting score...');
+    if (log.debug) log.debug('Counting score...');
     this.scores[BLACK] = this.scores[WHITE] = 0;
-    this.prisoners = Group.countPrisoners(goban);
-
+    this.prisoners = goban.countPrisoners();
     var grid = goban.scoringGrid.initFromGoban(goban);
+
     if (!this._initAnalysis('SCORE', goban, grid)) return;
     this._runAnalysis();
     this._finalColoring();
-    if (main.debug) main.log.debug(grid.toText(function (c) { return Grid.colorToChar(c); }));
+    if (log.debug) log.debug(grid.toText());
 };
 
 BoardAnalyser.prototype.getScoringGrid = function () {
@@ -54,13 +52,11 @@ BoardAnalyser.prototype.analyse = function (goban, grid, first2play) {
 };
 
 BoardAnalyser.prototype.image = function () {
-    return this.goban.analyseGrid.image();
+    return this.analyseGrid.image();
 };
 
 BoardAnalyser.prototype.debugDump = function () {
-    var res = 'Grid:\n' +
-        this.goban.analyseGrid.toText(function (c) { return Grid.colorToChar(c); }) +
-        'Voids:\n';
+    var res = 'Grid:\n' + this.analyseGrid.toText() + 'Voids:\n';
     for (var v, v_array = this.allVoids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
         res += v.toString() + '\n';
     }
@@ -79,7 +75,7 @@ BoardAnalyser.prototype.debugDump = function () {
 BoardAnalyser.prototype._initAnalysis = function (mode, goban, grid) {
     this.mode = mode;
     this.goban = goban;
-    goban.analyseGrid = grid;
+    this.analyseGrid = grid;
     this.filler = new ZoneFiller(goban, grid);
     if (goban.moveNumber() === 0) return false;
 
@@ -90,8 +86,8 @@ BoardAnalyser.prototype._initAnalysis = function (mode, goban, grid) {
 BoardAnalyser.prototype._addGroup = function (g, v) {
     var gi = this.allGroups[g.ndx];
     if (!gi) {
-        if (!g._info || g._info.version !== BOAN_VERSION) {
-            g._info = new GroupInfo(g, BOAN_VERSION);
+        if (!g._info || g._info.boan !== this) {
+            g._info = new GroupInfo(g, this);
         } else {
             g._info.resetAnalysis(g);
         }
@@ -104,7 +100,7 @@ BoardAnalyser.prototype._addGroup = function (g, v) {
  * Voids know which groups are around them, but groups do not own any void yet.
  */
 BoardAnalyser.prototype._initVoidsAndGroups = function () {
-    if (main.debug) main.log.debug('---Initialising voids & groups...');
+    if (log.debug) log.debug('---Initialising voids & groups...');
     var voidCode = Grid.ZONE_CODE;
     this.allGroups = {};
     this.allVoids.clear();
@@ -147,7 +143,7 @@ BoardAnalyser.prototype._findBrothers = function () {
 
 // Find voids surrounded by a single color -> eyes
 BoardAnalyser.prototype._findEyeOwners = function () {
-    if (main.debug) main.log.debug('---Finding eye owners...');
+    if (log.debug) log.debug('---Finding eye owners...');
     for (var n = this.allVoids.length - 1; n >= 0; n--) {
         this.allVoids[n].findOwner();
     }
@@ -190,10 +186,10 @@ BoardAnalyser.prototype._findBattleWinners = function () {
             var winner = compareLiveliness(life);
             // make sure we have a winner, not a tie
             if (winner === undefined) {
-                if (main.debug) main.log.debug('BATTLED VOID in dispute: ' + v + ' with ' + life[0]);
+                if (log.debug) log.debug('BATTLED VOID in dispute: ' + v + ' with ' + life[0]);
                 continue;
             }
-            if (main.debug) main.log.debug('BATTLED VOID: ' + Grid.colorName(winner) +
+            if (log.debug) log.debug('BATTLED VOID: ' + Grid.colorName(winner) +
                 ' wins with ' + life[winner].toFixed(4) + ' VS ' + life[1 - winner].toFixed(4));
             v.setVoidOwner(winner);
             foundOne = true;
@@ -211,15 +207,15 @@ function killWeakest(check, fails) {
         for (var e = 0; e < enemies.length; e++) {
             var enemy = enemies[e]._info;
             var cmp = fail._liveliness - enemy.liveliness();
-            if (main.debug) main.log.debug('FAIL: group #' + fail.group.ndx + ' with ' +
+            if (log.debug) log.debug('FAIL: group #' + fail.group.ndx + ' with ' +
                 fail._liveliness + ' against ' + (fail._liveliness - cmp) + ' for enemy group #' + enemy.group.ndx);
             if (cmp > 0) {
-                if (main.debug) main.log.debug(check.name + ' would fail ' + fail +
+                if (log.debug) log.debug(check.name + ' would fail ' + fail +
                     ' BUT keept alive since it is stronger than ' + enemy);
                 fails[i] = null;
                 break;
             } else if (cmp === 0) {
-                if (main.debug) main.log.debug('RACE between ' + fail.group + ' and ' + enemy.group);
+                if (log.debug) log.debug('RACE between ' + fail.group + ' and ' + enemy.group);
                 fail.group.xInRaceWith = enemy.group;
                 enemy.group.xInRaceWith = fail.group;
                 fails[i] = null;
@@ -267,7 +263,7 @@ var scoringLifeChecks = [
 
 // NB: order of group should not matter; we must remember this especially when killing some of them
 BoardAnalyser.prototype._reviewGroups = function (check, first2play) {
-    if (main.debug) main.log.debug('---REVIEWING groups for "' + check.name + '" checks');
+    if (log.debug) log.debug('---REVIEWING groups for "' + check.name + '" checks');
     var count = 0, reviewedCount = 0, fails = [];
     for (var ndx in this.allGroups) {
         var gi = this.allGroups[~~ndx];
@@ -287,7 +283,7 @@ BoardAnalyser.prototype._reviewGroups = function (check, first2play) {
         // if no dedicated method is given, simply kill them all
         count += check.kill ? check.kill(check, fails) : killAllFails(check, fails);
     }
-    if (main.debug && count) main.log.debug('==> "' + check.name + '" checks found ' +
+    if (log.debug && count) log.debug('==> "' + check.name + '" checks found ' +
         count + '/' + reviewedCount + ' groups alive/dead');
     if (count === reviewedCount) return 0; // really finished
     if (count === 0) return reviewedCount; // remaining count
@@ -311,7 +307,7 @@ BoardAnalyser.prototype._lifeOrDeathLoop = function (first2play) {
             continue;
         }
     }
-    if (main.debug && count > 0) main.log.debug('*** UNDECIDED groups after _lifeOrDeathLoop:' + count);
+    if (log.debug && count > 0) log.debug('*** UNDECIDED groups after _lifeOrDeathLoop:' + count);
 };
 
 // Looks for "dame" = neutral voids (if alive groups from more than one color are around)

@@ -1,25 +1,33 @@
 'use strict';
 
-var main = require('../../../main');
+var CONST = require('../../../constants');
 var Grid = require('../../../Grid');
-var Group = require('../../../Group');
 var GroupInfo = require('./GroupInfo');
+var log = require('../../../log');
 var Void = require('./Void');
 var ZoneFiller = require('./ZoneFiller');
 
-var EMPTY = main.EMPTY, BLACK = main.BLACK, WHITE = main.WHITE;
+var EMPTY = CONST.EMPTY, GRID_BORDER = CONST.GRID_BORDER;
+var BLACK = CONST.BLACK, WHITE = CONST.WHITE;
 var ALIVE = GroupInfo.ALIVE;
-var FAILS = GroupInfo.FAILS, LIVES = GroupInfo.LIVES;
+var FAILS = GroupInfo.FAILS, LIVES = GroupInfo.LIVES, UNDECIDED = GroupInfo.UNDECIDED;
+
+// Analyse modes:
+var SCORE = 0, TERRITORY = 1, MOVE = 2;
 
 
 /** @class Our main board analyser / score counter etc.
  */
-function BoardAnalyser() {
-    this.version = BoardAnalyser.VERSION;
+function BoardAnalyser(game) {
+    this.game = game;
+    this.version = 'chuckie';
     this.mode = null;
+    this.areaScoring = false; // true if we count area; false if we count territory & prisoners
     this.goban = null;
+    this.analyseGrid = null;
+    this.scoreGrid = null;
     this.allVoids = [];
-    this.allGroups = null;
+    this.allGroupInfos = null;
     this.scores = [0, 0];
     this.prisoners = [0, 0];
     this.filler = null;
@@ -27,46 +35,53 @@ function BoardAnalyser() {
 module.exports = BoardAnalyser;
 
 
-var BOAN_VERSION = BoardAnalyser.VERSION = 'chuckie';
-
-
 BoardAnalyser.prototype.countScore = function (goban) {
-    if (main.debug) main.log.debug('Counting score...');
+    if (log.debug) log.debug('Counting score...');
     this.scores[BLACK] = this.scores[WHITE] = 0;
-    this.prisoners = Group.countPrisoners(goban);
+    this.prisoners[BLACK] = this.prisoners[WHITE] = 0;
+    if (!this.scoreGrid || this.scoreGrid.gsize !== goban.gsize) {
+        this.scoreGrid = new Grid(goban.gsize, GRID_BORDER);
+    }
 
-    var grid = goban.scoringGrid.initFromGoban(goban);
-    if (!this._initAnalysis('SCORE', goban, grid)) return;
+    if (!this._initAnalysis(SCORE, goban, this.scoreGrid)) return;
     this._runAnalysis();
-    this._finalColoring();
-    if (main.debug) main.log.debug(grid.toText(function (c) { return Grid.colorToChar(c); }));
+
+    if (!this.areaScoring) goban.countPrisoners(this.prisoners);
 };
 
 BoardAnalyser.prototype.getScoringGrid = function () {
-    return this.goban.scoringGrid;
+    return this.scoreGrid;
 };
 
-BoardAnalyser.prototype.analyse = function (goban, grid, first2play) {
-    var mode = first2play === undefined ? 'MOVE' : 'TERRITORY';
-    if (!this._initAnalysis(mode, goban, grid)) return;
+BoardAnalyser.prototype.getVoidAt = function (stone) {
+    return this.analyseGrid.yx[stone.j][stone.i];
+};
+
+BoardAnalyser.prototype.startMoveAnalysis = function (goban, grid) {
+    this._initAnalysis(MOVE, goban, grid);
+};
+
+BoardAnalyser.prototype.continueMoveAnalysis = function () {
+    this._runAnalysis();
+};
+
+BoardAnalyser.prototype.analyseTerritory = function (goban, grid, first2play) {
+    if (!this._initAnalysis(TERRITORY, goban, grid)) return;
     this._runAnalysis(first2play);
-    if (mode === 'TERRITORY') this._finalColoring();
 };
 
 BoardAnalyser.prototype.image = function () {
-    return this.goban.analyseGrid.image();
+    return this.analyseGrid.image();
 };
 
 BoardAnalyser.prototype.debugDump = function () {
-    var res = 'Grid:\n' +
-        this.goban.analyseGrid.toText(function (c) { return Grid.colorToChar(c); }) +
-        'Voids:\n';
+    var res = 'Grid:\n' + this.analyseGrid.toText() + 'Voids:\n';
     for (var v, v_array = this.allVoids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
         res += v.toString() + '\n';
     }
     res += 'Groups:\n';
-    for (var ndx in this.allGroups) {
-        res += this.allGroups[~~ndx].toString() + '\n';
+    for (var ndx in this.allGroupInfos) {
+        res += this.allGroupInfos[~~ndx].toString() + '\n';
     }
     if (this.scores) {
         res += 'Score:' + this.scores.map(function (s, i) {
@@ -78,24 +93,39 @@ BoardAnalyser.prototype.debugDump = function () {
 
 BoardAnalyser.prototype._initAnalysis = function (mode, goban, grid) {
     this.mode = mode;
+    this.areaScoring = this.game.useAreaScoring && mode === SCORE;
     this.goban = goban;
-    goban.analyseGrid = grid;
+    this.analyseGrid = grid;
     this.filler = new ZoneFiller(goban, grid);
     if (goban.moveNumber() === 0) return false;
 
+    grid.initFromGoban(goban);
     this._initVoidsAndGroups();
+    this._findBrothers();
+    this._findEyeOwners();
     return true;
 };
 
+BoardAnalyser.prototype._runAnalysis = function (first2play) {
+    if (this.mode === MOVE) {
+        this._lifeOrDeathLoop();
+    } else {
+        this._findBattleWinners();
+        this._lifeOrDeathLoop(first2play);
+        this._findDameVoids();
+        this._finalColoring();
+    }
+};
+
 BoardAnalyser.prototype._addGroup = function (g, v) {
-    var gi = this.allGroups[g.ndx];
+    var gi = this.allGroupInfos[g.ndx];
     if (!gi) {
-        if (!g._info || g._info.version !== BOAN_VERSION) {
-            g._info = new GroupInfo(g, BOAN_VERSION);
+        if (!g._info || g._info.boan !== this) {
+            g._info = new GroupInfo(g, this);
         } else {
-            g._info.resetAnalysis(g);
+            g._info.resetAnalysis();
         }
-        gi = this.allGroups[g.ndx] = g._info;
+        gi = this.allGroupInfos[g.ndx] = g._info;
     }
     gi.nearVoids.push(v);
 };
@@ -104,52 +134,53 @@ BoardAnalyser.prototype._addGroup = function (g, v) {
  * Voids know which groups are around them, but groups do not own any void yet.
  */
 BoardAnalyser.prototype._initVoidsAndGroups = function () {
-    if (main.debug) main.log.debug('---Initialising voids & groups...');
+    if (log.debug) log.debug('---Initialising voids & groups...');
     var voidCode = Grid.ZONE_CODE;
-    this.allGroups = {};
+    this.allGroupInfos = {};
     this.allVoids.clear();
-    var neighbors = [[], []], n, groups;
-    var v = new Void(voidCode++);
-    for (var j = 1; j <= this.goban.gsize; j++) {
-        for (var i = 1; i <= this.goban.gsize; i++) {
-            var vcount = this.filler.fillWithColor(i, j, EMPTY, v, neighbors);
+    var n, groups, goban = this.goban;
+    var v = new Void(goban, voidCode++);
+    for (var j = 1; j <= goban.gsize; j++) {
+        for (var i = 1; i <= goban.gsize; i++) {
+            var vcount = this.filler.fillWithColor(i, j, EMPTY, v);
             if (vcount === 0) continue;
 
             // 1 new void created
-            v.init(i, j, vcount, neighbors);
             this.allVoids.push(v);
-
             // keep all the groups
-            groups = neighbors[BLACK];
-            for (n = groups.length - 1; n >= 0; n--) this._addGroup(groups[n], v);
-            groups = neighbors[WHITE];
-            for (n = groups.length - 1; n >= 0; n--) this._addGroup(groups[n], v);
+            for (var color = BLACK; color <= WHITE; color++) {
+                groups = v.groups[color];
+                for (n = groups.length - 1; n >= 0; n--) this._addGroup(groups[n], v);
+            }
 
-            neighbors = [[], []];
-            v = new Void(voidCode++);
+            v = new Void(goban, voidCode++);
         }
     }
 };
 
-BoardAnalyser.prototype._runAnalysis = function (first2play) {
-    this._findBrothers();
-    this._findEyeOwners();
-    this._findBattleWinners();
-    this._lifeOrDeathLoop(first2play);
-    this._findDameVoids();
-};
-
 BoardAnalyser.prototype._findBrothers = function () {
-    for (var ndx in this.allGroups) {
-        this.allGroups[~~ndx].findBrothers();
+    for (var ndx in this.allGroupInfos) {
+        this.allGroupInfos[~~ndx].findBrothers();
     }
 };
 
 // Find voids surrounded by a single color -> eyes
 BoardAnalyser.prototype._findEyeOwners = function () {
-    if (main.debug) main.log.debug('---Finding eye owners...');
-    for (var n = this.allVoids.length - 1; n >= 0; n--) {
-        this.allVoids[n].findOwner();
+    if (log.debug) log.debug('---Finding eye owners...');
+    var allVoids = this.allVoids, count = allVoids.length;
+    for (var n = count - 1; n >= 0; n--) {
+        allVoids[n].findOwner();
+    }
+    var changed;
+    for (;;) {
+        changed = false;
+        for (n = count - 1; n >= 0; n--) {
+            if (allVoids[n].checkFakeEye()) changed = true;
+        }
+        if (!changed) break;
+    }
+    for (n = count - 1; n >= 0; n--) {
+        allVoids[n].finalizeFakeEye();
     }
 };
 
@@ -172,28 +203,36 @@ function compareLiveliness(life) {
 }
 
 BoardAnalyser.prototype._findBattleWinners = function () {
-    var life = [0, 0];
+    if (this.areaScoring) return;
+    var goban = this.goban;
+    if (goban.moveNumber() < 2 * goban.gsize) return; // no battle before enough moves were played
+    var life = [0, 0], size = [0, 0];
     for (;;) {
         var foundOne = false;
         for (var i = this.allVoids.length - 1; i >= 0; i--) {
             var v = this.allVoids[i];
             if (v.color !== undefined) continue;
-            life[BLACK] = life[WHITE] = 0;
+            if (v.vcount > 2 * goban.gsize) continue; // no battle for big voids
+            life[BLACK] = life[WHITE] = size[BLACK] = size[WHITE] = 0;
             for (var color = BLACK; color <= WHITE; color++) {
                 // NB: we don't check for brothers' liveliness counted twice.
                 // No issue noticed so far - see testUnconnectedBrothers / b4
                 for (var n = v.groups[color].length - 1; n >= 0; n--) {
                     var gi = v.groups[color][n]._info;
-                    life[color] += gi.liveliness() + gi.group.lives / 10000; // is gi.group.lives still necessary?
+                    life[color] += gi.liveliness();
+                    size[color] += gi.countBandSize();
                 }
             }
+            // no battle if 2 big groups around
+            if (size[BLACK] > 4 && size[WHITE] > 4) continue;
+
             var winner = compareLiveliness(life);
             // make sure we have a winner, not a tie
             if (winner === undefined) {
-                if (main.debug) main.log.debug('BATTLED VOID in dispute: ' + v + ' with ' + life[0]);
+                if (log.debug) log.debug('BATTLED VOID in dispute: ' + v + ' with ' + life[0]);
                 continue;
             }
-            if (main.debug) main.log.debug('BATTLED VOID: ' + Grid.colorName(winner) +
+            if (log.debug) log.debug('BATTLED VOID: ' + Grid.colorName(winner) +
                 ' wins with ' + life[winner].toFixed(4) + ' VS ' + life[1 - winner].toFixed(4));
             v.setVoidOwner(winner);
             foundOne = true;
@@ -207,25 +246,9 @@ function killWeakest(check, fails) {
     // For all groups that failed the test, filter out these that have a weaker neighbor
     for (var i = 0; i < fails.length; i++) {
         var fail = fails[i];
-        var enemies = fail.group.allEnemies();
-        for (var e = 0; e < enemies.length; e++) {
-            var enemy = enemies[e]._info;
-            var cmp = fail._liveliness - enemy.liveliness();
-            if (main.debug) main.log.debug('FAIL: group #' + fail.group.ndx + ' with ' +
-                fail._liveliness + ' against ' + (fail._liveliness - cmp) + ' for enemy group #' + enemy.group.ndx);
-            if (cmp > 0) {
-                if (main.debug) main.log.debug(check.name + ' would fail ' + fail +
-                    ' BUT keept alive since it is stronger than ' + enemy);
-                fails[i] = null;
-                break;
-            } else if (cmp === 0) {
-                if (main.debug) main.log.debug('RACE between ' + fail.group + ' and ' + enemy.group);
-                fail.group.xInRaceWith = enemy.group;
-                enemy.group.xInRaceWith = fail.group;
-                fails[i] = null;
-                break;
-            }
-        }
+        if (log.debug) log.debug('FAIL-' + check.name + ': group #' + fail.group.ndx);
+        if (fail.checkAgainstEnemies() !== FAILS)
+            fails[i] = null;
     }
     var count = 0;
     for (i = 0; i < fails.length; i++) {
@@ -243,38 +266,43 @@ function killAllFails(check, fails) {
     return fails.length;
 }
 
-var parentCheck =      { name: 'parents',     run: function (gi) { return gi.checkParents(); } };
-var brotherCheck =     { name: 'brothers',    run: function (gi) { return gi.checkBrothers(); } };
-var singleEyeCheck = {
-    name: 'singleEye',   
-    run: function (gi, first) { return gi.checkSingleEye(first); },
-    kill: killWeakest
-};
-var finalCheck = { name: 'final', run: function (gi) { return gi.checkLiveliness(2); } };
+function killNone() {
+    return 0;
+}
 
-var midGameLifeChecks = [
-    parentCheck,
+var brotherCheck =   { name: 'brothers', run: GroupInfo.prototype.checkBrothers };
+var singleEyeCheck = { name: 'singleEye', run: GroupInfo.prototype.checkSingleEye, kill: killWeakest };
+var raceCheck = { name: 'race', run: GroupInfo.prototype.checkAgainstEnemies, kill: killNone };
+var killAtaris = { name: 'atari', run: function () { return this.group.lives <= 1 ? FAILS : UNDECIDED; } };
+var finalCheck = { name: 'final', run: function () { return this.checkLiveliness(2); } };
+
+var lifeChecks = [];
+lifeChecks[SCORE] = [
     brotherCheck,
-    singleEyeCheck
-    // We don't expect a final liveliness (2) in mid-game
-];
-var scoringLifeChecks = [
-    parentCheck,
-    brotherCheck,
+    killAtaris,
     singleEyeCheck,
     finalCheck
+];
+lifeChecks[TERRITORY] = [
+    brotherCheck,
+    singleEyeCheck
+];
+lifeChecks[MOVE] = [
+    brotherCheck,
+    singleEyeCheck,
+    raceCheck
 ];
 
 // NB: order of group should not matter; we must remember this especially when killing some of them
 BoardAnalyser.prototype._reviewGroups = function (check, first2play) {
-    if (main.debug) main.log.debug('---REVIEWING groups for "' + check.name + '" checks');
+    if (log.debug) log.debug('---REVIEWING groups for "' + check.name + '" checks');
     var count = 0, reviewedCount = 0, fails = [];
-    for (var ndx in this.allGroups) {
-        var gi = this.allGroups[~~ndx];
+    for (var ndx in this.allGroupInfos) {
+        var gi = this.allGroupInfos[~~ndx];
         if (gi.isAlive || gi.isDead) continue;
         reviewedCount++;
 
-        switch (check.run(gi, first2play)) {
+        switch (check.run.call(gi, first2play)) {
         case FAILS:
             fails.push(gi);
             break;
@@ -287,7 +315,7 @@ BoardAnalyser.prototype._reviewGroups = function (check, first2play) {
         // if no dedicated method is given, simply kill them all
         count += check.kill ? check.kill(check, fails) : killAllFails(check, fails);
     }
-    if (main.debug && count) main.log.debug('==> "' + check.name + '" checks found ' +
+    if (log.debug && count) log.debug('==> "' + check.name + '" checks found ' +
         count + '/' + reviewedCount + ' groups alive/dead');
     if (count === reviewedCount) return 0; // really finished
     if (count === 0) return reviewedCount; // remaining count
@@ -296,7 +324,8 @@ BoardAnalyser.prototype._reviewGroups = function (check, first2play) {
 
 // Reviews the groups and declare "dead" the ones who do not own enough eyes or voids
 BoardAnalyser.prototype._lifeOrDeathLoop = function (first2play) {
-    var checks = this.mode === 'SCORE' ? scoringLifeChecks : midGameLifeChecks;
+    if (this.areaScoring) return;
+    var checks = lifeChecks[this.mode];
     var stepNum = 0, count;
     while (stepNum < checks.length) {
         count = this._reviewGroups(checks[stepNum++], first2play);
@@ -311,7 +340,7 @@ BoardAnalyser.prototype._lifeOrDeathLoop = function (first2play) {
             continue;
         }
     }
-    if (main.debug && count > 0) main.log.debug('*** UNDECIDED groups after _lifeOrDeathLoop:' + count);
+    if (log.debug && count > 0) log.debug('*** UNDECIDED groups after _lifeOrDeathLoop:' + count);
 };
 
 // Looks for "dame" = neutral voids (if alive groups from more than one color are around)
@@ -322,7 +351,7 @@ BoardAnalyser.prototype._findDameVoids = function () {
         aliveColors[BLACK] = aliveColors[WHITE] = false;
         for (var c = BLACK; c <= WHITE; c++) {
             for (var g, g_array = v.groups[c], g_ndx = 0; g=g_array[g_ndx], g_ndx < g_array.length; g_ndx++) {
-                if (g._info.liveliness() >= 2) {
+                if (this.areaScoring || g._info.liveliness() >= 2) {
                     aliveColors[c] = true;
                     break;
                 }
@@ -330,25 +359,38 @@ BoardAnalyser.prototype._findDameVoids = function () {
         }
         if (aliveColors[BLACK] && aliveColors[WHITE]) {
             v.setAsDame();
+        } else if (this.areaScoring) {
+            v.color = aliveColors[BLACK] ? BLACK : WHITE;
         }
     }
 };
 
 BoardAnalyser.prototype._finalColoring = function () {
-    this._colorDeadGroups();
-    this._colorVoids();
+    this._countGroupArea();
+    this._colorAndCountDeadGroups();
+    this._colorAndCountVoids();
 };
 
-BoardAnalyser.prototype._colorDeadGroups = function () {
-    for (var ndx in this.allGroups) {
-        var gi = this.allGroups[~~ndx];
+BoardAnalyser.prototype._countGroupArea = function () {
+    if (!this.areaScoring) return;
+    for (var ndx in this.allGroupInfos) {
+        var group = this.allGroupInfos[~~ndx].group;
+        this.scores[group.color] += group.stones.length;
+    }
+};
+
+BoardAnalyser.prototype._colorAndCountDeadGroups = function () {
+    if (this.areaScoring) return;
+    for (var ndx in this.allGroupInfos) {
+        var gi = this.allGroupInfos[~~ndx];
         if (!gi.isDead) continue;
 
-        // At least 1 enemy around must be alive 
+        // At least 1 enemy around must be alive otherwise this group is not really dead
         var reallyDead = false;
         for (var n = gi.killers.length - 1; n >= 0; n--) {
-            if (!gi.killers[n]._info.isDead) reallyDead = true;
+            if (!gi.killers[n]._info.isDead) { reallyDead = true; break; }
         }
+        // If not really dead we own the voids around
         var color = gi.group.color;
         if (gi.killers.length && !reallyDead) {
             for (var i = gi.nearVoids.length - 1; i >= 0; i--) {
@@ -365,17 +407,26 @@ BoardAnalyser.prototype._colorDeadGroups = function () {
 };
 
 // Colors the voids with owner's color
-BoardAnalyser.prototype._colorVoids = function () {
-    var color;
+BoardAnalyser.prototype._colorAndCountVoids = function () {
+    var gridYx = this.analyseGrid.yx;
+    var fakes = [];
+
     for (var i = this.allVoids.length - 1; i >= 0; i--) {
         var v = this.allVoids[i];
-        var score = v.finalScore();
+        var score = v.getScore(this.areaScoring ? null : fakes);
         if (score) {
-            this.scores[v.color] += score;
-            color = Grid.TERRITORY_COLOR + v.color;
+            // Get real score added by void (not counting fakes)
+            this.scores[v.color] += score - fakes.length;
+            // Fill the void with its color
+            this.filler.fillWithColor(v.i, v.j, v, Grid.TERRITORY_COLOR + v.color);
+            // Mark fakes as DAME, one by one
+            for (var n = fakes.length - 1; n >= 0; n--) {
+                var s = fakes[n];
+                gridYx[s.j][s.i] = Grid.DAME_COLOR;
+            }
         } else {
-            color = Grid.DAME_COLOR;
+            // This whole void is DAME (between 2 alive groups)
+            this.filler.fillWithColor(v.i, v.j, v, Grid.DAME_COLOR);
         }
-        this.filler.fillWithColor(v.i, v.j, v, color);
     }
 };

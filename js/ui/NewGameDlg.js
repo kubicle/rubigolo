@@ -21,12 +21,15 @@ function NewGameDlg(options, validateFn) {
     Dome.newLabel(aiColorBox, 'inputLbl', 'AI plays:');
     var aiColor = Dome.newRadio(aiColorBox, 'aiColor', ['white', 'black', 'both', 'none'], null, options.aiPlays);
 
-    var moves = Dome.newInput(form, 'moves', 'Moves to load:');
+    var moves = Dome.newInput(form, 'moves', 'Moves to load:', options.moves);
 
     var defAiDiv = form.newDiv();
     Dome.newLabel(defAiDiv, 'inputLbl', 'Black AI:');
     var defaultAi = Dome.newDropdown(defAiDiv, 'defaultAi', Object.keys(main.ais), null, main.defaultAi.name);
     Dome.newLabel(defAiDiv, 'defAiInfo', '(White AI always uses latest AI version)');
+
+    Dome.newLabel(form, 'inputLbl', 'Rules:');
+    var rules = Dome.newDropdown(form, 'rules', ['Japanese', 'Chinese'], ['jp', 'ch'], options.rules);
 
     var okBtn = Dome.newButton(form.newDiv('btnDiv'), 'start', 'Play', function (ev) {
         ev.preventDefault();
@@ -35,6 +38,7 @@ function NewGameDlg(options, validateFn) {
         options.aiPlays = Dome.getRadioValue(aiColor);
         options.moves = moves.value();
         main.defaultAi = main.ais[defaultAi.value()];
+        options.rules = rules.value();
         if (validateFn(options)) return Dome.removeChild(document.body, dialog);
     });
     okBtn.setAttribute('type','submit');

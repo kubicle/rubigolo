@@ -1,47 +1,79 @@
 'use strict';
 
-var main = require('../../main');
-
-var allHeuristics = require('./AllHeuristics');
 var BoardAnalyser = require('./boan/BoardAnalyser');
+var CONST = require('../../constants');
 var Genes = require('../../Genes');
 var Grid = require('../../Grid');
+var log = require('../../log');
+var main = require('../../main');
 var ZoneFiller = require('./boan/ZoneFiller');
 
-var sOK = main.sOK, sINVALID = main.sINVALID, sBLUNDER = main.sBLUNDER, sDEBUG = main.sDEBUG;
+// All heuristics
+var Connector = require('./Connector');
+var GroupAnalyser = require('./GroupAnalyser');
+var GroupsAndVoids = require('./GroupsAndVoids');
+var Hunter = require('./Hunter');
+var Influence = require('./Influence');
+var MoveInfo = require('./MoveInfo');
+var NoEasyPrisoner = require('./NoEasyPrisoner');
+var PotentialEyes = require('./PotentialEyes');
+var PotentialTerritory = require('./PotentialTerritory');
+var Pusher = require('./Pusher');
+var Savior = require('./Savior');
+var Shaper = require('./Shaper');
+var Spacer = require('./Spacer');
+
+var GRID_BORDER = CONST.GRID_BORDER;
+var sOK = CONST.sOK, sINVALID = CONST.sINVALID, sDEBUG = CONST.sDEBUG;
 
 var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
 
 
 /** @class */
-function Chuckie(goban, color, genes) {
-    this.version = 'Chuckie-1.0';
-    this.goban = goban;
-    this.genes = genes || new Genes();
-    this.gsize = this.goban.gsize;
-    this.stateGrid = new Grid(this.gsize);
-    this.scoreGrid = new Grid(this.gsize);
+function Chuckie(game, color, genes) {
+    this.name = 'Chuckie';
+    this.game = game;
+    this.boan = new BoardAnalyser(game); // several heuristics can share this boan
 
-    // genes need to exist before we create heuristics
-    this.minimumScore = this.getGene('smallerMove', 0.03, 0.01, 0.1);
-
-    this._createHeuristics();
+    this.prepareGame(genes);
     this.setColor(color);
-    this.prepareGame();
 }
 module.exports = Chuckie;
+
+Chuckie.publicName = 'Chuckie';
+Chuckie.publicVersion = '0.1';
 
 // Used only by tests
 Chuckie.BoardAnalyser = BoardAnalyser;
 Chuckie.ZoneFiller = ZoneFiller;
 
 
+Chuckie.prototype._newHeuristic = function (Constr) {
+    var h = new Constr(this);
+    this.heuristics.push(h);
+    return h;
+};
+
 Chuckie.prototype._createHeuristics = function () {
+    var heuristic = this.heuristic = {};
     this.heuristics = [];
-    var heuristics = allHeuristics();
-    for (var n = 0; n < heuristics.length; n++) {
-        var h = new (heuristics[n])(this);
-        this.heuristics.push(h);
+
+    heuristic.MoveInfo = this._newHeuristic(MoveInfo);
+    heuristic.PotentialTerritory = this._newHeuristic(PotentialTerritory);
+    heuristic.GroupsAndVoids = this._newHeuristic(GroupsAndVoids);
+    heuristic.Influence = this._newHeuristic(Influence);
+    heuristic.PotentialEyes = this._newHeuristic(PotentialEyes);
+    heuristic.GroupAnalyser = this._newHeuristic(GroupAnalyser);
+    heuristic.NoEasyPrisoner = this._newHeuristic(NoEasyPrisoner);
+    heuristic.Savior = this._newHeuristic(Savior);
+    heuristic.Hunter = this._newHeuristic(Hunter);
+    heuristic.Connector = this._newHeuristic(Connector);
+    heuristic.Spacer = this._newHeuristic(Spacer);
+    heuristic.Pusher = this._newHeuristic(Pusher);
+    heuristic.Shaper = this._newHeuristic(Shaper);
+
+    for (var n = 0; n < this.heuristics.length; n++) {
+        this.heuristics[n].updateCrossRef();
     }
 };
 
@@ -52,16 +84,29 @@ Chuckie.prototype.setColor = function (color) {
     }
 };
 
-/** Can be called from Breeder with different genes */
+/** @param {Genes} [genes] - default genes are used if omitted */
 Chuckie.prototype.prepareGame = function (genes) {
-    if (genes) this.genes = genes;
-    this.numMoves = 0;
+    this.genes = genes || this.genes || new Genes();
 
+    // genes need to exist before we create heuristics
+    this.minimumScore = this.getGene('smallerMove', 0.03, 0.01, 0.1);
+
+    if (this.goban !== this.game.goban) {
+        this.goban = this.game.goban;
+        this.gsize = this.goban.gsize;
+        this.areaScoring = this.game.useAreaScoring;
+        this.stateGrid = new Grid(this.gsize, GRID_BORDER);
+        this.scoreGrid = new Grid(this.gsize, 0, GRID_BORDER);
+        this._createHeuristics();
+    }
+    this.numMoves = this.numRandomPicks = 0;
     this.bestScore = this.bestI = this.bestJ = 0;
+    this.usedRandom = false;
     this.testI = this.testJ = NO_MOVE;
     this.debugHeuristic = null;
 };
 
+/** Get a heuristic from its human name - for UI and tests */
 Chuckie.prototype.getHeuristic = function (heuristicName) {
     for (var n = 0; n < this.heuristics.length; n++) {
         var h = this.heuristics[n];
@@ -70,15 +115,16 @@ Chuckie.prototype.getHeuristic = function (heuristicName) {
     return null;
 };
 
-Chuckie.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
+Chuckie.prototype.getGene = function (geneName, defVal, lowLimit, highLimit) {
     if (lowLimit === undefined) lowLimit = null;
     if (highLimit === undefined) highLimit = null;
-    return this.genes.get(this.constructor.name + '-' + name, defVal, lowLimit, highLimit);
+    return this.genes.get(this.name + '-' + geneName, defVal, lowLimit, highLimit);
 };
 
 Chuckie.prototype._foundBestMove = function(i, j, score) {
     this.bestScore = score;
     this.bestI = i; this.bestJ = j;
+    this.usedRandom = this.numBestTwins !== 1;
 };
 
 Chuckie.prototype._keepBestMove = function(i, j, score) {
@@ -95,10 +141,6 @@ Chuckie.prototype._keepBestMove = function(i, j, score) {
 // Returns the move chosen (e.g. c4 or pass)
 Chuckie.prototype.getMove = function () {
     this.numMoves++;
-    if (this.numMoves >= this.gsize * this.gsize) { // force pass after too many moves
-        main.log.error('Forcing AI pass since we already played ' + this.numMoves);
-        return 'pass';
-    }
     var stateYx = this.stateGrid.yx;
     var scoreYx = this.scoreGrid.yx;
 
@@ -107,7 +149,7 @@ Chuckie.prototype.getMove = function () {
     this._runHeuristics(stateYx, scoreYx);
     var move = this._collectBestMove(stateYx, scoreYx);
 
-    main.debug = this.debugMode;
+    log.setLevel(this.debugMode ? log.DEBUG : log.INFO);
     return move;
 };
 
@@ -115,8 +157,8 @@ Chuckie.prototype._prepareEval = function () {
     this.bestScore = this.minimumScore - 0.001;
     this.bestI = NO_MOVE;
 
-    this.debugMode = main.debug;
-    main.debug = false;
+    this.debugMode = !!log.debug;
+    log.setLevel(log.INFO);
 };
 
 /** Init grids (and mark invalid moves) */
@@ -132,6 +174,8 @@ Chuckie.prototype._initScoringGrid = function (stateYx, scoreYx) {
         }
     }
     if (this.testI !== NO_MOVE) {
+        if (stateYx[this.testJ][this.testI] === sINVALID)
+            throw new Error('Invalid test move: ' + this.testI + ',' + this.testJ);
         stateYx[this.testJ][this.testI] = sDEBUG;
     }
 };
@@ -140,17 +184,18 @@ Chuckie.prototype._initScoringGrid = function (stateYx, scoreYx) {
 Chuckie.prototype._runHeuristics = function (stateYx, scoreYx) {
     for (var n = 0; n < this.heuristics.length; n++) {
         var h = this.heuristics[n];
-        main.debug = this.debugMode && this.debugHeuristic === h.name;
+        log.setLevel(this.debugMode && this.debugHeuristic === h.name ? log.DEBUG : log.INFO);
         var t0 = Date.now();
 
         if (h._beforeEvalBoard) h._beforeEvalBoard();
         h.evalBoard(stateYx, scoreYx);
 
         var time = Date.now() - t0;
-        if (time > 1 && !main.isCoverTest) {
-            main.log.warn('Slowness: ' + h.name + ' took ' + time + 'ms');
+        if (time >= 3 && !main.isCoverTest) {
+            log.logWarn('Slowness: ' + h.name + ' took ' + time + 'ms');
         }
     }
+    this.heuristic.MoveInfo.collectScores(stateYx, scoreYx);
 };
 
 /** Returns the move which got the best score */
@@ -162,21 +207,15 @@ Chuckie.prototype._collectBestMove = function (stateYx, scoreYx) {
         }
     }
     if (this.bestScore < this.minimumScore) return 'pass';
+    if (this.usedRandom) this.numRandomPicks++;
     return Grid.xy2move(this.bestI, this.bestJ);
 };
 
-/** Called by heuristics if they decide to stop looking further (rare cases) */
-Chuckie.prototype.markMoveAsBlunder = function (i, j, reason) {
-    this.stateGrid.yx[j][i] = sBLUNDER;
-    main.log.debug(Grid.xy2move(i, j) + ' seen as blunder: ' + reason);
-};
-Chuckie.prototype.isBlunderMove = function (i, j) {
-    return this.stateGrid.yx[j][i] === sBLUNDER;
-};
-
+// Called by UI only
 Chuckie.prototype.guessTerritories = function () {
-    this.pot.evalBoard();
-    return this.pot.territory.yx;
+    var pot = this.heuristic.PotentialTerritory;
+    pot.evalBoard();
+    return pot.territory.yx;
 };
 
 Chuckie.prototype._getMoveForTest = function (i, j) {
@@ -191,9 +230,7 @@ Chuckie.prototype._getMoveForTest = function (i, j) {
 Chuckie.prototype._getMoveSurvey = function (i, j) {
     var survey = {};
     for (var n = 0; n < this.heuristics.length; n++) {
-        var h = this.heuristics[n];
-        var s = h.scoreGrid.yx[j][i];
-        if (s) survey[h.name] = s; // s can be 0 or null too
+        this.heuristics[n].getMoveSurvey(i, j, survey);
     }
     return survey;
 };
@@ -219,9 +256,13 @@ Chuckie.prototype.setDebugHeuristic = function (heuristicName) {
 function surveySort(h1, h2) { return h2[1] - h1[1]; }
 
 Chuckie.prototype.getMoveSurveyText = function (move, isTest) {
-    if (move[1] > '9') return '';
-    var coords = Grid.move2xy(move), i = coords[0], j = coords[1];
-    if (isTest) this._getMoveForTest(i, j);
+    var coords = this.game.oneMove2xy(move);
+    if (!coords) return '';
+    var i = coords[0], j = coords[1];
+    if (isTest) {
+        if (!this.goban.isValidMove(i, j, this.game.curColor)) return 'Invalid move: ' + move;
+        this._getMoveForTest(i, j);
+    }
     var survey = this._getMoveSurvey(i, j);
     var score = this.scoreGrid.yx[j][i];
 

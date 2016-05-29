@@ -1,12 +1,14 @@
 'use strict';
 
-var main = require('../../main');
+var CONST = require('../../constants');
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
+var log = require('../../log');
 
-var EMPTY = main.EMPTY, sOK = main.sOK;
-var SOMETIMES = main.SOMETIMES, ALWAYS = main.ALWAYS;
+var GRID_BORDER = CONST.GRID_BORDER;
+var EMPTY = CONST.EMPTY, sOK = CONST.sOK;
+var SOMETIMES = CONST.SOMETIMES, ALWAYS = CONST.ALWAYS;
 
 
 /** @class Cares about good shapes
@@ -16,14 +18,13 @@ function Shaper(player) {
 
     this.eyeCloserCoeff = this.getGene('eyeCloser', 1, 0.01, 1);
 
-    this.potEyeGrid = new Grid(this.gsize);
+    this.potEyeGrid = new Grid(this.gsize, GRID_BORDER);
 }
 inherits(Shaper, Heuristic);
 module.exports = Shaper;
 
 
 Shaper.prototype.evalBoard = function (stateYx, scoreYx) {
-    this.potEyeGrid.init();
     this._findPotentialEyes(stateYx);
 
     // Call _evalMove for each vertex and init this.scoreGrid
@@ -39,6 +40,7 @@ Shaper.prototype.evalBoard = function (stateYx, scoreYx) {
 };
 
 Shaper.prototype._findPotentialEyes = function (stateYx) {
+    this.potEyeGrid.init(EMPTY);
     var potEyeYx = this.potEyeGrid.yx;
     for (var j = this.gsize; j >= 1; j--) {
         for (var i = this.gsize; i >= 1; i--) {
@@ -76,7 +78,7 @@ Shaper.prototype._evalSingleEyeSplit = function (scoreYx, g) {
     score = score / Math.max(1, potEyeCount - 1);
     this.scoreGrid.yx[j][i] += score;
     scoreYx[j][i] += score;
-    if (main.debug) main.log.debug('Shaper ' + Grid.colorName(this.color) + ' sees single eye split at ' +
+    if (log.debug) log.debug('Shaper ' + Grid.colorName(this.color) + ' sees single eye split at ' +
         i + ',' + j + ' score: ' + score);
 };
 
@@ -114,7 +116,7 @@ Shaper.prototype._eyeCloser = function (i, j, color) {
     if (potEye && eyeThreatened && allyNeedsEye) {
         threat += this.groupThreat(g, /*saved=*/true);
         var potEyeCount = g._info.countPotentialEyes();
-        if (main.debug) main.log.debug('Shaper ' + Grid.colorName(color) + ' sees potential threat ' +
+        if (log.debug) log.debug('Shaper ' + Grid.colorName(color) + ' sees potential threat ' +
             threat + ' on eye ' + potEye + ' with ' + potEyeCount + ' potential eyes');
         return threat / Math.max(1, potEyeCount - 1);
     }

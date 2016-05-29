@@ -1,0 +1,7 @@
+{
+  "vars": [],
+  "props": [
+    "util", "inherits", "lessify", "cssify", "events", "fs", "_process",
+    "B", "W", "coordFontSize", "section"
+  ]
+}

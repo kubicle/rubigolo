@@ -1,15 +1,16 @@
 'use strict';
 
-var main = require('../../../main');
 var Band = require('./Band');
+var CONST = require('../../../constants');
+var log = require('../../../log');
 
-var EMPTY = main.EMPTY;
-var NEVER = main.NEVER, SOMETIMES = main.SOMETIMES, ALWAYS = main.ALWAYS;
+var EMPTY = CONST.EMPTY;
+var NEVER = CONST.NEVER, SOMETIMES = CONST.SOMETIMES, ALWAYS = CONST.ALWAYS;
 
 
 /** @class Contains the analyse results that are attached to each group */
-function GroupInfo(group, version) {
-    this.version = version;
+function GroupInfo(group, boan) {
+    this.boan = boan;
     this.voids = []; // voids owned by the group
     this.nearVoids = []; // voids around, owned or not
     this.dependsOn = [];
@@ -66,7 +67,7 @@ GroupInfo.prototype.toString = function () {
  * @return {GroupInfo} - "this"
  */
 GroupInfo.prototype.addVoid = function (v, groups) {
-    if (main.debug) main.log.debug('OWNED: ' + v + ' owned by ' + this);
+    if (log.debug) log.debug('OWNED: ' + v + ' owned by ' + this);
     this.voids.push(v);
     this.eyeCount++;
 
@@ -79,7 +80,7 @@ GroupInfo.prototype.addVoid = function (v, groups) {
 GroupInfo.prototype.removeVoid = function (v) {
     var ndx = this.voids.indexOf(v);
     if (ndx === -1) throw new Error('remove unknown void');
-    if (main.debug) main.log.debug('LOST: ' + v + ' lost by ' + this);
+    if (log.debug) log.debug('LOST: ' + v + ' lost by ' + this);
     this.voids.splice(ndx, 1);
     this.eyeCount--;
 };
@@ -93,7 +94,7 @@ GroupInfo.prototype.makeDependOn = function (groups) {
         if (gi === this) continue; // this group itself
         if(this.dependsOn.indexOf(gi) >= 0) continue; // already depending on this one
 
-        if (main.debug) main.log.debug('DEPENDS: ' + this + ' depends on ' + gi);
+        if (log.debug) log.debug('DEPENDS: ' + this + ' depends on ' + gi);
         this.dependsOn.push(gi);
     }
 };
@@ -129,7 +130,7 @@ GroupInfo.prototype.considerDead = function (reason) {
     for (var i = enemies.length - 1; i >= 0; i--) {
         enemies[i]._info.deadEnemies.push(this);
     }
-    if (main.debug) main.log.debug('DEAD-' + reason + ': ' + this);
+    if (log.debug) log.debug('DEAD-' + reason + ': ' + this);
 };
 
 /** Returns a number telling how "alive" a group is.
@@ -191,10 +192,10 @@ GroupInfo.prototype.getEyeMakerMove = function (coords) {
     if (this.eyeCount > 1) return ALWAYS;
     if (this.eyeCount === 0) return NEVER;
     if (this.voids[0].vcount > 6) return ALWAYS;
-    if (main.debug) main.log.debug('getEyeMakerMove checking ' + this);
+    if (log.debug) log.debug('getEyeMakerMove checking ' + this);
 
     var g = this.group, color = g.color;
-    var analyseYx = g.goban.analyseGrid.yx;
+    var analyseYx = this.boan.analyseGrid.yx;
     var best = null, bestLives = 0, bestEnemies = 0, numMoves = 0;
     var empties = g.allLives(), numEmpties0 = empties.length;
 
@@ -223,7 +224,7 @@ GroupInfo.prototype.getEyeMakerMove = function (coords) {
         } else {
             if (numLives < 2) continue;
         }
-        if (main.debug) main.log.debug('getEyeMakerMove sees ' + numLives + (numEnemies < 1 ? '' : (numEnemies > 1 ? 'e' + numEnemies : 'E')) + ' in ' + s);
+        if (log.debug) log.debug('getEyeMakerMove sees ' + numLives + (numEnemies < 1 ? '' : (numEnemies > 1 ? 'e' + numEnemies : 'E')) + ' in ' + s);
         // skip corner if we have better
         if (s.isCorner() && numMoves) continue;
 
@@ -238,7 +239,7 @@ GroupInfo.prototype.getEyeMakerMove = function (coords) {
         bestEnemies = numEnemies;
         bestLives = numLives;
     }
-    if (main.debug) main.log.debug('getEyeMakerMove result: ' + best + ' - ' + (best ? (numMoves > 1 ? 'ALWAYS' : 'SOMETIMES') : 'NEVER'));
+    if (log.debug) log.debug('getEyeMakerMove result: ' + best + ' - ' + (best ? (numMoves > 1 ? 'ALWAYS' : 'SOMETIMES') : 'NEVER'));
     if (!best) return NEVER;
     if (numMoves > 1) return ALWAYS;
     coords[0] = best.i; coords[1] = best.j;
@@ -271,7 +272,7 @@ GroupInfo.prototype.checkParents = function () {
     for (var n = this.dependsOn.length - 1; n >= 0; n--) {
         var parent = this.dependsOn[n];
         if (parent.isAlive) {
-            if (main.debug) main.log.debug('ALIVE-parents: ' + this);
+            if (log.debug) log.debug('ALIVE-parents: ' + this);
             this.isAlive = true;
             return LIVES;
         }
@@ -300,7 +301,7 @@ GroupInfo.prototype.checkBrothers = function () {
         }
     }
     if (!oneIsAlive) return UNDECIDED;
-    if (main.debug) main.log.debug('ALIVE-brothers: ' + this);
+    if (log.debug) log.debug('ALIVE-brothers: ' + this);
     this.isAlive = true;
     return LIVES;
 };
@@ -316,7 +317,7 @@ GroupInfo.prototype._isLostInEnemyZone = function () {
 GroupInfo.prototype.checkSingleEye = function (first2play) {
     if (this.eyeCount >= 2) {
         this.isAlive = true;
-        if (main.debug) main.log.debug('ALIVE-doubleEye: ' + this);
+        if (log.debug) log.debug('ALIVE-doubleEye: ' + this);
         return LIVES;
     }
     if (this._isLostInEnemyZone()) return FAILS;
@@ -338,7 +339,7 @@ GroupInfo.prototype.checkSingleEye = function (first2play) {
     }
     // alive === ALWAYS
     this.isAlive = true;
-    if (main.debug) main.log.debug('ALIVE-singleEye-' + when2str(alive) + ': ' + this);
+    if (log.debug) log.debug('ALIVE-singleEye-' + when2str(alive) + ': ' + this);
     return LIVES;
 };
 
@@ -347,7 +348,7 @@ GroupInfo.prototype.checkLiveliness = function (minLife) {
     var life = this._liveliness = this.liveliness(true);
     if (life >= 2) {
         this.isAlive = true;
-        if (main.debug) main.log.debug('ALIVE-liveliness ' + life + ': ' + this);
+        if (log.debug) log.debug('ALIVE-liveliness ' + life + ': ' + this);
         return LIVES;
     }
     if (life < minLife) {

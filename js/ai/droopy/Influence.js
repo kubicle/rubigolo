@@ -1,12 +1,13 @@
 'use strict';
 
-var main = require('../../main');
+var CONST = require('../../constants');
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
+var log = require('../../log');
 
-var EMPTY = main.EMPTY, BLACK = main.BLACK, WHITE = main.WHITE;
-var ALWAYS = main.ALWAYS;
+var EMPTY = CONST.EMPTY, BLACK = CONST.BLACK, WHITE = CONST.WHITE;
+var ALWAYS = CONST.ALWAYS;
 
 
 /** @class public read-only attribute: map
@@ -68,23 +69,24 @@ Influence.prototype.evalBoard = function () {
             }
         }
     }
-    if (main.debug) this.debugDump();
+    if (log.debug) this.debugDump();
 };
 
 Influence.prototype.debugDump = function () {
+    if (!log.debug) return;
     var c;
     function inf2str(inf) {
         return ('     ' + inf[c].toFixed(2).chomp('0').chomp('0').chomp('.')).slice(-6);
     }
 
     for (c = BLACK; c <= WHITE; c++) {
-        main.log.debug('Influence map for ' + Grid.COLOR_NAMES[c] + ':');
+        log.debug('Influence map for ' + Grid.COLOR_NAMES[c] + ':');
         for (var j = this.gsize; j >= 1; j--) {
-            main.log.debug('%2d'.format(j) + ' ' +
+            log.debug('%2d'.format(j) + ' ' +
                 this.map[j].slice(1, this.gsize + 1).map(inf2str).join('|'));
         }
         var cols = '   ';
         for (var i = 1; i <= this.gsize; i++) { cols += '     ' + Grid.xLabel(i) + ' '; }
-        main.log.debug(cols);
+        log.debug(cols);
     }
 };

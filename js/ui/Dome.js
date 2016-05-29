@@ -30,12 +30,16 @@ module.exports = Dome;
 Dome.prototype.setText = function (text) { this.elt.textContent = text; return this; };
 Dome.prototype.setHtml = function (html) { this.elt.innerHTML = html; return this; };
 Dome.prototype.setAttribute = function (name, val) { this.elt.setAttribute(name, val); return this; };
-Dome.prototype.setEnabled = function (enable) { this.elt.disabled = !enable; return this; };
 Dome.prototype.setStyle = function (prop, value) { this.elt.style[prop] = value; return this; };
 
 Dome.prototype.setVisible = function (show) {
-    if (this.type === 'div') return this.setStyle('display', show ? '' : 'none');
-    this.elt.hidden = !show;
+    this.elt.style.display = show ? '' : 'none';
+    return this;
+};
+
+Dome.prototype.setEnabled = function (enable) {
+    this.elt.disabled = !enable;
+    this.toggleClass('disabled', !enable);
     return this;
 };
 

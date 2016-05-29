@@ -1,12 +1,13 @@
 //Translated from connector.rb using babyruby2js
 'use strict';
 
-var main = require('../../main');
+var CONST = require('../../constants');
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
+var log = require('../../log');
 
-var EMPTY = main.EMPTY;
+var EMPTY = CONST.EMPTY;
 
 
 /** @class A move that connects 2 of our groups is good.
@@ -72,7 +73,7 @@ Connector.prototype.connectsMyGroups = function (i, j, color) {
     } else {
         score = this.allyCoeff1 * numGroups;
     }
-    if (main.debug) main.log.debug('Connector for ' + Grid.colorName(color) + ' gives ' + score.toFixed(3) + ' to ' + i + ',' + j +
+    if (log.debug) log.debug('Connector for ' + Grid.colorName(color) + ' gives ' + score.toFixed(3) + ' to ' + i + ',' + j +
         ' (allies:' + numGroups + ' enemies: ' + numEnemies + ')');
     return score;
 };

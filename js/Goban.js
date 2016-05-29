@@ -1,28 +1,26 @@
-//Translated from goban.rb using babyruby2js
 'use strict';
 
+var CONST = require('./constants');
 var main = require('./main');
 var Grid = require('./Grid');
 var Stone = require('./Stone');
 var Group = require('./Group');
 
-var EMPTY = main.EMPTY, BORDER = main.BORDER;
+var GRID_BORDER = CONST.GRID_BORDER;
+var EMPTY = CONST.EMPTY, BORDER = CONST.BORDER;
 
 
-/** @class Stores what we have on the board (namely, the stones and the empty spaces).
- *  - Giving coordinates, a Goban can return an existing stone.
- *  - It also remembers the list of stones played and can share this info for undo feature.
- *  - For console game and debug features, a goban can also "draw" its content as text.
- *  See Stone and Group classes for the layer above this.
- *  public attribute: scoringGrid
- *  public read-only attribute: gsize, grid, mergedGroups, killedGroups, garbageGroups
+/** @class Stores what we have on the board (stones & groups).
+ *  Goban remembers the stones played - undo feature is provided.
+ *  public RO attributes: gsize, grid
+ *  public RW attributes: mergedGroups, killedGroups
  */
 function Goban(gsize) {
     if (gsize === undefined) gsize = 19;
     if (gsize !== ~~gsize || gsize < 3) throw new Error('Invalid goban size: ' + gsize);
     this.gsize = gsize;
-    this.grid = new Grid(gsize);
-    this.scoringGrid = new Grid(gsize);
+    this.grid = new Grid(gsize, BORDER);
+    this.scoringGrid = new Grid(gsize, GRID_BORDER); // TODO delete this when droopy & frankie are gone
 
     this.ban = this.grid.yx;
     var i, j;
@@ -36,20 +34,19 @@ function Goban(gsize) {
             this.ban[j][i].findNeighbors();
         }
     }
-    // sentinel for group list searches; NB: values like -100 helps detecting bugs when value is used by mistake
+    // Sentinel for group stacks
     Goban.sentinel = new Group(this, new Stone(this, -50, -50, EMPTY), -100, 0);
-    this.killedGroups = [Goban.sentinel]; // so that we can always do @killed_groups.last.color, etc.
+    this.killedGroups = [Goban.sentinel];
     this.mergedGroups = [Goban.sentinel];
+
     this.garbageGroups = [];
     this.numGroups = 0;
 
     this.history = [];
-    this._initSuperko(false);
+    this.setPositionalSuperko(false);
 
     // this._moveIdStack = [];
     // this._moveIdGen = this.moveId = 0; // moveId is unique per tried move
-
-    this.analyseGrid = null;
 }
 module.exports = Goban;
 
@@ -64,6 +61,7 @@ Goban.prototype.clear = function () {
         }
     }
     // Collect all the groups and put them into garbageGroups
+    // NB: V8 does slightly faster when we keep the sentinel instead of clearing to []
     this.killedGroups.shift(); // removes sentinel
     this.mergedGroups.shift(); // removes sentinel
     this.garbageGroups.concat(this.killedGroups);
@@ -75,32 +73,23 @@ Goban.prototype.clear = function () {
     this.numGroups = 0;
 
     this.history.clear();
-    this._initSuperko(false);
+    this.setPositionalSuperko(false);
 
     // this._moveIdStack.clear();
     // this._moveIdGen = this.moveId = 0;
 };
 
-Goban.prototype.setRules = function (rules) {
-    for (var rule in rules) {
-        var setting = rules[rule];
-        switch (rule) {
-        case 'positionalSuperko': this._initSuperko(setting); break;
-        default: main.log.warn('Ignoring unsupported rule: ' + rule + ': ' + setting);
-        }
-    }
-};
-
 // Allocate a new group or recycles one from garbage list.
-// For efficiency, call this one, do not call the regular Group.new method.
+// Should be the only place we call new Group()
 Goban.prototype.newGroup = function (stone, lives) {
-    this.numGroups++;
+    var ndx = ++this.numGroups;
     var group = this.garbageGroups.pop();
     if (group) {
-        return group.recycle(stone, lives, this.numGroups);
+        group.recycle(stone, lives, ndx);
     } else {
-        return new Group(this, stone, lives, this.numGroups);
+        group = new Group(this, stone, lives, ndx);
     }
+    return group;
 };
 
 Goban.prototype.deleteGroup = function (group) {
@@ -110,9 +99,7 @@ Goban.prototype.deleteGroup = function (group) {
 };
 
 Goban.prototype.image = function () {
-    return this.grid.toLine(function (s) {
-        return Grid.colorToChar(s.color);
-    });
+    return this.grid.toLine();
 };
 
 // For tests; can load a game image (without the move history)
@@ -127,7 +114,7 @@ Goban.prototype.loadImage = function (image) {
 };
 
 Goban.prototype.getAllGroups = function () {
-    var groups = {};
+    var groups = {}; //TODO return an array instead
     for (var j = this.gsize; j >= 1; j--) {
         for (var i = this.gsize; i >= 1; i--) {
             var group = this.ban[j][i].group;
@@ -157,9 +144,7 @@ Goban.prototype.debugDump = function () {
 
 // This display is for debugging and text-only game
 Goban.prototype.toString = function () {
-    return this.grid.toText(function (s) {
-        return Grid.colorToChar(s.color);
-    });
+    return this.grid.toText();
 };
 
 Goban.prototype.isValidMove = function (i, j, color) {
@@ -171,15 +156,16 @@ Goban.prototype.isValidMove = function (i, j, color) {
     if (stone.moveIsSuicide(color)) {
         return false;
     }
-    if (stone.moveIsKo(color)) {
-        return false;
-    }
+
     if (this.useSuperko) {
         // Check this is not a superko (already seen position)
         if (this.allSeenPositions[this.nextMoveImage(i, j, color)]) {
             return false;
         }
+    } else if (stone.moveIsKo(color)) {
+        return false;
     }
+
     return true;
 };
 
@@ -203,47 +189,34 @@ Goban.prototype.moveNumber = function () {
 
 Goban.prototype.playAt = function (i, j, color) {
     this._updatePositionSignature(i, j, color);
-    var stone = this._putDown(i, j);
-    stone.putDown(color);
-    return stone;
+
+    var stone = this.ban[j][i];
+    if (stone.color !== EMPTY) throw new Error('Tried to play on existing stone in ' + stone);
+    return this.tryAt(i, j, color);
 };
 
 // Called to undo a single stone (the main undo feature relies on this)  
 Goban.prototype.undo = function () {
-    var stone = this._takeBack();
-    if (!stone) throw new Error('Extra undo');
-    stone.takeBack();
+    if (!this.history.length) throw new Error('Extra undo');
+    this.history.pop().takeBack();
+
     this._updatePositionSignature();
 };
 
 Goban.prototype.tryAt = function (i, j, color) {
-    var stone = this._putDown(i, j);
-    if (main.debug) main.log.debug('try ' + stone);
+    var stone = this.ban[j][i];
+    this.history.push(stone);
     stone.putDown(color);
     return stone;
 };
 
 Goban.prototype.untry = function () {
-    var stone = this._takeBack();
-    if (main.debug) main.log.debug('untry ' + stone);
-    stone.takeBack();
+    this.history.pop().takeBack();
 };
 
-// Plays a stone and stores it in history
-// Returns the existing stone and the caller (Stone class) will update it
-Goban.prototype._putDown = function (i, j) {
-    var stone = this.ban[j][i];
-    if (stone.color !== EMPTY) {
-        throw new Error('Tried to play on existing stone in ' + stone);
-    }
-    this.history.push(stone);
-    return stone;
-};
-
-// Removes the last stone played from the board
-// Returns the existing stone for the caller to update it
-Goban.prototype._takeBack = function () {
-    return this.history.pop();
+// Returns undefined if no group was killed yet
+Goban.prototype.previousKilledGroup = function () {
+    return this.killedGroups[this.killedGroups.length - 1];
 };
 
 // If inc > 0 (e.g. +1), increments the move ID
@@ -262,7 +235,19 @@ Goban.prototype.previousStone = function () {
     return this.history[this.history.length - 1];
 };
 
-Goban.prototype._initSuperko = function (isRuleOn) {
+// Updates an array with the prisoner count per color
+// e.g. [+3,+5] means 3 black stones are prisoners, 5 white stones
+Goban.prototype.countPrisoners = function (prisoners) {
+    prisoners = prisoners || [0, 0];
+    for (var i = this.killedGroups.length - 1; i >= 0; i--) {
+        var g = this.killedGroups[i];
+        prisoners[g.color] += g.stones.length;
+    }
+    return prisoners;
+};
+
+Goban.prototype.setPositionalSuperko = function (isRuleOn) {
+    if (this.history.length > 0) throw new Error('Superko rule changed during game');
     this.useSuperko = isRuleOn;
     if (isRuleOn) {
         this.currentPosition = this.buildCompressedImage();

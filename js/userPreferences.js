@@ -1,5 +1,6 @@
 'use strict';
 
+var log = require('./log');
 var main = require('./main');
 
 var PREF_NAME = main.appName;
@@ -38,7 +39,7 @@ UserPreferences.prototype._load = function () {
             this.prefs = JSON.parse(content);
         }
     } catch (err) {
-        main.log.warn('Failed to load user preferences: ' + err);
+        if (log.warn) log.warn('Failed to load user preferences: ' + err);
     }
 };
 
@@ -80,7 +81,7 @@ UserPreferences.prototype._save = function () {
         }
         window.localStorage.setItem(PREF_NAME, JSON.stringify(this.prefs));
     } catch (err) {
-        main.log.warn('Failed to save user preferences: ' + err);
+        if (log.warn) log.warn('Failed to save user preferences: ' + err);
     }
 };
 

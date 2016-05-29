@@ -1,13 +1,13 @@
 //Translated from hunter.rb using babyruby2js
 'use strict';
 
-var main = require('../../main');
-
+var CONST = require('../../constants');
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
+var log = require('../../log');
 
-var ALWAYS = main.ALWAYS;
+var ALWAYS = CONST.ALWAYS, EMPTY = CONST.EMPTY;
 
 
 /** @class Hunters find threats to struggling enemy groups.
@@ -59,7 +59,7 @@ Hunter.prototype._killScore = function (empty, color) {
     for (var i = empty.neighbors.length - 1; i >= 0; i--) {
         var n = empty.neighbors[i];
         switch (n.color) {
-        case main.EMPTY:
+        case EMPTY:
             life += 0.01;
             break;
         case color: // ally
@@ -115,9 +115,9 @@ Hunter.prototype.evalMove = function (i, j, color, level) {
             }
             // here we know this is a snapback
             snapback = true;
-            if (main.debug) main.log.debug('Hunter ' + Grid.colorName(color) + ' sees a snapback in ' + stone);
+            if (log.debug) log.debug('Hunter ' + Grid.colorName(color) + ' sees a snapback in ' + stone);
         }
-        if (main.debug) main.log.debug('Hunter ' + Grid.colorName(color) + '(level ' + level + ') looking at ' + Grid.xy2move(i, j) + ' threat on ' + eg);
+        if (log.debug) log.debug('Hunter ' + Grid.colorName(color) + '(level ' + level + ') looking at ' + Grid.xy2move(i, j) + ' threat on ' + eg);
         if (!egroups) egroups = [eg];
         else egroups.push(eg);
     }
@@ -145,7 +145,7 @@ Hunter.prototype.evalMove = function (i, j, color, level) {
 
     var threat = this._getMultipleChaseThreat(egroups, canEscape);
 
-    if (main.debug && (threat1 || threat)) main.log.debug('Hunter ' + Grid.colorName(color) +
+    if (log.debug && (threat1 || threat)) log.debug('Hunter ' + Grid.colorName(color) +
         ' found a threat of ' + threat1 + ' + ' + threat + ' at ' + Grid.xy2move(i, j));
     return threat + threat1;
 };
@@ -184,7 +184,7 @@ Hunter.prototype._isAtariGroupCaught = function (g, level) {
     var stone = this.goban.tryAt(lastLife.i, lastLife.j, g.color); // enemy's escape move
     var isCaught = this.isEscapingAtariCaught(stone, level);
     this.goban.untry();
-    if (main.debug) main.log.debug('Hunter: group with last life ' + lastLife + ' would ' + (isCaught ? 'be caught: ' : 'escape: ') + g);
+    if (log.debug) log.debug('Hunter: group with last life ' + lastLife + ' would ' + (isCaught ? 'be caught: ' : 'escape: ') + g);
     return isCaught;
 };
 
@@ -224,7 +224,7 @@ Hunter.prototype.isEscapingAtariCaught = function (stone, level) {
     if (empties.length !== 2) throw new Error('Unexpected: hunter #2');
     var e1 = empties[0];
     var e2 = empties[1];
-    if (main.debug) main.log.debug('Hunter: group has 2 lives left: ' + e1 + ' and ' + e2);
+    if (log.debug) log.debug('Hunter: group has 2 lives left: ' + e1 + ' and ' + e2);
 
     // play the 2 moves (recursive descent)
     var color = 1 - g.color;

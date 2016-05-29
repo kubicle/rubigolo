@@ -1,28 +1,27 @@
 'use strict';
 
+var log = require('../log');
 var main = require('../main');
-var TestSeries = require('./TestSeries');
 
 
 /** @class */
 function TestCase(name) {
     this.name = name;
-    this.series = null;
+    this.series = null; // set by TestSeries (to avoid changing existing derived classes)
+    this.isBroken = false;
 }
 module.exports = TestCase;
 
 
-TestCase.prototype.check = function (result) {
-    this.series.checkCount++;
-    if (result) return true;
-    this.series.warningCount++;
-    return false;
+TestCase.prototype.startBrokenTest = function () {
+    this.isBroken = true;
+    this.series.startBrokenTest();
 };
 
-function _fail(msg, comment) {
-    comment = comment ? comment + ': ' : '';
-    throw new Error(TestSeries.FAILED_ASSERTION_MSG + comment + msg);
-}
+TestCase.prototype.check = function (result) {
+    this.series.checkCount++;
+    return result;
+};
 
 function _valueCompareHint(expected, val) {
     if (typeof expected !== 'string' || typeof val !== 'string') return '';
@@ -39,8 +38,8 @@ function _valueCompareHint(expected, val) {
 }
 
 TestCase.prototype.compareValue = function (expected, val) {
-    if (main.isA(Array, expected)) {
-        if (!main.isA(Array, val)) return 'Expected Array but got ' + val;
+    if (expected instanceof Array) {
+        if (!val instanceof Array) return 'Expected Array but got ' + val;
         if (val.length !== expected.length) {
             return 'Expected Array of size ' + expected.length + ' but got size ' + val.length;
         }
@@ -58,22 +57,30 @@ TestCase.prototype.assertEqual = function (expected, val, comment) {
     this.series.checkCount++;
     var msg = this.compareValue(expected, val);
     if (msg === '') return;
-    _fail(msg, comment);
+    this.series.failTest(msg, comment);
 };
 
 TestCase.prototype.assertInDelta = function (val, expected, delta, comment) {
     this.series.checkCount++;
     if (Math.abs(val - expected) <= delta) return;
-    _fail(val + ' is not in +/-' + delta + ' delta around ' + expected, comment);
+    this.series.failTest(val + ' is not in +/-' + delta + ' delta around ' + expected, comment);
+};
+
+TestCase.prototype.fail = function (comment) {
+    this.series.failTest(comment);
 };
 
 TestCase.prototype.todo = function (comment) {
     this.series.todoCount++;
-    main.log.info('TODO: ' + comment);
+    log.info('TODO: ' + comment);
 };
 
 TestCase.prototype.showInUi = function (msg) {
-    if (main.testUi && this.game) {
+    if (!main.testUi || !this.game) return;
+    if (this.isBroken && !main.debug) return;
+    try {
         main.testUi.showTestGame(this.name, msg, this.game);
+    } catch (e) {
+        log.error('Exception loading failed test in UI: ' + e.message);
     }
 };

@@ -1,10 +1,9 @@
-//Translated from handicap_setter.rb using babyruby2js
 'use strict';
 
-var main = require('./main');
+var CONST = require('./constants');
 var Grid = require('./Grid');
 
-var BLACK = main.BLACK, WHITE = main.WHITE;
+var BLACK = CONST.BLACK, WHITE = CONST.WHITE;
 
 
 /** @class Used for setting handicap stones,
@@ -108,7 +107,7 @@ HandicapSetter.setStandardHandicap = function (goban, count) {
         default: 
             break; // not more than 8
         }
-        goban.playAt(x, y, main.BLACK);
+        goban.playAt(x, y, BLACK);
     }
     return count;
 };

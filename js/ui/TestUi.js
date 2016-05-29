@@ -2,13 +2,14 @@
 
 var main = require('../main');
 var Dome = require('./Dome');
-var Logger = require('../Logger');
+var log = require('../log');
 var Ui = require('./Ui');
+var userPref = require('../userPreferences');
 
 
 function TestUi() {
     main.debug = false;
-    main.log.level = Logger.INFO;
+    log.setLevel(log.INFO);
     main.testUi = this;
 }
 module.exports = TestUi;
@@ -18,19 +19,21 @@ TestUi.prototype.enableButtons = function (enabled) {
     for (var name in this.ctrl) { this.ctrl[name].disabled = !enabled; }
 };
 
-TestUi.prototype.runTest = function (name) {
+TestUi.prototype.runTest = function (name, pattern) {
     main.defaultAi = main.ais[this.defaultAi.value()];
+
     main.debug = this.debug.isChecked();
+    // Remove debug flag for ALL and Speed test
+    if (name === 'ALL' || name === 'TestSpeed') main.debug = false;
 
-    var specificClass = name === 'ALL' ? undefined : name;
-    if (name === 'ALL' || name === 'TestSpeed') {
-        main.debug = false; // dead slow if debug is ON
-    }
-    main.log.level = main.debug ? Logger.DEBUG : Logger.INFO;
-    main.log.setLogFunc(this.logfn.bind(this));
+    var specificClass = name;
+    if (name === 'ALL' || name === 'FILTER') specificClass = undefined;
 
-    var numIssues = main.tests.run(specificClass, this.namePattern.value());
-    if (numIssues) this.logfn(Logger.INFO, '\n*** ' + numIssues + ' ISSUE' + (numIssues !== 1 ? 'S' : '') + ' - See below ***');
+    log.setLevel(main.debug ? log.DEBUG : log.INFO);
+    log.setLogFunc(this.logfn.bind(this));
+
+    var numIssues = main.tests.run(specificClass, pattern);
+    if (numIssues) this.logfn(log.INFO, '\n*** ' + numIssues + ' ISSUE' + (numIssues !== 1 ? 'S' : '') + ' - See below ***');
 
     this.output.scrollToBottom();
     this.errors.scrollToBottom();
@@ -38,38 +41,42 @@ TestUi.prototype.runTest = function (name) {
 };
 
 TestUi.prototype.initTest = function (name) {
-    this.output.setHtml('Running "' + name + '"...<br>');
+    var pattern = name === 'FILTER' ? this.namePattern.value() : undefined;
+    var desc = pattern ? '*' + pattern + '*' : name;
+
+    this.output.setHtml('Running "' + desc + '"...<br>');
     this.errors.setText('');
     this.gameDiv.clear();
     this.controls.setEnabled('ALL', false);
     var self = this;
-    window.setTimeout(function () { self.runTest(name); }, 50);
+    window.setTimeout(function () { self.runTest(name, pattern); }, 50);
 };
 
 TestUi.prototype.logfn = function (lvl, msg) {
     msg = msg.replace(/\n/g, '<br>').replace(/ /g, '&nbsp;') + '<br>';
-    if (lvl >= Logger.WARN) this.errors.setHtml(this.errors.html() + msg);
-    else if (lvl > Logger.DEBUG) this.output.setHtml(this.output.html() + msg);
+    if (lvl >= log.WARN) this.errors.setHtml(this.errors.html() + msg);
+    else if (lvl > log.DEBUG) this.output.setHtml(this.output.html() + msg);
     return true; // also log in console
 };
 
-TestUi.prototype.newButton = function (name, label) {
-    var self = this;
-    Dome.newButton(this.controlElt, '#' + name, label, function () { self.initTest(name); });
+TestUi.prototype.newButton = function (parent, name, label) {
+    Dome.newButton(parent, '#' + name, label, this.initTest.bind(this, name));
 };
 
 TestUi.prototype.createControls = function (parentDiv) {
     this.controls = Dome.newGroup();
-    this.controlElt = parentDiv.newDiv('controls');
-    this.newButton('ALL', 'Test All');
-    this.newButton('TestSpeed', 'Speed');
-    this.newButton('TestBreeder', 'Breeder');
-    this.newButton('TestBoardAnalyser', 'Scoring');
-    this.newButton('TestPotentialTerritory', 'Territory');
-    this.newButton('TestAi', 'AI');
+    var div = parentDiv.newDiv('controls');
+    this.newButton(div, 'ALL', 'Test All');
+    this.newButton(div, 'TestSpeed', 'Speed');
+    this.newButton(div, 'TestBreeder', 'Breeder');
+    this.newButton(div, 'TestBoardAnalyser', 'Scoring');
+    this.newButton(div, 'TestPotentialTerritory', 'Territory');
+    this.newButton(div, 'TestAi', 'AI');
 };
 
 TestUi.prototype.createUi = function () {
+    window.addEventListener('beforeunload', this.beforeUnload.bind(this));
+
     var title = main.appName + ' - Tests';
     Dome.setPageTitle(title);
     var testDiv = Dome.newDiv(document.body, 'testUi');
@@ -77,17 +84,28 @@ TestUi.prototype.createUi = function () {
     testDiv.newDiv('pageTitle').setText(title);
     this.createControls(testDiv);
 
-    var defAiDiv = testDiv.newDiv();
-    Dome.newLabel(defAiDiv, 'inputLbl', 'Default AI:');
-    this.defaultAi = Dome.newDropdown(defAiDiv, 'defaultAi', Object.keys(main.ais), null, main.defaultAi.name);
-    
-    this.namePattern = Dome.newInput(testDiv, 'namePattern', 'Test name pattern:');
-    this.debug = Dome.newCheckbox(testDiv, 'debug', 'Debug');
+    var div1 = testDiv.newDiv();
+    Dome.newLabel(div1, 'inputLbl', 'Default AI:');
+    this.defaultAi = Dome.newDropdown(div1, 'defaultAi', Object.keys(main.ais), null, main.defaultAi.name);
+    this.debug = Dome.newCheckbox(div1, 'debug', 'Debug');
+
+    var div2 = testDiv.newDiv('patternDiv');
+    this.namePattern = Dome.newInput(div2, 'namePattern', 'Filter:', userPref.getValue('testNamePattern'));
+    this.newButton(div2, 'FILTER', 'Run');
     
     testDiv.newDiv('subTitle').setText('Result');
     this.output = testDiv.newDiv('logBox testOutputBox');
     testDiv.newDiv('subTitle').setText('Errors');
     this.errors = testDiv.newDiv('logBox testErrorBox');
+};
+
+TestUi.prototype.saveTestPreferences = function () {
+    userPref.setValue('testNamePattern', this.namePattern.value());
+};
+
+TestUi.prototype.beforeUnload = function () {
+    this.saveTestPreferences();
+    userPref.close();
 };
 
 TestUi.prototype.showTestGame = function (title, msg, game) {

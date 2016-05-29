@@ -1,12 +1,11 @@
-//Translated from stone.rb using babyruby2js
 'use strict';
 
-var main = require('./main');
+var CONST = require('./constants');
 var Grid = require('./Grid');
 var Group = require('./Group');
 
-var EMPTY = main.EMPTY, BORDER = main.BORDER;
-var DIR0 = main.DIR0, DIR3 = main.DIR3;
+var EMPTY = CONST.EMPTY, BORDER = CONST.BORDER;
+var DIR0 = CONST.DIR0, DIR3 = CONST.DIR3;
 
 
 /** @class A "stone" stores everything we want to keep track of regarding an intersection on the board.
@@ -78,6 +77,11 @@ Stone.prototype.isCorner = function () {
     return this.neighbors.length === 2;
 };
 
+Stone.prototype.getSubCorner = function () {
+    var goban = this.goban, size1 = goban.gsize - 1;
+    return goban.stoneAt(this.i === 1 ? 2 : size1, this.j === 1 ? 2 : size1);
+};
+
 Stone.prototype.isBorder = function () {
     return this.neighbors.length <= 3; // NB: corners are borders too
 };
@@ -124,26 +128,18 @@ Stone.prototype.moveIsKo = function (color) {
     if (!groupA) return false;
 
     // 2) This killed group must be a single stone A
-    if (groupA.stones.length !== 1) {
-        return false;
-    }
+    if (groupA.stones.length !== 1) return false;
     var stoneA = groupA.stones[0];
+
     // 3) Stone A was played just now
-    if (this.goban.previousStone() !== stoneA) {
-        return false;
-    }
+    if (this.goban.previousStone() !== stoneA) return false;
+
     // 4) Stone B was killed by A in same position we are looking at
-    var groupB = this.goban.killedGroups[this.goban.killedGroups.length-1];
-    if (groupB.killedBy !== stoneA) {
-        return false;
-    }
-    if (groupB.stones.length !== 1) {
-        return false;
-    }
+    var groupB = this.goban.previousKilledGroup();
+    if (!groupB || groupB.killedBy !== stoneA || groupB.stones.length !== 1) return false;
     var stoneB = groupB.stones[0];
-    if (stoneB.i !== this.i || stoneB.j !== this.j) {
-        return false;
-    }
+    if (stoneB.i !== this.i || stoneB.j !== this.j) return false;
+
     return true; // move is a ko
 };
 
@@ -180,21 +176,15 @@ Stone.prototype.putDown = function (color) {
 
 // Called by goban only
 Stone.prototype.takeBack = function () {
-    if (main.debugGroup) main.log.debug('takeBack: ' + this.toString() + ' from group ' + this.group);
-
     this.group.unmergeFrom(this);
     this.group.disconnectStone(this);
     var enemies = this.uniqueAllies(1 - this.color);
     for (var e = enemies.length - 1; e >= 0; e--) {
         enemies[e].notAttackedAnymore(this);
     }
-    var logGroup;
-    if (main.debugGroup) logGroup = this.group;
-
     this.group = null;
     this.color = EMPTY;
-    Group.resuscitateFrom(this, this.goban);
-    if (main.debugGroup) main.log.debug('takeBack: end; main group: ' + logGroup.debugDump());
+    Group.resuscitateGroupsFrom(this);
 };
 
 Stone.prototype.setGroupOnMerge = function (newGroup) {

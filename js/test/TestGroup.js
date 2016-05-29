@@ -1,21 +1,22 @@
-//Translated from test_group.rb using babyruby2js
 'use strict';
 
-var main = require('../main');
+var CONST = require('../constants');
 var inherits = require('util').inherits;
 var GameLogic = require('../GameLogic');
+var TestCase = require('./TestCase');
 
-var BLACK = main.BLACK, WHITE = main.WHITE;
+var BLACK = CONST.BLACK, WHITE = CONST.WHITE;
+var EMPTY = CONST.EMPTY;
 
 
 /** @class NB: for debugging think of using @goban.debug_display
  */
 function TestGroup(testName) {
-    main.TestCase.call(this, testName);
+    TestCase.call(this, testName);
     this.initBoard();
 }
-inherits(TestGroup, main.TestCase);
-module.exports = main.tests.add(TestGroup);
+inherits(TestGroup, TestCase);
+module.exports = TestGroup;
 
 
 TestGroup.prototype.initBoard = function (size, handicap) {
@@ -23,7 +24,6 @@ TestGroup.prototype.initBoard = function (size, handicap) {
     if (handicap === undefined) handicap = 0;
     this.game = new GameLogic();
     this.game.newGame(size, handicap);
-    this.game.switchConsoleMode(true);
     this.goban = this.game.goban;
 };
 
@@ -276,14 +276,14 @@ TestGroup.prototype.testUndo2 = function () {
     var wg = ws.group;
     this.game.loadMoves('a2');
     this.assertEqual(0, wg.lives);
-    this.assertEqual(main.EMPTY, ws.color);
+    this.assertEqual(EMPTY, ws.color);
     this.assertEqual(true, ws.group === null);
     this.game.loadMoves('undo');
     this.assertEqual(1, wg.lives);
     this.assertEqual(BLACK, ws.color);
     this.game.loadMoves('c3,a2'); // and kill again the same
     this.assertEqual(0, wg.lives);
-    this.assertEqual(main.EMPTY, ws.color);
+    this.assertEqual(EMPTY, ws.color);
     this.assertEqual(true, ws.group === null);
 };
 

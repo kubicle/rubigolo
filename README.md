@@ -6,31 +6,52 @@
 Game of Go (weiqi, igo, baduk), originally started in Ruby (hence the name), then translated to Javascript... In development, of course. 
 
 - [run it](http://rawgit.com/kubicle/rubigolo/master/index.html) in your browser.
-- [run tests](http://rawgit.com/kubicle/rubigolo/master/js/ui/tests.html)
-
-Old Ruby version: check the [help page](http://htmlpreview.github.io/?https://github.com/kubicle/rubigolo/blob/master/help-index.html)
 
 Dependencies
 ============
 
 - [WGo.js](http://github.com/waltheri/wgo.js) is included in the project
-- Browserify, watchify, lessify are used for the build
+- Browserify, watchify, lessify and uglifyJS are used for the build
 
 How to build and test locally
 =============================
 
+`npm install`
+
+Start browserify build & file watcher
+`npm run-script dev-build`
+
+Run the dev version or the tests by opening in your browser:
+- devIndex.html
+- tests.html
+
+Run Computer Go Test Collection (you need gogui-regress.jar from GoGui)
 ```
-npm install
-
-# Start browserify build & file watcher
-npm start
-
-# Run Computer Go Test Collection (you need gogui-regress.jar from GoGui)
 cd ...\cgtc-2.0.1
-java -jar gogui-regress.jar "node ...\rubigolo\js\consoleMain.js" *.tst
+java -jar gogui-regress.jar "node ...\rubigolo\js\gtpMain.js" *.tst
 ```
+
+Build the minified bundle
+`npm run-script build`
+
+Run on CGOS
+- download `cgos-client-python-0.3.0.zip`
+- download `gogui-1.4.9` to get real-time display of your engine's matches (much more fun!)
+- copy and edit files from samples directory (config.cfg, gtpBot.bat)
+- run `python pythonClient/bin/cgosclient.py config.cfg`
 
 =======
+
+## June 2016 News
+* Last commits before renaming the project "1g0".
+* Added regression tests - 88 "Reference games".
+* Refactored log statements and constants.
+
+## April 2016 News
+* AI understands Chinese / CGOS rules - can play on yss-aya.com and cgos.boardspace.net using GTP
+* AI understands eye-making up to 6 vertex size
+* Game Review mode and improved UI
+* Uglified build and separated release build from dev build - release build is just above 108 KB
 
 ## Christmas 2015 News
 * GTP is working! Used it to run with [GoGui](http://gogui.sf.net/) and [Computer Go Test Collection](https://webdocs.cs.ualberta.ca/~games/go/cgtc/).

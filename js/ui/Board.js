@@ -1,13 +1,13 @@
 'use strict';
 
-var main = require('../main');
-
+var CONST = require('../constants');
 var Grid = require('../Grid');
+var log = require('../log');
 var touchManager = require('./touchManager.js');
 
 var WGo = window.WGo;
 
-var WHITE = main.WHITE, BLACK = main.BLACK, EMPTY = main.EMPTY;
+var WHITE = CONST.WHITE, BLACK = CONST.BLACK, EMPTY = CONST.EMPTY;
 
 var pixelRatio = window.devicePixelRatio || 1;
 
@@ -30,6 +30,7 @@ function Board() {
     this.displayType = null;
     this.cursor = { type: 'CR', x: 0, y: 0 };
     this.isCursorOn = false;
+    this.highlight = { type: null, x: 0, y: 0 };
 }
 module.exports = Board;
 
@@ -47,6 +48,10 @@ Board.prototype.create = function (parent, width, goban, options) {
         section: { top: margin, left: margin, right: margin, bottom: margin },
         coordFontSize: 0.6
     };
+    switch (options.background) {
+    case 'wood': config.background = (window.rootDir || '.') + '/lib/wood1.jpg'; break;
+    default: config.background = '#c75';
+    }
 
     parent.clear();
     this.board = new WGo.Board(parent.getDomElt(), config);
@@ -101,6 +106,15 @@ Board.prototype.moveCursor = function (x, y) {
         this.cursor.c = this.cursorColor;
     }
     this.board.addObject(this.cursor);
+};
+
+Board.prototype.highlightStone = function (type, i, j) {
+    if (this.highlight.type) this.board.removeObject(this.highlight);
+    this.highlight.type = type;
+    if (!type) return;
+    this.highlight.x = i - 1;
+    this.highlight.y = this.gsize - j;
+    this.board.addObject(this.highlight);
 };
 
 Board.prototype.isValidCoords = function (x, y) {
@@ -197,28 +211,34 @@ function scoringDisplay(cell) {
     }
 }
 
-var valueFormatMinDec, valueFormatMaxDec;
+var valueFormatMinDec, valueFormatMaxDec, valueFormatNeutralVal;
 
 // Usually for debug/test
-Board.prototype.setValueFormat = function (minDecimals, maxDecimals) {
+Board.prototype.setValueFormat = function (minDecimals, maxDecimals, neutralValue) {
     valueFormatMinDec = minDecimals;
     valueFormatMaxDec = maxDecimals;
+    valueFormatNeutralVal = neutralValue;
 };
 
 function valueDisplay(cell) {
     if (cell === null) return null;
+    var scale = 1;
 
-    var minDec = 0, maxDec = 2;
+    var minDec = 0, maxDec = 2, neutral = 0;
     if (valueFormatMinDec !== undefined) minDec = valueFormatMinDec;
     if (valueFormatMaxDec !== undefined) maxDec = valueFormatMaxDec;
+    if (valueFormatNeutralVal !== undefined) neutral = valueFormatNeutralVal;
+    if (cell === neutral) return null;
 
     var val = cell.toFixed(maxDec);
     for (var i = minDec; i < maxDec; i++) val = val.chomp('0');
     val = val.chomp('.');
-    if (val === '0') return null;
     if (val.substr(0, 2) === '0.') val = val.slice(1);
-
-    return { type: 'LB', text: val };
+    if (neutral === 0) {
+        if (val === '0' || val === '.0') return null;
+        scale = (cell < 1 ? 0.6 : 1);
+    }
+    return { type: 'LB', text: val, scale: scale };
 }
 
 var displayFunctions = {
@@ -229,7 +249,7 @@ var displayFunctions = {
 
 Board.prototype.showSpecial = function (displayType, yx) {
     var fn = displayFunctions[displayType];
-    if (!fn) { return main.log.error('invalid display type:', displayType); }
+    if (!fn) { return log.error && log.error('invalid display type:', displayType); }
     this.show(displayType, yx, fn);
 };
 

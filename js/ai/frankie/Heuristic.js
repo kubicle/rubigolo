@@ -1,14 +1,16 @@
 //Translated from heuristic.rb using babyruby2js
 'use strict';
 
+var CONST = require('../../constants');
 var main = require('../../main');
 var Grid = require('../../Grid');
 var Stone = require('../../Stone');
 
-var sOK = main.sOK, ALWAYS = main.ALWAYS;
-var EMPTY = main.EMPTY, BORDER = main.BORDER;
+var sOK = CONST.sOK, ALWAYS = CONST.ALWAYS;
+var GRID_BORDER = CONST.GRID_BORDER;
+var EMPTY = CONST.EMPTY, BORDER = CONST.BORDER, BLACK = CONST.BLACK;
 var XY_AROUND = Stone.XY_AROUND;
-var DIR0 = main.DIR0, DIR3 = main.DIR3;
+var DIR0 = CONST.DIR0, DIR3 = CONST.DIR3;
 
 
 /** @class Base class for all heuristics.
@@ -16,13 +18,14 @@ var DIR0 = main.DIR0, DIR3 = main.DIR3;
  */
 function Heuristic(player, consultant) {
     this.player = player;
+    this.name = this.constructor.name || main.funcName(this.constructor);
     this.consultant = !!consultant;
     this.goban = player.goban;
     this.gsize = player.goban.gsize;
     this.inf = player.inf;
     this.ter = player.ter;
     this.boan = player.boan;
-    this.scoreGrid = new Grid(this.gsize);
+    this.scoreGrid = new Grid(this.gsize, 0, GRID_BORDER);
 
     this.spaceInvasionCoeff = this.getGene('spaceInvasion', 2.0, 0.01, 4.0);
 }
@@ -53,17 +56,17 @@ Heuristic.prototype.evalBoard = function (stateYx, scoreYx) {
 };
 
 Heuristic.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
-    return this.player.genes.get(this.constructor.name + '-' + name, defVal, lowLimit, highLimit);
+    return this.player.genes.get(this.name + '-' + name, defVal, lowLimit, highLimit);
 };
 
 Heuristic.prototype.territoryScore = function (i, j, color) {
     var ter = this.ter.potential().yx;
-    return ter[j][i] * ( color === main.BLACK ? 1 : -1);
+    return ter[j][i] * ( color === BLACK ? 1 : -1);
 };
 
 Heuristic.prototype.enemyTerritoryScore = function (i, j, color) {
     var score = Grid.territory2owner[2 + this.ter.grids[1 - color].yx[j][i]];
-    return score * (color === main.BLACK ? 1 : -1);
+    return score * (color === BLACK ? 1 : -1);
 };
 
 /** Pass saved as true if g is an ally group (we evaluate how much we save) */
@@ -122,10 +125,6 @@ Heuristic.prototype.invasionCost = function (i, j, color) {
         cost += this._invasionCost(i + XY_AROUND[dir][0], j + XY_AROUND[dir][1], dir, color, INVASION_DEEPNESS);
     }
     return cost;
-};
-
-Heuristic.prototype.markMoveAsBlunder = function (i, j, reason) {
-    this.player.markMoveAsBlunder(i, j, this.constructor.name + ':' + reason);
 };
 
 Heuristic.prototype.distanceFromStoneToBorder = function (stone) {
@@ -203,7 +202,7 @@ Heuristic.prototype.canConnect = function (i, j, color) {
     for (var nNdx = stone.neighbors.length - 1; nNdx >= 0; nNdx--) {
         var n = stone.neighbors[nNdx];
         if (n.color === color && n.group.xDead < ALWAYS) return n;
-        if (n.color === main.EMPTY) empties.push(n);
+        if (n.color === EMPTY) empties.push(n);
     }
     // look around each empty for allies
     var moveNeeded = 2;

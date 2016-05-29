@@ -1,13 +1,14 @@
 //Translated from connector.rb using babyruby2js
 'use strict';
 
-var main = require('../../main');
+var CONST = require('../../constants');
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
+var log = require('../../log');
 
-var EMPTY = main.EMPTY, BORDER = main.BORDER;
-var ALWAYS = main.ALWAYS, NEVER = main.NEVER;
+var EMPTY = CONST.EMPTY, BORDER = CONST.BORDER;
+var ALWAYS = CONST.ALWAYS, NEVER = CONST.NEVER;
 
 /*
 TODO:
@@ -42,7 +43,7 @@ Connector.prototype._evalMove = function (i, j, color) {
     // If our stone would simply be captured, no luck
     var stone = this.goban.stoneAt(i, j);
     if (this.noEasyPrisonerYx[j][i] < 0 && !this.hunter.isSnapback(stone)) {
-        if (main.debug) main.log.debug('Connector ' + Grid.colorName(color) + ' skips ' + stone + ' (trusting NoEasyPrisoner)');
+        if (log.debug) log.debug('Connector ' + Grid.colorName(color) + ' skips ' + stone + ' (trusting NoEasyPrisoner)');
         return 0;
     }
     // Score for connecting our groups + cutting enemies
@@ -129,7 +130,7 @@ Connector.prototype._directConnect = function (stone, color) {
     if (s1.i !== s2.i && s1.j !== s2.j) {
         // no need to connect now if connection is granted
         if (this.distanceBetweenStones(s1, s2, color) === 0) {
-            if (main.debug) main.log.debug('Connector ' + Grid.colorName(color) + ' sees no hurry to connect ' + s1 + ' and ' + s2);
+            if (log.debug) log.debug('Connector ' + Grid.colorName(color) + ' sees no hurry to connect ' + s1 + ' and ' + s2);
             if (groupNeedsToConnect(s1.group) || groupNeedsToConnect(s2.group))
                 return this.minimumScore;
             return 0;
@@ -164,7 +165,7 @@ Connector.prototype._computeScore = function (stone, color, groups, numEnemies, 
         }
         score *= this.riskCoeff;
     }
-    if (main.debug) main.log.debug('Connector ' + desc + ' for ' + Grid.colorName(color) + ' gives ' +
+    if (log.debug) log.debug('Connector ' + desc + ' for ' + Grid.colorName(color) + ' gives ' +
         score.toFixed(3) + ' to ' + stone + ' (allies:' + groups.length + ' enemies: ' + numEnemies + ')');
     return score;
 };

@@ -1,17 +1,16 @@
-//Translated from test_sgf_reader.rb using babyruby2js
 'use strict';
 
-var main = require('../main');
 var inherits = require('util').inherits;
 var SgfReader = require('../SgfReader');
+var TestCase = require('./TestCase');
 
 
 /** @class */
 function TestSgfReader(testName) {
-    main.TestCase.call(this, testName);
+    TestCase.call(this, testName);
 }
-inherits(TestSgfReader, main.TestCase);
-module.exports = main.tests.add(TestSgfReader);
+inherits(TestSgfReader, TestCase);
+module.exports = TestSgfReader;
 
 
 TestSgfReader.prototype.testSgfNoHandicap = function () {

@@ -1,13 +1,14 @@
 'use strict';
 /* eslint no-console: 0 */
 
+var CONST = require('../constants');
 var main = require('../main');
 var GameLogic = require('../GameLogic');
 var Grid = require('../Grid');
 var Gtp = require('./Gtp');
 var ScoreAnalyser = require('../ScoreAnalyser');
 
-var WHITE = main.WHITE, BLACK = main.BLACK, EMPTY = main.EMPTY;
+var WHITE = CONST.WHITE, BLACK = CONST.BLACK, EMPTY = CONST.EMPTY;
 var DEAD_COLOR = Grid.DEAD_COLOR;
 var DEAD = Gtp.DEAD, ALIVE = Gtp.ALIVE;
 
@@ -15,13 +16,15 @@ var GAME_NOT_STARTED = '00';
 
 
 /** @class
- * Interface between the game engine (GameLogic, etc.) and Gtp.
+ * Interface between a game engine and Gtp.
+ * @param {GameLogic} game
  */
-function GtpEngine(game, scorer) {
+function GtpEngine(game) {
     this.game = game || new GameLogic();
-    this.scorer = scorer || new ScoreAnalyser();
+    this.scorer = new ScoreAnalyser(this.game);
     this.players = [];
     this.scoreComputedAt = null;
+    this.AiClass = main.defaultAi;
 }
 module.exports = GtpEngine;
 
@@ -31,7 +34,8 @@ GtpEngine.prototype.quit = function () {
 };
 
 GtpEngine.prototype.send = function (msg) {
-    console.log(msg); // stdout is default
+    // stdout is default; + we remove 1 \n from the msg since log method will add 1
+    console.log(msg.chomp());
 };
 
 GtpEngine.prototype.refreshDisplay = function () {
@@ -40,16 +44,23 @@ GtpEngine.prototype.refreshDisplay = function () {
 GtpEngine.prototype.getAiPlayer = function (color) {
     var player = this.players[color];
     if (player) return player;
-    player = this.players[color] = new main.defaultAi(this.game.goban, color);
+    player = this.players[color] = new this.AiClass(this.game, color);
     return player;
 };
 
 GtpEngine.prototype.name = function () {
-    return main.appName;
+    return this.AiClass.publicName;
 };
 
 GtpEngine.prototype.version = function () {
-    return main.appVersion;
+    return this.AiClass.publicVersion;
+};
+
+/** Must be called BEFORE initBoardSize/clearBoard
+ * @param {string} rulesName - e.g. Chinese, Japanese or CGOS
+ */
+GtpEngine.prototype.setRules = function (rulesName) {
+    this.game.setRules(rulesName);
 };
 
 GtpEngine.prototype.initBoardSize = function (size) {
@@ -97,9 +108,8 @@ GtpEngine.prototype.undo = function () {
 };
 
 GtpEngine.prototype.computeScore = function () {
-    var game = this.game;
-    this.scoreComputedAt = game.goban.getPositionSignature();
-    return this.scorer.computeScoreDiff(game.goban, game.komi);
+    this.scoreComputedAt = this.game.goban.getPositionSignature();
+    return this.scorer.computeScoreDiff(this.game);
 };
 
 // status: -1: dead, 0: seki, +1: alive
@@ -134,9 +144,9 @@ GtpEngine.prototype.getStonesWithStatus = function (status) {
 
 GtpEngine.prototype._beginGame = function () {
     this.refreshDisplay();
-    // make sure both AI exist
-    this.getAiPlayer(BLACK);
-    this.getAiPlayer(WHITE);
+    // Initialize both AIs
+    this.getAiPlayer(BLACK).prepareGame();
+    this.getAiPlayer(WHITE).prepareGame();
 };
 
 GtpEngine.prototype._forceCurPlayer = function (color) {

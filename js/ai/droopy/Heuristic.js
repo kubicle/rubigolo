@@ -1,15 +1,17 @@
 //Translated from heuristic.rb using babyruby2js
 'use strict';
 
+var CONST = require('../../constants');
 var main = require('../../main');
 var Grid = require('../../Grid');
 var Stone = require('../../Stone');
 
-var BLACK = main.BLACK, WHITE = main.WHITE, EMPTY = main.EMPTY, BORDER = main.BORDER;
-var sOK = main.sOK, sDEBUG = main.sDEBUG;
-var ALWAYS = main.ALWAYS, NEVER = main.NEVER;
+var GRID_BORDER = CONST.GRID_BORDER;
+var BLACK = CONST.BLACK, WHITE = CONST.WHITE, EMPTY = CONST.EMPTY, BORDER = CONST.BORDER;
+var sOK = CONST.sOK, sDEBUG = CONST.sDEBUG;
+var ALWAYS = CONST.ALWAYS, NEVER = CONST.NEVER;
 var XY_AROUND = Stone.XY_AROUND;
-var DIR0 = main.DIR0, DIR3 = main.DIR3;
+var DIR0 = CONST.DIR0, DIR3 = CONST.DIR3;
 
 
 /** @class Base class for all heuristics.
@@ -17,13 +19,13 @@ var DIR0 = main.DIR0, DIR3 = main.DIR3;
  */
 function Heuristic(player) {
     this.player = player;
-    this.name = this.constructor.name;
+    this.name = this.constructor.name || main.funcName(this.constructor);
     this.goban = player.goban;
     this.gsize = player.goban.gsize;
     this.infl = player.infl;
     this.pot = player.pot;
     this.boan = player.boan;
-    this.scoreGrid = new Grid(this.gsize);
+    this.scoreGrid = new Grid(this.gsize, 0, GRID_BORDER);
     this.minimumScore = player.minimumScore;
 
     this.spaceInvasionCoeff = this.getGene('spaceInvasion', 2.0, 0.01, 4.0);
@@ -48,7 +50,7 @@ Heuristic.prototype.evalBoard = function (stateYx, scoreYx) {
             var state = stateYx[j][i];
             if (state < sOK) continue;
             if (state === sDEBUG && this.name === this.player.debugHeuristic)
-                main.debug = true; // set your breakpoint on this line if needed
+                main.debug = true;
 
             var score = myScoreYx[j][i] = this._evalMove(i, j, color);
             scoreYx[j][i] += score;
@@ -63,12 +65,12 @@ Heuristic.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
 };
 
 Heuristic.prototype.territoryScore = function (i, j, color) {
-    return this.pot.territory.yx[j][i] * (color === main.BLACK ? 1 : -1);
+    return this.pot.territory.yx[j][i] * (color === BLACK ? 1 : -1);
 };
 
 /** @return {number} - NEVER, SOMETIMES, ALWAYS */
 Heuristic.prototype.isOwned = function (i, j, color) {
-    var myColor = color === main.BLACK ? -1 : +1;
+    var myColor = color === BLACK ? -1 : +1;
     var score = NEVER;
     if (Grid.territory2owner[2 + this.pot.grids[BLACK].yx[j][i]] === myColor) score++;
     if (Grid.territory2owner[2 + this.pot.grids[WHITE].yx[j][i]] === myColor) score++;
@@ -91,7 +93,7 @@ Heuristic.prototype.eyePotential = function (i, j) {
 //TODO review this - why 1-color and not both grids?
 Heuristic.prototype.enemyTerritoryScore = function (i, j, color) {
     var score = Grid.territory2owner[2 + this.pot.grids[1 - color].yx[j][i]];
-    return score * (color === main.BLACK ? 1 : -1);
+    return score * (color === BLACK ? 1 : -1);
 };
 
 /** Pass saved as true if g is an ally group (we evaluate how much we save) */
@@ -154,10 +156,6 @@ Heuristic.prototype.invasionCost = function (i, j, color) {
     if (s.isCorner()) cost = Math.max(cost - 1, 0);
     else if (s.isBorder()) cost = Math.max(cost - 0.85, 0);
     return cost;
-};
-
-Heuristic.prototype.markMoveAsBlunder = function (i, j, reason) {
-    this.player.markMoveAsBlunder(i, j, this.name + ':' + reason);
 };
 
 Heuristic.prototype.diagonalStones = function (s1, s2) {
@@ -229,7 +227,7 @@ Heuristic.prototype.canConnect = function (i, j, color) {
     for (var nNdx = stone.neighbors.length - 1; nNdx >= 0; nNdx--) {
         var n = stone.neighbors[nNdx];
         if (n.color === color && n.group.xDead < ALWAYS) return n;
-        if (n.color === main.EMPTY) empties.push(n);
+        if (n.color === EMPTY) empties.push(n);
     }
     // look around each empty for allies
     var moveNeeded = 2;

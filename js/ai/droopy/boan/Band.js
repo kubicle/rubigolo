@@ -1,6 +1,6 @@
 'use strict';
 
-var main = require('../../../main');
+var log = require('../../../log');
 
 
 /** @class One list of "brother" groups = groups which share eyes.
@@ -24,14 +24,14 @@ Band.prototype._add1 = function (gi) {
     gi.dependsOn.clear(); // does not depend on parents anymore
 
     if (!gi.band) {
-        if (main.debug) main.log.debug('BROTHERS: ' + gi + ' joins band: ' + this.toString());
+        if (log.debug) log.debug('BROTHERS: ' + gi + ' joins band: ' + this.toString());
         this.brothers.push(gi);
         gi.band = this;
         return;
     }
     if (gi.band.bandId === this.bandId) return; // gi uses same band
 
-    if (main.debug) main.log.debug('BROTHERS: band merge: ' + gi.band.toString() + ' merge with ' + this.toString());
+    if (log.debug) log.debug('BROTHERS: band merge: ' + gi.band.toString() + ' merge with ' + this.toString());
     var brothers = gi.band.brothers;
     for (var n = brothers.length - 1; n >= 0; n--) {
         this.brothers.push(brothers[n]);
@@ -44,7 +44,7 @@ Band.prototype.remove = function (gi) {
     if (ndx < 0) throw new Error('Band.remove on wrong Band');
     this.brothers.splice(ndx, 1);
     gi.band = null;
-    if (main.debug) main.log.debug('un-BROTHERS: ' + gi + ' left band: ' + this.toString());
+    if (log.debug) log.debug('un-BROTHERS: ' + gi + ' left band: ' + this.toString());
 };
 
 // groups contains the groups in the band

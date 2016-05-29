@@ -1,9 +1,9 @@
-//Translated from zone_filler.rb using babyruby2js
 'use strict';
 
-var main = require('../../../main');
+var CONST = require('../../../constants');
 
-var BORDER = main.BORDER;
+var GRID_BORDER = CONST.GRID_BORDER;
+var BORDER = CONST.BORDER;
 
 
 /** @class Fills & collect info about zones.
@@ -11,26 +11,28 @@ var BORDER = main.BORDER;
 function ZoneFiller(goban, grid) {
     this.goban = goban;
     this.yx = grid.yx;
-    this.groups = null;
 
-    this.toReplace = this.groups = null;
+    this.groups = null;
+    this.toReplace = null;
 }
 module.exports = ZoneFiller;
 
 
-// "Color" a goban zone.
-// toReplace can be EMPTY, BLACK, WHITE or a zone code
-// neighbors, if given should be an array of n arrays, with n == number of colors
-// if neighbors are not given, we do simple "coloring"
-ZoneFiller.prototype.fillWithColor = function (startI, startJ, toReplace, byColor, neighbors) {
-    if (this.yx[startJ][startI] !== toReplace) return 0;
-    var vcount = 0, yx = this.yx;
+/**
+ * "Colors" a goban zone.
+ * @param {number} toReplace - EMPTY, BLACK, WHITE or a zone code
+ * @param {number|Void} byColor - if a Void, it will be updated too
+ */
+ZoneFiller.prototype.fillWithColor = function (i0, j0, toReplace, byColor) {
+    if (this.yx[j0][i0] !== toReplace) return 0;
     this.toReplace = toReplace;
-    this.groups = neighbors;
-    var gap, gaps = [[startI, startJ, startJ]];
+    var theVoid = typeof byColor !== 'number' ? byColor : null;
+    this.groups = theVoid && theVoid.prepare(i0, j0);
+    var vcount = 0, yx = this.yx;
+    var gap, gaps = [[i0, j0, j0]], i, j1;
 
     while ((gap = gaps.pop())) {
-        var i = gap[0], j0 = gap[1], j1 = gap[2];
+        i = gap[0]; j0 = gap[1]; j1 = gap[2];
         
         if (yx[j0][i] !== toReplace) continue; // gap already done by another path
 
@@ -44,6 +46,7 @@ ZoneFiller.prototype.fillWithColor = function (startI, startJ, toReplace, byColo
             for (var j = j0; j <= j1; j++) {
                 if (ix < i) {
                     yx[j][i] = byColor; // fill with color
+                    if (theVoid) theVoid.addVertex(i, j);
                 }
                 if (this._check(ix, j)) {
                     if (!curgap) {
@@ -64,7 +67,7 @@ ZoneFiller.prototype.fillWithColor = function (startI, startJ, toReplace, byColo
 // Returns true if the replacement is needed (=> i,j has a color equal to the replaced one)
 ZoneFiller.prototype._check = function (i, j) {
     var color = this.yx[j][i];
-    if (color === BORDER) return false;
+    if (color === GRID_BORDER || color === BORDER) return false;
     if (color === this.toReplace) {
         return true;
     }

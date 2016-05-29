@@ -1,27 +1,28 @@
 //Translated from ai1_player.rb using babyruby2js
 'use strict';
 
-var main = require('../../main');
-
 var allHeuristics = require('./AllHeuristics');
 var BoardAnalyser = require('./boan/BoardAnalyser');
+var CONST = require('../../constants');
 var Genes = require('../../Genes');
 var Grid = require('../../Grid');
 var ZoneFiller = require('./boan/ZoneFiller');
 
-var sOK = main.sOK, sINVALID = main.sINVALID, sBLUNDER = main.sBLUNDER, sDEBUG = main.sDEBUG;
+var GRID_BORDER = CONST.GRID_BORDER;
+var sOK = CONST.sOK, sINVALID = CONST.sINVALID, sDEBUG = CONST.sDEBUG;
 
 var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
 
 
 /** @class */
-function Droopy(goban, color, genes) {
-    this.version = 'Droopy-1.0';
-    this.goban = goban;
+function Droopy(game, color, genes) {
+    this.name = 'Droopy';
+    this.game = game;
+    this.goban = game.goban;
     this.genes = genes || new Genes();
     this.gsize = this.goban.gsize;
-    this.stateGrid = new Grid(this.gsize);
-    this.scoreGrid = new Grid(this.gsize);
+    this.stateGrid = new Grid(this.gsize, GRID_BORDER);
+    this.scoreGrid = new Grid(this.gsize, 0, GRID_BORDER);
 
     // genes need to exist before we create heuristics
     this.minimumScore = this.getGene('smallerMove', 0.03, 0.01, 0.1);
@@ -31,6 +32,9 @@ function Droopy(goban, color, genes) {
     this.prepareGame();
 }
 module.exports = Droopy;
+
+Droopy.publicName = 'Droopy';
+Droopy.publicVersion = '0.1';
 
 // Used only by tests
 Droopy.BoardAnalyser = BoardAnalyser;
@@ -74,7 +78,7 @@ Droopy.prototype.getHeuristic = function (heuristicName) {
 Droopy.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
     if (lowLimit === undefined) lowLimit = null;
     if (highLimit === undefined) highLimit = null;
-    return this.genes.get(this.constructor.name + '-' + name, defVal, lowLimit, highLimit);
+    return this.genes.get(this.name + '-' + name, defVal, lowLimit, highLimit);
 };
 
 Droopy.prototype._foundBestMove = function(i, j, score) {
@@ -96,10 +100,6 @@ Droopy.prototype._keepBestMove = function(i, j, score) {
 // Returns the move chosen (e.g. c4 or pass)
 Droopy.prototype.getMove = function () {
     this.numMoves++;
-    if (this.numMoves >= this.gsize * this.gsize) { // force pass after too many moves
-        main.log.error('Forcing AI pass since we already played ' + this.numMoves);
-        return 'pass';
-    }
     var stateYx = this.stateGrid.yx;
     var scoreYx = this.scoreGrid.yx;
 
@@ -108,16 +108,12 @@ Droopy.prototype.getMove = function () {
     this._runHeuristics(stateYx, scoreYx);
     var move = this._collectBestMove(stateYx, scoreYx);
 
-    main.debug = this.debugMode;
     return move;
 };
 
 Droopy.prototype._prepareEval = function () {
     this.bestScore = this.minimumScore - 0.001;
     this.bestI = NO_MOVE;
-
-    this.debugMode = main.debug;
-    main.debug = false;
 };
 
 /** Init grids (and mark invalid moves) */
@@ -141,16 +137,9 @@ Droopy.prototype._initScoringGrid = function (stateYx, scoreYx) {
 Droopy.prototype._runHeuristics = function (stateYx, scoreYx) {
     for (var n = 0; n < this.heuristics.length; n++) {
         var h = this.heuristics[n];
-        main.debug = this.debugMode && this.debugHeuristic === h.name;
-        var t0 = Date.now();
 
         if (h._beforeEvalBoard) h._beforeEvalBoard();
         h.evalBoard(stateYx, scoreYx);
-
-        var time = Date.now() - t0;
-        if (time > 1 && !main.isCoverTest) {
-            main.log.warn('Slowness: ' + h.name + ' took ' + time + 'ms');
-        }
     }
 };
 
@@ -164,15 +153,6 @@ Droopy.prototype._collectBestMove = function (stateYx, scoreYx) {
     }
     if (this.bestScore < this.minimumScore) return 'pass';
     return Grid.xy2move(this.bestI, this.bestJ);
-};
-
-/** Called by heuristics if they decide to stop looking further (rare cases) */
-Droopy.prototype.markMoveAsBlunder = function (i, j, reason) {
-    this.stateGrid.yx[j][i] = sBLUNDER;
-    main.log.debug(Grid.xy2move(i, j) + ' seen as blunder: ' + reason);
-};
-Droopy.prototype.isBlunderMove = function (i, j) {
-    return this.stateGrid.yx[j][i] === sBLUNDER;
 };
 
 Droopy.prototype.guessTerritories = function () {
@@ -194,7 +174,7 @@ Droopy.prototype._getMoveSurvey = function (i, j) {
     for (var n = 0; n < this.heuristics.length; n++) {
         var h = this.heuristics[n];
         var s = h.scoreGrid.yx[j][i];
-        if (s) survey[h.name] = s; // s can be 0 or null too
+        if (s) survey[h.name] = s;
     }
     return survey;
 };
@@ -220,8 +200,9 @@ Droopy.prototype.setDebugHeuristic = function (heuristicName) {
 function surveySort(h1, h2) { return h2[1] - h1[1]; }
 
 Droopy.prototype.getMoveSurveyText = function (move, isTest) {
-    if (move[1] > '9') return '';
-    var coords = Grid.move2xy(move), i = coords[0], j = coords[1];
+    var coords = this.game.oneMove2xy(move);
+    if (!coords) return '';
+    var i = coords[0], j = coords[1];
     if (isTest) this._getMoveForTest(i, j);
     var survey = this._getMoveSurvey(i, j);
     var score = this.scoreGrid.yx[j][i];

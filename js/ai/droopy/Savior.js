@@ -1,13 +1,13 @@
 //Translated from savior.rb using babyruby2js
 'use strict';
 
-var main = require('../../main');
-
+var CONST = require('../../constants');
 var Grid = require('../../Grid');
 var Heuristic = require('./Heuristic');
 var inherits = require('util').inherits;
+var log = require('../../log');
 
-var sOK = main.sOK, sDEBUG = main.sDEBUG, ALWAYS = main.ALWAYS;
+var sOK = CONST.sOK, ALWAYS = CONST.ALWAYS;
 
 
 /** @class Saviors rescue ally groups in atari */
@@ -26,13 +26,11 @@ Savior.prototype.evalBoard = function (stateYx, scoreYx) {
         for (var i = 1; i <= this.gsize; i++) {
             var state = stateYx[j][i];
             if (state < sOK) continue;
-            if (state === sDEBUG && this.name === this.player.debugHeuristic)
-                main.debug = true; // set your breakpoint on this line if needed
 
             var stone = this.goban.stoneAt(i, j);
             var threat = this._evalEscape(i, j, stone);
             if (threat === 0) continue;
-            if (main.debug) main.log.debug('=> Savior thinks we can save a threat of ' + threat + ' in ' + stone);
+            if (log.debug) log.debug('=> Savior thinks we can save a threat of ' + threat + ' in ' + stone);
             var score = myScoreYx[j][i] = threat;
             scoreYx[j][i] += score;
         }
@@ -55,7 +53,7 @@ Savior.prototype._evalEscape = function (i, j, stone) {
             groups.push(g);
             if (hunterThreat !== null) continue;
             // Not really intuitive: we check if enemy could chase us starting in i,j
-            if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' asking hunter to look at ' +
+            if (log.debug) log.debug('Savior ' + Grid.colorName(this.color) + ' asking hunter to look at ' +
                 stone + ' pre-atari on ' + g);
             hunterThreat = this.hunter.catchThreat(i, j, this.enemyColor);
             if (hunterThreat) savedThreat = hunterThreat; // hunter computes total threat in i,j
@@ -80,12 +78,12 @@ Savior.prototype._evalEscape = function (i, j, stone) {
     if (livesAdded === 2) {
         // we get 2 lives from the new stone - first check special case of border
         if (groups.length === 1 && stone.isBorder()) {
-            if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' checks an escape along border in ' + Grid.xy2move(i, j));
+            if (log.debug) log.debug('Savior ' + Grid.colorName(this.color) + ' checks an escape along border in ' + Grid.xy2move(i, j));
             var savior = this.canEscapeAlongBorder(groups[0], i, j);
             if (savior !== undefined) return savior ? savedThreat : 0;
         }
         // get our hunter to evaluate if we can escape
-        if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' asking hunter to look at ' + Grid.xy2move(i, j) + ': threat=' + savedThreat + ', lives_added=' + livesAdded);
+        if (log.debug) log.debug('Savior ' + Grid.colorName(this.color) + ' asking hunter to look at ' + Grid.xy2move(i, j) + ': threat=' + savedThreat + ', lives_added=' + livesAdded);
         this.goban.tryAt(i, j, this.color);
         var isCaught = this.hunter.isEscapingAtariCaught(stone);
         this.goban.untry();
@@ -93,6 +91,6 @@ Savior.prototype._evalEscape = function (i, j, stone) {
             return savedThreat;
         }
     }
-    if (main.debug) main.log.debug('Savior ' + Grid.colorName(this.color) + ' giving up on threat of ' + savedThreat + ' in ' + Grid.xy2move(i, j));
+    if (log.debug) log.debug('Savior ' + Grid.colorName(this.color) + ' giving up on threat of ' + savedThreat + ' in ' + Grid.xy2move(i, j));
     return 0; // nothing we can do to help
 };

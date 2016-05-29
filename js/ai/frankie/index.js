@@ -1,17 +1,18 @@
 //Translated from ai1_player.rb using babyruby2js
 'use strict';
 
-var main = require('../../main');
-
 var allHeuristics = require('./AllHeuristics');
 var BoardAnalyser = require('./boan/BoardAnalyser');
+var CONST = require('../../constants');
 var Genes = require('../../Genes');
 var Grid = require('../../Grid');
 var InfluenceMap = require('./boan/InfluenceMap');
+var log = require('../../log');
 var PotentialTerritory = require('./boan/PotentialTerritory');
 var ZoneFiller = require('./boan/ZoneFiller');
 
-var sOK = main.sOK, sINVALID = main.sINVALID, sBLUNDER = main.sBLUNDER;
+var GRID_BORDER = CONST.GRID_BORDER;
+var sOK = CONST.sOK, sINVALID = CONST.sINVALID;
 
 var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
 
@@ -24,16 +25,15 @@ var NO_MOVE = -1; // used for i coordinate of "not yet known" best moves
  *  - foresee a poursuit = on attack/defense (and/or use a reverse-killer?)
  *  - an eye shape constructor
  */
-function Frankie(goban, color, genes) {
-    if (genes === undefined) genes = null;
-    this.version = 'Frankie-1.0';
-    this.goban = goban;
+function Frankie(game, color, genes) {
+    this.name = 'Frankie';
+    this.goban = game.goban;
     this.inf = new InfluenceMap(this.goban);
     this.ter = new PotentialTerritory(this.goban);
     this.boan = new BoardAnalyser();
     this.gsize = this.goban.gsize;
-    this.stateGrid = new Grid(this.gsize);
-    this.scoreGrid = new Grid(this.gsize);
+    this.stateGrid = new Grid(this.gsize, GRID_BORDER);
+    this.scoreGrid = new Grid(this.gsize, 0, GRID_BORDER);
 
     this.genes = (( genes ? genes : new Genes() ));
     this.minimumScore = this.getGene('smaller-move', 0.03, 0.01, 0.1);
@@ -51,6 +51,9 @@ function Frankie(goban, color, genes) {
 }
 module.exports = Frankie;
 
+Frankie.publicName = 'Frankie';
+Frankie.publicVersion = '0.1';
+
 Frankie.BoardAnalyser = BoardAnalyser;
 Frankie.PotentialTerritory = PotentialTerritory;
 Frankie.ZoneFiller = ZoneFiller;
@@ -59,7 +62,7 @@ Frankie.ZoneFiller = ZoneFiller;
 Frankie.prototype.getHeuristic = function (heuristicName) {
     for (var n = this.heuristics.length - 1; n >= 0; n--) {
         var h = this.heuristics[n];
-        if (h.constructor.name === heuristicName) return h;
+        if (h.name === heuristicName) return h;
     }
     throw new Error('Invalid heuristic name: ' + heuristicName);
 };
@@ -80,7 +83,7 @@ Frankie.prototype.setColor = function (color) {
 Frankie.prototype.getGene = function (name, defVal, lowLimit, highLimit) {
     if (lowLimit === undefined) lowLimit = null;
     if (highLimit === undefined) highLimit = null;
-    return this.genes.get(this.constructor.name + '-' + name, defVal, lowLimit, highLimit);
+    return this.genes.get(this.name + '-' + name, defVal, lowLimit, highLimit);
 };
 
 function score2str(i, j, score) {
@@ -88,20 +91,20 @@ function score2str(i, j, score) {
 }
 
 Frankie.prototype._foundSecondBestMove = function(i, j, score) {
-    if (main.debug) {
-        main.log.debug('=> ' + score2str(i,j,score) + ' becomes 2nd best move');
-        if (this.secondBestI !== NO_MOVE) main.log.debug(' (replaces ' + score2str(this.secondBestI, this.secondBestJ, this.secondBestScore) + ')');
+    if (log.debug) {
+        log.debug('=> ' + score2str(i,j,score) + ' becomes 2nd best move');
+        if (this.secondBestI !== NO_MOVE) log.debug(' (replaces ' + score2str(this.secondBestI, this.secondBestJ, this.secondBestScore) + ')');
     }
     this.secondBestScore = score;
     this.secondBestI = i; this.secondBestJ = j;
 };
 
 Frankie.prototype._foundBestMove = function(i, j, score) {
-    if (main.debug) {
+    if (log.debug) {
         if (this.numBestTwins > 1) {
-            main.log.debug('=> TWIN ' + score2str(i, j, score) + ' replaces equivalent best move ' + score2str(this.bestI, this.bestJ, this.bestScore));
+            log.debug('=> TWIN ' + score2str(i, j, score) + ' replaces equivalent best move ' + score2str(this.bestI, this.bestJ, this.bestScore));
         } else if (this.bestI !== NO_MOVE) {
-            main.log.debug('=> ' + score2str(i, j, score) + ' becomes the best move');
+            log.debug('=> ' + score2str(i, j, score) + ' becomes the best move');
         }
     }
     if (this.numBestTwins === 1) {
@@ -131,10 +134,6 @@ Frankie.prototype._keepBestMoves = function(i, j, score) {
 //   player.secondBestScore
 Frankie.prototype.getMove = function () {
     this.numMoves++;
-    if (this.numMoves >= this.gsize * this.gsize) { // force pass after too many moves
-        main.log.error('Forcing AI pass since we already played ' + this.numMoves);
-        return 'pass';
-    }
     this._prepareEval();
 
     // init grids (and mark invalid moves)
@@ -186,15 +185,6 @@ Frankie.prototype._prepareEval = function () {
     this.boan.analyse(this.goban, null, this.color);
 };
 
-/** Called by heuristics if they decide to stop looking further (rare cases) */
-Frankie.prototype.markMoveAsBlunder = function (i, j, reason) {
-    this.stateGrid.yx[j][i] = sBLUNDER;
-    main.log.debug(Grid.xy2move(i, j) + ' seen as blunder: ' + reason);
-};
-Frankie.prototype.isBlunderMove = function (i, j) {
-    return this.stateGrid.yx[j][i] === sBLUNDER;
-};
-
 /** For tests */
 Frankie.prototype._testMoveEval = function (i, j) {
     if (this.currentMove !== this.goban.moveNumber()) this.getMove();
@@ -208,7 +198,7 @@ Frankie.prototype._testMoveEval = function (i, j) {
         scoreYx[j][i] = 0;
         h.evalBoard(stateYx, scoreYx);
         var s = scoreYx[j][i];
-        if (s) survey[h.constructor.name] = s;
+        if (s) survey[h.name] = s;
         score += s;
     }
     this.survey = survey;

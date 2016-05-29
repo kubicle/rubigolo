@@ -1,9 +1,9 @@
-//Translated from sgf_reader.rb using babyruby2js
 'use strict';
 
-var main = require('./main');
+var CONST = require('./constants');
+var log = require('./log');
 
-var BLACK = main.BLACK, WHITE = main.WHITE;
+var BLACK = CONST.BLACK, WHITE = CONST.WHITE;
 var colorName = ['B', 'W'];
 var defaultBoardSize = 19;
 
@@ -20,7 +20,7 @@ var infoTags = {
     AW: ['move', null], // add a move for White
     HA: ['int', 'handicap'],
     KM: ['real', 'komi'],
-    RU: ['text', 'rules'],
+    RU: ['text', 'rules'], // Manadatory names: AGA, GOE, Japanese, NZ
     RE: ['text', 'result'],
     PB: ['text', 'playerBlack'],
     PW: ['text', 'playerWhite'],
@@ -82,7 +82,7 @@ module.exports = SgfReader;
 
 
 SgfReader.isSgf = function (game) {
-    return game.trimLeft().startWith('(;');
+    return game.trim().startsWith('(;');
 };
 
 // Raises an exception if we could not convert the format
@@ -157,7 +157,7 @@ SgfReader.prototype._convertValue = function (rawVal, valType) {
 SgfReader.prototype._processGameTag = function (name, rawVal) {
     var valType = gameTags[name];
     if (valType === undefined) {
-        return main.log.warn('Unknown property ' + name + '[' + rawVal + '] ignored');
+        return log.warn && log.warn('Unknown property ' + name + '[' + rawVal + '] ignored');
     }
     if (!valType) return; // fine to ignore
 
@@ -200,7 +200,7 @@ SgfReader.prototype._storeInfoTag = function (name, rawVal) {
     var tag = infoTags[name];
     if (tag === undefined) {
         this.infos[name] = rawVal;
-        return main.log.info('Unknown property in SGF header: ' + name + '[' + rawVal + ']');
+        return log.info && log.info('Unknown property in SGF header: ' + name + '[' + rawVal + ']');
     }
     var infoType = tag[0], infoName = tag[1];
 
@@ -225,7 +225,7 @@ SgfReader.prototype._processGameInfo = function () {
             break;
         case 'FF': // FileFormat
             if (value < 3 || value > 4) {
-                main.log.warn('SGF format ' + value + '. Not sure we handle it well.');
+                if (log.warn) log.warn('SGF format ' + value + '. Not sure we handle it well.');
             }
             break;
         case 'SZ': this._setBoardSize(value); break;
@@ -289,12 +289,12 @@ SgfReader.prototype._parseNode = function (t) {
 };
 
 SgfReader.prototype._skip = function (t) {
-    return t.trimLeft();
+    return t.trim();
 };
 
 SgfReader.prototype._get = function (lex, t) {
-    if (!t.startWith(lex)) this._error(lex + ' expected', t);
-    return t.replace(lex, '').trimLeft();
+    if (!t.startsWith(lex)) this._error(lex + ' expected', t);
+    return t.replace(lex, '').trim();
 };
 
 SgfReader.prototype._error = function (reason, t) {

@@ -9,7 +9,7 @@ var inherits = require('util').inherits;
  * GTP Engine interface for UI (extends GtpEngine)
  */
 function UiGtpEngine(ui) {
-    GtpEngine.call(this, ui.game, ui.scorer);
+    GtpEngine.call(this, ui.game);
     this.ui = ui;
 }
 inherits(UiGtpEngine, GtpEngine);

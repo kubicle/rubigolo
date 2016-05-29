@@ -1,61 +1,74 @@
 'use strict';
 
+var CONST = require('../constants');
 var main = require('../main');
 
 var Board = require('./Board');
 var Dome = require('./Dome');
 var GameLogic = require('../GameLogic');
 var Grid = require('../Grid');
-var Gtp = require('../net/Gtp');
-var Logger = require('../Logger');
 var NewGameDlg = require('./NewGameDlg');
 var PopupDlg = require('./PopupDlg');
 var ScoreAnalyser = require('../ScoreAnalyser');
-var UiGtpEngine = require('../net/UiGtpEngine');
 var userPref = require('../userPreferences');
 
-var WHITE = main.WHITE, BLACK = main.BLACK;
-var sOK = main.sOK;
+var WHITE = CONST.WHITE, BLACK = CONST.BLACK;
 
 var viewportWidth = document.documentElement.clientWidth;
 
-var NO_HEURISTIC = '(heuristic)';
-var NO_EVAL_TEST = '(other eval)';
-
 
 function Ui(game) {
-    this.gsize = 9;
-    this.handicap = 0;
-    this.aiPlays = 'white';
-
+    this.gsize = this.handicap = 0;
+    this.aiPlays = '';
     this.game = new GameLogic(game);
-    this.scorer = new ScoreAnalyser();
+    this.scorer = new ScoreAnalyser(this.game);
     this.board = null;
 
-    this.initDev();
+    if (this.initDev) {
+        this.initDev();
+    } else {
+        this.isProd = true;
+    }
 }
 module.exports = Ui;
 
 
-/** This is the entry point for starting the app */
+/** This is the entry point for starting the app UI */
 Ui.prototype.createUi = function () {
-    this.newGameDialog();
+    window.addEventListener('beforeunload', this.beforeUnload.bind(this));
+
+    this.gsize = userPref.getValue('lastGameSize', 9);
+    this.handicap = userPref.getValue('lastGameHandicap', 0);
+    this.aiPlays = userPref.getValue('lastGameAiPlays', 'white');
+    this.rules = userPref.getValue('lastGameRules', 'jp');
+    var lastGame = userPref.getValue('lastGameHistory');
+
+    this.newGameDialog(lastGame);
+};
+
+Ui.prototype.saveGamePreferences = function () {
+    userPref.setValue('lastGameSize', this.gsize);
+    userPref.setValue('lastGameHandicap', this.handicap);
+    userPref.setValue('lastGameAiPlays', this.aiPlays);
+    userPref.setValue('lastGameRules', this.rules);
+    userPref.setValue('lastGameHistory', this.game.history);
+};
+
+Ui.prototype.beforeUnload = function () {
+    this.saveGamePreferences();
+    userPref.close();
 };
 
 Ui.prototype.refreshBoard = function () {
     this.board.refresh();
-    this.devDisplay();
+    if (this.inDevMode) this.devDisplay();
 };
 
 Ui.prototype.loadFromTest = function (parent, testName, msg) {
     this.createGameUi('compact', parent, testName, msg);
     this.aiPlays = 'both';
     this.startGame(null, /*isLoaded=*/true);
-    if (this.game.gameEnding) {
-        this.proposeScore();
-    } else {
-        this.message(this.whoPlaysNow());
-    }
+    if (this.game.gameEnding) this.proposeScore();
 };
 
 Ui.prototype.createGameUi = function (layout, parent, title, descr) {
@@ -65,8 +78,9 @@ Ui.prototype.createGameUi = function (layout, parent, title, descr) {
     if (title) gameDiv.newDiv(isCompact ? 'testTitle' : 'pageTitle').setText(title);
     this.boardElt = gameDiv.newDiv('board');
     if (descr) this.boardDesc = gameDiv.newDiv('boardDesc').setHtml(descr);
+    this.createStatusBar(gameDiv);
     this.createControls(gameDiv);
-    this.createDevControls();
+    if (!this.isProd) this.createDevControls();
 
     // width adjustments
     var width = this.game.goban.gsize + 2; // width in stones
@@ -75,8 +89,8 @@ Ui.prototype.createGameUi = function (layout, parent, title, descr) {
     var self = this;
     this.board = new Board();
     this.board.setTapHandler(function (move) {
-        if (move[0] === '!') return self.onDevKey(move.substr(1));
-        if (self.inEvalMode) return self.evalMove(move);
+        if (move[0] === '!') return !self.isProd && self.onDevKey(move.substr(1));
+        if (self.inEvalMode || self.inReview) return self.showDevData(move, null, true);
         self.playerMove(move);
     });
 };
@@ -88,27 +102,100 @@ Ui.prototype.resetUi = function () {
     this.board = null;
 };
 
-Ui.prototype.newGameDialog = function () {
+Ui.prototype.newGameDialog = function (lastGameHistory) {
     Dome.setPageTitle(main.appName);
     this.resetUi();
     var options = {
         gsize: this.gsize,
         handicap: this.handicap,
-        aiPlays: this.aiPlays
+        aiPlays: this.aiPlays,
+        moves: lastGameHistory,
+        rules: this.rules
     };
     var self = this;
     new NewGameDlg(options, function validate(options) {
         self.gsize = options.gsize;
         self.handicap = options.handicap;
         self.aiPlays = options.aiPlays;
+        self.rules = options.rules;
+        self.game.setRules(self.rules === 'jp' ? CONST.JP_RULES : CONST.CH_RULES);
         return self.startGame(options.moves);
     });
 };
 
+function MoveElt(parent, className, label) {
+    var elt = this.elt = parent.newDiv('oneMove ' + className);
+    elt.newDiv('label').setText(label);
+    var icon = elt.newDiv('icon');
+    this.text = icon.newDiv('text');
+}
+
+MoveElt.prototype.setMove = function (move, color) {
+    this.elt.setVisible(move !== null);
+    this.elt.toggleClass('black', color === BLACK);
+    this.elt.toggleClass('white', color === WHITE);
+    this.text.setText(move);
+};
+
+Ui.prototype.createStatusBar = function (gameDiv) {
+    var statusBar = this.statusBar = gameDiv.newDiv('statusBar');
+    this.lastMoveElt = new MoveElt(statusBar, 'lastMove', 'Last:');
+    this.gameInfoElt = statusBar.newDiv('gameInfo');
+    this.shortMessage = statusBar.newDiv('message');
+    this.nextPlayerElt = new MoveElt(statusBar, 'nextPlayer', 'Next:');
+};
+
+Ui.prototype.showGameInfo = function () {
+    var gameInfo = this.game.playerNames[WHITE] + ' VS ' + this.game.playerNames[BLACK] + ' (B)';
+    gameInfo += ', komi: ' + this.game.komi;
+    if (this.handicap) gameInfo += ', hand: ' + this.handicap;
+    if (this.game.rulesName) gameInfo += ', rules: ' + this.game.rulesName;
+    this.gameInfoElt.setText(gameInfo);
+};
+
+Ui.prototype.showLastMove = function () {
+    var moves = this.game.history;
+    if (moves.length) {
+        var move = this.game.stripMoveColor(moves[moves.length - 1]);
+        this.lastMoveElt.setMove(move, 1 - this.game.curColor);
+        var pos = this.game.oneMove2xy(move);
+        if (pos) this.board.highlightStone('CR', pos[0], pos[1]);
+        else this.board.highlightStone(null);
+    } else {
+        this.lastMoveElt.setMove(null);
+    }
+    this.showNextPlayer();
+    this.shortMessage.setText('');
+};
+
+Ui.prototype.showNextPlayer = function (move) {
+    if (move === null) return this.nextPlayerElt.setMove(null);
+    move = this.game.stripMoveColor(move || '');
+    this.nextPlayerElt.setMove(move, this.game.curColor);
+};
+
+Ui.prototype.statusMessage = function (msg) {
+    this.shortMessage.setText(msg);
+    this.showNextPlayer();
+    this.longTextElt.setVisible(false);
+};
+
+Ui.prototype.longMessage = function (html) {
+    this.longTextElt.setHtml(html);
+    this.longTextElt.setVisible(true);
+};
+
 Ui.prototype.createControls = function (gameDiv) {
-    this.controls = Dome.newGroup();
     var mainDiv = gameDiv.newDiv('mainControls');
     var self = this;
+    this.reviewControls = Dome.newGroup();
+    Dome.newButton(mainDiv, '#review', 'Review', function () { self.toggleReview(); });
+    Dome.newButton(mainDiv, '#back10', '<<', function () { self.replay(-10); });
+    Dome.newButton(mainDiv, '#back1', '<', function () { self.replay(-1); });
+    Dome.newButton(mainDiv, '#forw1', '>', function () { self.replay(1); });
+    Dome.newButton(mainDiv, '#forw10', '>>', function () { self.replay(10); });
+
+    this.controls = Dome.newGroup();
     Dome.newButton(mainDiv, '#pass', 'Pass', function () { self.playerMove('pass'); });
     Dome.newButton(mainDiv, '#next', 'Next', function () { self.automaticAiPlay(1); });
     Dome.newButton(mainDiv, '#next10', 'Next 10', function () { self.automaticAiPlay(10); });
@@ -117,46 +204,58 @@ Ui.prototype.createControls = function (gameDiv) {
     Dome.newButton(mainDiv, '#accept', 'Accept', function () { self.acceptScore(true); });
     Dome.newButton(mainDiv, '#refuse', 'Refuse', function () { self.acceptScore(false); });
     Dome.newButton(mainDiv, '#newg', 'New game', function () { self.newGameDialog(); });
-    this.output = mainDiv.newDiv('logBox outputBox');
+    this.longTextElt = mainDiv.newDiv('logBox outputBox').setVisible(false);
     Dome.newButton(mainDiv, '#resi', 'Resign', function () { self.playerResigns(); });
 
     this.aiVsAiFlags = mainDiv.newDiv('#aiVsAiFlags');
     this.animated = Dome.newCheckbox(this.aiVsAiFlags, 'animated', 'Animated');
 };
 
-Ui.prototype.toggleControls = function () {
-    var inGame = !(this.game.gameEnded || this.game.gameEnding);
-    var auto = this.aiPlays === 'both';
-    if (!inGame) this.setEvalMode(false);
-
-    this.controls.setVisible(['accept', 'refuse'], this.game.gameEnding);
-    this.controls.setVisible(['undo'], inGame);
-    this.controls.setVisible(['pass', 'resi'], inGame && !auto);
-    this.controls.setVisible(['next', 'next10', 'nextAll', 'aiVsAiFlags'], inGame && auto);
-    this.controls.setVisible(['newg'], this.game.gameEnded && !this.isCompactLayout);
-
-    // Dev controls
-    this.controls.setVisible(['devDiv'], inGame && this.inDevMode);
+Ui.prototype.toggleReview = function () {
+    this.inReview = !this.inReview;
+    this.reviewControls.get('review').toggleClass('toggled', this.inReview);
+    this.toggleControls();
+    if (this.inReview) {
+        this.reviewMoves = this.game.history.concat();
+        this.reviewCursor = this.reviewMoves.length;
+        this.replay(0); // init buttons' state
+    } else {
+        this.replay(this.reviewMoves.length - this.reviewCursor);
+        this.showNextPlayer();
+    }
 };
 
-Ui.prototype.message = function (html, append) {
-    if (append) html = this.output.html() + html;
-    this.output.setHtml(html);
+Ui.prototype.toggleControls = function () {
+    var inReview = this.inReview, ended = this.game.gameEnded, ending = this.game.gameEnding;
+    var inGame = !(ended || ending) && !inReview;
+    var auto = this.aiPlays === 'both';
+
+    this.statusBar.setVisible(!ended);
+    this.reviewControls.setVisible(['review'], inGame || inReview);
+    this.reviewControls.setVisible(['back1', 'back10', 'forw1', 'forw10'], inReview);
+    this.controls.setVisible(['accept', 'refuse'], ending);
+    this.controls.setVisible(['undo', 'pass', 'resi'], inGame && !auto);
+    this.controls.setVisible(['next', 'next10', 'nextAll', 'aiVsAiFlags'], inGame && auto);
+    this.controls.setVisible(['newg'], ended && !this.isCompactLayout);
+
+    // Dev controls
+    if (!this.isProd) this.toggleDevControls(inGame, inReview, auto);
 };
 
 
 //--- GAME LOGIC
 
-Ui.prototype.createPlayers = function () {
+Ui.prototype.createPlayers = function (isGameLoaded) {
     this.players = [];
     this.playerIsAi = [false, false];
-    if (this.aiPlays === 'black' || this.aiPlays === 'both') {
-        this.getAiPlayer(BLACK);
-        this.playerIsAi[BLACK] = true;
-    }
-    if (this.aiPlays === 'white' || this.aiPlays === 'both') {
-        this.getAiPlayer(WHITE);
-        this.playerIsAi[WHITE] = true;
+    for (var color = BLACK; color <= WHITE; color++) {
+        if (this.aiPlays === Grid.COLOR_NAMES[color] || this.aiPlays === 'both') {
+            var Ai = this.getAiPlayer(color).constructor;
+            this.playerIsAi[color] = true;
+            if (!isGameLoaded) this.game.setPlayer(color, Ai.publicName + '-' + Ai.publicVersion);
+        } else {
+            if (!isGameLoaded) this.game.setPlayer(color, 'human');
+        }
     }
 };
 
@@ -164,38 +263,51 @@ Ui.prototype.getAiPlayer = function (color) {
     var player = this.players[color];
     if (player) return player;
     var Ai = color === BLACK ? main.defaultAi : main.latestAi;
-    player = this.players[color] = new Ai(this.game.goban, color);
+    player = this.players[color] = new Ai(this.game, color);
     return player;
+};
+
+Ui.prototype.initDisplay = function () {
+    this.showGameInfo();
+    this.showLastMove();
+    this.showNextPlayer();
+    this.toggleControls();
+    this.refreshBoard();
+};
+
+Ui.prototype.loadMoves = function (moves) {
+    var errors = [];
+    if (!this.game.loadAnyGame(moves, errors)) {
+        new PopupDlg(this.gameDiv, errors.join('\n'));
+        return false;
+    }
+    return true;
 };
 
 Ui.prototype.startGame = function (firstMoves, isLoaded) {
     var game = this.game;
     if (!isLoaded) game.newGame(this.gsize, this.handicap);
-    if (firstMoves) {
-        var errors = [];
-        if (!game.loadMoves(firstMoves, errors)) {
-            new PopupDlg(this.gameDiv, errors.join('\n'));
-            return false;
-        }
-    }
+    this.createPlayers(isLoaded);
+
+    if (firstMoves && !this.loadMoves(firstMoves)) return false;
+
     // read values from game to make sure they are valid and match loaded game
     this.gsize = game.goban.gsize;
     this.handicap = game.handicap;
 
-    this.createPlayers();
-    this.debugHeuristic = null;
+    if (!this.isProd) this.initDev();
 
     if (!this.gameDiv) this.createGameUi('main', document.body);
-    this.toggleControls();
 
-    this.board.create(this.boardElt, this.boardWidth, this.game.goban);
-    this.refreshBoard();
+    var options = this.isCompactLayout ? undefined : { background: 'wood' };
 
-    if (isLoaded) return true;
-    if (firstMoves && this.checkEnd()) return true;
+    this.board.create(this.boardElt, this.boardWidth, game.goban, options);
+    this.initDisplay();
 
-    this.message('Game started. Your turn...'); // erased if a move is played below
-    this.letNextPlayerPlay();
+    if (!isLoaded) {
+        if (!firstMoves) this.statusMessage('Game started. Your turn...'); // erased if a move is played below
+        if (!this.checkEnd()) this.letNextPlayerPlay();
+    }
     return true;
 };
 
@@ -205,21 +317,23 @@ Ui.prototype.checkEnd = function () {
         this.proposeScore();
         return true;
     }
-    if (this.game.gameEnded) {
-        this.showEnd(); // one resigned
+    if (this.game.gameEnded) { // NB: we only pass here when one resigned
+        this.computeScore();
+        this.showEnd();
         return true;
     }
     return false;
 };
 
 Ui.prototype.computeScore = function () {
-    this.scoreMsg = this.scorer.computeScore(this.game.goban, this.game.komi, this.game.whoResigned).join('<br>');
+    var msgs = this.scorer.computeScoreAsTexts();
+    this.scoreMsg = msgs.join('<br>');
 };
 
 Ui.prototype.proposeScore = function () {
     this.computeScore();
-    this.message(this.scoreMsg);
-    this.message('<br><br>Do you accept this score?', true);
+    this.statusMessage('Do you accept this score?');
+    this.longMessage(this.scoreMsg);
     this.toggleControls();
     this.board.showScoring(this.scorer.getScoringGrid().yx);
 };
@@ -232,7 +346,7 @@ Ui.prototype.acceptScore = function (acceptEnd) {
     this.game.acceptEnding(acceptEnd, whoRefused);
     if (acceptEnd) return this.showEnd();
 
-    this.message('Score in dispute. Continue playing...');
+    this.statusMessage('Score in dispute. Continue playing...');
     this.toggleControls();
     this.refreshBoard();
     // In AI VS AI move we don't ask AI to play again otherwise it simply passes again
@@ -240,24 +354,20 @@ Ui.prototype.acceptScore = function (acceptEnd) {
 };
 
 Ui.prototype.showEnd = function () {
-    this.message(this.scoreMsg + '<br><br>' + this.game.historyString());
+    this.longMessage(this.scoreMsg + '<br><br>' + this.game.historyString());
     this.toggleControls();
-};
-
-Ui.prototype.showAiMoveData = function (aiPlayer, move, isTest) {
-    var playerName = Grid.colorName(aiPlayer.color);
-    this.message(playerName + ' (AI ' + aiPlayer.version + '): ' + move);
-
-    var txt = aiPlayer.getMoveSurveyText(move, isTest);
-    txt = txt.replace(/\n/g, '<br>');
-    this.devMessage(txt);
 };
 
 Ui.prototype.letAiPlay = function (skipRefresh) {
     var aiPlayer = this.lastAiPlayer = this.players[this.game.curColor];
+    this.prevNumRandomPicks = aiPlayer.numRandomPicks;
+
     var move = aiPlayer.getMove();
-    if (!skipRefresh) this.showAiMoveData(aiPlayer, move);
     this.game.playOneMove(move);
+    if (!skipRefresh) {
+        this.showLastMove();
+        if (this.inDevMode) this.showDevData(move, aiPlayer, false);
+    }
 
     // AI resigned or double-passed?
     if (this.checkEnd()) return move;
@@ -267,15 +377,14 @@ Ui.prototype.letAiPlay = function (skipRefresh) {
 };
 
 Ui.prototype.playerMove = function (move) {
-    var playerName = Grid.colorName(this.game.curColor);
-
     if (!this.game.playOneMove(move)) {
-        return this.message(this.game.getErrors().join('<br>'));
+        return this.statusMessage(this.game.getErrors().join('. '));
     }
     if (this.checkEnd()) return;
 
     this.refreshBoard();
-    this.message(playerName + ': ' + move);
+    this.showLastMove();
+
     this.letNextPlayerPlay();
 };
 
@@ -285,7 +394,6 @@ Ui.prototype.playerResigns = function () {
     new PopupDlg(this.gameDiv, 'Do you really want to resign?', 'Confirm', options, function (options) {
         if (options.choice !== 0) return;
         self.game.playOneMove('resi');
-        self.computeScore();
         self.checkEnd();
     });
 };
@@ -297,12 +405,11 @@ Ui.prototype.playUndo = function () {
     }
 
     if (!this.game.playOneMove(command)) {
-        this.message(this.game.getErrors().join('<br>'));
-    } else {
-        this.refreshBoard();
-        this.message('Undo!');
+        return this.statusMessage(this.game.getErrors().join('. '));
     }
-    this.message(' ' + this.whoPlaysNow(), true);
+    this.refreshBoard();
+    this.showLastMove();
+    this.statusMessage('Performed "' + command + '"');
 };
 
 Ui.prototype.whoPlaysNow = function () {
@@ -315,7 +422,7 @@ Ui.prototype.letNextPlayerPlay = function (skipRefresh) {
     if (this.playerIsAi[this.game.curColor]) {
         this.letAiPlay(skipRefresh);
     } else {
-        if (!skipRefresh) this.message(' ' + this.whoPlaysNow(), true);
+        if (!skipRefresh) this.showNextPlayer();
     }
 };
 
@@ -336,146 +443,35 @@ Ui.prototype.automaticAiPlay = function (turns) {
     }, animated ? 100 : 0);
 };
 
-window.addEventListener('beforeunload', function () {
-    userPref.close();
-});
-
-
-//--- DEV UI
-
-Ui.prototype.initDev = function () {
-    this.inDevMode = userPref.getValue('devMode', false);
-    this.debugHeuristic = null;
-    this.inEvalMode = false;
-    this.devKeys = '';
-};
-
-Ui.prototype.onDevKey = function (key) {
-    this.devKeys = this.devKeys.slice(-9) + key;
-    if (this.devKeys.slice(-2) === 'db') {
-        this.inDevMode = !this.inDevMode;
-        userPref.setValue('devMode', this.inDevMode);
-        return this.toggleControls();
+Ui.prototype.replay = function (numMoves) {
+    var moves = this.reviewMoves, cur = this.reviewCursor;
+    // Play or "unplay" the moves
+    for (var i = 0; i < numMoves; i++) {
+        if (cur === moves.length) break;
+        this.game.playOneMove(moves[cur]);
+        cur++;
     }
-    if (this.devKeys.slice(-2) === '0g') {
-        // TODO: WIP
-        var gtp = main.gtp = new Gtp();
-        return gtp.init(new UiGtpEngine(this));
+    for (i = 0; i > numMoves; i--) {
+        if (cur === 0) break;
+        this.game.playOneMove('half_undo');
+        cur--;
     }
-};
+    this.reviewCursor = cur;
 
-Ui.prototype.devMessage = function (html, append) {
-    if (append) html = this.devOutput.html() + html;
-    this.devOutput.setHtml(html);
-};
-
-Ui.prototype.setEvalMode = function (enabled) {
-    if (enabled === this.inEvalMode) return;
-    this.inEvalMode = enabled;
-    this.controls.setEnabled('ALL', !this.inEvalMode, ['evalMode','undo','next','pass', 'heuristicTest']);
-    this.controls.get('evalMode').toggleClass('toggled', enabled);
-};
-
-Ui.prototype.evalMove = function (move) {
-    var player = this.getAiPlayer(this.game.curColor);
-    this.showAiMoveData(player, move, /*isTest=*/true);
-};
-
-Ui.prototype.scoreTest = function () {
-    var score = this.scorer.computeScore(this.game.goban, this.game.komi);
-    this.message(score);
-    this.board.showSpecial('scoring', this.scorer.getScoringGrid().yx);
-};
-
-Ui.prototype.territoryTest = function () {
-    this.board.showSpecial('territory', this.getAiPlayer(this.game.curColor).guessTerritories());
-};
-
-Ui.prototype.heuristicTest = function (name) {
-    this.debugHeuristic = name === NO_HEURISTIC ? null : name;
-
-    this.getAiPlayer(BLACK).setDebugHeuristic(this.debugHeuristic);
-    this.getAiPlayer(WHITE).setDebugHeuristic(this.debugHeuristic);
-
+    // Now refresh UI
     this.refreshBoard();
-};
-
-Ui.prototype.influenceTest = function (color) {
-    var infl = this.getAiPlayer(1 - this.game.curColor).infl;
-    // This could be AiPlayer's job to return us a grid ready for display
-    var yx = new Grid(this.gsize).yx; // TODO: covert infl to 2 grids one day?
-    for (var j = 1; j <= this.gsize; j++) {
-        for (var i = 1; i <= this.gsize; i++) {
-            yx[j][i] = infl[j][i][color];
-        }
+    this.reviewControls.setEnabled(['forw1', 'forw10'], cur !== moves.length);
+    this.reviewControls.setEnabled(['back1', 'back10'], cur !== 0);
+    this.showLastMove();
+    if (cur < moves.length) {
+        this.showNextPlayer(moves[cur]);
+    } else {
+        this.showNextPlayer(null);
     }
-    this.board.showSpecial('value', yx);
-};
 
-Ui.prototype.devDisplay = function () {
-    this.evalTestDropdown.select(NO_EVAL_TEST);
-    if (!this.debugHeuristic || !this.lastAiPlayer) return;
-    var heuristic = this.lastAiPlayer.getHeuristic(this.debugHeuristic);
-    // Erase previous values (heuristics don't care about old values)
-    // This could be AiPlayer's job to return us a grid ready for display
-    var stateYx = this.lastAiPlayer.stateGrid.yx, scoreYx = heuristic.scoreGrid.yx;
-    for (var j = this.gsize; j >= 1; j--) {
-        for (var i = this.gsize; i >= 1; i--) {
-            if (stateYx[j][i] < sOK) scoreYx[j][i] = 0;
-        }
+    // In eval mode, replay last move to get dev data
+    if (this.inEvalMode) {
+        var move = cur > 0 ? moves[cur - 1] : null;
+        if (move && move.length <= 3) this.afterReplay(move);
     }
-    this.board.showSpecial('value', scoreYx);
-};
-
-var heuristics = [
-    NO_HEURISTIC,
-    'NoEasyPrisoner',
-    'Hunter',
-    'Savior',
-    'Connector',
-    'Spacer',
-    'Pusher',
-    'Shaper'
-];
-
-var evalTests = [
-    NO_EVAL_TEST,
-    'Score',
-    'Territory',
-    'Influence B',
-    'Influence W'
-];
-
-Ui.prototype.createDevControls = function () {
-    var self = this;
-    var devDiv = this.gameDiv.newDiv('#devDiv');
-    var devCtrls = devDiv.newDiv('devControls');
-
-    Dome.newButton(devCtrls, '#evalMode', 'Eval mode', function () { self.setEvalMode(!self.inEvalMode); });
-
-    var col2 = devCtrls.newDiv('col2');
-    Dome.newCheckbox(col2, 'debug', 'Debug').on('change', function () {
-        main.debug = this.isChecked();
-        main.log.level = main.debug ? Logger.DEBUG : Logger.INFO;
-    });
-
-    Dome.newLink(col2, 'emailGame', 'Email game',
-        'mailto:kubicle@yahoo.com?subject=' + main.appName + '%20game' +
-        '&body=' + this.game.historyString());
-
-    this.evalTestDropdown = Dome.newDropdown(col2, '#evalTest', evalTests, null, '');
-    this.evalTestDropdown.on('change', function () {
-        switch (this.value()) {
-        case NO_EVAL_TEST: return self.refreshBoard();
-        case 'Score': return self.scoreTest();
-        case 'Territory': return self.territoryTest();
-        case 'Influence B': return self.influenceTest(BLACK);
-        case 'Influence W': return self.influenceTest(WHITE);
-        }
-    });
-    Dome.newDropdown(col2, '#heuristicTest', heuristics, null, '').on('change', function () {
-        self.heuristicTest(this.value());
-    });
-
-    this.devOutput = devDiv.newDiv('logBox devLogBox');
 };

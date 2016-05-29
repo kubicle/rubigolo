@@ -1,4 +1,5 @@
 node_modules/
 coverage/
+build/devBuild.js
 
 config/ogs.json

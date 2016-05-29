@@ -1,23 +1,25 @@
-//Translated from test_speed.rb using babyruby2js
 'use strict';
 
-var main = require('../main');
+var CONST = require('../constants');
 var inherits = require('util').inherits;
 var Grid = require('../Grid');
 var Goban = require('../Goban');
+var log = require('../log');
+var main = require('../main');
+var TestCase = require('./TestCase');
 var TimeKeeper = require('./TimeKeeper');
 
-var BLACK = main.BLACK, WHITE = main.WHITE;
+var BLACK = CONST.BLACK, WHITE = CONST.WHITE;
 
 
 /** @class */
 function TestSpeed(testName) {
-    main.TestCase.call(this, testName);
-    main.debug = false; // if true it takes forever...
+    TestCase.call(this, testName);
+    log.setLevel(log.INFO); // if DEBUG it takes forever...
     this.initBoard();
 }
-inherits(TestSpeed, main.TestCase);
-module.exports = main.tests.add(TestSpeed);
+inherits(TestSpeed, TestCase);
+module.exports = TestSpeed;
 
 TestSpeed.CM_UNDO = 0;
 TestSpeed.CM_CLEAR = 1;
@@ -25,20 +27,23 @@ TestSpeed.CM_NEW = 2;
 
 
 TestSpeed.prototype.initBoard = function (size) {
-    if (size === undefined) size = 9;
-    this.goban = new Goban(size);
-    this.goban.setRules({ positionalSuperko: false });
+    this.goban = new Goban(size || 9);
+    this.goban.setPositionalSuperko(false);
 };
 
-TestSpeed.prototype.testSpeed1 = function () {
+TestSpeed.prototype.testSpeedBasic = function () {
     var t = new TimeKeeper();
     // Basic test
-    var count = main.isCoverTest ? 1 : 10000;
-    t.start('Basic (no move validation) ' + 10 * count + ' stones and undo', 0.06);
+    var count = main.isCoverTest ? 1 : 50000;
+    t.start('Basic (no move validation) ' + 10 * count + ' stones and undo', 0.3);
     for (var i = count; i >=0; i--) {
         this.play10Stones();
     }
     t.stop();
+};
+
+TestSpeed.prototype.testSpeed35moves = function () {
+    var t = new TimeKeeper();
     // prepare games so we isolate the GC caused by that 
     // (in real AI thinking there will be many other things but...)
     // 35 moves, final position:
@@ -54,9 +59,9 @@ TestSpeed.prototype.testSpeed1 = function () {
     //   abcdefghj
     var game1 = 'c3,f3,d7,e5,c5,f7,e2,e8,d8,f2,f1,g1,e1,h2,e3,d4,e4,f4,d5,d3,d2,c2,c4,d6,e7,e6,c6,f8,e9,f9,d9,c7,c8,b8,b7';
     var game1MovesIj = this.movesIj(game1);
-    count = main.isCoverTest ? 1 : 2000;
+    var count = main.isCoverTest ? 1 : 2000;
     t.start('35 move game, ' + count + ' times and undo', 0.05);
-    for (i = 0; i < count; i++) {
+    for (var i = 0; i < count; i++) {
         this.playGameAndClean(game1MovesIj, TestSpeed.CM_UNDO);
     }
     t.stop();
@@ -76,7 +81,7 @@ TestSpeed.prototype.testSpeed1 = function () {
     t.stop();
 };
 
-TestSpeed.prototype.testSpeed2 = function () {
+TestSpeed.prototype.testSpeed63movesAndUndo = function () {
     var t = new TimeKeeper();
     // 9 ++O@@++++
     // 8 +@OO@++@+
@@ -100,6 +105,13 @@ TestSpeed.prototype.testSpeed2 = function () {
     var count = main.isCoverTest ? 1 : 2000;
     t.start('63 move game, ' + count + ' times and undo', 0.1);
     for (var i = 0; i < count; i++) {
+        this.playGameAndClean(game2MovesIj, TestSpeed.CM_UNDO);
+    }
+    t.stop();
+
+    t.start('63 move game, ' + count + ' times and undo, using superko rule', 0.4);
+    this.goban.setPositionalSuperko(true);
+    for (i = 0; i < count; i++) {
         this.playGameAndClean(game2MovesIj, TestSpeed.CM_UNDO);
     }
     t.stop();
@@ -134,7 +146,7 @@ TestSpeed.prototype.playMoves = function (movesIj) {
 
 TestSpeed.prototype.playGameAndClean = function (movesIj, cleanMode) {
     var numMoves = movesIj.length / 2;
-    if (main.debug) main.log.debug('About to play a game of ' + numMoves + ' moves');
+    if (log.debug) log.debug('About to play a game of ' + numMoves + ' moves');
     this.assertEqual(numMoves, this.playMoves(movesIj));
     switch (cleanMode) {
     case TestSpeed.CM_UNDO:

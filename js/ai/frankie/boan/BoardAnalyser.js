@@ -1,15 +1,13 @@
 //Translated from board_analyser.rb using babyruby2js
 'use strict';
 
-var main = require('../../../main');
+var CONST = require('../../../constants');
 var Grid = require('../../../Grid');
-var Group = require('../../../Group');
+var log = require('../../../log');
 var ZoneFiller = require('./ZoneFiller');
 var Shaper = require('../Shaper');
 
-var BOAN_VERSION = 'frankie';
-
-var EMPTY = main.EMPTY, BLACK = main.BLACK, WHITE = main.WHITE;
+var EMPTY = CONST.EMPTY, BLACK = CONST.BLACK, WHITE = CONST.WHITE;
 var ALIVE = 1000;
 
 function grpNdx(g) { return '#' + g.ndx; }
@@ -80,7 +78,7 @@ Void.prototype.isFakeEye = function (color) {
     for (var i = groups.length - 1; i >= 0; i--) {
         var gi = groups[i]._info;
         if (gi.numContactPoints === 1 && !gi.deadEnemies.length) {
-            if (main.debug && !isFake) main.log.debug('FAKE EYE: ' + this);
+            if (log.debug && !isFake) log.debug('FAKE EYE: ' + this);
             isFake = true;
             gi.makeDependOn(groups, this);
         }
@@ -95,7 +93,7 @@ Void.prototype.isFakeEye = function (color) {
 
 Void.prototype.setEyeOwner = function (color) {
     if (this.vtype === vEYE && color === this.owner) return;
-    if (main.debug) main.log.debug('EYE: ' + Grid.colorName(color) + ' owns ' + this);
+    if (log.debug) log.debug('EYE: ' + Grid.colorName(color) + ' owns ' + this);
     this.vtype = vEYE;
     this.owner = color;
 
@@ -108,7 +106,7 @@ Void.prototype.setEyeOwner = function (color) {
 };
 
 Void.prototype.setAsDame = function () {
-    if (main.debug) main.log.debug('DAME: ' + this);
+    if (log.debug) log.debug('DAME: ' + this);
     if (this.owner !== undefined) {
         var groups = this.groups[this.owner];
         for (var i = groups.length - 1; i >= 0; i--) {
@@ -122,7 +120,7 @@ Void.prototype.setAsDame = function () {
 // Called for eyes or fake eyes when their owner group is captured
 Void.prototype.wasJustStolen = function () {
     if (this.owner === undefined) throw new Error('stolen eye of undefined owner');
-    if (main.debug) main.log.debug('STOLEN EYE: ' + this);
+    if (log.debug) log.debug('STOLEN EYE: ' + this);
     // remove eye from previous owners and build the list of killers
     var groups = this.groups[this.owner];
     var killers = [];
@@ -148,7 +146,7 @@ Void.prototype.getSingleOwner = function () {
 };
 
 Void.prototype.toString = function () {
-    var s = vtype2str(this.vtype) + ' ' + this.code + '-' + Grid.colorToChar(this.code) + ' (' + Grid.xy2move(this.i, this.j) + '), vcount ' + this.vcount;
+    var s = vtype2str(this.vtype) + ' ' + this.code + ' (' + Grid.xy2move(this.i, this.j) + '), vcount ' + this.vcount;
     for (var color = 0; color < this.groups.length; color++) {
         s += ', ' + this.groups[color].length + ' ' + Grid.colorName(color) + ' neighbors';
     }
@@ -156,9 +154,9 @@ Void.prototype.toString = function () {
 };
 
 Void.prototype.debugDump = function () {
-    main.log.debug(this.toString());
+    log.debug(this.toString());
     for (var color = 0; color < this.groups.length; color++) {
-        main.log.debug('    Color ' + color + ' (' + Grid.colorToChar(color) + '): ' +
+        log.debug('    Color ' + color + ': ' +
             this.groups[color].map(grpNdx));
     }
 };
@@ -204,7 +202,7 @@ Band.prototype.remove = function (gi) {
 
 // groups contains the groups in the band
 Band.gather = function (groups) {
-    if (main.debug) main.log.debug('BROTHERS: ' + groups.length + ' groups: ' + groups);
+    if (log.debug) log.debug('BROTHERS: ' + groups.length + ' groups: ' + groups);
     if (groups.length === 1) throw new Error('add Band of 1');
 
     // look if one of the group is already in a band
@@ -225,8 +223,8 @@ Band.gather = function (groups) {
 //---
 
 /** @class Contains the analyse results that are attached to each group */
-function GroupInfo(group) {
-    this.version = BOAN_VERSION;
+function GroupInfo(group, boan) {
+    this.boan = boan;
     this.voids = []; // empty zones next to a group
     this.dependsOn = [];
     this.deadEnemies = [];
@@ -260,7 +258,7 @@ GroupInfo.prototype.toString = function () {
 
 // Adds a void or an eye to an owner-group
 GroupInfo.prototype.addVoid = function (v) {
-    if (main.debug) main.log.debug('OWNED EYE: ' + v + ' owned by ' + this);
+    if (log.debug) log.debug('OWNED EYE: ' + v + ' owned by ' + this);
     this.voids.push(v);
     if (v.vtype === vEYE) this.eyeCount++;
 };
@@ -269,7 +267,7 @@ GroupInfo.prototype.addVoid = function (v) {
 GroupInfo.prototype.removeVoid = function (v) {
     var ndx = this.voids.indexOf(v);
     if (ndx === -1) return;
-    if (main.debug) main.log.debug('LOST EYE: ' + v + ' lost by ' + this);
+    if (log.debug) log.debug('LOST EYE: ' + v + ' lost by ' + this);
     this.voids.splice(ndx, 1);
     if (v.vtype === vEYE) this.eyeCount--;
 };
@@ -283,7 +281,7 @@ GroupInfo.prototype.giveVoidsTo = function (gi) {
 };
 
 GroupInfo.prototype.makeDependOn = function (groups) {
-    if (main.debug) main.log.debug('DEPENDING group: ' + this);
+    if (log.debug) log.debug('DEPENDING group: ' + this);
     var band = this.band;
     if (band) band.remove(this);
     
@@ -291,7 +289,7 @@ GroupInfo.prototype.makeDependOn = function (groups) {
         var gi = groups[n]._info;
         if (gi === this) continue; // this group itself
         if(this.dependsOn.indexOf(gi) < 0) {
-            if (main.debug) main.log.debug('DEPENDS: ' + this + ' depends on ' + gi);
+            if (log.debug) log.debug('DEPENDS: ' + this + ' depends on ' + gi);
             this.dependsOn.push(gi);
         }
     }
@@ -334,7 +332,7 @@ GroupInfo.prototype.considerDead = function (reason) {
     for (var i = enemies.length - 1; i >= 0; i--) {
         enemies[i]._info.deadEnemies.push(this);
     }
-    if (main.debug) main.log.debug('DEAD-' + reason + ': ' + this);
+    if (log.debug) log.debug('DEAD-' + reason + ': ' + this);
 };
 
 /** Returns a number telling how "alive" a group is.
@@ -366,7 +364,7 @@ GroupInfo.prototype.liveliness = function (shallow) {
 
 GroupInfo.prototype.checkDoubleEye = function () {
     if (this.voids.length + this.deadEnemies.length >= 2) {
-        if (main.debug) main.log.debug('ALIVE-doubleEye: ' + this);
+        if (log.debug) log.debug('ALIVE-doubleEye: ' + this);
         this.isAlive = true;
         return true;
     }
@@ -379,7 +377,7 @@ GroupInfo.prototype.checkParents = function () {
     for (var n = this.dependsOn.length - 1; n >= 0; n--) {
         var parent = this.dependsOn[n];
         if (parent.isAlive) {
-            if (main.debug) main.log.debug('ALIVE-parents: ' + this);
+            if (log.debug) log.debug('ALIVE-parents: ' + this);
             this.isAlive = true;
             return true;
         }
@@ -407,7 +405,7 @@ GroupInfo.prototype.checkBrothers = function () {
         }
     }
     if (!oneIsAlive) return false;
-    if (main.debug) main.log.debug('ALIVE-brothers: ' + this);
+    if (log.debug) log.debug('ALIVE-brothers: ' + this);
     this.isAlive = true;
     return true;
 };
@@ -432,7 +430,7 @@ GroupInfo.prototype.checkSingleEye = function (first) {
     }
 
     this.isAlive = true;
-    if (main.debug) main.log.debug('ALIVE-singleEye-' + alive + ': ' + this);
+    if (log.debug) log.debug('ALIVE-singleEye-' + alive + ': ' + this);
     return true;
 };
 
@@ -440,7 +438,7 @@ GroupInfo.prototype.checkLiveliness = function (minLife) {
     var life = this.liveliness();
     if (life >= ALIVE) {
         this.isAlive = true;
-        if (main.debug) main.log.debug('ALIVE-liveliness ' + life + ': ' + this);
+        if (log.debug) log.debug('ALIVE-liveliness ' + life + ': ' + this);
         return true;
     }
     if (life < minLife) {
@@ -464,7 +462,7 @@ GroupInfo.prototype.checkLiveliness2 = function () {
 /** @class public read-only attribute: goban, scores, prisoners
  */
 function BoardAnalyser() {
-    this.version = BOAN_VERSION;
+    this.version = 'frankie';
     this.goban = null;
     this.allVoids = [];
     this.scores = [0, 0];
@@ -474,14 +472,14 @@ module.exports = BoardAnalyser;
 
 
 BoardAnalyser.prototype.countScore = function (goban) {
-    if (main.debug) main.log.debug('Counting score...');
+    if (log.debug) log.debug('Counting score...');
     this.scores[BLACK] = this.scores[WHITE] = 0;
-    this.prisoners = Group.countPrisoners(goban);
+    this.prisoners = goban.countPrisoners();
 
     if (!this._initAnalysis(goban)) return;
     this._runAnalysis();
     this._finalColoring();
-    if (main.debug) main.log.debug(this.filler.grid.toText(function (c) { return Grid.colorToChar(c); }));
+    if (log.debug) log.debug(this.filler.grid.toText());
 };
 
 BoardAnalyser.prototype.getScoringGrid = function () {
@@ -500,9 +498,7 @@ BoardAnalyser.prototype.image = function () {
 };
 
 BoardAnalyser.prototype.debugDump = function () {
-    main.log.debug(this.filler.grid.toText(function (c) {
-        return Grid.colorToChar(c);
-    }));
+    log.debug(this.filler.grid.toText());
     for (var v, v_array = this.allVoids, v_ndx = 0; v=v_array[v_ndx], v_ndx < v_array.length; v_ndx++) {
         v.debugDump();
     }
@@ -513,10 +509,10 @@ BoardAnalyser.prototype.debugDump = function () {
             var numEyes = g._info.eyeCount;
             eyes[numEyes >= 2 ? 2 : numEyes].push(g);
         }
-        main.log.debug('\nGroups with 2 eyes or more: ' + eyes[2].map(grpNdx));
-        main.log.debug('Groups with 1 eye: ' + eyes[1].map(grpNdx));
-        main.log.debug('Groups with no eye: ' + eyes[0].map(grpNdx));
-        main.log.debug('Score:' + this.scores.map(function (s, i) {
+        log.debug('\nGroups with 2 eyes or more: ' + eyes[2].map(grpNdx));
+        log.debug('Groups with 1 eye: ' + eyes[1].map(grpNdx));
+        log.debug('Groups with no eye: ' + eyes[0].map(grpNdx));
+        log.debug('Score:' + this.scores.map(function (s, i) {
             return ' player ' + i + ': ' + s + ' points';
         }));
     }
@@ -534,8 +530,8 @@ BoardAnalyser.prototype._initAnalysis = function (goban, grid) {
 BoardAnalyser.prototype._addGroup = function (g) {
     if (this.allGroups[g.ndx]) return;
     this.allGroups[g.ndx] = g;
-    if (!g._info || g._info.version !== BOAN_VERSION) {
-        g._info = new GroupInfo(g);
+    if (!g._info || g._info.boan !== this) {
+        g._info = new GroupInfo(g, this);
     } else {
         g._info.resetAnalysis(g);
     }
@@ -545,7 +541,7 @@ BoardAnalyser.prototype._addGroup = function (g) {
  *  The voids know which groups are around them
  *  but the groups do not own any void yet. */
 BoardAnalyser.prototype._initVoidsAndGroups = function () {
-    if (main.debug) main.log.debug('---Initialising voids & groups...');
+    if (log.debug) log.debug('---Initialising voids & groups...');
     var voidCode = Grid.ZONE_CODE;
     this.allGroups = {};
     this.allVoids.clear();
@@ -583,7 +579,7 @@ BoardAnalyser.prototype._findBrothers = function () {
 
 // Find voids surrounded by a single color -> eyes
 BoardAnalyser.prototype._findEyeOwners = function () {
-    if (main.debug) main.log.debug('---Finding eye owners...');
+    if (log.debug) log.debug('---Finding eye owners...');
     for (var n = this.allVoids.length - 1; n >= 0; n--) {
         this.allVoids[n].findOwner();
     }
@@ -623,10 +619,10 @@ BoardAnalyser.prototype._findBattleWinners = function () {
             var winner = compareLivelines(life);
             // make sure we have a winner, not a tie
             if (winner === undefined) {
-                if (main.debug) main.log.debug('BATTLED EYE in dispute: ' + v);
+                if (log.debug) log.debug('BATTLED EYE in dispute: ' + v);
                 continue;
             }
-            if (main.debug) main.log.debug('BATTLED EYE: ' + Grid.colorName(winner) +
+            if (log.debug) log.debug('BATTLED EYE: ' + Grid.colorName(winner) +
                 ' wins with ' + life[winner].toFixed(2) + ' VS ' + life[1 - winner].toFixed(2));
             v.setEyeOwner(winner);
             foundOne = true;
@@ -643,10 +639,10 @@ BoardAnalyser.prototype._reviewGroups = function (fn, stepNum, first) {
         reviewedCount++;
         if (fn.call(gi, first)) count++;
     }
-    if (main.debug) {
+    if (log.debug) {
         var msg = 'REVIEWED ' + reviewedCount + ' groups for step ' + stepNum;
         if (count) msg += ' => found ' + count + ' alive/dead groups';
-        main.log.debug(msg);
+        log.debug(msg);
     }
     if (count === reviewedCount) return -1; // really finished
     return count;

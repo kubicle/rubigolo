@@ -1,45 +1,47 @@
-//Translated from genes.rb using babyruby2js
 'use strict';
 
 var main = require('./main');
-//require 'yaml';
 
-/** @class public read-only attribute: map
+var idGen = 1;
+
+
+/** @class
  */
-function Genes(map, limits) {
-    if (map === undefined) map = {};
-    if (limits === undefined) limits = {};
-    this.map = map;
-    this.limits = limits;
+function Genes(map, limits, name) {
+    this._map = map || {};
+    this._limits = limits || {};
+    this.name = name || '#' + idGen++;
 }
 module.exports = Genes;
 
-Genes.SMALL_MUTATION_AMOUNT = 0.05; // e.g. 0.05 -> plus or minus 5%
-// for limits
-Genes.LOW = 0;
-Genes.HIGH = 1;
-Genes.prototype.clone = function () {
-    return new Genes(main.clone(this.map), main.clone(this.limits));
+var SMALL_MUTATION = 0.05; // e.g. 0.05 -> plus or minus 5%
+
+// Each limit is an array of 2 numbers: LOW and HIGH:
+var LOW = 0, HIGH = 1;
+
+
+Genes.prototype.clone = function (newName) {
+    return new Genes(main.clone(this._map), main.clone(this._limits), newName);
 };
 
 Genes.prototype.setLimits = function (limits) {
-    this.limits = limits;
+    this._limits = limits;
 };
 
 Genes.prototype.toString = function () {
-    var s = '';
-    for (var k in this.map) {
-        s += k + ':' + '%.02f'.format(this.map[k]) + ', ';
+    var s = '{' + this.name + ' - ';
+    for (var k in this._map) {
+        s += k + ':' + this._map[k].toFixed(2) + ', ';
     }
-    return s.chomp(', ');
+    return s.chomp(', ') + '}';
 };
 
 // Returns a distance between 2 sets of genes
 Genes.prototype.distance = function (gene2) {
     var dist = 0.0;
-    for (var k in this.map) {
-        var m = this.map[k];
-        var n = gene2.map[k];
+    for (var k in this._map) {
+        var m = this._map[k];
+        var n = gene2._map[k];
         // first handle sign differences
         if ((n < 0) !== (m < 0)) {
             if (n < 0) {
@@ -54,17 +56,17 @@ Genes.prototype.distance = function (gene2) {
             n = Math.abs(n);
         }
         // then separate 0 values
+        var d;
         if (n === 0.0) {
-            var d = (( m > 1.0 ? 1.0 : m ));
+            d = m > 1.0 ? 1.0 : m;
         } else if (m === 0.0) {
-            d = (( n > 1.0 ? 1.0 : n ));
+            d = n > 1.0 ? 1.0 : n;
         } else {
             // finally we can do a ratio
-            d = 1.0 - (( n >= m ? m / n : n / m ));
+            d = 1.0 - ( n >= m ? m / n : n / m );
         }
-        dist += d; // puts "Distance for #{k} between #{'%.02f' % @map[k]} and #{'%.02f' % gene2.map[k]}: #{d}"
+        dist += d;
     }
-    // puts "Total distance: #{'%.02f' % dist}"
     return dist;
 };
 
@@ -74,14 +76,13 @@ Genes.prototype.distance = function (gene2) {
 Genes.prototype.get = function (name, defValue, lowLimit, highLimit) {
     if (lowLimit === undefined) lowLimit = null;
     if (highLimit === undefined) highLimit = null;
-    var val = this.map[name];
-    if (val) {
+    var val = this._map[name];
+    if (val)
         return val;
-    }
-    this.map[name] = defValue;
-    if (lowLimit || highLimit) {
-        this.limits[name] = [lowLimit, highLimit];
-    }
+
+    this._map[name] = defValue;
+
+    if (lowLimit || highLimit) this._limits[name] = [lowLimit, highLimit];
     if (lowLimit && highLimit && lowLimit > highLimit) {
         throw new Error('Limits are invalid: ' + lowLimit + ' > ' + highLimit);
     }
@@ -89,25 +90,27 @@ Genes.prototype.get = function (name, defValue, lowLimit, highLimit) {
 };
 
 Genes.prototype.serialize = function () {
-    return main.YAML.dump(this);
+    return JSON.stringify(this);
 };
 
-Genes.unserialize = function (dump) {
-    return main.YAML.load(dump);
+Genes.unserialize = function (text) {
+    var j = JSON.parse(text);
+    this._map = j._map;
+    this._limits = j._limits;
 };
 
 // mutation_rate: 0.05 for 5% mutation on each gene
 // wide_mutation_rate: 0.20 for 20% chances to pick any value in limit range
 // if wide mutation is not picked, a value near to the old value is picked
 Genes.prototype.mate = function (parent2, kid1, kid2, mutationRate, wideMutationRate) {
-    var p1 = this.map;
-    var p2 = parent2.map;
-    kid1.setLimits(this.limits);
-    kid2.setLimits(this.limits);
-    var k1 = kid1.map;
-    var k2 = kid2.map;
-    var crossPoint2 = ~~(Math.random()*~~(p1.length));
-    var crossPoint = ~~(Math.random()*~~(crossPoint2));
+    var p1 = this._map;
+    var p2 = parent2._map;
+    kid1.setLimits(this._limits);
+    kid2.setLimits(this._limits);
+    var k1 = kid1._map;
+    var k2 = kid2._map;
+    var crossPoint2 = ~~(Math.random() * p1.length);
+    var crossPoint = ~~(Math.random() * crossPoint2);
     var pos = 0;
     for (var key in p1) {
         if (pos < crossPoint || pos > crossPoint2) {
@@ -123,26 +126,23 @@ Genes.prototype.mate = function (parent2, kid1, kid2, mutationRate, wideMutation
         if (Math.random() < mutationRate) {
             k2[key] = this.mutation1(key, k2[key], wideMutationRate);
         }
-        pos += 1;
+        pos++;
     }
 };
 
 Genes.prototype.mutation1 = function (name, oldVal, wideMutationRate) {
-    var limits = this.limits[name];
+    var limits = this._limits[name];
+    var val;
     if (limits) {
-        var low = limits[Genes.LOW];
-        var high = limits[Genes.HIGH];
+        var low = limits[LOW];
+        var high = limits[HIGH];
         if (Math.random() < wideMutationRate) {
-            var val = low + Math.random() * (high - low);
+            val = low + Math.random() * (high - low);
         } else {
-            var variation = 1 + (Math.random() * 2 * Genes.SMALL_MUTATION_AMOUNT) - Genes.SMALL_MUTATION_AMOUNT;
+            var variation = 1 + (Math.random() * 2 * SMALL_MUTATION) - SMALL_MUTATION;
             val = oldVal * variation;
-            if (low && val < low) {
-                val = low;
-            }
-            if (high && val > high) {
-                val = high;
-            }
+            if (low && val < low) val = low;
+            if (high && val > high) val = high;
         }
     } else {
         // not used yet; it seems we will always have limits for valid values
@@ -153,14 +153,8 @@ Genes.prototype.mutation1 = function (name, oldVal, wideMutationRate) {
 };
 
 Genes.prototype.mutateAll = function () {
-    for (var key in this.map) {
-        this.map[key] = this.mutation1(key, this.map[key], 1.0);
+    for (var key in this._map) {
+        this._map[key] = this.mutation1(key, this._map[key], 1.0);
     }
     return this;
 };
-
-// E02: unknown method: chomp!(...)
-// E02: unknown method: dump(...)
-// W02: unknown constant supposed to be attached to main: YAML
-// E02: unknown method: load(...)
-// W02: unknown constant supposed to be attached to main: YAML

@@ -1,20 +1,26 @@
-//Translated from grid.rb using babyruby2js
 'use strict';
 
+var CONST = require('./constants');
 var main = require('./main');
 
-/** @class A generic grid - a Goban owns a grid
- *  public read-only attribute: gsize, yx
+var GRID_BORDER = CONST.GRID_BORDER;
+
+
+/** @class A generic grid.
+ *  NB: We keep extra "border" cells around the real board.
+ *      Idea is to avoid checking i,j against gsize in many places.
+ *  public read-only attribute: gsize
+ *  public RW attribute: yx
  */
-function Grid(gsize) {
-    if (gsize === undefined) gsize = 19;
+function Grid(gsize, initValue, borderValue) {
+    if (initValue === undefined) throw new Error('Grid init value must be defined');
     this.gsize = gsize;
-    // We keep extra "border" cells around the real board.
-    // Idea is to avoid to have to check i,j against gsize in many places.
-    // Having a real item (BORDER) on the way helps to detect bugs.
-    this.yx = Array.new(gsize + 2, function () {
-        return Array.new(gsize + 2, main.BORDER);
-    });
+    if (borderValue === undefined) {
+        this.yx = main.newArray2(gsize + 2, gsize + 2, initValue);
+    } else {
+        this.yx = main.newArray2(gsize + 2, gsize + 2, borderValue);
+        this.init(initValue);
+    }
 }
 module.exports = Grid;
 
@@ -42,7 +48,7 @@ Grid.territory2char = '-\'?.:';
 
 
 Grid.prototype.init = function (initValue) {
-    if (initValue === undefined) initValue = main.EMPTY;
+    if (initValue === undefined) throw new Error('Grid init value must be defined');
     for (var j = this.gsize; j >= 1; j--) {
         var yxj = this.yx[j];
         for (var i = this.gsize; i >= 1; i--) {
@@ -81,7 +87,8 @@ Grid.prototype.initFromGoban = function (goban) {
 };
 
 // Returns the "character" used to represent a stone in text style
-Grid.colorToChar = function (color) {
+function colorToChar(color) {
+    if (color === GRID_BORDER) return '(BORDER)';
     if (color >= Grid.ZONE_CODE) {
         return String.fromCharCode(('A'.charCodeAt() + color - Grid.ZONE_CODE));
     }
@@ -90,7 +97,7 @@ Grid.colorToChar = function (color) {
     }
     if (color < 0) color += Grid.COLOR_CHARS.length;
     return Grid.COLOR_CHARS[color];
-};
+}
 
 // Returns the name of the color/player (e.g. "black")
 Grid.colorName = function (color) { // TODO remove me or?
@@ -101,44 +108,40 @@ Grid.charToColor = function (char) {
     return Grid.CIRCULAR_COLOR_CHARS.indexOf(char) + Grid.DAME_COLOR;
 };
 
+function cell2char(c) {
+    return colorToChar(typeof c === 'number' ? c : c.color);
+}
+
 Grid.prototype.toText = function (block) {
-    return this.toTextExt(true, '\n', block);
+    return this.toTextExt(true, '\n', block || cell2char);
 };
 
 Grid.prototype.toLine = function (block) {
-    return this.toTextExt(false, ',', block);
+    return this.toTextExt(false, ',', block || cell2char);
 };
 
 // Receives a block of code and calls it for each vertex.
 // The block should return a string representation.
 // This method returns the concatenated string showing the grid.
 Grid.prototype.toTextExt = function (withLabels, endOfRow, block) {
-    var yx = new Grid(this.gsize).yx;
+    var outYx = new Grid(this.gsize, '').yx;
     var maxlen = 1, i, j, val;
     for (j = this.gsize; j >= 1; j--) {
         for (i = 1; i <= this.gsize; i++) {
             val = block(this.yx[j][i]);
-            if (val === null) {
-                val = '';
-            }
-            yx[j][i] = val;
-            if (val.length > maxlen) {
-                maxlen = val.length;
-            }
+            if (val === null) continue;
+            outYx[j][i] = val;
+            maxlen = Math.max(maxlen, val.length);
         }
     }
     var numChar = maxlen;
     var white = '          ';
     var s = '';
     for (j = this.gsize; j >= 1; j--) {
-        if (withLabels) {
-            s += '%2d'.format(j) + ' ';
-        }
+        if (withLabels) s += '%2d'.format(j) + ' ';
         for (i = 1; i <= this.gsize; i++) {
-            val = yx[j][i];
-            if (val.length < numChar) {
-                val = white.substr(1, numChar - val.length) + val;
-            }
+            val = outYx[j][i];
+            if (val.length < numChar) val = white.substr(1, numChar - val.length) + val;
             s += val;
         }
         s += endOfRow;
@@ -150,9 +153,7 @@ Grid.prototype.toTextExt = function (withLabels, endOfRow, block) {
         }
         s += '\n';
     }
-    if (endOfRow !== '\n') {
-        return s.chop();
-    }
+    if (endOfRow !== '\n') s = s.chop(); // remove last endOfRow unless it is \n
     return s;
 };
 
@@ -160,7 +161,7 @@ Grid.prototype.toString = function () {
     var s = '';
     for (var j = this.gsize; j >= 1; j--) {
         for (var i = 1; i <= this.gsize; i++) {
-            s += Grid.colorToChar(this.yx[j][i]);
+            s += colorToChar(this.yx[j][i]);
         }
         s += '\n';
     }
@@ -173,11 +174,11 @@ Grid.prototype.toString = function () {
 Grid.prototype.image = function () {
     if (typeof this.yx[1][1] === 'object') {
         return this.toLine(function (s) {
-            return Grid.colorToChar(s.color);
+            return colorToChar(s.color);
         });
     } else {
         return this.toLine(function (c) {
-            return Grid.colorToChar(c);
+            return colorToChar(c);
         });
     }
 };
@@ -198,13 +199,49 @@ Grid.prototype.loadImage = function (image) {
     }
 };
 
+function reverseStr(s) {
+    var res = '';
+    for (var i = s.length - 1; i >= 0; i--) { res += s[i]; }
+    return res;
+}
+
+Grid.flipImage = function (image) {
+    return image.split(',').reverse().join();
+};
+
+Grid.mirrorImage = function (image) {
+    return image.split(',').map(reverseStr).join();
+};
+
+Grid.flipAndMirrorImage = function (image) {
+    return reverseStr(image);
+};
+
+// Rotate given image 90 degrees counter-clockwise
+Grid.rotateImage = function (image) {
+    var res = '';
+    var rows = image.split(',');
+    for (var col = rows[0].length - 1; col >= 0; col--) {
+        res += ',';
+        for (var row = 0; row < rows.length; row++) {
+            res += rows[row][col];
+        }
+    }
+    return res.substr(1);
+};
+
+
 var COLUMNS = 'abcdefghjklmnopqrstuvwxyz'; // NB: "i" is skipped
 
 // Parses a move like "c12" into 3,12
-Grid.move2xy = function (move) {
+// Throws OR returns null if move is not a vertex or illegal
+Grid.move2xy = function (move, dontThrow) {
     var i = COLUMNS.indexOf(move[0]) + 1;
     var j = parseInt(move.substr(1, 2));
-    if (!i || isNaN(j)) throw new Error('Illegal move parsed: ' + move);
+    if (!i || isNaN(j)) {
+        if (dontThrow) return null;
+        throw new Error('Illegal move parsed: ' + move);
+    }
     return [i, j];
 };
 
