@@ -9,8 +9,8 @@ var GameLogic = require('../GameLogic');
 var Grid = require('../Grid');
 var NewGameDlg = require('./NewGameDlg');
 var PopupDlg = require('./PopupDlg');
+var pref = require('../localPref');
 var ScoreAnalyser = require('../ScoreAnalyser');
-var userPref = require('../userPreferences');
 
 var WHITE = CONST.WHITE, BLACK = CONST.BLACK;
 
@@ -37,26 +37,26 @@ module.exports = Ui;
 Ui.prototype.createUi = function () {
     window.addEventListener('beforeunload', this.beforeUnload.bind(this));
 
-    this.gsize = userPref.getValue('lastGameSize', 9);
-    this.handicap = userPref.getValue('lastGameHandicap', 0);
-    this.aiPlays = userPref.getValue('lastGameAiPlays', 'white');
-    this.rules = userPref.getValue('lastGameRules', 'jp');
-    var lastGame = userPref.getValue('lastGameHistory');
+    this.gsize = pref.getValue('lastGameSize', 9);
+    this.handicap = pref.getValue('lastGameHandicap', 0);
+    this.aiPlays = pref.getValue('lastGameAiPlays', 'white');
+    this.rules = pref.getValue('lastGameRules', 'jp');
+    var lastGame = pref.getValue('lastGameHistory');
 
     this.newGameDialog(lastGame);
 };
 
 Ui.prototype.saveGamePreferences = function () {
-    userPref.setValue('lastGameSize', this.gsize);
-    userPref.setValue('lastGameHandicap', this.handicap);
-    userPref.setValue('lastGameAiPlays', this.aiPlays);
-    userPref.setValue('lastGameRules', this.rules);
-    userPref.setValue('lastGameHistory', this.game.history);
+    pref.setValue('lastGameSize', this.gsize);
+    pref.setValue('lastGameHandicap', this.handicap);
+    pref.setValue('lastGameAiPlays', this.aiPlays);
+    pref.setValue('lastGameRules', this.rules);
+    pref.setValue('lastGameHistory', this.game.history);
 };
 
 Ui.prototype.beforeUnload = function () {
     this.saveGamePreferences();
-    userPref.close();
+    pref.terminate();
 };
 
 Ui.prototype.refreshBoard = function () {
