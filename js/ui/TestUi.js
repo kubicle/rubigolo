@@ -3,8 +3,8 @@
 var main = require('../main');
 var Dome = require('./Dome');
 var log = require('../log');
+var pref = require('../localPref');
 var Ui = require('./Ui');
-var userPref = require('../userPreferences');
 
 
 function TestUi() {
@@ -90,7 +90,7 @@ TestUi.prototype.createUi = function () {
     this.debug = Dome.newCheckbox(div1, 'debug', 'Debug');
 
     var div2 = testDiv.newDiv('patternDiv');
-    this.namePattern = Dome.newInput(div2, 'namePattern', 'Filter:', userPref.getValue('testNamePattern'));
+    this.namePattern = Dome.newInput(div2, 'namePattern', 'Filter:', pref.getValue('testNamePattern'));
     this.newButton(div2, 'FILTER', 'Run');
     
     testDiv.newDiv('subTitle').setText('Result');
@@ -100,12 +100,12 @@ TestUi.prototype.createUi = function () {
 };
 
 TestUi.prototype.saveTestPreferences = function () {
-    userPref.setValue('testNamePattern', this.namePattern.value());
+    pref.setValue('testNamePattern', this.namePattern.value());
 };
 
 TestUi.prototype.beforeUnload = function () {
     this.saveTestPreferences();
-    userPref.close();
+    pref.terminate();
 };
 
 TestUi.prototype.showTestGame = function (title, msg, game) {

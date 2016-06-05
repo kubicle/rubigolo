@@ -7,8 +7,8 @@ var Dome = require('./Dome');
 var Gtp = require('../net/Gtp');
 var log = require('../log');
 var main = require('../main');
+var pref = require('../localPref');
 var UiGtpEngine = require('../net/UiGtpEngine');
-var userPref = require('../userPreferences');
 
 var WHITE = CONST.WHITE, BLACK = CONST.BLACK, EMPTY = CONST.EMPTY;
 var sOK = CONST.sOK, ODD = CONST.ODD, EVEN = CONST.EVEN;
@@ -17,7 +17,7 @@ var NO_HEURISTIC = '(heuristic)';
 
 
 Ui.prototype.initDev = function () {
-    this.inDevMode = userPref.getValue('devMode', false);
+    this.inDevMode = pref.getValue('devMode', false);
     this.debugHeuristic = null;
     this.inEvalMode = false;
     this.devKeys = '';
@@ -27,7 +27,7 @@ Ui.prototype.onDevKey = function (key) {
     this.devKeys = this.devKeys.slice(-9) + key;
     if (this.devKeys.slice(-2) === 'db') {
         this.inDevMode = !this.inDevMode;
-        userPref.setValue('devMode', this.inDevMode);
+        pref.setValue('devMode', this.inDevMode);
         return this.toggleControls();
     }
     if (this.devKeys.slice(-2) === '0g') {
